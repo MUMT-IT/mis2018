@@ -28,9 +28,9 @@
   <div class="col-md-6">
     <div class="p-3 border rounded-4 bg-white shadow-sm text-center">
       <span class="text-muted small d-block mb-1">ยอดคงเหลือ (บาท)</span>
-      <span class="fs-4 fw-bold {% if dept_summary and dept_summary.remaining_budget <= 0 %}text-danger{% else %}text-success{% endif %}">
-        {% if dept_summary %}
-          {{ '{:,.2f}'.format(dept_summary.remaining_budget) }} บาท
+      <span class="fs-4 fw-bold {% if ledger_running_balance <= 0 %}text-danger{% else %}text-success{% endif %}">
+        {% if ledger_running_balance is not none %}
+          {{ '{:,.2f}'.format(ledger_running_balance) }} บาท
         {% else %}
           0.00 บาท
         {% endif %}
@@ -38,7 +38,7 @@
     </div>
   </div>
   <div class="d-flex justify-content-center">
-    {% set remaining_amount = dept_summary.remaining_budget if dept_summary else 0 %}
+    {% set remaining_amount = ledger_running_balance if ledger_running_balance is not none else 0 %}
     {% if not setting or remaining_amount <= 0 %}
     <div class="d-flex justify-content-center gap-2 flex-wrap">
       <button type="button" class="btn btn-primary fw-bold" style="border-radius: 8px;" disabled>

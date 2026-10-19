@@ -184,6 +184,10 @@ class ServiceCustomerAccount(db.Model):
     def contact_phone_number(self):
         return self.customer_info.contact_phone_number
 
+    @property
+    def has_password(self):
+        return bool(self.__password_hash)
+
 
 class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
@@ -235,7 +239,7 @@ class ServiceCustomerInfo(db.Model):
             status = 'อนุมัติ'
         elif self.is_document_verified is False:
             status = 'ไม่อนุมัติ'
-        elif not self.is_document_verified and self.attachments:
+        elif not self.is_document_verified and self.required_attachments:
             status = 'รออนุมัติ'
         else:
             status = 'ยังไม่แนบเอกสาร'
@@ -247,7 +251,7 @@ class ServiceCustomerInfo(db.Model):
             color = 'is-success'
         elif self.is_document_verified is False:
             color = 'is-danger'
-        elif not self.is_document_verified and self.attachments:
+        elif not self.is_document_verified and self.required_attachments:
             color = 'is-warning'
         else:
             color = 'is-light'
@@ -259,7 +263,7 @@ class ServiceCustomerInfo(db.Model):
             color = '<i class="fas fa-check"></i>'
         elif self.is_document_verified is False:
             color = '<i class="fas fa-times"></i>'
-        elif not self.is_document_verified and self.attachments:
+        elif not self.is_document_verified and self.required_attachments:
             color = '<i class="fas fa-hourglass-half"></i>'
         else:
             color = '<i class="fas fa-inbox"></i>'
@@ -293,15 +297,27 @@ class ServiceCustomerContact(db.Model):
         }
 
 
-class ServiceCustomerAttachment(db.Model):
-    __tablename__ = 'service_customer_attachments'
+class ServiceCustomerRequiredAttachment(db.Model):
+    __tablename__ = 'service_customer_required_attachments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
     note = db.Column('note', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
-    type = db.Column('type', db.String())
-    file = db.Column('file', db.String(), info={'label': 'ไฟล์'})
+    attachment = db.Column('attachment', db.String(), info={'label': 'ไฟล์'})
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
-    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('attachments', cascade='all, delete-orphan'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('required_attachments', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return self.file_name
+
+
+class ServiceCustomerOtherAttachment(db.Model):
+    __tablename__ = 'service_customer_other_attachments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
+    note = db.Column('note', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
+    attachment = db.Column('attachment', db.String(), info={'label': 'ไฟล์'})
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('other_attachments', cascade='all, delete-orphan'))
 
     def __str__(self):
         return self.file_name

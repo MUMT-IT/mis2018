@@ -3007,7 +3007,7 @@ def generate_repair_approval_pdf(repair_approval):
                              f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
 
     if repair_approval.approver:
-        approver = f"{repair_approval.approver.fullname}"
+        approver = f"{repair_approval.approver.fullname_with_full_position}"
     else:
         approver = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"

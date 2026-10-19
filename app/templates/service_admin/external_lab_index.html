@@ -16,13 +16,13 @@
                         <p class="external-lab-subtitle">เลือกห้องปฏิบัติการและบริการที่ต้องการสร้าง Request ID</p>
                     </div>
                 </div>
-                {% if customer_id %}
+                <div class="buttons mb-0 external-lab-heading-actions">
                     <a class="button external-lab-back"
                        href="{{ url_for('service_admin.customer_detail', customer_id=customer_id) }}">
                         <span class="icon"><i class="fas fa-arrow-left"></i></span>
                         <span>กลับ</span>
                     </a>
-                {% endif %}
+                </div>
             </div>
             <div class="external-lab-instruction">
                 <span class="external-lab-instruction-step icon"><i class="fas fa-exclamation"></i></span>
@@ -49,35 +49,44 @@
 
                         <div class="external-service-grid">
                             {% for sub_lab in lab.sub_labs|sort(attribute='no') %}
-                                <a class="external-service-card"
-                                   hx-post="{{ url_for('service_admin.create_request_id', customer_id=customer_id,
-                                   sub_lab_id=sub_lab.id) }}"
-                                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                                   hx-confirm="ท่านต้องการสร้าง Request ID ของบริการนี้ใช่หรือไม่"
-                                >
-                                    <span class="external-service-icon" aria-hidden="true">
-                                        <i class="fas fa-vial"></i>
-                                    </span>
-                                    <span class="external-service-copy">
-                                        <strong>{{ sub_lab.sub_lab }}</strong>
-                                        <small>{{ sub_lab.code or 'บริการตรวจวิเคราะห์' }}</small>
-                                        {% if sub_lab.requests %}
-                                            <small class="external-service-request-no">
-                                                <i class="fas fa-clock-rotate-left"></i>
-                                                Request ล่าสุด: {{ (sub_lab.requests|max(attribute='request_no')).request_no }}
-                                            </small>
-                                        {% else %}
-                                            <small class="external-service-request-no">
-                                                <i class="fas fa-clock-rotate-left"></i>
-                                                ยังไม่มี Request ID
-                                            </small>
-                                        {% endif %}
-                                    </span>
-                                    <span class="external-service-create-button">
-                                        <i class="fas fa-plus"></i>
-                                        <span>สร้าง Request ID</span>
-                                    </span>
-                                </a>
+                                {% set latest_request = (sub_lab.requests|max(attribute='request_no')) if sub_lab.requests else None %}
+                                <div class="external-service-card">
+                                    <div class="external-service-info">
+                                        <span class="external-service-icon" aria-hidden="true">
+                                            <i class="fas fa-vial"></i>
+                                        </span>
+                                        <span class="external-service-copy">
+                                            <strong>{{ sub_lab.sub_lab }}</strong>
+                                        </span>
+                                    </div>
+                                    <div class="external-service-actions">
+                                        <span class="external-service-actions-label">การดำเนินการ</span>
+                                        <div class="external-service-action-buttons">
+                                            <button type="button"
+                                                    class="external-service-create-button"
+                                                    hx-post="{{ url_for('service_admin.create_request_id', customer_id=customer_id,
+                                                    sub_lab_id=sub_lab.id) }}"
+                                                    hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                                    hx-confirm="ท่านต้องการสร้าง Request ID ของบริการนี้ใช่หรือไม่">
+                                                <i class="fas fa-plus"></i>
+                                                <span>สร้าง Request ID ใหม่</span>
+                                            </button>
+                                            <button type="button"
+                                                    class="external-service-request-no"
+                                                    data-service-name="{{ sub_lab.sub_lab }}"
+                                                    data-request-no="{{ latest_request.request_no if latest_request else '' }}">
+                                                <span class="icon"><i class="fas fa-eye"></i></span>
+                                                <span>Request ปัจจุบัน</span>
+                                            </button>
+                                            <a class="external-service-all-request-button"
+                                               href="{{ url_for('service_admin.external_lab_request_index',
+                                               sub_lab_id=sub_lab.id, customer_id=customer_id) }}">
+                                                <span class="icon"><i class="fas fa-list"></i></span>
+                                                <span>Request ทั้งหมด</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             {% else %}
                                 <div class="external-lab-empty">ยังไม่มีบริการใน Lab นี้</div>
                             {% endfor %}
@@ -94,6 +103,25 @@
         </div>
     </section>
 
+    <div id="external-service-request-modal" class="modal" aria-hidden="true">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Request ของบริการ</p>
+                <button class="delete" type="button" aria-label="ปิด"></button>
+            </header>
+            <section class="modal-card-body">
+                <p class="external-service-modal-label">บริการ</p>
+                <p id="external-service-modal-name" class="external-service-modal-value">-</p>
+                <p class="external-service-modal-label">Request ปัจจุบัน</p>
+                <p id="external-service-modal-request-no" class="external-service-modal-request-no">-</p>
+            </section>
+            <footer class="modal-card-foot is-justify-content-flex-end">
+                <button class="button is-light is-rounded" type="button">ปิด</button>
+            </footer>
+        </div>
+    </div>
+
     <style>
         .external-lab-page { min-height: 38rem; padding: 3.5rem 0 4rem; }
         .external-lab-container { max-width: 76rem; }
@@ -103,7 +131,9 @@
         .external-lab-eyebrow { color: #6e7f99; font-size: .7rem; font-weight: 800; letter-spacing: .17em; margin-bottom: .35rem; }
         .external-lab-title { color: #15284d; font-size: clamp(1.65rem, 3vw, 2.2rem); margin-bottom: .35rem !important; }
         .external-lab-subtitle { color: #66738d; font-size: .9rem; margin: 0; }
-        .external-lab-back { border-radius: 10px; color: #294a78; font-weight: 700; }
+        .external-lab-heading-actions { align-items: center; justify-content: flex-end; }
+        .external-lab-back { border-radius: 10px; font-weight: 700; }
+        .external-lab-back { color: #294a78; }
         .external-lab-notice { align-items: flex-start; background: linear-gradient(135deg, #f4f9ff, #edf6ff); border: 1px solid #d4e7fb; border-radius: 16px; display: flex; gap: .85rem; margin: 0 auto 1.25rem; max-width: 70rem; padding: 1rem 1.15rem; }
         .external-lab-notice-icon { align-items: center; background: #dceeff; border-radius: 10px; color: #2f80c9; display: inline-flex; flex: 0 0 2.2rem; height: 2.2rem; justify-content: center; }
         .external-lab-notice strong { color: #1e4677; display: block; font-size: .9rem; }
@@ -121,17 +151,25 @@
         .external-lab-card-kicker { color: #8292a9; font-size: .66rem; font-weight: 800; letter-spacing: .15em; margin-bottom: .15rem; }
         .external-lab-card h2 { color: #1e3152; font-size: 1.1rem; font-weight: 800; margin: 0; }
         .external-lab-count { background: #edf8f0; border-radius: 999px; color: #237348; font-size: .78rem; font-weight: 700; padding: .35rem .7rem; white-space: nowrap; }
-        .external-service-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .external-service-card { align-items: center; background: #fbfdff; border: 1px solid #dceafa; border-radius: 13px; color: inherit; display: flex; gap: .75rem; min-width: 0; padding: .8rem .9rem; text-decoration: none; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+        .external-service-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr)); }
+        .external-service-card { align-items: stretch; background: #fbfdff; border: 1px solid #dceafa; border-radius: 13px; color: inherit; display: flex; flex-direction: column; gap: .85rem; min-width: 0; padding: 1rem 1.1rem; text-decoration: none; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
         .external-service-card:hover { border-color: #82b7e9; box-shadow: 0 8px 18px rgba(47,128,201,.12); color: inherit; transform: translateY(-2px); }
+        .external-service-info { align-items: center; display: flex; gap: .75rem; min-width: 0; }
         .external-service-icon { align-items: center; background: #eef6ff; border-radius: 9px; color: #2f80c9; display: inline-flex; flex: 0 0 2rem; height: 2rem; justify-content: center; }
-        .external-service-copy { display: flex; flex-direction: column; min-width: 0; }
-        .external-service-copy strong { color: #1e3152; font-size: .9rem; overflow-wrap: anywhere; }
-        .external-service-copy small { color: #8292a9; font-size: .72rem; margin-top: .12rem; }
-        .external-service-copy .external-service-request-no { color: #8292a9; font-size: .7rem; margin-top: .28rem; }
-        .external-service-request-no i { margin-right: .2rem; }
-        .external-service-create-button { align-items: center; background: #2f80c9; border-radius: 9px; color: #fff; display: inline-flex; flex: 0 0 auto; font-size: .75rem; font-weight: 800; gap: .35rem; justify-content: center; margin-left: auto; padding: .65rem .75rem; white-space: nowrap; }
+        .external-service-copy { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+        .external-service-label { color: #8292a9; font-size: .68rem; font-weight: 800; letter-spacing: .08em; margin-bottom: .1rem; text-transform: uppercase; }
+        .external-service-copy strong { color: #1e3152; font-size: 1rem; overflow-wrap: anywhere; }
+        .external-service-copy small { color: #8292a9; font-size: .85rem; margin-top: .12rem; }
+        .external-service-actions { align-items: flex-start; border-top: 1px solid #e2edf8; display: flex; flex-direction: column; gap: .4rem; min-width: 0; padding-top: .75rem; width: 100%; }
+        .external-service-actions-label { color: #667d9b; font-size: .72rem; font-weight: 800; }
+        .external-service-action-buttons { align-items: center; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: flex-start; }
+        .external-service-request-no, .external-service-all-request-button { align-items: center; background: #eef6ff; border: 1px solid #9ecaf0; border-radius: 9px; color: #1e67aa; cursor: pointer; display: inline-flex; font-family: inherit; font-size: .8rem; font-weight: 800; gap: .25rem; justify-content: center; padding: .6rem .7rem; text-align: center; text-decoration: none; white-space: nowrap; }
+        .external-service-request-no:hover, .external-service-all-request-button:hover { background: #dceeff; border-color: #5fa5dc; color: #14598f; }
+        .external-service-create-button { align-items: center; background: #2f80c9; border: 0; border-radius: 9px; color: #fff; cursor: pointer; display: inline-flex; flex: 0 0 auto; font-family: inherit; font-size: .75rem; font-weight: 800; gap: .35rem; justify-content: center; padding: .65rem .75rem; text-decoration: none; white-space: nowrap; }
         .external-service-card:hover .external-service-create-button { background: #1e67aa; }
+        .external-service-modal-label { color: #8292a9; font-size: .8rem; font-weight: 700; margin-bottom: .15rem; }
+        .external-service-modal-value { color: #1e3152; font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+        .external-service-modal-request-no { color: #2f80c9; font-size: 1.35rem; font-weight: 800; margin: 0; }
         .external-lab-empty { color: #8292a9; font-size: .85rem; padding: .5rem 0; }
         .external-lab-empty-card { background: rgba(255,255,255,.96); border: 1px dashed #b8cde3; border-radius: 18px; color: #667d9b; padding: 3rem 1rem; text-align: center; }
         .external-lab-empty-icon { align-items: center; background: #eef6ff; border-radius: 50%; color: #2f80c9; display: inline-flex; font-size: 1.4rem; height: 3rem; justify-content: center; width: 3rem; }
@@ -140,8 +178,10 @@
         @media screen and (max-width: 700px) {
             .external-lab-page { padding-top: 2rem; }
             .external-lab-heading { align-items: flex-start; flex-direction: column; }
+            .external-lab-heading-actions { justify-content: flex-start; }
             .external-lab-back { align-self: flex-start; }
             .external-service-grid { grid-template-columns: 1fr; }
+            .external-service-card { align-items: stretch; }
         }
         @media screen and (max-width: 480px) {
             .external-lab-heading-copy { align-items: flex-start; flex-direction: column; }
@@ -149,4 +189,32 @@
             .external-lab-card-heading { align-items: flex-start; flex-direction: column; gap: .75rem; }
         }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modal = document.getElementById('external-service-request-modal');
+            if (!modal) return;
+
+            const serviceName = document.getElementById('external-service-modal-name');
+            const requestNo = document.getElementById('external-service-modal-request-no');
+            const closeModal = function () {
+                modal.classList.remove('is-active');
+                modal.setAttribute('aria-hidden', 'true');
+            };
+
+            document.querySelectorAll('.external-service-request-no').forEach(function (button) {
+                button.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    serviceName.textContent = button.dataset.serviceName || '-';
+                    requestNo.textContent = button.dataset.requestNo || 'ยังไม่มี Request ID';
+                    modal.classList.add('is-active');
+                    modal.setAttribute('aria-hidden', 'false');
+                });
+            });
+
+            modal.querySelector('.modal-background').addEventListener('click', closeModal);
+            modal.querySelector('.delete').addEventListener('click', closeModal);
+            modal.querySelector('.modal-card-foot .button.is-light').addEventListener('click', closeModal);
+        });
+    </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Create Customer Account{% endblock %}
-{% if current_user.is_authenticated %}
+{% if current_user.is_authenticated and user_type and user_type == 'staff' %}
     {% include "service_admin/admin_nav.html" %}
 {% endif %}
 {% block head %}
@@ -11,7 +11,8 @@
     <section class="section">
         <div class="columns">
             <div class="column is-half is-offset-3">
-                {% if current_user.is_authenticated %}
+                {%  include 'messages.html' %}
+                {% if current_user.is_authenticated and user_type and user_type == 'staff' %}
                     {% if customer_id %}
                         <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
                     {% else %}
@@ -25,7 +26,7 @@
                     <div class="column box">
                         <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                             <b class="is-size-5">
-                                {% if current_user.is_authenticated %}
+                                {% if current_user.is_authenticated and user_type and user_type == 'staff' %}
                                     ข้อมูลลูกค้า
                                 {% else %}
                                     ข้อมูลผู้รับบริการ
@@ -39,7 +40,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="select">
-                                    {{ form.type(onchange="updateLabel(); syncContactInfo()") }}
+                                    {{ form.type(onchange="updateLabel(); updateRequiredDocuments(); syncContactInfo()") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -169,60 +170,90 @@
                     </div>
                     <div class="column box">
                         <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                            <b class="is-size-5">เอกสารที่จำเป็น</b>
+                        </div>
+                        <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                            {% for document in document_definitions %}
+                                {% set item = required_document_attachments.get(document.key) %}
+                                <div class="field required-document"
+                                     data-private-only="{{ 'true' if document.private_only else 'false' }}">
+                                    <label class="label">
+                                        {{ document.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="file" style="margin-bottom: .5em">
+                                        <label class="file-label">
+                                            <input class="file-input required-document-input" type="file"
+                                                   name="required_document_{{ document.key }}"
+                                                   accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
+                                                   data-required="{{ 'true' if not item or not item.attachment else 'false' }}"
+                                            >
+                                            <span class="file-cta">
+                                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                                <span class="file-label">เลือกไฟล์…</span>
+                                            </span>
+                                            <span class="file-name">
+                                                {% if item and item.attachment %}
+                                                    {{ item.attachment }}
+                                                {% else %}
+                                                    กรุณาอัปโหลดไฟล์
+                                                {% endif %}
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <hr>
+                        <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                             <b class="is-size-5">
                                 เอกสารเพิ่มเติม
                             </b>
                         </div>
                         <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
-                            <div id="attachment-field" class="field">
-                                {% for item_form in form.attachments %}
-                                    <div id="{{ item_form.id }}" class="attachment-item">
+                            <div id="other-attachment-field" class="field">
+                                {% for item_form in form.other_attachments %}
+                                    <div id="{{ item_form.id }}" class="other-attachment-item">
                                         <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
-                                        <div class="field" style="margin-top: .8em">
+                                        <div class="field">
                                             <label class="label">
-                                                {{ item_form.file_name.label }}
+                                                {{ item_form.attachment.label }}
                                                 <span class="has-text-danger">*</span>
                                             </label>
-                                            <div class="control">
-                                                {{ item_form.file_name(class="input", required=true) }}
-                                            </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">{{ item_form.note.label }}</label>
-                                            <div class="control">
-                                                {{ item_form.note(class="input") }}
-                                            </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">
-                                                {{ item_form.file.label }}
-                                            </label>
+                                            {{ item_form.attachment(type='hidden') }}
                                             <div class="file" style="margin-bottom: .5em">
                                                 <label class="file-label">
-                                                    <input class="file-input" type="file"
-                                                           name="file_{{ item_form.id }}" id="file_{{ item_form.id }}"
-                                                           {% if not item_form.file.data %}required{% endif %}
-                                                    >
+                                                    {{ item_form.file_upload(class="file-input",
+                                                        accept=".pdf,.png,.jpg,.jpeg,.gif,.txt",
+                                                        required=(not item_form.attachment.data)
+                                                        )
+                                                    }}
                                                     <span class="file-cta">
                                                         <span class="file-icon"><i class="fas fa-upload"></i></span>
                                                         <span class="file-label">เลือกไฟล์…</span>
                                                     </span>
                                                     <span class="file-name">
-                                                        {% if item_form.file.data %}
-                                                            {{ item_form.file.data }}
+                                                        {% if item_form.attachment.data %}
+                                                            {{ item_form.attachment.data }}
                                                         {% else %}
                                                             กรุณาอัปโหลดไฟล์
                                                         {% endif %}
                                                     </span>
                                                 </label>
-                                                <a class="button is-danger is-outlined" style="margin-left: .5em"
-                                                   hx-delete="{{ url_for('service_admin.remove_attachment',
-                                                      name=item_form.name) }}"
-                                                   hx-target="closest .attachment-item"
-                                                   hx-swap="outerHTML"
-                                                >
-                                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label">{{ item_form.note.label }}</label>
+                                            <div class="control is-flex">
+                                                {{ item_form.note(class="input") }}
+{#                                                <a class="button is-danger is-outlined" style="margin-left: .5em"#}
+{#                                                   hx-delete="{{ url_for('service_admin.remove_other_attachment',#}
+{#                                                   name=item_form.name) }}"#}
+{#                                                   hx-target="closest .other-attachment-item"#}
+{#                                                   hx-swap="outerHTML"#}
+{#                                                >#}
+{#                                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>#}
+{#                                                </a>#}
                                             </div>
                                         </div>
                                     </div>
@@ -231,12 +262,23 @@
                             <div class="field has-addons">
                                 <div class="control">
                                     <button type="button" class="button is-info is-small is-light is-rounded"
-                                            hx-post="{{ url_for('service_admin.add_attachment') }}"
-                                            hx-target="#attachment-field" hx-swap="beforeend">
+                                            hx-post="{{ url_for('service_admin.add_other_attachment') }}"
+                                            hx-target="#other-attachment-field" hx-swap="beforeend">
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
                                         </span>
                                         <span>เพิ่ม</span>
+                                    </button>
+                                </div>
+                                <div class="control">
+                                    <button type="button" class="button is-danger is-small is-light is-rounded"
+                                            hx-delete="{{ url_for('service_admin.remove_other_attachment') }}"
+                                            hx-target="#other-attachment-field .other-attachment-item:last-child"
+                                            hx-swap="outerHTML">
+                                        <span class="icon">
+                                            <i class="fas fa-trash"></i>
+                                        </span>
+                                        <span>ลบ</span>
                                     </button>
                                 </div>
                             </div>
@@ -245,7 +287,7 @@
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a class="button"
-                               {% if current_user.is_authenticated %}
+                               {% if current_user.is_authenticated and user_type and user_type == 'staff' %}
                                     href="{{ url_for('service_admin.customer_index', tab=tab) }}"
                                {% else %}
                                     href="{{ url_for('service_admin.customer_register_index') }}"
@@ -282,7 +324,7 @@
     </script>
     <script>
         function renumberItems() {
-            const items = document.querySelectorAll('#attachment-field .attachment-item');
+            const items = document.querySelectorAll('#other-attachment-field .other-attachment-item');
             items.forEach(function (item, index) {
                 const label = item.querySelector('p strong');
                 if (label) {
@@ -303,11 +345,12 @@
         function updateLabel() {
             const typeSelect = document.querySelector('[name="type"]');
             const label = document.getElementById("cus-name-label");
-            if (typeSelect.value === "1") {
+            const typeName = typeSelect.options[typeSelect.selectedIndex]?.textContent.trim();
+            if (typeName === "บุคคล") {
                 label.innerHTML = '<label class="label">ชื่อ-นามสกุล<span class="has-text-danger ml-1">*</span></label>';
-            } else if (typeSelect.value === "2") {
+            } else if (typeName === "บริษัทเอกชน") {
                 label.innerHTML = '<label class="label">ชื่อบริษัท<span class="has-text-danger ml-1">*</span></label>';
-            } else if (typeSelect.value === "3") {
+            } else if (typeName === "หน่วยงานรัฐ") {
                 label.innerHTML = '<label class="label">ชื่อหน่วยงาน<span class="has-text-danger ml-1">*</span></label>';
             } else  {
                 label.innerHTML = '<label class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน<span class="has-text-danger ml-1">*</span></label>'
@@ -315,6 +358,27 @@
         }
         document.addEventListener('DOMContentLoaded', function () {
             updateLabel();
+        });
+    </script>
+    <script>
+        function updateRequiredDocuments() {
+            const typeSelect = document.querySelector('[name="type"]');
+            const selectedType = typeSelect?.options[typeSelect.selectedIndex]?.textContent.trim();
+            const isPrivateCompany = selectedType === 'บริษัทเอกชน';
+
+            document.querySelectorAll('.required-document').forEach(function (documentField) {
+                const isPrivateOnly = documentField.dataset.privateOnly === 'true';
+                const visible = isPrivateCompany === isPrivateOnly;
+                documentField.style.display = visible ? '' : 'none';
+                const input = documentField.querySelector('.required-document-input');
+                if (input) {
+                    input.required = visible && input.dataset.required === 'true';
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateRequiredDocuments();
         });
     </script>
     <script>

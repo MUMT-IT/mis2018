@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField, widgets, RadioField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.PA.models import *
 from app.staff.models import StaffJobPosition
@@ -218,7 +218,8 @@ class PAFunctionalCompetencyEvaluationIndicatorForm(ModelForm):
 
     criterion = QuerySelectField(label='',query_factory=lambda: PAFunctionalCompetencyCriteria.query.all(),
                                  widget=widgets.ListWidget(prefix_label=False),
-                                 option_widget=widgets.RadioInput())
+                                 option_widget=widgets.RadioInput(),
+                                 validators=[Optional()])
 
 
 class PAFunctionalCompetencyEvaluationForm(ModelForm):

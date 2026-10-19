@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Request ของบริการ{% endblock %}
+{% block page_content %}
+    {% include "nav.html" %}
+    <section class="external-request-page section">
+        <div class="container external-request-container">
+            {% include "messages.html" %}
+            <div class="external-request-heading">
+                <div class="external-request-heading-copy">
+                    <span class="external-request-heading-icon" aria-hidden="true">
+                        <i class="fas fa-list-ul"></i>
+                    </span>
+                    <div>
+                        <p class="external-request-eyebrow">SERVICE REQUESTS</p>
+                        <h1 class="title external-request-title">Request ทั้งหมดของบริการ</h1>
+                        <p class="external-request-subtitle">{{ sub_lab.sub_lab }}</p>
+                    </div>
+                </div>
+                <div class="buttons mb-0">
+                    {% if customer_id %}
+                        <button type="button"
+                                class="button is-primary is-rounded"
+                                hx-post="{{ url_for('service_admin.create_request_id', customer_id=customer_id,
+                                sub_lab_id=sub_lab.id, request_index='true') }}"
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                hx-confirm="ท่านต้องการสร้าง Request ID ใหม่ของบริการนี้ใช่หรือไม่">
+                            <span class="icon"><i class="fas fa-plus"></i></span>
+                            <span>สร้าง Request ID ใหม่</span>
+                        </button>
+                    {% endif %}
+                    <a class="button external-request-back"
+                       href="{{ url_for('service_admin.external_lab_index', customer_id=customer_id) }}">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="external-request-summary">
+                <div>
+                    <strong>{{ sub_lab.sub_lab }}</strong>
+                </div>
+                <span class="external-request-count">{{ service_requests|length }} รายการ</span>
+            </div>
+            <div class="external-request-card">
+                {% if service_requests %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-hoverable external-request-table">
+                            <thead>
+                                <tr>
+                                    <th>ลำดับ</th>
+                                    <th>Request ID</th>
+                                    <th>ผู้รับบริการ</th>
+                                    <th>วันที่สร้าง</th>
+                                    <th>สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service_request in service_requests %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td><strong class="external-request-number">{{ service_request.request_no or '-' }}</strong></td>
+                                        <td>{{ service_request.customer.customer_info.cus_name if service_request.customer and service_request.customer.customer_info else '-' }}</td>
+                                        <td>{{ service_request.created_at|localdate if service_request.created_at else '-' }}</td>
+                                        <td>
+                                            {% if service_request.status %}
+                                                <span class="tag {{ service_request.status.customer_status_color or 'is-light' }}">
+                                                    {{ service_request.status.customer_status or service_request.status.admin_status or '-' }}
+                                                </span>
+                                            {% else %}
+                                                <span class="tag is-light">ยังไม่ระบุสถานะ</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="external-request-empty">
+                        <span class="external-request-empty-icon"><i class="fas fa-inbox"></i></span>
+                        <h2>ยังไม่มี Request</h2>
+                        <p>ยังไม่มีการสร้าง Request สำหรับบริการนี้</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .external-request-page { min-height: 38rem; padding: 3.5rem 0 4rem; }
+        .external-request-container { max-width: 76rem; }
+        .external-request-heading { align-items: center; display: flex; gap: 1.5rem; justify-content: space-between; margin: 0 auto 1.5rem; max-width: 70rem; }
+        .external-request-heading-copy { align-items: center; display: flex; gap: 1rem; min-width: 0; }
+        .external-request-heading-icon { align-items: center; background: #eef6ff; border: 1px solid #cfe5fb; border-radius: 17px; color: #2f80c9; display: inline-flex; flex: 0 0 3.5rem; font-size: 1.35rem; height: 3.5rem; justify-content: center; }
+        .external-request-eyebrow { color: #6e7f99; font-size: .7rem; font-weight: 800; letter-spacing: .17em; margin-bottom: .35rem; }
+        .external-request-title { color: #15284d; font-size: clamp(1.65rem, 3vw, 2.2rem); margin-bottom: .35rem !important; }
+        .external-request-subtitle { color: #66738d; font-size: 1rem; font-weight: 700; margin: 0; }
+        .external-request-back { border-radius: 10px; color: #294a78; font-weight: 700; }
+        .external-request-summary { align-items: center; background: #fff; border: 1px solid #dceafa; border-radius: 16px; display: flex; gap: 2rem; justify-content: space-between; margin: 0 auto 1rem; max-width: 70rem; padding: 1rem 1.2rem; }
+        .external-request-summary > div { display: flex; flex-direction: column; min-width: 0; }
+        .external-request-summary-label { color: #8292a9; font-size: .72rem; font-weight: 800; margin-bottom: .15rem; }
+        .external-request-summary strong { color: #1e3152; font-size: .95rem; overflow-wrap: anywhere; }
+        .external-request-summary small { color: #667d9b; font-size: .82rem; margin-top: .1rem; }
+        .external-request-count { background: #edf8f0; border-radius: 999px; color: #237348; font-size: .85rem; font-weight: 800; padding: .45rem .8rem; white-space: nowrap; }
+        .external-request-card { background: rgba(255,255,255,.96); border: 1px solid rgba(58,101,184,.17); border-radius: 18px; box-shadow: 0 14px 32px rgba(18,39,84,.08); margin: 0 auto; max-width: 70rem; padding: 1.1rem; }
+        .external-request-table th { background: #f3f7fc; color: #425675; font-size: .82rem; }
+        .external-request-table td { color: #425675; vertical-align: middle; }
+        .external-request-number { color: #1e67aa; font-size: .95rem; }
+        .external-request-empty { color: #667d9b; padding: 3rem 1rem; text-align: center; }
+        .external-request-empty-icon { align-items: center; background: #eef6ff; border-radius: 50%; color: #2f80c9; display: inline-flex; font-size: 1.4rem; height: 3.2rem; justify-content: center; width: 3.2rem; }
+        .external-request-empty h2 { color: #1e3152; font-size: 1.15rem; margin: .8rem 0 .25rem; }
+        .external-request-empty p { font-size: .88rem; margin: 0 0 1rem; }
+        @media screen and (max-width: 700px) {
+            .external-request-page { padding-top: 2rem; }
+            .external-request-heading { align-items: flex-start; flex-direction: column; }
+            .external-request-summary { align-items: flex-start; flex-direction: column; gap: .75rem; }
+            .external-request-count { align-self: flex-start; }
+        }
+    </style>
+{% endblock %}

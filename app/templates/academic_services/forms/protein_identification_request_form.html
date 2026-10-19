@@ -265,6 +265,9 @@
 
         document.body.addEventListener('htmx:afterSwap', function () {
             initSubforms();
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function () {
             renumberItems();
         });
     </script>

@@ -218,7 +218,7 @@ def _build_global_header(
     header_right = Paragraph(
         f"<br/><br/>{department_name}<br/>"
         f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
-        f"โทร. 02-441-4371+{telephone_number}",
+        f"โทร.{telephone_number}",
         paragraph_style,
     )
     if leave_style:
@@ -712,7 +712,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
         logo.hAlign = "CENTER"
         story.append(logo)
     story.extend([
-        p(f"{department}<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>โทร. 02-441-4371+{telephone}", right),
+        p(f"{department}<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>โทร.{telephone}", right),
         Spacer(1, 24), p("ที่"), p("วันที่"),
         p(f"เรื่อง รายงานสถานะเงินสดย่อยของ{department} ประจำเดือน{month_label}"),
         Spacer(1, 8), p("เรียน คณบดีคณะเทคนิคการแพทย์"), Spacer(1, 8),
@@ -1661,9 +1661,9 @@ def generate_fund_request_pdf(fund_request):
         pagesize=A4,
         leftMargin=45,
         rightMargin=45,
-        topMargin=24,
+        topMargin=16,
         bottomMargin=16,
-        title=f"MT-Petty-Cash-02_{fund_request.id}"
+        title=f"MT-Petty-Cash-02_{fund_request.ticket_number}"
     )
     
     story = []
@@ -1806,9 +1806,7 @@ def generate_fund_request_pdf(fund_request):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
     story.append(header_table)
-    story.append(Spacer(1, 4))
     story.append(draw_dotted_line())
-    story.append(Spacer(1, 4))
 
     # ส่วนที่ 1 ใบยืมเงินสดย่อย
     sec1_title_l = Paragraph("<b>ส่วนที่ 1 ใบยืมเงินสดย่อย</b>", styles['ThaiBold'])
@@ -1903,17 +1901,15 @@ def generate_fund_request_pdf(fund_request):
             Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>{head_signature_line}<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
         ]
     ]
-    t_sig1 = Table(sig_box_data_1, colWidths=[165, 165, 165])
+    t_sig1 = Table(sig_box_data_1, colWidths=[165, 165, 200])
     t_sig1.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
     story.append(t_sig1)
-    story.append(Spacer(1, 4))
     story.append(draw_dotted_line())
-    story.append(Spacer(1, 4))
 
     # ส่วนที่ 2 ใบเบิกเงิน
     # =========================================================================

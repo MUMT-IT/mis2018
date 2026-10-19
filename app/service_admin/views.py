@@ -70,6 +70,39 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+CUSTOMER_DOCUMENT_DEFINITIONS = (
+    {'key': 'id_card', 'label': 'บัตรประชาชน', 'private_only': False},
+    {'key': 'company_certificate', 'label': 'หนังสือรับรองบริษัท', 'private_only': True},
+    {'key': 'pp20', 'label': 'ภ.พ.20', 'private_only': True},
+    {'key': 'power_of_attorney', 'label': 'หนังสือมอบอำนาจ', 'private_only': True},
+    {'key': 'grantor_id_card', 'label': 'บัตรประชาชนผู้มอบอำนาจ', 'private_only': True},
+    {'key': 'attorney_id_card', 'label': 'บัตรประชาชนผู้รับมอบอำนาจ', 'private_only': True},
+)
+
+
+def _customer_type_name(customer_type):
+    return getattr(customer_type, 'type', None) if customer_type else None
+
+
+def _required_customer_documents(customer_type):
+    type_name = _customer_type_name(customer_type)
+    if type_name == 'บริษัทเอกชน':
+        return tuple(item for item in CUSTOMER_DOCUMENT_DEFINITIONS if item['private_only'])
+    return CUSTOMER_DOCUMENT_DEFINITIONS[:1]
+
+
+def _required_document_attachments(customer):
+    attachments = {}
+    for attachment in getattr(customer, 'required_attachments', []):
+        document = next(
+                (item for item in CUSTOMER_DOCUMENT_DEFINITIONS if item['label'] == attachment.file_name),
+                None
+            )
+        if document:
+            attachments[document['key']] = attachment
+    return attachments
+
+
 def generate_url(file_url):
     url = s3.generate_presigned_url('get_object',
                                     Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
@@ -2434,9 +2467,32 @@ def external_lab_index():
     return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id)
 
 
+@service_admin.route('/request/external-lab/all/<int:sub_lab_id>')
+@login_required
+def external_lab_request_index(sub_lab_id):
+    customer_id = request.args.get('customer_id', type=int)
+    sub_lab = ServiceSubLab.query.get(sub_lab_id)
+
+    service_requests = (
+        ServiceRequest.query
+        .options(joinedload(ServiceRequest.status), joinedload(ServiceRequest.customer))
+        .filter(ServiceRequest.sub_lab_id == sub_lab.id)
+        .order_by(ServiceRequest.created_at.desc(), ServiceRequest.id.desc())
+        .all()
+    )
+
+    return render_template(
+        'service_admin/external_lab_request_index.html',
+        sub_lab=sub_lab,
+        customer_id=customer_id,
+        service_requests=service_requests,
+    )
+
+
 @service_admin.route('/request/external-lab/add/<int:sub_lab_id>', methods=['GET', 'POST'])
 @login_required
 def create_request_id(sub_lab_id):
+    request_index = request.args.get('request_index')
     customer_id = request.args.get('customer_id', type=int)
     sub_lab = ServiceSubLab.query.get(sub_lab_id)
     customer_account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
@@ -2449,8 +2505,12 @@ def create_request_id(sub_lab_id):
         db.session.add(service_request)
         db.session.commit()
         resp = make_response()
-        resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_index', customer_id=customer_id)
-        flash('สร้าง Request ID ลำเร็จ', 'success')
+        if request_index:
+            resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_request_index', customer_id=customer_id,
+                                                  sub_lab_id=sub_lab_id)
+        else:
+            resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_index', customer_id=customer_id)
+        flash(f'สร้าง Request ID เลขที่ {service_request.request_no} สำเร็จ', 'success')
         return resp
     return redirect(url_for('service_admin.external_lab_index', customer_id=customer_id))
 
@@ -2469,12 +2529,12 @@ def view_overdue_invoice(invoice_id):
 def customer_index():
     tab = request.args.get('tab')
     not_attached_query = ServiceCustomerInfo.query.filter(
-            ServiceCustomerInfo.is_document_verified==None,
-            ~ServiceCustomerInfo.attachments.any()
+            ServiceCustomerInfo.is_document_verified == None,
+            ~ServiceCustomerInfo.required_attachments.any()
         )
     pending_query = ServiceCustomerInfo.query.filter(
             ServiceCustomerInfo.is_document_verified == None,
-            ServiceCustomerInfo.attachments.any()
+            ServiceCustomerInfo.required_attachments.any()
         )
     rejected_query = ServiceCustomerInfo.query.filter_by(is_document_verified=False)
     approved_query = ServiceCustomerInfo.query.filter_by(is_document_verified=True)
@@ -2500,13 +2560,17 @@ def customer_index():
 def view_customer(customer_id):
     tab = request.args.get('tab')
     customer = ServiceCustomerInfo.query.get(customer_id)
-    return render_template('service_admin/view_customer.html', customer=customer, tab=tab)
+    return render_template('service_admin/view_customer.html', customer=customer, tab=tab,
+                           central_admin_academic_service_permission=central_admin_academic_service_permission)
 
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
 @service_admin.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
 def create_customer(customer_id=None):
     tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    user_type = session.get('user_type')
+    customer = None
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
@@ -2517,12 +2581,58 @@ def create_customer(customer_id=None):
     if form.validate_on_submit():
         if customer_id is None:
             customer = ServiceCustomerInfo()
-        if form.attachments:
-            for item in form.attachments:
-                file = request.files.get(f'file_{item.id}')
+
+        required_documents = _required_customer_documents(form.type.data)
+        type_changed = customer_id is not None and customer.type_id != form.type.data.id
+        if type_changed and customer.required_attachments:
+            customer.required_attachments.clear()
+
+        document_errors = []
+        required_attachments = _required_document_attachments(customer)
+        document_uploads = []
+        for document in required_documents:
+            field_name = f"required_document_{document['key']}"
+            uploaded_file = request.files.get(field_name)
+            has_upload = uploaded_file and uploaded_file.filename
+            attachment = required_attachments.get(document['key'])
+
+            if has_upload:
+                if not allowed_file(uploaded_file.filename):
+                    document_errors.append(
+                        f"ไฟล์{document['label']}ต้องเป็นไฟล์ประเภท {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+                    )
+                    continue
+                document_uploads.append((document, uploaded_file, attachment))
+
+            if not has_upload and (attachment is None or not attachment.attachment):
+                document_errors.append(f"กรุณาแนบ{document['label']}")
+
+        if document_errors:
+            for error in document_errors:
+                flash(error, 'danger')
+            return render_template(
+                'service_admin/create_customer.html', customer_id=customer_id,
+                form=form, account=account, tab=tab, user_type=user_type,
+                document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                required_document_attachments=_required_document_attachments(customer)
+            )
+
+        uploaded_required_documents = []
+        for document, uploaded_file, attachment in document_uploads:
+            file_name = uploaded_file.filename
+            s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=uploaded_file.stream.read(),
+                ContentType=uploaded_file.mimetype
+            )
+            uploaded_required_documents.append((document, attachment, file_name))
+        if form.other_attachments:
+            for item in form.other_attachments:
+                file = item.file_upload.data
                 if file and allowed_file(file.filename):
                     mime_type = file.mimetype
-                    file_name = '{}.{}'.format(f'{item.file_name.data}', file.filename.split('.')[-1])
+                    file_name = file.filename
                     file_data = file.stream.read()
                     response = s3.put_object(
                         Bucket=S3_BUCKET_NAME,
@@ -2530,18 +2640,42 @@ def create_customer(customer_id=None):
                         Body=file_data,
                         ContentType=mime_type
                     )
-                    item.file.data = file_name
+                    item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
+                    item.attachment.data = file_name
         form.populate_obj(customer)
+
+        for document, attachment, file_name in uploaded_required_documents:
+            if attachment is None:
+                attachment = ServiceCustomerRequiredAttachment(customer=customer)
+                required_attachments[document['key']] = attachment
+            attachment.file_name = document['label']
+            attachment.attachment = file_name
+
+        for document, attachment in required_attachments.items():
+            attachment.file_name = next(
+                item['label'] for item in CUSTOMER_DOCUMENT_DEFINITIONS if item['key'] == document
+            )
+            attachment.customer = customer
+            if attachment not in customer.required_attachments:
+                customer.required_attachments.append(attachment)
+            db.session.add(attachment)
+
         email = request.form.get('email')
         if customer_id is None:
-            if current_user.is_authenticated:
+            customer.is_document_verified = None
+            if current_user.is_authenticated and user_type and user_type == 'staff':
                 customer.creator_id = current_user.id
-            account = ServiceCustomerAccount(email=email, customer_info=customer,
-                                             verify_datetime=arrow.now('Asia/Bangkok').datetime)
+            cus_account = ServiceCustomerAccount.query.filter_by(email=email).first()
+            if cus_account:
+                flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
+                return redirect(url_for('service_admin.create_customer', custoemr_id=customer_id, tab=tab))
+            else:
+                account = ServiceCustomerAccount(email=email, customer_info=customer,
+                                                 verify_datetime=arrow.now('Asia/Bangkok').datetime)
         else:
             account.email = email
-        if customer.is_document_verified is None:
-            customer.is_document_verified = None
+            if customer.is_document_verified is None:
+                customer.is_document_verified = None
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
@@ -2552,7 +2686,7 @@ def create_customer(customer_id=None):
         central_admin_accounts = get_central_admin_academic_service()
         if not customer_id and central_admin_accounts:
             scheme = 'http' if current_app.debug else 'https'
-            link = url_for("service_admin.view_customer", tab='pending', customer_id=customer_id, _external=True,
+            link = url_for("service_admin.view_customer", tab='pending', customer_id=customer.id, _external=True,
                            _scheme=scheme)
             title = f'''แจ้งเตือนการลงทะเบียนผู้รับบริการใหม่'''
             message = f'''เรียน แอดมินส่วนกลาง\n\n'''
@@ -2563,96 +2697,93 @@ def create_customer(customer_id=None):
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
-        if current_user.is_authenticated:
-            return redirect(url_for('service_admin.customer_index', tab=tab))
+        if menu:
+            return redirect(url_for('service_admin.request_index', menu=menu))
         else:
-            return redirect(url_for('service_admin.closing_page'))
+            if current_user.is_authenticated and user_type and user_type == 'staff':
+                return redirect(url_for('service_admin.customer_index', tab=tab))
+            else:
+                return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/create_customer.html', customer_id=customer_id,
-                           form=form, account=account, tab=tab)
+    return render_template(
+        'service_admin/create_customer.html', customer_id=customer_id,
+        form=form, account=account, tab=tab, user_type=user_type,
+        document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+        required_document_attachments=_required_document_attachments(customer) if customer else {}
+    )
 
 
-@service_admin.route('/api/customer/account/file/add', methods=['POST'])
-def add_attachment():
+@service_admin.route('/api/customer/account/other-file/add', methods=['POST'])
+def add_other_attachment():
     form = ServiceCustomerInfoForm()
-    form.attachments.append_entry()
-    item_form = form.attachments[-1]
-    index = len(form.attachments)
+    form.other_attachments.append_entry()
+    item_form = form.other_attachments[-1]
+    index = len(form.other_attachments)
     template = """
-            <div id="{}" class="attachment-item">
+            <div id="{}" class="other-attachment-item">
                 <hr style="background-color: #F3F3F3">
                 <p><strong>รายการที่ {}</strong></p>
-                <div class="field" style="margin-top: .8em">
-                    <label class="label">
-                        {}
-                        <span class="has-text-danger">*</span>
-                    </label>
-                    <div class="control">
-                        {}
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">{}</label>
-                    <div class="control">
-                        {}
-                    </div>
-                </div>
                 <div class="field">
                     <label class="label">
                         {}
                         <span class="has-text-danger">*</span>
                     </label>
+                    {}
                     <div class="file" style="margin-bottom: .5em">
                         <label class="file-label">
-                            <input class="file-input" type="file" name="file_{}" id="file_{}"
-                                required>
+                            {}
                             <span class="file-cta">
                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
                                 <span class="file-label">เลือกไฟล์…</span>
                             </span>
                             <span class="file-name">กรุณาอัปโหลดไฟล์</span>
                         </label>
-                        <a class="button is-danger is-outlined" style="margin-left: .5em"
-                            hx-delete="{}"
-                            hx-target="closest .attachment-item"
-                            hx-swap="outerHTML"
-                        >
-                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                        </a>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control is-flex">
+                        {}
                     </div>
                 </div>
             </div>
         """
     resp = template.format(item_form.id,
                            index,
-                           item_form.file_name.label,
-                           item_form.file_name(class_='input', required=True),
+                           item_form.attachment.label,
+                           item_form.attachment(type='hidden'),
+                           item_form.file_upload(
+                               class_='file-input',
+                               accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
+                               required=True,
+                           ),
                            item_form.note.label,
                            item_form.note(class_='input'),
-                           item_form.file.label,
-                           item_form.id,
-                           item_form.id,
-                           url_for('service_admin.remove_attachment', name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
 
 
-@service_admin.route('/api/customer/account/file/remove', methods=['DELETE'])
-def remove_attachment():
-    field_name = request.args.get('name')
-    form = ServiceCustomerInfoForm()
-    temp_entries = []
-    for entry in form.attachments:
-        if entry.name != field_name:
-            temp_entries.append(entry)
-    while len(form.attachments) > 0:
-        form.attachments.pop_entry()
-    for entry in temp_entries:
-        form.attachments.append_entry(entry)
+@service_admin.route('/api/customer/account/other-file/remove', methods=['DELETE'])
+def remove_other_attachment():
     return ""
+
+
+# @service_admin.route('/api/customer/account/other-file/remove', methods=['DELETE'])
+# def remove_other_attachment():
+#     field_name = request.args.get('name')
+#     form = ServiceCustomerInfoForm()
+#     temp_entries = []
+#     for entry in form.other_attachments:
+#         if entry.name != field_name:
+#             temp_entries.append(entry)
+#     while len(form.other_attachments) > 0:
+#         form.other_attachments.pop_entry()
+#     for entry in temp_entries:
+#         form.other_attachments.append_entry(entry)
+#     return ""
 
 
 @service_admin.route('/customer/approve/<int:customer_id>', methods=['POST'])
@@ -5831,7 +5962,9 @@ def create_customer_detail(request_id):
     service_request = ServiceRequest.query.get(request_id)
     customer_id = service_request.customer.customer_info_id
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
-    customer = ServiceCustomerInfo.query.get(service_request.customer.customer_info_id)
+    customer = ServiceCustomerInfo.query.get(service_request.customer.customer_info_id) if service_request.customer.customer_info_id else None
+    if not customer:
+        return redirect(url_for('service_admin.create_customer', customer_id=service_request.customer_id))
     cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
     if not cus_contact:
         form = ServiceCustomerContactForm()
