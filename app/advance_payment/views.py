@@ -9851,6 +9851,15 @@ def staff_fund_request_history():
         setting,
         user_id=user.id if not (setting and setting.id) else None,
     )
+    ledger_running_balance = (
+        _build_petty_cash_ledger(
+            user,
+            selected_month_start=datetime.now().date().replace(day=1),
+            balance_only=True,
+        )
+        if setting
+        else 0.0
+    )
     dept_summary["total_claims"] = len(history_items)
     dept_summary["history"] = history_items
 
@@ -9933,6 +9942,7 @@ def staff_fund_request_history():
         claim_history=claim_history,
         parcel_return_history=parcel_return_history,
         dept_summary=dept_summary,
+        ledger_running_balance=ledger_running_balance,
         can_import_legacy_fund_request=bool(
             carryover_setting
             and getattr(carryover_setting, "id", None)
@@ -11942,23 +11952,19 @@ def confirm_petty_claim_edit(claim_id):
     )
     return petty_cash_claim_detail(claim.id)
 
-@bp.route("/staff/petty-cash-ledger", methods=["GET"])
-@module_system_required(PETTY_CASH_SYSTEM)
-def petty_cash_ledger():
-    user_id = _current_user_id()
-    staff = current_user
-    active_setting = _resolve_petty_cash_setting(staff)
-    if not _is_petty_cash_custodian(staff, active_setting):
-        abort(403)
-    selected_month = (request.args.get("month") or "").strip()
+def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=False):
+    """Build the ledger once so other pages can use its exact running balance."""
     today = datetime.now().date()
     default_month = today.replace(day=1)
 
-    try:
-        selected_month_start = datetime.strptime(f"{selected_month}-01", "%Y-%m-%d").date()
-    except ValueError:
-        selected_month_start = default_month
-        selected_month = default_month.strftime("%Y-%m")
+    if selected_month_start is None:
+        selected_month = (request.args.get("month") or "").strip()
+        try:
+            selected_month_start = datetime.strptime(f"{selected_month}-01", "%Y-%m-%d").date()
+        except ValueError:
+            selected_month_start = default_month
+    else:
+        selected_month_start = selected_month_start.replace(day=1)
 
     selected_month = selected_month_start.strftime("%Y-%m")
     fiscal_year = selected_month_start.year + (selected_month_start.month >= 10)
@@ -12192,10 +12198,10 @@ def petty_cash_ledger():
             .filter(PettyCashClaimDetail.petty_cash_setting_id == current_setting.id)
             .all()
         )
-    elif current_user:
+    elif staff:
         all_claims = (
             db.session.query(PettyCashClaimDetail)
-            .filter(PettyCashClaimDetail.user_id == current_user.id)
+            .filter(PettyCashClaimDetail.user_id == staff.id)
             .all()
         )
     # แยกรายการที่เป็นหมวด 6 (โอนคืนบัญชีหน่วย) ออกมาเป็น Row ใหม่
@@ -12237,11 +12243,11 @@ def petty_cash_ledger():
                 "ผ่านการตรวจสอบ",
             }
         ]
-    elif current_user:
+    elif staff:
         transferred_claims = [
             claim
             for claim in db.session.query(PettyCashClaimDetail)
-            .filter(PettyCashClaimDetail.user_id == current_user.id)
+            .filter(PettyCashClaimDetail.user_id == staff.id)
             .all()
             if (claim.status or "").strip() not in {
                 "ฉบับร่าง",
@@ -12430,6 +12436,9 @@ def petty_cash_ledger():
         item_copy["is_opening_row"] = False
         ledger_items.append(item_copy)
 
+    if balance_only:
+        return running_balance
+
     if request.args.get("download") == "monthly-report":
         if not current_setting or not getattr(current_setting, "id", None):
             flash("ไม่พบการตั้งค่าเงินสดย่อยสำหรับหน่วยงาน", "warning")
@@ -12493,3 +12502,13 @@ def petty_cash_ledger():
         selected_month_start=selected_month_start,
         selected_month_end=next_month_start,
     )
+
+
+@bp.route("/staff/petty-cash-ledger", methods=["GET"])
+@module_system_required(PETTY_CASH_SYSTEM)
+def petty_cash_ledger():
+    staff = current_user
+    active_setting = _resolve_petty_cash_setting(staff)
+    if not _is_petty_cash_custodian(staff, active_setting):
+        abort(403)
+    return _build_petty_cash_ledger(staff)
