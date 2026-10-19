@@ -2545,7 +2545,7 @@ def evaluate_fc(evaluation_id):
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
     else:
-        flash('กรุณาประเมินให้ครบทุกข้อ ก่อนบันทึกผล', 'warning')
+        flash('ไม่สามารถบันทึกผลการประเมินได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง', 'warning')
     return render_template('PA/fc_evaluate_performance.html', form=form, criteria=criteria, evaluation=evaluation,
                            emp_period=emp_period, org_head=org_head)
 

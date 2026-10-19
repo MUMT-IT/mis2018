@@ -456,7 +456,13 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     __tablename__ = 'pa_functional_competency_evaluation_indicators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     evaluation_id = db.Column(db.ForeignKey('pa_functional_competency_evaluations.id'))
-    evaluation = db.relationship(PAFunctionalCompetencyEvaluation, backref=db.backref('evaluation_eva_indicator'))
+    evaluation = db.relationship(
+        PAFunctionalCompetencyEvaluation,
+        backref=db.backref(
+            'evaluation_eva_indicator',
+            order_by='PAFunctionalCompetencyEvaluationIndicator.indicator_id'
+        )
+    )
     indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
     indicator = db.relationship(PAFunctionalCompetencyIndicator, backref=db.backref('indicator_eva_indicator'))
     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
@@ -559,4 +565,3 @@ class IDPLearningPlan(db.Model):
 
     def __str__(self):
         return f'{self.plan}'
-
