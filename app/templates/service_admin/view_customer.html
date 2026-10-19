@@ -1,142 +1,321 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block title %}MUMT-MIS | ข้อมูลผู้รับบริการ{% endblock %}
 {% block page_content %}
-{% include "service_admin/admin_nav.html" %}
-<section class="section">
-    <div class="container">
-        <div class="columns">
-            <div class="column is-half is-offset-3">
-                <div class="column">
-                    {% include "messages.html" %}
-                    <h1 class="title has-text-centered">ข้อมูลผู้รับบริการ</h1>
-                </div>
-                <div class="column box">
-                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
-                        <b class="is-size-4">รายละเอียด</b>
-                    </div>
-                    <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
-                        <table class="table is-fullwidth">
-                            <tr>
-                                <td><h1 class="subtitle">ชื่อผู้รับบริการ</h1></td>
-                                <td><h1 class="subtitle">{{ customer.cus_name }}</h1></td>
-                            </tr>
-                            <tr>
-                                <td><h1 class="subtitle">ประเภท</h1></td>
-                                <td><span class="tag is-medium">{{ customer.type }}</span></td>
-                            </tr>
-                            <tr>
-                                <td><h1 class="subtitle">เลขประจำตัวผู้เสียภาษีอากร</h1></td>
-                                <td><h1 class="subtitle">{{ customer.taxpayer_identification_no }}</h1></td>
-                            </tr>
-                            {% if customer.fax_no %}
-                                <tr>
-                                    <td><h1 class="subtitle">fax</h1></td>
-                                    <td><h1 class="subtitle">{{ customer.fax_no }}</h1></td>
-                                </tr>
-                            {% endif %}
-                            <tr>
-                                <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
-                                <td><h1 class="subtitle">{{ customer.phone_number }}</h1></td>
-                            </tr>
-                        </table>
+    {% include "service_admin/admin_nav.html" %}
+    <section class="service-customer-view section">
+        <div class="container service-customer-container">
+            {% include "messages.html" %}
+
+            <div class="service-customer-heading">
+                <div class="service-customer-heading-copy">
+                    <span class="service-customer-heading-icon" aria-hidden="true">
+                        <i class="fas fa-user-check"></i>
+                    </span>
+                    <div>
+                        <p class="service-customer-eyebrow">CUSTOMER PROFILE</p>
+                        <h1 class="title service-customer-title">ข้อมูลผู้รับบริการ</h1>
+                        <p class="service-customer-subtitle">ตรวจสอบข้อมูล เอกสาร และผู้ประสานงาน</p>
                     </div>
                 </div>
-                <div class="column">
-                    <h1 class="title has-text-centered">ข้อมูลผู้ประสานงาน</h1>
-                </div>
-                <div class="column box">
-                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
-                        <b class="is-size-4">รายละเอียด</b>
+                <a class="button service-customer-back"
+                   href="{{ url_for('service_admin.customer_index', tab=tab) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+
+            <div class="service-customer-profile-card">
+                <div class="service-customer-profile-header">
+                    <div class="service-customer-profile-main">
+                        <span class="service-customer-profile-icon" aria-hidden="true">
+                            <i class="fas fa-building"></i>
+                        </span>
+                        <div>
+                            <p class="service-customer-profile-label">ชื่อบริษัท/ผู้รับบริการ</p>
+                            <h2>{{ customer.cus_name or '-' }}</h2>
+                        </div>
                     </div>
-                    <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
-                        <table class="table is-fullwidth">
-                            {% for cus_contact in customer.customer_contacts %}
-                                <tr>
-                                    <td><h1 class="subtitle">ชื่อผู้ประสานงาน</h1></td>
-                                    <td><h1 class="subtitle">{{ cus_contact.contact_name }}</h1></td>
-                                </tr>
-                                <tr>
-                                    <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
-                                    <td><h1 class="subtitle">{{ cus_contact.phone_number }}</h1></td>
-                                </tr>
-                                <tr>
-                                    <td><h1 class="subtitle">อีเมล</h1></td>
-                                    <td><h1 class="subtitle">{{ cus_contact.email }}</h1></td>
-                                </tr>
-                                {% if cus_contact.remark %}
-                                    <tr>
-                                        <td><h1 class="subtitle">หมายเหตุ</h1></td>
-                                        <td><h1 class="subtitle">{{ cus_contact.remark }}</h1>
-                                    </td>
-                                </tr>
-                                {% endif %}
-                            {% endfor %}
-                        </table>
+                    <div class="service-customer-verification">
+                        <span class="tag {{ customer.status_document_verified_color }} is-rounded">
+                            <span class="icon">{{ customer.status_document_verified_icon|safe }}</span>
+                            <span>{{ customer.status_document_verified }}</span>
+                        </span>
                     </div>
                 </div>
-                <div class="column">
-                    <h1 class="title has-text-centered">เอกสารเพิ่มเติม</h1>
-                </div>
-                <div class="column box">
-                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
-                        {% if customer.attachments %}
-                            <div class="table-container">
-                                <table class="table is-fullwidth customer-detail-attachment-table">
-                                    <thead><tr><th>ชื่อเอกสาร</th><th>รายละเอียด</th><th class="has-text-centered">ไฟล์</th></tr></thead>
-                                    <tbody>
-                                    {% for attachment in customer.attachments %}
-                                        <tr>
-                                            <td>{{ attachment.file_name or '-' }}</td>
-                                            <td>{{ attachment.note or '-' }}</td>
-                                            <td class="has-text-centered">
-                                                {% if attachment.file %}
-                                                    <a class="button is-small is-link is-light"
-                                                       href="{{ url_for('service_admin.download_file', key=attachment.file,
-                                                       download_filename=attachment.file_name + '.pdf') }}">
-                                                        <span class="icon"><i class="fas fa-download"></i></span><span>ดาวน์โหลด</span>
-                                                    </a>
-                                                {% else %}-{% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% else %}
-                            <div class="customer-detail-empty">ยังไม่มีเอกสารเพิ่มเติม</div>
-                        {% endif %}
+                <div class="service-customer-info-grid">
+                    <div class="service-customer-info-item">
+                        <span><i class="fas fa-user-tag"></i> ประเภท</span>
+                        <strong><span class="tag service-customer-type-tag">{{ customer.type or '-' }}</span></strong>
                     </div>
-                </div>
-                <div class="field is-grouped is-grouped-centered">
-                    <div class="control">
-                        <a class="button" href="{{ url_for('service_admin.customer_index', tab=tab) }}">
-                            ย้อนกลับ
-                        </a>
-                        {% if customer.is_document_verified == None %}
-                            <a class="button is-success"
-                               hx-post="{{ url_for('service_admin.approve_document_customer', tab=tab,
-                               customer_id=customer.id) }}"
-                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                               hx-confirm="ท่านต้องการอนุมัติใช่หรือไม่"
-                            >
-                                อนุมัติ
-                            </a>
-                            <a class="button is-danger"
-                               hx-post="{{ url_for('service_admin.disapprove_document_customer', tab=tab,
-                               customer_id=customer.id) }}"
-                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                               hx-confirm="ท่านต้องการไม่อนุมัติใช่หรือไม่"
-                            >
-                                ไม่อนุมัติ
-                            </a>
-                        {% endif %}
+                    <div class="service-customer-info-item">
+                        <span><i class="fas fa-id-card"></i> เลขประจำตัวผู้เสียภาษีอากร</span>
+                        <strong>{{ customer.taxpayer_identification_no or '-' }}</strong>
+                    </div>
+                    <div class="service-customer-info-item">
+                        <span><i class="fas fa-envelope"></i> อีเมล</span>
+                        <strong>{{ customer.email or '-' }}</strong>
+                    </div>
+                    <div class="service-customer-info-item">
+                        <span><i class="fas fa-phone"></i> เบอร์โทรศัพท์</span>
+                        <strong>{{ customer.phone_number or '-' }}</strong>
+                    </div>
+                    <div class="service-customer-info-item">
+                        <span><i class="fas fa-fax"></i> โทรสาร</span>
+                        <strong>{{ customer.fax_no or '-' }}</strong>
                     </div>
                 </div>
             </div>
+
+            <div class="service-customer-section-card service-customer-contact-section">
+                <div class="service-customer-section-heading">
+                    <div>
+                        <p class="service-customer-section-eyebrow">CONTACTS</p>
+                        <h2><i class="fas fa-address-book"></i> ข้อมูลผู้ประสานงาน</h2>
+                    </div>
+                    <span class="service-customer-section-count">{{ customer.customer_contacts|length }} คน</span>
+                </div>
+                <div class="service-customer-contact-grid">
+                    {% for contact in customer.customer_contacts %}
+                        <div class="service-customer-contact-card">
+                            <span class="service-customer-contact-icon"><i class="fas fa-user"></i></span>
+                            <div class="service-customer-contact-content">
+                                <strong>{{ contact.contact_name or '-' }}</strong>
+                                <span><i class="fas fa-phone"></i> {{ contact.phone_number or '-' }}</span>
+                                <span><i class="fas fa-envelope"></i> {{ contact.email or '-' }}</span>
+                                {% if contact.remark %}
+                                    <small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="service-customer-empty">ยังไม่มีข้อมูลผู้ประสานงาน</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="service-customer-section-card">
+                <div class="service-customer-section-heading">
+                    <div>
+                        <p class="service-customer-section-eyebrow">ADDRESSES</p>
+                        <h2><i class="fas fa-location-dot"></i> ที่อยู่ผู้รับบริการ</h2>
+                    </div>
+                    <span class="service-customer-section-count">{{ customer.addresses|length }} รายการ</span>
+                </div>
+                <div class="service-customer-address-grid">
+                    {% for address in customer.addresses %}
+                        <div class="service-customer-address-card">
+                            <div class="service-customer-address-heading">
+                                <strong>{{ address.name or '-' }}</strong>
+                                <span class="tag is-light">
+                                    {% if address.address_type == 'document' %}
+                                        ที่อยู่จัดส่งเอกสาร
+                                    {% else %}
+                                        ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <p class="service-customer-address-text">{{ address.address or '-' }}</p>
+                            <p class="service-customer-address-text">
+                                {% if address.subdistrict %}
+                                    {{ 'แขวง' if address.province and address.province.name == 'กรุงเทพมหานคร' else 'ตำบล' }}{{ address.subdistrict }}
+                                {% endif %}
+                                {% if address.district %}
+                                    {{ 'เขต' if address.province and address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ' }}{{ address.district }}
+                                {% endif %}
+                                {% if address.province %}จังหวัด{{ address.province }}{% endif %}
+                                {{ address.zipcode or '' }}
+                            </p>
+                            <div class="service-customer-address-meta">
+                                <span><i class="fas fa-phone"></i> {{ address.phone_number or '-' }}</span>
+                                <span><i class="fas fa-id-card"></i> {{ address.taxpayer_identification_no or '-' }}</span>
+                            </div>
+                            {% if address.remark %}
+                                <small class="service-customer-address-remark">
+                                    <i class="fas fa-note-sticky"></i> {{ address.remark }}
+                                </small>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="service-customer-empty service-customer-empty-address">
+                            <span class="service-customer-empty-icon" aria-hidden="true">
+                                <i class="fas fa-location-dot"></i>
+                            </span>
+                            <div>
+                                <strong>ยังไม่มีข้อมูลที่อยู่</strong>
+                                <p>ยังไม่ได้เพิ่มที่อยู่สำหรับผู้รับบริการรายนี้</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="service-customer-section-card">
+                <div class="service-customer-section-heading">
+                    <div>
+                        <p class="service-customer-section-eyebrow">DOCUMENTS</p>
+                        <h2><i class="fas fa-paperclip"></i> เอกสารประกอบ</h2>
+                    </div>
+                    <span class="service-customer-section-count">
+                        {{ customer.required_attachments|length + customer.other_attachments|length }} ไฟล์
+                    </span>
+                </div>
+                {% if customer.required_attachments or customer.other_attachments %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-hoverable service-customer-document-table">
+                            <thead>
+                                <th>ชื่อเอกสาร</th>
+                                <th>ประเภทเอกสาร</th>
+                                <th>รายละเอียด</th>
+                                <th class="has-text-centered">ไฟล์</th>
+                            </thead>
+                            <tbody>
+                                {% for item in customer.required_attachments %}
+                                    <tr>
+                                        <td>{{ item.file_name or '-' }}</td>
+                                        <td>
+                                            <span class="tag is-info is-light">เอกสารจำเป็น</span>
+                                        </td>
+                                        <td>{{ item.note or '-' }}</td>
+                                        <td class="has-text-centered">
+                                            {% if item.attachment %}
+                                                <a class="button is-small is-link is-light is-rounded"
+                                                   href="{{ url_for('service_admin.download_file', key=item.attachment,
+                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                    <span>ดาวน์โหลด</span>
+                                                </a>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                {% for item in customer.other_attachments %}
+                                    <tr>
+                                        <td>{{ item.file_name or '-' }}</td>
+                                        <td>
+                                            <span class="tag is-light">เอกสารเพิ่มเติม</span>
+                                        </td>
+                                        <td>{{ item.note or '-' }}</td>
+                                        <td class="has-text-centered">
+                                            {% if item.attachment %}
+                                                <a class="button is-small is-link is-light is-rounded"
+                                                   href="{{ url_for('service_admin.download_file', key=item.attachment,
+                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                    <span>ดาวน์โหลด</span>
+                                                </a>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="service-customer-empty">ยังไม่มีเอกสารประกอบ</div>
+                {% endif %}
+            </div>
+            {% if central_admin_academic_service_permission.can() %}
+                {% if customer.is_document_verified is none and customer.required_attachments %}
+                    <div class="service-customer-review-card">
+                        <div>
+                            <strong>ตรวจสอบเอกสารผู้รับบริการ</strong>
+                            <p>กรุณาตรวจสอบข้อมูลและเอกสารก่อนเลือกผลการพิจารณา</p>
+                        </div>
+                        <div class="buttons mb-0">
+                            <a class="button is-success is-rounded"
+                               hx-post="{{ url_for('service_admin.approve_document_customer', tab=tab,
+                               customer_id=customer.id) }}"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                               hx-confirm="ท่านต้องการอนุมัติใช่หรือไม่">
+                                <span class="icon"><i class="fas fa-check"></i></span>
+                                <span>อนุมัติ</span>
+                            </a>
+                            <a class="button is-danger is-light is-rounded"
+                               hx-post="{{ url_for('service_admin.disapprove_document_customer', tab=tab,
+                               customer_id=customer.id) }}"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                               hx-confirm="ท่านต้องการไม่อนุมัติใช่หรือไม่">
+                                <span class="icon"><i class="fas fa-xmark"></i></span>
+                                <span>ไม่อนุมัติ</span>
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
         </div>
-    </div>
-</section>
-{% endblock %}
-{% block scripts %}
-    {{ super() }}
+    </section>
+
+    <style>
+        .service-customer-view { min-height: 38rem; padding: 3.5rem 0 4rem; }
+        .service-customer-container { max-width: 76rem; }
+        .service-customer-heading { align-items: center; display: flex; gap: 1.5rem; justify-content: space-between; margin: 0 auto 1.5rem; max-width: 70rem; }
+        .service-customer-heading-copy { align-items: center; display: flex; gap: 1rem; min-width: 0; }
+        .service-customer-heading-icon { align-items: center; background: #eef6ff; border: 1px solid #cfe5fb; border-radius: 17px; color: #2f80c9; display: inline-flex; flex: 0 0 3.5rem; font-size: 1.35rem; height: 3.5rem; justify-content: center; }
+        .service-customer-eyebrow, .service-customer-section-eyebrow { color: #557597; font-size: .7rem; font-weight: 900; letter-spacing: .17em; margin-bottom: .35rem; }
+        .service-customer-title { color: #15284d; font-size: clamp(1.65rem, 3vw, 2.2rem); margin-bottom: .35rem !important; }
+        .service-customer-subtitle { color: #66738d; font-size: .9rem; margin: 0; }
+        .service-customer-back { border-radius: 10px; color: #294a78; font-weight: 700; }
+        .service-customer-profile-card, .service-customer-section-card, .service-customer-review-card { background: rgba(255,255,255,.96); border: 1px solid rgba(58,101,184,.17); border-radius: 18px; box-shadow: 0 14px 32px rgba(18,39,84,.08); margin: 0 auto 1.25rem; max-width: 70rem; }
+        .service-customer-profile-card { padding: 1.25rem 1.4rem; }
+        .service-customer-profile-header { align-items: center; display: flex; gap: 1rem; justify-content: space-between; }
+        .service-customer-profile-main { align-items: center; display: flex; gap: .9rem; min-width: 0; }
+        .service-customer-profile-icon { align-items: center; background: #eef6ff; border-radius: 13px; color: #2f80c9; display: inline-flex; flex: 0 0 3rem; font-size: 1.15rem; height: 3rem; justify-content: center; }
+        .service-customer-profile-label { color: #8292a9; font-size: .75rem; font-weight: 700; margin-bottom: .15rem; }
+        .service-customer-profile-main h2 { color: #1e3152; font-size: 1.25rem; margin: 0 0 .4rem; overflow-wrap: anywhere; }
+        .service-customer-type-tag { background: #f0f5fb; color: #425675; font-size: .78rem; }
+        .service-customer-verification .tag { font-weight: 700; padding: .55rem .8rem; }
+        .service-customer-section-card { padding: 1.25rem 1.4rem; }
+        .service-customer-contact-section { border-color: #cfe5fb; box-shadow: 0 12px 28px rgba(47,128,201,.1); }
+        .service-customer-section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1rem; }
+        .service-customer-section-heading h2 { color: #102f58; font-size: 1.08rem; font-weight: 800; margin: 0; }
+        .service-customer-section-heading h2 i { color: #2f80c9; margin-right: .35rem; }
+        .service-customer-section-count { background: #eef6ff; border-radius: 999px; color: #2f80c9; font-size: .78rem; font-weight: 800; padding: .35rem .7rem; white-space: nowrap; }
+        .service-customer-info-grid { border-top: 1px solid #edf1f7; display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 1.15rem; padding-top: 1rem; }
+        .service-customer-info-item { display: flex; flex-direction: column; gap: .35rem; min-width: 0; padding: 0 .15rem; }
+        .service-customer-info-item span { color: #8292a9; font-size: .78rem; }
+        .service-customer-info-item span i { color: #2f80c9; margin-right: .25rem; }
+        .service-customer-info-item strong { color: #425675; font-size: .92rem; overflow-wrap: anywhere; }
+        .service-customer-address-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .service-customer-address-card { background: #fbfdff; border: 1px solid #e1edf8; border-radius: 12px; padding: 1rem; }
+        .service-customer-address-heading { align-items: flex-start; display: flex; gap: .6rem; justify-content: space-between; margin-bottom: .6rem; }
+        .service-customer-address-heading strong { color: #1e3152; font-size: .92rem; }
+        .service-customer-address-heading .tag { color: #667d9b; font-size: .7rem; white-space: nowrap; }
+        .service-customer-address-text { color: #425675; font-size: .84rem; line-height: 1.65; margin-bottom: .15rem; }
+        .service-customer-address-meta { color: #667d9b; display: flex; flex-wrap: wrap; font-size: .78rem; gap: .8rem; margin-top: .55rem; }
+        .service-customer-address-meta i, .service-customer-address-remark i { color: #2f80c9; margin-right: .2rem; }
+        .service-customer-address-remark { color: #667d9b; display: block; font-size: .78rem; margin-top: .55rem; }
+        .service-customer-contact-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .service-customer-contact-card { align-items: flex-start; background: transparent; border: 0; border-radius: 12px; display: flex; gap: .75rem; padding: .35rem 0; }
+        .service-customer-contact-icon { align-items: center; background: #eef6ff; border-radius: 9px; color: #2f80c9; display: inline-flex; flex: 0 0 2rem; height: 2rem; justify-content: center; }
+        .service-customer-contact-content { display: flex; flex-direction: column; gap: .18rem; min-width: 0; }
+        .service-customer-contact-content strong { color: #1e3152; font-size: .92rem; }
+        .service-customer-contact-content span, .service-customer-contact-content small { color: #667d9b; font-size: .8rem; overflow-wrap: anywhere; }
+        .service-customer-contact-content i { color: #2f80c9; margin-right: .2rem; }
+        .service-customer-document-table th { background: #f3f7fc; color: #425675; font-size: .8rem; }
+        .service-customer-document-table td { color: #425675; vertical-align: middle; }
+        .service-customer-empty { background: #f8fbff; border: 1px dashed #d7e0ee; border-radius: 10px; color: #8391a8; padding: 1rem; text-align: center; }
+        .service-customer-empty-address { align-items: center; background: #fbfdff; border: 1px dashed #c9dff2; border-radius: 14px; display: flex; gap: .85rem; grid-column: 1 / -1; justify-content: center; min-height: 7rem; padding: 1.25rem; text-align: left; }
+        .service-customer-empty-icon { align-items: center; background: #eef6ff; border-radius: 50%; color: #2f80c9; display: inline-flex; flex: 0 0 2.7rem; font-size: 1rem; height: 2.7rem; justify-content: center; }
+        .service-customer-empty-address strong { color: #425675; display: block; font-size: .9rem; }
+        .service-customer-empty-address p { color: #8292a9; font-size: .78rem; margin: .2rem 0 0; }
+        .service-customer-review-card { align-items: center; border-color: #cfe5fb; display: flex; gap: 1rem; justify-content: space-between; padding: 1rem 1.25rem; }
+        .service-customer-review-card strong { color: #1e4677; font-size: .95rem; }
+        .service-customer-review-card p { color: #667d9b; font-size: .8rem; margin: .2rem 0 0; }
+        @media screen and (max-width: 700px) {
+            .service-customer-view { padding-top: 2rem; }
+            .service-customer-heading { align-items: flex-start; flex-direction: column; }
+            .service-customer-profile-header, .service-customer-review-card { align-items: flex-start; flex-direction: column; }
+            .service-customer-info-grid, .service-customer-address-grid, .service-customer-contact-grid { grid-template-columns: 1fr; }
+            .service-customer-review-card .buttons { width: 100%; }
+            .service-customer-review-card .button { flex: 1; }
+        }
+        @media screen and (max-width: 480px) {
+            .service-customer-heading-copy { align-items: flex-start; flex-direction: column; }
+            .service-customer-heading-icon { flex-basis: 3rem; height: 3rem; }
+            .service-customer-section-card { padding: 1rem; }
+        }
+    </style>
 {% endblock %}

@@ -135,6 +135,10 @@ class StaffAccount(db.Model):
         return self.personal_info.fullname
 
     @property
+    def fullname_with_full_position(self):
+        return self.personal_info.fullname_with_full_position
+
+    @property
     def en_fullname(self):
         return self.personal_info.en_fullname
 
@@ -252,6 +256,41 @@ class StaffPersonalInfo(db.Model):
         else:
             th_position = None
             en_position = None
+
+        if self.th_firstname or self.th_lastname:
+            if th_position:
+                if self.th_title == u'ดร.' or self.th_title == u'พญ.' or self.th_title == u'ดร. พญ.':
+                    return u'{} {}{} {}'.format(th_position, self.th_title or '', self.th_firstname, self.th_lastname)
+                else:
+                    return u'{} {} {}'.format(th_position, self.th_firstname, self.th_lastname)
+            else:
+                return u'{}{} {}'.format(self.th_title or '', self.th_firstname, self.th_lastname)
+        else:
+            if en_position:
+                if self.en_title == u'Dr.':
+                    return u'{} {}{} {}'.format(en_position,
+                                                self.en_title or '',
+                                                self.en_firstname,
+                                                self.en_lastname)
+                else:
+                    return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+            else:
+                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
+
+    @property
+    def fullname_with_full_position(self):
+        try:
+            academic_position = self.academic_positions[0]
+        except IndexError:
+            if self.academic_staff:
+                th_position = u'อาจารย์'
+                en_position = u'Lecturer'
+            else:
+                th_position = None
+                en_position = None
+        else:
+            th_position = academic_position.position.fullname_th
+            en_position = academic_position.position.fullname_en
 
         if self.th_firstname or self.th_lastname:
             if th_position:
