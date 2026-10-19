@@ -88,6 +88,8 @@ def _normalize_staff_email(email):
 
 def _handle_password_login(form, *, external_only=False, next_url=None):
     login_endpoint = 'auth.login_external' if external_only else 'auth.login'
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
     login_email = (form.email.data or '').strip().lower()
     if external_only:
         if '@' in login_email:
@@ -98,23 +100,23 @@ def _handle_password_login(form, *, external_only=False, next_url=None):
         user = db.session.query(StaffAccount).filter_by(email=_normalize_staff_email(login_email)).first()
     if not user:
         flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
-        return redirect(url_for(login_endpoint))
+        return redirect(url_for(login_endpoint, next=next_url))
 
     if not user.verify_password(form.password.data):
         flash(u'Wrong password, try again. รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
-        return redirect(url_for(login_endpoint))
+        return redirect(url_for(login_endpoint, next=next_url))
 
     if not user.is_active:
         flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
-        return redirect(url_for(login_endpoint))
+        return redirect(url_for(login_endpoint, next=next_url))
 
     if external_only and not _is_external_account(user):
         flash(u'Please use this page for external employees only. หน้านี้สำหรับบุคลากรภายนอกเท่านั้น', 'danger')
-        return redirect(url_for(login_endpoint))
+        return redirect(url_for(login_endpoint, next=next_url))
 
     if not login_user(user, form.remember_me.data):
         flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
-        return redirect(url_for(login_endpoint))
+        return redirect(url_for(login_endpoint, next=next_url))
 
     session['user_type'] = 'staff'
     identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
@@ -123,8 +125,6 @@ def _handle_password_login(form, *, external_only=False, next_url=None):
     if _is_external_account(user) or external_only:
         return redirect(url_for('external_landing'))
 
-    if next_url and not is_safe_url(next_url):
-        return abort(400)
     return redirect(next_url or url_for('index'))
 
 
