@@ -1,10 +1,9 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}แบบฟอร์มส่งเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
+{% block title %}แบบฟอร์มส่งเบิกเงินสดย่อย{% endblock %}
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom">
-  <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
   <h1 class="fw-bold display-6 mb-2">ใบส่งเบิกเงินสดย่อย</h1>
 </header>
 {% if verification_fund_request or claim_detail %}
