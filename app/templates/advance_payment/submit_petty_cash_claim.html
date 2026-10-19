@@ -416,7 +416,7 @@
                   <a href="{{ doc.url or doc.view_url or doc.file_path or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.url and not doc.view_url and not doc.file_path %}d-none{% endif %}" target="_blank" rel="noopener">
                     <i class="bi bi-download me-1"></i> ดาวน์โหลด
                   </a>
-                  <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
+                  <button type="button" class="btn btn-sm btn-outline-danger border-1 remove-document-btn" onclick="removeDocumentRow(this)">
                     <i class="bi bi-x-circle-fill"></i> ลบ
                   </button>
                 </div>
@@ -438,6 +438,9 @@
                 <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
                   <i class="bi bi-download me-1"></i> ดาวน์โหลด
                 </a>
+                <button type="button" class="btn btn-sm btn-outline-danger border-1 remove-document-btn selection-dependent d-none" onclick="removeDocumentRow(this)">
+                  <i class="bi bi-x-circle-fill"></i> ลบ
+                </button>
               </div>
             </div>
           {% endif %}
@@ -1822,7 +1825,7 @@ function addDocumentRow() {
       <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
         <i class="bi bi-download me-1"></i> ดาวน์โหลด
       </a>
-      <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
+      <button type="button" class="btn btn-sm btn-outline-danger border-1 remove-document-btn" onclick="removeDocumentRow(this)">
         <i class="bi bi-x-circle-fill"></i> ลบ
       </button>
     </div>
@@ -1849,6 +1852,8 @@ function removeDocumentRow(btn) {
     row.querySelector('.announcement-input').value = '';
     if (row.querySelector('.announcement-id-input')) row.querySelector('.announcement-id-input').value = '';
     row.querySelector('.download-btn').classList.add('d-none');
+    const removeBtn = row.querySelector('.remove-document-btn');
+    if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.add('d-none');
   }
   updateAddDocumentButton(container);
   triggerAutoSave();
@@ -1859,10 +1864,12 @@ async function showSuggestions(inputElem, resetSelection = true) {
   const row = inputElem.closest('.document-input-row');
   const suggestionsBox = row.querySelector('.suggestions-box');
   const downloadBtn = row.querySelector('.download-btn');
+  const removeBtn = row.querySelector('.remove-document-btn');
   const idInput = row.querySelector('.announcement-id-input');
 
   if (resetSelection) {
     downloadBtn.classList.add('d-none');
+    if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.add('d-none');
     if (idInput) idInput.value = '';
     updateAddDocumentButton(row.parentElement);
   }
@@ -1901,6 +1908,7 @@ function selectAnnouncement(itemElem, docId, docTitle, filePath) {
   const titleInput = row.querySelector('.announcement-input');
   const idInput = row.querySelector('.announcement-id-input');
   const downloadBtn = row.querySelector('.download-btn');
+  const removeBtn = row.querySelector('.remove-document-btn');
   const suggestionsBox = row.querySelector('.suggestions-box');
 
   titleInput.value = docTitle;
@@ -1909,8 +1917,10 @@ function selectAnnouncement(itemElem, docId, docTitle, filePath) {
   if (filePath) {
     downloadBtn.href = filePath;
     downloadBtn.classList.remove('d-none');
+    if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.remove('d-none');
   } else {
     downloadBtn.classList.add('d-none');
+    if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.add('d-none');
   }
 
   updateAddDocumentButton(row.parentElement);
