@@ -9640,27 +9640,30 @@ def reject_fund_request(request_id):
         abort(404)
 
     staff = current_user
-    setting = _resolve_petty_cash_setting_for_fund_request(staff, fund_req)
+    setting = getattr(fund_req, "petty_cash_setting", None)
+    if setting is None and getattr(fund_req, "petty_cash_setting_id", None):
+        setting = db.session.query(PettyCashSetting).get(
+            fund_req.petty_cash_setting_id
+        )
     is_head = _is_fund_request_org_head(staff, fund_req)
     is_custodian = _is_petty_cash_custodian(staff, setting)
-    if not staff.is_authenticated or not (is_head or is_custodian):
+    expected_confirmer_id = _fund_request_expected_confirmer_id(fund_req)
+    staff_id = getattr(staff, "id", None)
+    can_confirm = bool(
+        expected_confirmer_id == staff_id
+        and not is_head
+    )
+    can_approve = bool(
+        not getattr(fund_req, "approved_at", None)
+        and is_head
+        and expected_confirmer_id in {None, staff_id}
+    )
+    if (
+        not staff.is_authenticated
+        or (fund_req.status or "").strip() != "รอการอนุมัติ"
+        or not (is_custodian or can_confirm or can_approve)
+    ):
         abort(403)
-
-    same_setting = _fund_request_setting_filter(
-        db.session.query(FundRequest).filter(FundRequest.id == fund_req.id),
-        setting,
-    ).first()
-    if not same_setting:
-        abort(403)
-
-    if (fund_req.status or "").strip() != "รอการอนุมัติ":
-        flash("สามารถปฏิเสธได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
-        return redirect(
-            url_for(
-                "advance_payment.submit_petty_cash_claim",
-                fund_request_id=fund_req.id,
-            )
-        )
 
     rejection_comment = (request.form.get("rejection_comment") or "").strip()
     if not rejection_comment:
@@ -11429,8 +11432,38 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     can_reject_fund_request = bool(
         verification_fund_request
         and fund_request_status == "รอการอนุมัติ"
-        and (current_is_head or current_is_custodian)
+        and (
+            current_is_custodian
+            or can_confirm_fund_request
+            or can_approve_fund_request
+        )
     )
+    fund_request_waiting_message = None
+    if verification_fund_request and fund_request_status == "รอการอนุมัติ":
+        expected_confirmer = (
+            _get_user_by_id(expected_confirmer_id)
+            if expected_confirmer_id
+            else None
+        )
+        expected_confirmer_is_head = bool(
+            expected_confirmer
+            and _staff_accounts_match(
+                expected_confirmer,
+                _fund_request_org_head(verification_fund_request),
+            )
+        )
+        if expected_confirmer_is_head:
+            fund_request_waiting_message = "กำลังรอการอนุมัติจากหัวหน้าหน่วยงาน"
+        elif expected_confirmer_id == getattr(
+            verification_fund_request, "requester_id", None
+        ):
+            fund_request_waiting_message = "กำลังรอการยืนยันข้อมูลจากผู้ยืม"
+        elif expected_confirmer_id == _fund_request_custodian_id(
+            verification_fund_request
+        ):
+            fund_request_waiting_message = "กำลังรอการยืนยันข้อมูลจากผู้รักษาบัญชี"
+        elif not getattr(verification_fund_request, "approved_at", None):
+            fund_request_waiting_message = "กำลังรอการอนุมัติจากหัวหน้าหน่วยงาน"
     can_record_fund_request_withdrawal = bool(
         verification_fund_request
         and fund_request_status == "อนุมัติแล้ว"
@@ -11534,6 +11567,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         can_approve_fund_request=can_approve_fund_request,
         can_confirm_fund_request=can_confirm_fund_request,
         can_reject_fund_request=can_reject_fund_request,
+        fund_request_waiting_message=fund_request_waiting_message,
         can_record_fund_request_withdrawal=can_record_fund_request_withdrawal,
         can_edit_fund_request=can_edit_fund_request,
         current_is_custodian=current_is_custodian,
