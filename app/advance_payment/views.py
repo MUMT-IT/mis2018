@@ -2483,7 +2483,10 @@ def _download_cash_mng_document(file_id):
 
 
 def _advance_payment_email_enabled():
-    return os.environ.get("ADVANCE_PAYMENT_EMAIL_ENABLED", "false").lower() in {
+    value = os.environ.get("ADVANCE_PAYMENT_EMAIL_ENABLED")
+    if value is None:
+        return True
+    return value.strip().lower() in {
         "1", "true", "yes", "on"
     }
 
