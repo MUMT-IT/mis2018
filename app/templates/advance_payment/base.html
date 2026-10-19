@@ -920,7 +920,7 @@
                   <i class="bi bi-clock-history me-2"></i> รายการเงินสดย่อย
                 </a>
               </li>
-              {% if advance_payment_is_custodian %}
+              {% if advance_payment_is_custodian or current_user.email == current_user.personal_info.org.head %}
                 <li class="nav-item">
                   <a class="nav-link" href="{{ url_for('advance_payment.petty_cash_ledger') }}">
                     <i class="bi bi-journal-bookmark-fill me-2"></i>

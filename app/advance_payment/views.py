@@ -406,6 +406,14 @@ def _get_staff_org(staff):
     return org
 
 
+def _is_staff_org_head(staff):
+    org = _get_staff_org(staff)
+    return bool(
+        org
+        and getattr(org, "head", None)
+        and getattr(org, "head", None) == getattr(staff, "email", None)
+    )
+
 def _get_staff_department_name(staff, default=None):
     org = _get_staff_org(staff)
     if org and getattr(org, "name", None):
@@ -12509,6 +12517,9 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
 def petty_cash_ledger():
     staff = current_user
     active_setting = _resolve_petty_cash_setting(staff)
-    if not _is_petty_cash_custodian(staff, active_setting):
+    if not (
+        _is_petty_cash_custodian(staff, active_setting)
+        or _is_staff_org_head(staff)
+    ):
         abort(403)
     return _build_petty_cash_ledger(staff)
