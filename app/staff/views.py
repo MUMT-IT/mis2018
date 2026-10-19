@@ -3066,19 +3066,22 @@ def show_wfh_approvers():
 @login_required
 def wfh_manage_requester(requester_id):
     if request.method == 'POST':
-        approver_account_id = int(request.form.get('staffname'))
-        find_approver = StaffWorkFromHomeApprover.query.filter_by \
-            (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
-        if find_approver:
-            flash('ไม่สามารถเพิ่มผู้อนุมัติได้เนื่องจากมีผู้อนุมัตินี้อยู่แล้ว', 'warning')
+        approver_account = StaffAccount.query.filter_by(personal_id=int(request.form.get('staffname'))).first()
+        if approver_account:
+            find_approver = StaffWorkFromHomeApprover.query.filter_by \
+                (approver_account_id=approver_account.id, staff_account_id=requester_id).first()
+            if find_approver:
+                flash('ไม่สามารถเพิ่มผู้อนุมัติได้เนื่องจากมีผู้อนุมัตินี้อยู่แล้ว', 'warning')
+            else:
+                createapprover = StaffWorkFromHomeApprover(
+                    approver_account_id=approver_account.id,
+                    staff_account_id=requester_id
+                )
+                db.session.add(createapprover)
+                db.session.commit()
+                flash('เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
         else:
-            createapprover = StaffWorkFromHomeApprover(
-                approver_account_id=approver_account_id,
-                staff_account_id=requester_id
-            )
-            db.session.add(createapprover)
-            db.session.commit()
-            flash('เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
+            flash('ไม่พบชื่อผู้อนุมัติ', 'danger')
 
     requester = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=requester_id)
     requester_name = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=requester_id).first()
@@ -3106,19 +3109,22 @@ def wfh_change_active_status(approver_id, requester_id):
 @login_required
 def wfh_manage_approver(approver_id):
     if request.method == 'POST':
-        staff_account_id = request.form.get('staffname')
-        find_requester = StaffWorkFromHomeApprover.query.filter_by \
-            (approver_account_id=approver_id, staff_account_id=staff_account_id).first()
-        if find_requester:
-            flash('ไม่สามารถเพิ่มบุคลากรท่านนี้ได้ เนื่องจากมีข้อมูลบุคลากรท่านนี้อยู่แล้ว', 'warning')
+        staff_account = StaffAccount.query.filter_by(personal_id=int(request.form.get('staffname'))).first()
+        if staff_account:
+            find_requester = StaffWorkFromHomeApprover.query.filter_by \
+                (approver_account_id=approver_id, staff_account_id=staff_account.id).first()
+            if find_requester:
+                flash('ไม่สามารถเพิ่มบุคลากรท่านนี้ได้ เนื่องจากมีข้อมูลบุคลากรท่านนี้อยู่แล้ว', 'warning')
+            else:
+                createrequester = StaffWorkFromHomeApprover(
+                    staff_account_id=staff_account.id,
+                    approver_account_id=approver_id
+                )
+                db.session.add(createrequester)
+                db.session.commit()
+                flash('เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
         else:
-            createrequester = StaffWorkFromHomeApprover(
-                staff_account_id=staff_account_id,
-                approver_account_id=approver_id
-            )
-            db.session.add(createrequester)
-            db.session.commit()
-            flash('เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
+            flash('ไม่พบชื่อบุคลากร', 'success')
     approvers = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=approver_id)
     return render_template('staff/wfh_manage_approver.html', approvers=approvers)
 
