@@ -11572,7 +11572,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     can_cancel_fund_request = False
     if (
         verification_fund_request
-        and fund_request_status in {"อนุมัติแล้ว", "เบิกเงินแล้ว"}
+        and fund_request_status == "เบิกเงินแล้ว"
         and current_is_custodian
         and _fund_request_setting_filter(
             db.session.query(FundRequest).filter(
