@@ -14,7 +14,7 @@ blinker==1.9.0
 boto3==1.35.72
 botocore==1.35.72
 cairocffi==1.7.0
-CairoSVG==2.9.0
+CairoSVG==2.9.1
 certifi==2026.6.17
 cffi==2.0.0
 chardet==3.0.4
@@ -71,7 +71,7 @@ openpyxl==3.1.2
 packaging==24.2
 pandas==1.5.0
 pdfrw==0.4
-pillow==12.2.0
+pillow==12.3.0
 fonttools[woff]==4.63.0
 propcache==0.3.1
 protobuf==4.25.8
@@ -86,7 +86,7 @@ typhoon-ocr==0.4.0
 Pygments==2.20.0
 pyHanko==0.20.0
 pyhanko-certvalidator==0.23.0
-PyJWT==2.13.0
+PyJWT==2.14.0
 pyparsing==2.4.7
 Pyphen==0.9.5
 PyQRCode==1.2.1
@@ -114,7 +114,7 @@ tzlocal==5.0.1
 uharfbuzz==0.37.3
 uritemplate==3.0.1
 uritools==4.0.1
-urllib3==2.7.0
+urllib3==2.8.0
 xlsxwriter==3.2.9
 webencodings==0.5.1
 Werkzeug==3.1.6
@@ -124,4 +124,4 @@ WTForms-Alchemy==0.18.0
 WTForms-Components==0.10.4
 yarl==1.20.0
 zipp==3.19.1
-pypdf==6.10.0
+pypdf==6.19.0
