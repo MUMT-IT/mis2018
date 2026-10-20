@@ -3293,9 +3293,29 @@ def hr_all_idp():
                            sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
                            round=round_id,
+                           approver_accounts=[account for account in StaffAccount.query.all()
+                                              if account.personal_info and account.is_active],
                            rounds=[{'id': r.id,
                                     'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
                                         '%d/%m/%Y')} for r in rounds])
+
+
+@pa.route('/hr/idp/<int:idp_id>/approver', methods=['POST'])
+@login_required
+@hr_permission.require()
+def hr_update_idp_approver(idp_id):
+    idp = IDP.query.get_or_404(idp_id)
+
+    approver_account_id = request.form.get('approver_account_id', type=int)
+    new_approver = StaffAccount.query.get(approver_account_id) if approver_account_id else None
+    if not new_approver or not new_approver.personal_info or not new_approver.is_active:
+        flash('กรุณาเลือกผู้อนุมัติที่เป็นบุคลากรปัจจุบัน', 'danger')
+        return redirect(request.referrer or url_for('pa.hr_all_idp'))
+
+    idp.approver_account_id = new_approver.id
+    db.session.commit()
+    flash('แก้ไขผู้อนุมัติ IDP เรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer or url_for('pa.hr_all_idp'))
 
 
 @pa.route('/hr/idp/<int:idp_id>/delete', methods=['POST'])
