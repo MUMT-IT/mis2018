@@ -255,7 +255,7 @@
             <!-- ส่วนกรอกจำนวนเงินและแสดงข้อความแจ้งเตือนข้อผิดพลาด (จัดชิดขวา) -->
           <div class="row g-3 mb-4 justify-content-end align-items-end">
             
-            {% set available_budget = dept_summary.remaining_budget if dept_summary else 0 %}
+            {% set available_budget = ledger_running_balance if ledger_running_balance is not none else 0 %}
             <!-- ช่องกรอกจำนวนเงิน: ใช้กรอกเองเฉพาะแบบฟอร์มดอกเบี้ย -->
             <div class="col-md-5 col-lg-4 ms-auto text-end">
               <div id="manualAmountSection"{% if selected_form_type != 'interest' %} class="d-none"{% endif %}>
@@ -271,7 +271,7 @@
                        value="{{ '%.2f'|format(form.amount.data or 0) if form.amount.data is not none else '' }}"
                        style="border-radius: 12px; font-size: 1.1rem;"
                        oninput="handleUserTotalInput(this)"
-                       data-available-budget="{{ '%.2f'|format(available_budget if available_budget else '') }}">
+                       data-available-budget="{{ '%.2f'|format(available_budget or 0) }}">
               </div>
               <div id="budgetSummary" class="p-3 mt-2 border rounded-3 bg-light text-start{% if selected_form_type in ['interest', 'borrowing'] %} d-none{% endif %}">
                 <div class="d-flex justify-content-between align-items-center gap-3">
@@ -288,7 +288,7 @@
                 </div>
                 <div class="d-flex justify-content-between align-items-center gap-3 mt-1">
                   <span class="fw-bold text-muted">ยอดคงเหลือหลังเบิก</span>
-                  <span class="fw-bold text-success" id="budgetAfterRequestDisplay">
+                  <span class="fw-bold {% if available_budget <= 0 %}text-danger{% else %}text-success{% endif %}" id="budgetAfterRequestDisplay">
                     {{ "{:,.2f}".format(available_budget or 0) }}
                   </span>
                 </div>
@@ -474,8 +474,8 @@
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         });
-        budgetAfterRequestDisplay.classList.toggle("text-danger", isOverBudget && !isBudgetExemptForm);
-        budgetAfterRequestDisplay.classList.toggle("text-success", !isOverBudget && !isBudgetExemptForm);
+        budgetAfterRequestDisplay.classList.toggle("text-danger", remainingAfterRequest <= 0 && !isBudgetExemptForm);
+        budgetAfterRequestDisplay.classList.toggle("text-success", remainingAfterRequest > 0 && !isBudgetExemptForm);
       }
 
       if (budgetLimitAlert) {

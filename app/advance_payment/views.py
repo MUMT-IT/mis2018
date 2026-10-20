@@ -9240,6 +9240,15 @@ def staff_fund_request():
         setting,
         user_id=user.id if not (setting and setting.id) else None,
     )
+    ledger_running_balance = (
+        _build_petty_cash_ledger(
+            user,
+            selected_month_start=datetime.now().date().replace(day=1),
+            balance_only=True,
+        )
+        if setting
+        else 0.0
+    )
     # Borrower choices must follow the organization configured for the petty-cash
     # setting, including every child organization, not the custodian's own profile
     # organization.
@@ -9322,7 +9331,7 @@ def staff_fund_request():
                 )
             selected_borrowing_ticket = None
             requester_id = user.id
-            available_budget = float(dept_summary.get("remaining_budget", 0.0) or 0.0)
+            available_budget = float(ledger_running_balance or 0.0)
 
             if form_type == FUND_REQUEST_FORM_INTEREST:
                 requester_id = getattr(setting, "custodian_id", None)
@@ -9590,6 +9599,7 @@ def staff_fund_request():
         custodian_display_name=custodian_display_name,
         custodian_display_position=custodian_display_position,
         dept_summary=dept_summary,
+        ledger_running_balance=ledger_running_balance,
     )
 
 
