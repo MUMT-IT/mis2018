@@ -427,7 +427,7 @@
             if (target && target.id === 'related-position') {
                 const hasPosition = Boolean(target.querySelector('select[name="position"]'));
                 if (!hasPosition) {
-                    target.textContent = 'กรุณาติดต่อ HR เพื่อเพิ่มตำแหน่งผู้อนุมัติ';
+                    target.textContent = '**กรุณาติดต่อ HR เพื่อเพิ่มตำแหน่งผู้อนุมัติ ก่อนการขออนุมัติ**';
                 }
                 vm.hasApproverPosition = hasPosition;
             }

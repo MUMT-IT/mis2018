@@ -751,7 +751,10 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
                 continue
             wfh_dates.update(covered_dates(wfh_request.start_datetime, wfh_request.end_datetime))
         seminar_dates = set()
-        for seminar_attendance in account.seminar_attends:
+        approved_seminar_attendances = account.seminar_attends.join(StaffSeminarApproval).filter(
+            StaffSeminarApproval.is_final_approved.is_(True)
+        ).distinct()
+        for seminar_attendance in approved_seminar_attendances:
             seminar = seminar_attendance.seminar
             seminar_dates.update(covered_dates(
                 getattr(seminar, 'start_datetime', None) or seminar_attendance.start_datetime,
@@ -5314,7 +5317,12 @@ def send_summary_data():
                         'type': 'wfh'
                     })
         if tab in ['smr', 'all']:
-            for smr in emp.staff_account.seminar_attends.all():
+            approved_seminar_attendances = emp.staff_account.seminar_attends.join(
+                StaffSeminarApproval
+            ).filter(
+                StaffSeminarApproval.is_final_approved.is_(True)
+            ).distinct()
+            for smr in approved_seminar_attendances:
                 text_color = '#ffffff'
                 bg_color = '#FF33A5'
                 border_color = '#ffffff'
