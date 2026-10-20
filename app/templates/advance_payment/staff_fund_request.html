@@ -40,17 +40,16 @@
                   <input class="form-check-input" type="radio" name="form_type" id="form_type_petty_cash" value="petty_cash" {% if selected_form_type not in ['interest', 'borrowing'] %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
                   <label class="form-check-label fw-bold text-primary" for="form_type_petty_cash">ขออนุมัติเบิกเงินสดย่อย</label>
                 </div>
-                <div class="form-check form-check-inline m-0 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_interest" value="interest" {% if selected_form_type == 'interest' %}checked{% endif %}{% if not is_custodian or is_editing %} disabled{% endif %}>
-                  <label class="form-check-label fw-bold text-primary" for="form_type_interest">ขออนุมัติเบิกดอกเบี้ย</label>
-                  {% if not is_custodian %}
-                    <span class="badge bg-secondary ms-1">เฉพาะผู้ดูแลเงินสดย่อย</span>
-                  {% endif %}
-                </div>
-                <div class="form-check form-check-inline m-0 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
-                  <label class="form-check-label fw-bold text-primary" for="form_type_borrowing">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</label>
-                </div>
+                {% if is_custodian %}
+                  <div class="form-check form-check-inline m-0 py-1">
+                    <input class="form-check-input" type="radio" name="form_type" id="form_type_interest" value="interest" {% if selected_form_type == 'interest' %}checked{% endif %}{% if not is_custodian or is_editing %} disabled{% endif %}>
+                    <label class="form-check-label fw-bold text-primary" for="form_type_interest">ขออนุมัติเบิกดอกเบี้ย</label>
+                  </div>
+                  <div class="form-check form-check-inline m-0 py-1">
+                    <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
+                    <label class="form-check-label fw-bold text-primary" for="form_type_borrowing">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</label>
+                  </div>
+                {% endif %}
               </div>
             </div>
 
