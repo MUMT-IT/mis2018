@@ -149,7 +149,7 @@
                                      data-private-only="{{ 'true' if document.private_only else 'false' }}">
                                     <label class="label">
                                         {{ document.label }}
-                                         {% if account and not account.has_password and (not item or not item.attachment) %}
+                                         {% if account and not account.has_password %}
                                              <span class="has-text-danger">*</span>
                                         {% endif %}
                                     </label>
