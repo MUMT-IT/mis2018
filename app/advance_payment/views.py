@@ -91,6 +91,10 @@ def render_template(template_name, *args, **kwargs):
     kwargs.setdefault("petty_cash_settings", custodian_settings)
     kwargs.setdefault("advance_payment_is_custodian", is_custodian)
     kwargs.setdefault(
+        "advance_payment_is_org_head",
+        current_user.is_authenticated and _is_staff_org_head(current_user),
+    )
+    kwargs.setdefault(
         "advance_payment_is_cash_advance_manager",
         is_cash_advance_manager,
     )
@@ -10007,6 +10011,53 @@ def staff_fund_request_history():
             and getattr(carryover_setting, "id", None)
             and getattr(carryover_setting, "custodian_id", None) == user.id
         ),
+    )
+
+
+@bp.route("/petty-cash/pending-approvals", methods=["GET"])
+@module_system_required(PETTY_CASH_SYSTEM)
+def petty_cash_pending_approvals():
+    user = db.session.query(StaffAccount).filter_by(id=_current_user_id()).first()
+    if not user:
+        abort(404)
+    if not _is_staff_org_head(user):
+        abort(403)
+
+    org = _get_staff_org(user)
+    setting = _resolve_petty_cash_setting(user)
+    is_custodian = _is_petty_cash_custodian(user, setting)
+
+    fund_requests = (
+        _fund_request_org_filter(db.session.query(FundRequest), org)
+        .filter(
+            FundRequest.is_legacy_import.is_(False),
+            FundRequest.status == "รอการอนุมัติ",
+            FundRequest.confirmed_at.isnot(None),
+            FundRequest.approved_at.is_(None),
+        )
+        .order_by(FundRequest.id.desc())
+        .all()
+    )
+    for fund_request in fund_requests:
+        fund_request.display_requester_name = _fund_request_requester_name(
+            fund_request,
+            "-",
+        )
+        fund_request.can_edit = False
+        fund_request.has_rejected_followup = False
+
+    return render_template(
+        "petty_cash_pending_approvals.html",
+        approval_queue_mode=True,
+        approval_org=org,
+        is_custodian=is_custodian,
+        setting=setting,
+        fund_requests=fund_requests,
+        claim_history=[],
+        parcel_return_history=[],
+        dept_summary={},
+        ledger_running_balance=0.0,
+        can_import_legacy_fund_request=False,
     )
 
 
