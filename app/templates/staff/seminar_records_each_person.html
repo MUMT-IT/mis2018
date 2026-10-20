@@ -134,7 +134,7 @@
                         <br>
                     </span>
                     <span>
-                        2.กด<span class="icon is-small"><i class="fas fa-user-plus"></i></span>กิจกรรมที่ต้องการ <br><br>
+                        2.กด<span class="icon is-small"><i class="fas fa-user-plus"></i></span>กิจกรรมที่ต้องการ <br>
                     </span>
                     <span>
                         3. กด
@@ -146,7 +146,7 @@
                         <span>เข้าร่วมกิจกรรมนี้</span>
                     </a>
                     </span>
-                    <br><br>
+                    <br>
                     <span>
                         4.พิมพ์แบบฟอร์มเพื่อดำเนินการขออนุญาตต่อไป<br>
                     </span>
@@ -211,7 +211,7 @@
             </div>
         </div>
         <div class="column has-text-centered is-medium">
-            <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
+            <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning is-medium">
                 <span class="icon">
                     <i class="fas fa-plus"></i>
                 </span>
@@ -220,7 +220,7 @@
         </div>
         {% if approver %}
         <hr>
-        <h1 class="title is-size-4 has-text-danger has-text-centered">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
+        <h1 class="has-text-danger has-text-centered">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
         <div class="columns">
             <div class="column">
                 <div class="has-text-centered">
@@ -236,7 +236,7 @@
         </div>
         {% endif %}
         {% if secretary_permission.can() %}
-        <h1 class="title is-size-4 has-text-info has-text-centered">สำหรับธุรการ</h1>
+        <h1 class="has-text-info has-text-centered">สำหรับธุรการ</h1>
         <div class="columns">
             <div class="column">
                 <div class="has-text-centered">
