@@ -1421,7 +1421,7 @@ def customer_account():
             message += f'''มีผู้รับบริการดำเนินการแก้ไขข้อมูลตามที่แจ้งเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''ระบบงานงานบริการวิชาการ'''
-            if current_app.debug:
+            if not current_app.debug:
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
