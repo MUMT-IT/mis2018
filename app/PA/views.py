@@ -3298,6 +3298,28 @@ def hr_all_idp():
                                         '%d/%m/%Y')} for r in rounds])
 
 
+@pa.route('/hr/idp/<int:idp_id>/delete', methods=['POST'])
+@login_required
+@hr_permission.require()
+def hr_delete_idp(idp_id):
+    idp = IDP.query.get(idp_id)
+    db.session.delete(idp)
+    db.session.commit()
+
+    email_title = 'ลบข้อมูล IDP เรียบร้อยแล้ว'
+    email_msg = u'{} ได้ลบข้อมูล IDP รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว' \
+              u'\n\n\nคณะเทคนิคการแพทย์'. \
+        format(current_user.personal_info.fullname, idp.round, idp.staff.fullname, idp.approver.fullname)
+
+
+    if not current_app.debug:
+        send_mail([current_user.email + "@mahidol.ac.th"], email_title, email_msg)
+    else:
+        print(idp.round, email_title, email_msg)
+    flash('ลบข้อมูล IDP ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว '.format(idp.staff.fullname, idp.approver.fullname), 'success')
+    return redirect(request.referrer or url_for('pa.hr_all_idp'))
+
+
 @pa.route('/hr/idp/detail/<int:idp_id>')
 @login_required
 def hr_idp_detail(idp_id):

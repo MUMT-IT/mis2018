@@ -32,6 +32,7 @@
                         <th>สังกัด</th>
                         <th>สถานะ(รอดำเนินการ-อนุมัติ-ประเมิน-รับทราบผล)</th>
                         <th>เปอร์เซ็นต์ความสำเร็จ</th>
+                        <th>จัดการ</th>
                         </thead>
                         <tbody>
                         {% for idp in idps %}
@@ -67,6 +68,16 @@
                                 </td>
                                 <td>
                                    {% if idp.achievement_percentage %} {{ idp.achievement_percentage }}{% else %}{% endif %}
+                                </td>
+                                <td>
+                                    <form method="post" action="{{ url_for('pa.hr_delete_idp', idp_id=idp.id) }}"
+                                          onsubmit="return confirm({{ ('ยืนยันการลบข้อมูล IDP ของ ' ~ idp.staff.fullname ~ ' รอบ ' ~ idp.round ~ '? การลบนี้ไม่สามารถกู้คืนได้')|tojson|forceescape }});">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="button is-small is-danger">
+                                            <span class="icon"><i class="fas fa-trash"></i></span>
+                                            <span>ลบ</span>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}

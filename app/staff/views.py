@@ -5808,17 +5808,17 @@ def seminar_add_approval(attend_id):
 
         if form.get('approval') == 'True':
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติเรียบร้อยแล้ว' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                      u'\n\n\nระบบขออนุมัติประชุมอบรมสัมนา\nคณะเทคนิคการแพทย์'. \
                 format(attend.seminar.topic_type, attend.seminar.topic,
                        attend.start_datetime, attend.end_datetime, approval.approver.personal_info)
         elif form.get('approval') == 'False':
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}ไม่อนุมัติคำขอของท่าน' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                      u'\n\n\nระบบขออนุมัติประชุมอบรมสัมนา\nคณะเทคนิคการแพทย์'. \
                 format(attend.seminar.topic_type, attend.seminar.topic,
                        attend.start_datetime, attend.end_datetime, approval.approver.personal_info)
         else:
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติแบบมีเงื่อนไข {}' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                      u'\n\n\nระบบขออนุมัติประชุมอบรมสัมนา\nคณะเทคนิคการแพทย์'. \
                 format(attend.seminar.topic_type, attend.seminar.topic,
                        attend.start_datetime, attend.end_datetime,
                        approval.approver.personal_info, approval.approval_comment)
