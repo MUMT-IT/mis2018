@@ -6181,6 +6181,10 @@ def seminar_create_record(seminar_id):
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     if form.validate_on_submit():
+        deduct_transfer = (
+            request.form.get('deduct_transfer') == 'yes'
+            and request.form.get('payment') == 'paid'
+        )
         bulk_ids = request.form.getlist('bulk_staff_ids')
         if secretary_permission.can() and bulk_ids:
             batch = StaffSeminarBatch(seminar_id=seminar.id, created_by_id=current_user.id)
@@ -6200,6 +6204,7 @@ def seminar_create_record(seminar_id):
                     continue
                 attend = StaffSeminarAttend()
                 form.populate_obj(attend)
+                attend.deduct_transfer = deduct_transfer
                 objective = StaffSeminarObjective.query.filter_by(objective=request.form.get('objective')).first()
                 if objective:
                     attend.objectives = [objective]
@@ -6254,6 +6259,7 @@ def seminar_create_record(seminar_id):
         if not is_attend:
             attend = StaffSeminarAttend()
             form.populate_obj(attend)
+            attend.deduct_transfer = deduct_transfer
             objective = StaffSeminarObjective.query.filter_by(objective=request.form.get('objective')).first()
             if objective:
                 attend.objectives = [objective]
@@ -6336,8 +6342,9 @@ def seminar_create_record(seminar_id):
                 'fullname': account.personal_info.fullname,
                 'email': account.email
             })
+    _, END_FISCAL_DATE = get_fiscal_date(seminar.start_datetime)
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form,
-                           is_secretary=secretary_permission.can(), staff_list=staff_list)
+                           is_secretary=secretary_permission.can(), staff_list=staff_list, fiscal_year=END_FISCAL_DATE.year)
 
 
 @staff.route('/seminar/batches')
@@ -6802,6 +6809,9 @@ def show_seminar_info_each_person(record_id):
                     if idp_item:
                         idp_item += ", "
                     idp_item += f'{item.plan}'
+    _,END_FISCAL_DATE  = get_fiscal_date(attend.start_datetime)
+    fiscal_year = END_FISCAL_DATE.year+543
+    is_deduct_transfer = '' if not attend.deduct_transfer else f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_year}'
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
@@ -6811,7 +6821,7 @@ def show_seminar_info_each_person(record_id):
                            prefix_position=prefix_position, telephone=telephone,
                            proposer_list_text=proposer_list_text, proposer_names=proposer_names,
                            approver=approver, approver_position=approver_position, idp_value=idp_value,
-                           idp_pre_item=idp_pre_item, idp_item=idp_item)
+                           idp_pre_item=idp_pre_item, idp_item=idp_item, is_deduct_transfer=is_deduct_transfer)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])

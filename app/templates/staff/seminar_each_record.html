@@ -382,7 +382,7 @@
                                 '\nสถานที่จัด '+"{{ seminar_attend.seminar.location }}"+"{{ attend_online }}" ,
                                 'ค่าลงทะเบียน จำนวน '+"{{ registration_fee }}"+ ' บาท '+"{{ transaction_fee }}"+"{{ accommodation_cost }}"
                                 +"{{ flight_ticket_cost }}"+"{{ train_ticket_cost }}"+"{{ taxi_cost }}"+"{{ fuel_cost }}"
-                                + 'รวมทั้งสิ้น '+"{{ budget }}"+ ' บาท',
+                                + 'รวมทั้งสิ้น '+"{{ budget }}"+ ' บาท '+ "{{ is_deduct_transfer }}",
                                 'รายละเอียดการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"+' ดำเนินการภายใต้\n'+"{{ seminar_attend.objective_list|join(", ") }}"+"{{ idp_pre_item }}"+"{{ idp_item }}"+
                                 '{{ idp_value }}',
                                 'เป็นการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"
