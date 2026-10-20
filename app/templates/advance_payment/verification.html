@@ -13,15 +13,8 @@
           <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
         </a>
     {% endif %}
-    <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">สัญญาเงินยืม</p>
     <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
       <h1 class="fw-bold display-6 mb-2">รายละเอียดสัญญาเงินยืม</h1>
-      {% if can_edit_borrowing_ticket %}
-        <a href="{{ url_for(borrowing_ticket_edit_endpoint, edit_ticket_id=borrowing_ticket.id) }}#{{ 'create-ticket-pane' if borrowing_ticket_edit_endpoint == 'advance_payment.coordinator_dashboard' else 'borrowing-ticket-form-section' }}"
-           class="btn btn-outline-warning btn-sm fw-bold px-3 py-2">
-          <i class="bi bi-pencil-square me-1"></i>แก้ไขสัญญาเงินยืม
-        </a>
-      {% endif %}
     </div>
   </header>
 
@@ -272,19 +265,29 @@
           </form>
       </div>
     {% endif %}
-    {% if borrowing_ticket.status|lower == "อนุมัติจ่ายเงิน" and advance_payment_role != 'finance' %}
-      <div class="d-flex justify-content-end mt-3">
-        <button type="button" class="btn btn-outline-primary fw-bold" style="border-radius:6px;" onclick="switchReturnTicketForm({{ borrowing_ticket.id }})">
-          <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
-        </button>
-      </div>
-    {% elif advance_payment_role != 'finance' and borrowing_ticket.status|lower != 'ปฏิเสธ'  %}
-      <div class="d-flex justify-content-end mt-3">
-        <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
-          <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน
-        </a>
-      </div>
-    {% endif %}
+    <div class="d-flex flex-row justify-content-end gap-2 mt-3">
+      {% if borrowing_ticket.status|lower == "อนุมัติจ่ายเงิน" and advance_payment_role != 'finance' %}
+        <div class="d-flex justify-content-end mt-3">
+          <button type="button" class="btn btn-outline-primary fw-bold" style="border-radius:6px;" onclick="switchReturnTicketForm({{ borrowing_ticket.id }})">
+            <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
+          </button>
+        </div>
+      {% elif advance_payment_role != 'finance' and borrowing_ticket.status|lower != 'ปฏิเสธ'  %}
+        <div class="d-flex justify-content-end mt-3">
+          <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญาเงินยืม
+          </a>
+        </div>
+      {% endif %}
+      {% if can_edit_borrowing_ticket %}
+        <div class="d-flex justify-content-end mt-3">
+          <a href="{{ url_for(borrowing_ticket_edit_endpoint, edit_ticket_id=borrowing_ticket.id) }}#{{ 'create-ticket-pane' if borrowing_ticket_edit_endpoint == 'advance_payment.coordinator_dashboard' else 'borrowing-ticket-form-section' }}"
+             class="btn btn-outline-secondary">
+            <i class="bi bi-pencil-square me-1"></i>แก้ไขสัญญาเงินยืม
+          </a>
+        </div>
+      {% endif %}
+    </div>
   </section>
 {% if ticket_allocation_rows|length > 1 %}
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
