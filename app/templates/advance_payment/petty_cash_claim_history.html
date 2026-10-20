@@ -209,7 +209,7 @@
         <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ</option>
         <option value="โอนเงินสดย่อยสำเร็จ">โอนเงินสดย่อยสำเร็จ</option>
         <option value="เอกสารตั้งฎีกา">เอกสารตั้งฎีกา</option>
-        <option value="ล้างลูกหนี้เงินยืม">ล้างลูกหนี้เงินยืม</option>
+        <option value="เสร็จสิ้นกระบวนการ">เสร็จสิ้นกระบวนการ</option>
         <option value="ปฏิเสธ">ปฏิเสธ</option>
       </select>
     </div>
@@ -368,7 +368,7 @@
                      </a>
                      {% if record.status == ('ยืนยันการตรวจสอบ' if record.type_label else 'ได้รับเอกสารแล้ว') %}
                      <button type="button" class="btn btn-outline-primary btn-sm px-2" data-bs-toggle="modal" data-bs-target="#parcelTransferModal{{ record.id }}">
-                       บันทึกโอนสำเร็จ
+                       โอนเงินสดย่อยสำเร็จ
                      </button>
                      <div class="modal fade text-start" id="parcelTransferModal{{ record.id }}" tabindex="-1" aria-hidden="true">
                        <div class="modal-dialog modal-dialog-centered">

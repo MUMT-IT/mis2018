@@ -288,7 +288,7 @@ CIRCULAR_RETURN_REFERENCE_DRIVE_ID = "1ZhYI4pAD4sOSV0LlkaTAM--HnA4ugatE"
 MODULE_ROLE_LABELS = {
     FINANCE_SYSTEM: "ฝ่ายการเงิน",
     PETTY_CASH_SYSTEM: "ระบบเงินสดย่อย",
-    ADVANCE_PAYMENT_SYSTEM: "ระบบเงินทดรองจ่าย",
+    ADVANCE_PAYMENT_SYSTEM: "ระบบเงินยืมทดรองจ่าย",
 }
 
 def convert_to_fiscal_year(date):
@@ -7701,7 +7701,7 @@ def approve_borrowing_ticket(ticket_id):
 
     _send_notification_email(borrowing_ticket)
 
-    flash("อนุมัติสัญญาเงินยืมเงินทดรองจ่ายและส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว")
+    flash("อนุมัติสัญญาเงินยืมทดรองจ่ายและส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว")
 
     return verification_view(ticket_id)
 
@@ -7785,7 +7785,7 @@ def reject_borrowing_ticket(ticket_id):
     borrowing_ticket.status = "ปฏิเสธ"
     db.session.commit()
     _send_notification_email(borrowing_ticket)
-    flash("ปฏิเสธสัญญาเงินยืมเงินทดรองจ่ายเรียบร้อยแล้ว")
+    flash("ปฏิเสธสัญญาเงินยืมทดรองจ่ายเรียบร้อยแล้ว")
     return verification_view(ticket_id)
 
 @bp.route("/finance/return-records", methods=["GET"])
@@ -12412,7 +12412,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
         _append_ledger_row(
             receipt_date=claim_receipt_date,
             created_at=claim.created_at,
-            description=f"คณะคืนเงินสดย่อย ({claim_reference})",
+            description=f"งานคลังคืนเงินสดย่อย ({claim_reference})",
             doc_number=doc_no,
             bank_income=claim_total,
             cat_7=cat_7,
@@ -12495,7 +12495,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             opening_balance += item["bank_income"] - item["bank_expense"]
 
     opening_row_description = (
-        "ยกยอดมาจากปีงบ"
+        "ยกยอดมาจากปีก่อน"
         if carryover
         else ("งบประมาณตั้งต้น" if selected_month_start.month == 10 else "ยกยอดมา")
     )
