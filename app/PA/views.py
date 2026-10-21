@@ -2195,10 +2195,15 @@ def pa_detail(round_id, pa_id):
     for idp in IDP.query.filter_by(staff_account_id=pa.staff_account_id).join(PAFunctionalCompetencyRound).all():
         if idp.round.start.year >= pa.round.start.year and idp.round.start.year <= pa.round.start.year+1:
             relate_idp.append(idp)
+    relate_fc = []
+    for evaluation in PAFunctionalCompetencyEvaluation.query.filter_by(
+            staff_account_id=pa.staff_account_id).join(PAFunctionalCompetencyRound).all():
+        if evaluation.round.start.year >= pa.round.start.year and evaluation.round.start.year <= pa.round.start.year + 1:
+            relate_fc.append(evaluation)
     return render_template('staff/HR/PA/pa_detail.html',
                            pa_round=pa_round,
                            pa=pa,
-                           categories=categories, relate_idp=relate_idp)
+                           categories=categories, relate_idp=relate_idp, relate_fc=relate_fc)
 
 
 @pa.route('/rounds/<int:round_id>/<int:pa_id>/<int:idp_id>/change-head-idp')
@@ -2216,6 +2221,26 @@ def change_head_idp(round_id,pa_id,idp_id):
             flash('ไม่พบ idp ที่ค้นหา', 'danger')
         else:
             flash('ไม่พบรอบ pa กรุณาติดต่อ it', 'danger')
+    return redirect(url_for('pa.pa_detail', round_id=round_id, pa_id=pa_id))
+
+
+@pa.route('/rounds/<int:round_id>/<int:pa_id>/<int:evaluation_id>/change-head-fc')
+@login_required
+def change_head_fc_evaluator(round_id, pa_id, evaluation_id):
+    pa = PAAgreement.query.get(pa_id)
+    evaluation = PAFunctionalCompetencyEvaluation.query.get(evaluation_id)
+    if pa and evaluation and evaluation.staff_account_id == pa.staff_account_id:
+        if pa.head_committee_staff_account:
+            evaluation.evaluator = pa.head_committee_staff_account
+            db.session.add(evaluation)
+            db.session.commit()
+            flash('เปลี่ยนผู้ประเมิน FC รอบ {}({}) เรียบร้อยแล้ว'.format(
+                evaluation.round.desc, evaluation.round
+            ), 'success')
+        else:
+            flash('ไม่พบประธาน PA กรุณากำหนดประธานก่อนเปลี่ยนผู้ประเมิน FC', 'danger')
+    else:
+        flash('ไม่พบข้อมูล FC ที่สัมพันธ์กับบุคลากรในรอบ PA นี้', 'danger')
     return redirect(url_for('pa.pa_detail', round_id=round_id, pa_id=pa_id))
 
 
