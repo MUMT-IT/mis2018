@@ -1082,7 +1082,8 @@ def show_ot_form_modal(_id=None):
                                form=form, slot_id=timeslot.id, timeslot=timeslot, records=records,
                                compensation_rates=compensation_rates)
     resp = make_response(template)
-    resp.headers['HX-Trigger-After-Swap'] = json.dumps({"initSelect2js": "",
+    # Wait until HTMX restores the new select's attributes before initializing Select2.
+    resp.headers['HX-Trigger-After-Settle'] = json.dumps({"initSelect2js": "",
                                                         "clearSelection": "",
                                                         "refetchEvents": ""})
     return resp
