@@ -70,13 +70,18 @@ def _format_interest_period_label(period_value):
 # =========================================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FONTS_DIR = os.path.join(BASE_DIR, 'fonts')
+APP_STATIC_DIR = Path(BASE_DIR).parent / "static"
+PDF_REGULAR_FONT_PATH = APP_STATIC_DIR / "fonts" / "THSarabunNew.ttf"
+PDF_BOLD_FONT_PATH = APP_STATIC_DIR / "fonts" / "THSarabunNewBold.ttf"
+PDF_CHECKBOX_FONT_PATH = Path(FONTS_DIR) / "DejaVuSans.ttf"
+PDF_LOGO_PATH = Path(BASE_DIR) / "static" / "logo-MU_black-white-2-1.png"
 
 R_PATH = os.path.join(FONTS_DIR, 'THSarabun.ttf')
 B_PATH = os.path.join(FONTS_DIR, 'THSarabun Bold.ttf')
 I_PATH = os.path.join(FONTS_DIR, 'THSarabun Italic.ttf')
 BI_PATH = os.path.join(FONTS_DIR, 'THSarabun BoldItalic.ttf')
 
-DEJAVU_PATH = os.path.join(FONTS_DIR, 'DejaVuSans.ttf')
+DEJAVU_PATH = str(PDF_CHECKBOX_FONT_PATH)
 if os.path.exists(DEJAVU_PATH):
     pdfmetrics.registerFont(TTFont('DejaVuSans', DEJAVU_PATH))
 
@@ -208,9 +213,8 @@ def _build_global_header(
     leave_record_info PDF.  It is opt-in so existing PDFs using the original
     three-column header keep their current layout.
     """
-    logo_path = os.path.join(BASE_DIR, "static", "logo-MU_black-white-2-1.png")
-    if os.path.exists(logo_path):
-        logo = Image(logo_path, width=logo_size, height=logo_size)
+    if PDF_LOGO_PATH.is_file():
+        logo = Image(str(PDF_LOGO_PATH), width=logo_size, height=logo_size)
         logo.hAlign = "CENTER"
     else:
         logo = Drawing(logo_size, logo_size)
@@ -710,9 +714,8 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
                             topMargin=36, bottomMargin=40,
                             title=f"รายงานสถานะเงินสดย่อย ประจำเดือน{month_label}")
     story = [p("MT-Petty Cash-004", right)]
-    logo_path = os.path.join(BASE_DIR, "static", "logo-MU_black-white-2-1.png")
-    if os.path.exists(logo_path):
-        logo = Image(logo_path, width=70, height=70)
+    if PDF_LOGO_PATH.is_file():
+        logo = Image(str(PDF_LOGO_PATH), width=70, height=70)
         logo.hAlign = "CENTER"
         story.append(logo)
     story.extend([
@@ -845,6 +848,12 @@ def _pdf_asset_data_uri(path, mime_type):
     return f"data:{mime_type};base64,{encoded}"
 
 
+PDF_REGULAR_FONT_DATA_URI = _pdf_asset_data_uri(PDF_REGULAR_FONT_PATH, "font/ttf")
+PDF_BOLD_FONT_DATA_URI = _pdf_asset_data_uri(PDF_BOLD_FONT_PATH, "font/ttf")
+PDF_CHECKBOX_FONT_DATA_URI = _pdf_asset_data_uri(PDF_CHECKBOX_FONT_PATH, "font/ttf")
+PDF_LOGO_DATA_URI = _pdf_asset_data_uri(PDF_LOGO_PATH, "image/png")
+
+
 def _build_fnar02_html(memo_context):
     """Build both FNAR02 pages as Thai print HTML for Chromium."""
     escaped = {
@@ -852,20 +861,6 @@ def _build_fnar02_html(memo_context):
         for key, value in memo_context.items()
         if key != "leave_approver_signatures"
     }
-    app_static_dir = Path(BASE_DIR).parent / "static"
-    regular_font = _pdf_asset_data_uri(
-        app_static_dir / "fonts" / "THSarabunNew.ttf",
-        "font/ttf",
-    )
-    bold_font = _pdf_asset_data_uri(
-        app_static_dir / "fonts" / "THSarabunNewBold.ttf",
-        "font/ttf",
-    )
-    logo = _pdf_asset_data_uri(
-        Path(BASE_DIR) / "static" / "logo-MU_black-white-2-1.png",
-        "image/png",
-    )
-
     signature_blocks = []
     for signer_name, signer_position in memo_context["leave_approver_signatures"]:
         signature_blocks.append(
@@ -897,13 +892,13 @@ def _build_fnar02_html(memo_context):
 <style>
   @font-face {{
     font-family: "TH Sarabun New";
-    src: url("{regular_font}") format("truetype");
+    src: url("{PDF_REGULAR_FONT_DATA_URI}") format("truetype");
     font-style: normal;
     font-weight: 400;
   }}
   @font-face {{
     font-family: "TH Sarabun New";
-    src: url("{bold_font}") format("truetype");
+    src: url("{PDF_BOLD_FONT_DATA_URI}") format("truetype");
     font-style: normal;
     font-weight: 700;
   }}
@@ -1066,7 +1061,7 @@ def _build_fnar02_html(memo_context):
 <body>
 <main class="page memo-page">
   <header class="memo-header">
-    <img class="logo" src="{logo}" alt="ตรามหาวิทยาลัยมหิดล">
+    <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
     <div class="organization">
       <br>{escaped['department_name']}<br>
       คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>
@@ -1220,20 +1215,6 @@ def generate_fnar02_pdf(ticket):
 
 def _build_reimbursement_letter_html(context):
     """Build a one-page Thai reimbursement letter for Chromium printing."""
-    app_static_dir = Path(BASE_DIR).parent / "static"
-    regular_font = _pdf_asset_data_uri(
-        app_static_dir / "fonts" / "THSarabunNew.ttf",
-        "font/ttf",
-    )
-    bold_font = _pdf_asset_data_uri(
-        app_static_dir / "fonts" / "THSarabunNewBold.ttf",
-        "font/ttf",
-    )
-    logo = _pdf_asset_data_uri(
-        Path(BASE_DIR) / "static" / "logo-MU_black-white-2-1.png",
-        "image/png",
-    )
-
     def escaped(value):
         return html.escape(str(value), quote=True)
 
@@ -1259,13 +1240,13 @@ def _build_reimbursement_letter_html(context):
 <style>
   @font-face {{
     font-family: "TH Sarabun New";
-    src: url("{regular_font}") format("truetype");
+    src: url("{PDF_REGULAR_FONT_DATA_URI}") format("truetype");
     font-style: normal;
     font-weight: 400;
   }}
   @font-face {{
     font-family: "TH Sarabun New";
-    src: url("{bold_font}") format("truetype");
+    src: url("{PDF_BOLD_FONT_DATA_URI}") format("truetype");
     font-style: normal;
     font-weight: 700;
   }}
@@ -1367,7 +1348,7 @@ def _build_reimbursement_letter_html(context):
 <body>
 <main class="letter-page{extra_header_class}">
   <header class="letterhead">
-    <img class="logo" src="{logo}" alt="ตรามหาวิทยาลัยมหิดล">
+    <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
     <div class="organization">
       <br>{escaped(context['department_name'])}<br>
       คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>
@@ -1655,23 +1636,6 @@ generate_ticket_return_pdf = generate_ticket_return
 
 def _build_fund_request_html(context):
     """Build the MT-Petty Cash-02 form for Playwright Chromium."""
-    regular_font = _pdf_asset_data_uri(
-        Path(BASE_DIR).parent / "static" / "fonts" / "THSarabunNew.ttf",
-        "font/ttf",
-    )
-    bold_font = _pdf_asset_data_uri(
-        Path(BASE_DIR).parent / "static" / "fonts" / "THSarabunNewBold.ttf",
-        "font/ttf",
-    )
-    checkbox_font = _pdf_asset_data_uri(
-        Path(BASE_DIR) / "fonts" / "DejaVuSans.ttf",
-        "font/ttf",
-    )
-    logo = _pdf_asset_data_uri(
-        Path(BASE_DIR) / "static" / "logo-MU_black-white-2-1.png",
-        "image/png",
-    )
-
     def escaped(value):
         return html.escape(str(value), quote=True)
 
@@ -1702,9 +1666,9 @@ def _build_fund_request_html(context):
 <meta charset="utf-8">
 <title>{escaped(context['title'])}</title>
 <style>
-  @font-face {{ font-family: "TH Sarabun New"; src: url("{regular_font}") format("truetype"); font-weight: 400; }}
-  @font-face {{ font-family: "TH Sarabun New"; src: url("{bold_font}") format("truetype"); font-weight: 700; }}
-  @font-face {{ font-family: "DejaVu Sans"; src: url("{checkbox_font}") format("truetype"); }}
+  @font-face {{ font-family: "TH Sarabun New"; src: url("{PDF_REGULAR_FONT_DATA_URI}") format("truetype"); font-weight: 400; }}
+  @font-face {{ font-family: "TH Sarabun New"; src: url("{PDF_BOLD_FONT_DATA_URI}") format("truetype"); font-weight: 700; }}
+  @font-face {{ font-family: "DejaVu Sans"; src: url("{PDF_CHECKBOX_FONT_DATA_URI}") format("truetype"); }}
   @page {{ size: A4; margin: 0; }}
   :root {{ --form-border: .5px solid #8c8c8c; }}
   * {{ box-sizing: border-box; }}
@@ -1750,7 +1714,7 @@ def _build_fund_request_html(context):
 <body>
 <main class="page">
   <header class="form-header">
-    <img class="logo" src="{logo}" alt="ตรามหาวิทยาลัยมหิดล">
+    <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
     <div class="form-title">ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย<br>{escaped(context['department'])}</div>
     <div class="form-code">MT-Petty Cash-02</div>
   </header>
