@@ -26,8 +26,16 @@
                                     {{ form.sample_species.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control">
-                                    {{ form.sample_species(class='input') }}
+                                <div class="select">
+                                    {{ form.sample_species(
+                                        **{'hx-get': url_for("academic_services.get_sample_species_other",
+                                                request_id=request_id),
+                                            'hx-target': '#sample-species-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="sample_species"]'
+                                            })
+                                        }}
                                 </div>
                             </div>
                             <div id="sample-species-other-container"></div>
@@ -148,26 +156,20 @@
 
         function initSubforms() {
             $('#condition-field div[id]').each(function () {
-                const quantitativeMethod = $('input[type="checkbox"][name$="quantitative_method"]');
+                const quantitativeMethod = $('input[type="radio"][name$="quantitative_method"]');
 
-                function validateQuantitativeMethodInput() {
-                    const checkedCount = quantitativeMethod.filter(':checked').length;
+                function validateQuantitativeInput() {
+                    quantitativeMethod.prop('required', true).attr('oninvalid', "this.setCustomValidity('Please select item')");
 
-                    if (checkedCount === 0) {
-                        quantitativeMethod.prop('required', true);
-                        quantitativeMethod.each(function () {
-                            this.setCustomValidity('Please select at least 1 item.');
-                        });
-                    } else {
-                        quantitativeMethod.prop('required', false);
+                    quantitativeMethod.on('change', function () {
                         quantitativeMethod.each(function () {
                             this.setCustomValidity('');
                         });
-                    }
+                    });
                 }
 
-                validateQuantitativeMethodInput();
-                quantitativeMethod.on('change', validateQuantitativeMethodInput);
+                validateQuantitativeInput();
+                quantitativeMethod.on('change', validateQuantitativeInput);
             });
         }
 
