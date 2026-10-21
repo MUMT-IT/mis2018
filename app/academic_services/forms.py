@@ -1374,7 +1374,7 @@ class SDSPageConditionForm(FlaskForm):
 
 
 class SDSPageRequestForm(FlaskForm):
-    sds_page = SelectField('Sample species', choices=[('', 'กรุณาเลือก SDS Page'),
+    sds_page = SelectField('SDS Page', choices=[('', 'กรุณาเลือก SDS Page'),
                                                       ('1', '1'),
                                                       ('2', '2'),
                                                       ('3', '3'),
@@ -1390,7 +1390,7 @@ class SDSPageRequestForm(FlaskForm):
                                  render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือก SDS Page')",
                                             "oninput": "this.setCustomValidity('')"
                                             })
-    staining = SelectField('Staining', choices=[('', 'กรุณาเลือก SDS Page'),
+    staining = SelectField('Staining', choices=[('', 'กรุณาเลือก Staining'),
                                                 ('Coomassie Stain', 'Coomassie Stain'),
                                                 ('Silver Stain', 'Silver Stain')],
                            validators=[DataRequired()],
