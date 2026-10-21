@@ -259,46 +259,8 @@
             });
         }
 
-        function initSubforms() {
-            $('#condition-field div[id]').each(function () {
-                const staining = $('input[type="radio"][name$="staining"]');
-
-                function validateStainingInput() {
-                    staining.prop('required', true).attr('oninvalid', "this.setCustomValidity('Please select item')");
-
-                    staining.on('change', function () {
-                        staining.each(function () {
-                            this.setCustomValidity('');
-                        });
-                    });
-                }
-                {#function validateStainingInput() {#}
-                {#    const checkedCount = staining.filter(':checked').length;#}
-                {##}
-                {#    if (checkedCount === 0) {#}
-                {#        staining.prop('required', true);#}
-                {#        staining.each(function () {#}
-                {#            this.setCustomValidity('Please select at least 1 item.');#}
-                {#        });#}
-                {#    } else {#}
-                {#        staining.prop('required', false);#}
-                {#        staining.each(function () {#}
-                {#            this.setCustomValidity('');#}
-                {#        });#}
-                {#    }#}
-
-                validateStainingInput();
-                staining.on('change', validateStainingInput);
-            });
-        }
-
         document.addEventListener('DOMContentLoaded', function () {
-            initSubforms();
             renumberItems();
-        });
-
-        document.body.addEventListener('htmx:afterSwap', function () {
-            initSubforms();
         });
 
         document.body.addEventListener('htmx:afterRequest', function () {

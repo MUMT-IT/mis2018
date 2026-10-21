@@ -211,32 +211,26 @@
             });
         }
 
-        function initSubforms() {
-            $('#condition-field div[id]').each(function () {
-                const staining = $('input[type="radio"][name$="staining"]');
-
-                function validateStainingInput() {
-                    staining.prop('required', true).attr('oninvalid', "this.setCustomValidity('Please select item')");
-
-                    staining.on('change', function () {
-                        staining.each(function () {
-                            this.setCustomValidity('');
-                        });
-                    });
-                }
-
-                validateStainingInput();
-                staining.on('change', validateStainingInput);
-            });
-        }
+        {#function initSubforms() {#}
+        {#    $('#condition-field div[id]').each(function () {#}
+        {#        const staining = $('input[type="radio"][name$="staining"]');#}
+        {##}
+        {#        function validateStainingInput() {#}
+        {#            staining.prop('required', true).attr('oninvalid', "this.setCustomValidity('Please select item')");#}
+        {##}
+        {#            staining.on('change', function () {#}
+        {#                staining.each(function () {#}
+        {#                    this.setCustomValidity('');#}
+        {#                });#}
+        {#            });#}
+        {#        }#}
+        {##}
+        {#        validateStainingInput();#}
+        {#        staining.on('change', validateStainingInput);#}
+        {#    });#}
 
         document.addEventListener('DOMContentLoaded', function () {
-            initSubforms();
             renumberItems();
-        });
-
-        document.body.addEventListener('htmx:afterSwap', function () {
-            initSubforms();
         });
 
         document.body.addEventListener('htmx:afterRequest', function () {
