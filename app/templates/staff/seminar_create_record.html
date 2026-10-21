@@ -71,7 +71,7 @@
                         </div>
                         {% endif %}
                         <div class="box">
-                        <div class="field">
+                        {#<div class="field">
                             <div class="field">
                                 <p class="title is-size-4">สถานะการถูกเชิญ</p>
                             </div>
@@ -80,7 +80,7 @@
                                 </b-radio>
                                 <b-radio native-value="invited" v-model="status" name="status">มีหนังสือเชิญ</b-radio>
                             </div>
-                        </div>
+                        </div>#}
                         <b-field label="หน่วยงานที่เชิญ" v-if="status === 'invited'">
                             <b-input type="text"
                                      name="invited_organization"
@@ -282,6 +282,12 @@
                                      required>
                             </b-input>
                         </b-field>
+                        <div class="field" v-if="payment === 'paid'">
+                            <label class="checkbox">
+                                <input type="checkbox" name="deduct_transfer" value="yes">
+                                ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {{ fiscal_year+543 }}
+                            </label>
+                        </div>
                         <hr>
                         <br>
 {#                        <div class="field">#}
@@ -353,7 +359,7 @@
                                    class="button is-light">Cancel</a>
                             </div>
                             <div class="control">
-                                <input type="submit" value="submit" class="button is-success"/>
+                                <input v-if="hasApproverPosition" type="submit" value="submit" class="button is-success"/>
                             </div>
                         </div>
                     </div>
@@ -382,6 +388,7 @@
                     payment: "unpaid",
                     objective: "others",
                     transportation: "no_cost",
+                    hasApproverPosition: false,
                     data: [],
                     participants: [],
                     timepicker: {
@@ -408,6 +415,21 @@
                     }
                     return null
                 }
+            }
+        });
+        document.body.addEventListener('htmx:beforeRequest', event => {
+            if (event.detail.elt && event.detail.elt.id === 'approver') {
+                vm.hasApproverPosition = false;
+            }
+        });
+        document.body.addEventListener('htmx:afterSwap', event => {
+            const target = event.detail.target;
+            if (target && target.id === 'related-position') {
+                const hasPosition = Boolean(target.querySelector('select[name="position"]'));
+                if (!hasPosition) {
+                    target.textContent = '**กรุณาติดต่อ HR เพื่อเพิ่มตำแหน่งผู้อนุมัติ ก่อนการขออนุมัติ**';
+                }
+                vm.hasApproverPosition = hasPosition;
             }
         });
         $(document).ready(() => {

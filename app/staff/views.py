@@ -761,7 +761,10 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             if special_wfh_day.work_date in working_days:
                 wfh_dates.add(special_wfh_day.work_date)
         seminar_dates = set()
-        for seminar_attendance in account.seminar_attends:
+        approved_seminar_attendances = account.seminar_attends.join(StaffSeminarApproval).filter(
+            StaffSeminarApproval.is_final_approved.is_(True)
+        ).distinct()
+        for seminar_attendance in approved_seminar_attendances:
             seminar = seminar_attendance.seminar
             seminar_dates.update(covered_dates(
                 getattr(seminar, 'start_datetime', None) or seminar_attendance.start_datetime,
@@ -3359,19 +3362,22 @@ def show_wfh_approvers():
 @login_required
 def wfh_manage_requester(requester_id):
     if request.method == 'POST':
-        approver_account_id = int(request.form.get('staffname'))
-        find_approver = StaffWorkFromHomeApprover.query.filter_by \
-            (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
-        if find_approver:
-            flash('ไม่สามารถเพิ่มผู้อนุมัติได้เนื่องจากมีผู้อนุมัตินี้อยู่แล้ว', 'warning')
+        approver_account = StaffAccount.query.filter_by(personal_id=int(request.form.get('staffname'))).first()
+        if approver_account:
+            find_approver = StaffWorkFromHomeApprover.query.filter_by \
+                (approver_account_id=approver_account.id, staff_account_id=requester_id).first()
+            if find_approver:
+                flash('ไม่สามารถเพิ่มผู้อนุมัติได้เนื่องจากมีผู้อนุมัตินี้อยู่แล้ว', 'warning')
+            else:
+                createapprover = StaffWorkFromHomeApprover(
+                    approver_account_id=approver_account.id,
+                    staff_account_id=requester_id
+                )
+                db.session.add(createapprover)
+                db.session.commit()
+                flash('เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
         else:
-            createapprover = StaffWorkFromHomeApprover(
-                approver_account_id=approver_account_id,
-                staff_account_id=requester_id
-            )
-            db.session.add(createapprover)
-            db.session.commit()
-            flash('เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
+            flash('ไม่พบชื่อผู้อนุมัติ', 'danger')
 
     requester = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=requester_id)
     requester_name = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=requester_id).first()
@@ -3399,19 +3405,22 @@ def wfh_change_active_status(approver_id, requester_id):
 @login_required
 def wfh_manage_approver(approver_id):
     if request.method == 'POST':
-        staff_account_id = request.form.get('staffname')
-        find_requester = StaffWorkFromHomeApprover.query.filter_by \
-            (approver_account_id=approver_id, staff_account_id=staff_account_id).first()
-        if find_requester:
-            flash('ไม่สามารถเพิ่มบุคลากรท่านนี้ได้ เนื่องจากมีข้อมูลบุคลากรท่านนี้อยู่แล้ว', 'warning')
+        staff_account = StaffAccount.query.filter_by(personal_id=int(request.form.get('staffname'))).first()
+        if staff_account:
+            find_requester = StaffWorkFromHomeApprover.query.filter_by \
+                (approver_account_id=approver_id, staff_account_id=staff_account.id).first()
+            if find_requester:
+                flash('ไม่สามารถเพิ่มบุคลากรท่านนี้ได้ เนื่องจากมีข้อมูลบุคลากรท่านนี้อยู่แล้ว', 'warning')
+            else:
+                createrequester = StaffWorkFromHomeApprover(
+                    staff_account_id=staff_account.id,
+                    approver_account_id=approver_id
+                )
+                db.session.add(createrequester)
+                db.session.commit()
+                flash('เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
         else:
-            createrequester = StaffWorkFromHomeApprover(
-                staff_account_id=staff_account_id,
-                approver_account_id=approver_id
-            )
-            db.session.add(createrequester)
-            db.session.commit()
-            flash('เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
+            flash('ไม่พบชื่อบุคลากร', 'success')
     approvers = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=approver_id)
     return render_template('staff/wfh_manage_approver.html', approvers=approvers)
 
@@ -5646,7 +5655,12 @@ def send_summary_data():
                     'type': 'wfh'
                 })
         if tab in ['smr', 'all']:
-            for smr in emp.staff_account.seminar_attends.all():
+            approved_seminar_attendances = emp.staff_account.seminar_attends.join(
+                StaffSeminarApproval
+            ).filter(
+                StaffSeminarApproval.is_final_approved.is_(True)
+            ).distinct()
+            for smr in approved_seminar_attendances:
                 text_color = '#ffffff'
                 bg_color = '#FF33A5'
                 border_color = '#ffffff'
@@ -6133,17 +6147,17 @@ def seminar_add_approval(attend_id):
 
         if form.get('approval') == 'True':
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติเรียบร้อยแล้ว' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                      u'\n\n\nระบบขออนุมัติประชุมอบรมสัมนา\nคณะเทคนิคการแพทย์'. \
                 format(attend.seminar.topic_type, attend.seminar.topic,
                        attend.start_datetime, attend.end_datetime, approval.approver.personal_info)
         elif form.get('approval') == 'False':
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}ไม่อนุมัติคำขอของท่าน' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                      u'\n\n\nระบบขออนุมัติประชุมอบรมสัมนา\nคณะเทคนิคการแพทย์'. \
                 format(attend.seminar.topic_type, attend.seminar.topic,
                        attend.start_datetime, attend.end_datetime, approval.approver.personal_info)
         else:
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติแบบมีเงื่อนไข {}' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                      u'\n\n\nระบบขออนุมัติประชุมอบรมสัมนา\nคณะเทคนิคการแพทย์'. \
                 format(attend.seminar.topic_type, attend.seminar.topic,
                        attend.start_datetime, attend.end_datetime,
                        approval.approver.personal_info, approval.approval_comment)
@@ -6514,6 +6528,10 @@ def seminar_create_record(seminar_id):
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     if form.validate_on_submit():
+        deduct_transfer = (
+            request.form.get('deduct_transfer') == 'yes'
+            and request.form.get('payment') == 'paid'
+        )
         bulk_ids = request.form.getlist('bulk_staff_ids')
         if secretary_permission.can() and bulk_ids:
             batch = StaffSeminarBatch(seminar_id=seminar.id, created_by_id=current_user.id)
@@ -6533,6 +6551,7 @@ def seminar_create_record(seminar_id):
                     continue
                 attend = StaffSeminarAttend()
                 form.populate_obj(attend)
+                attend.deduct_transfer = deduct_transfer
                 objective = StaffSeminarObjective.query.filter_by(objective=request.form.get('objective')).first()
                 if objective:
                     attend.objectives = [objective]
@@ -6587,6 +6606,7 @@ def seminar_create_record(seminar_id):
         if not is_attend:
             attend = StaffSeminarAttend()
             form.populate_obj(attend)
+            attend.deduct_transfer = deduct_transfer
             objective = StaffSeminarObjective.query.filter_by(objective=request.form.get('objective')).first()
             if objective:
                 attend.objectives = [objective]
@@ -6669,8 +6689,9 @@ def seminar_create_record(seminar_id):
                 'fullname': account.personal_info.fullname,
                 'email': account.email
             })
+    _, END_FISCAL_DATE = get_fiscal_date(seminar.start_datetime)
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form,
-                           is_secretary=secretary_permission.can(), staff_list=staff_list)
+                           is_secretary=secretary_permission.can(), staff_list=staff_list, fiscal_year=END_FISCAL_DATE.year)
 
 
 @staff.route('/seminar/batches')
@@ -7135,6 +7156,9 @@ def show_seminar_info_each_person(record_id):
                     if idp_item:
                         idp_item += ", "
                     idp_item += f'{item.plan}'
+    _,END_FISCAL_DATE  = get_fiscal_date(attend.start_datetime)
+    fiscal_year = END_FISCAL_DATE.year+543
+    is_deduct_transfer = '' if not attend.deduct_transfer else f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_year}'
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
@@ -7144,7 +7168,7 @@ def show_seminar_info_each_person(record_id):
                            prefix_position=prefix_position, telephone=telephone,
                            proposer_list_text=proposer_list_text, proposer_names=proposer_names,
                            approver=approver, approver_position=approver_position, idp_value=idp_value,
-                           idp_pre_item=idp_pre_item, idp_item=idp_item)
+                           idp_pre_item=idp_pre_item, idp_item=idp_item, is_deduct_transfer=is_deduct_transfer)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])

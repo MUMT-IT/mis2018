@@ -856,7 +856,7 @@ class StaffSeminar(db.Model):
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String(),
                            info={'label': u'ประเภท',
-                                 'choices': [(c, c) for c in [u'อบรม', u'สัมมนา', u'ประชุม', u'ประชุมวิชาการ']]})
+                                 'choices': [(c, c) for c in [u'อบรม', u'สัมมนา', u'ประชุม', u'ประชุมวิชาการ', u'ศึกษาดูงาน', u'ปฏิบัติงานนอกสถานที่']]})
     topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
     organize_by = db.Column('organize_by', db.String(), info={'label': u'หน่วยงานที่จัด'})
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
@@ -929,7 +929,7 @@ class StaffSeminarAttend(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     role = db.Column('role', db.String(), info={'label': u'บทบาท', 'choices': [
-        (c, c) for c in [u'ผู้เข้าร่วม', u'อาจารย์พิเศษ', u'วิทยากร', u'ที่ปรึกษา', u'กรรมการ', u'นิเทศน์งาน']]})
+        (c, c) for c in [u'ผู้เข้าร่วม', u'อาจารย์พิเศษ', u'วิทยากร', u'ที่ปรึกษา', u'กรรมการ', u'นิเทศน์งาน', u'ศึกษาดูงาน', u'ปฏิบัติงาน']]})
     registration_fee = db.Column('registration_fee', db.Float(), info={'label': u'ค่าลงทะเบียน (บาท)'})
     invited_document_id = db.Column('document_id', db.String(), info={'label': u'เลขที่หนังสือเชิญ'})
     invited_organization = db.Column('invited_organization', db.String(), info={'label': u'หน่วยงานที่เชิญ'})
@@ -944,6 +944,7 @@ class StaffSeminarAttend(db.Model):
     budget_type = db.Column('budget_type', db.String(), info={'label': u'แหล่งทุน'})
     transaction_fee = db.Column('transaction_fee', db.Float(), info={'label': u'ค่าธรรมเนียมการโอน (บาท)'})
     budget = db.Column('budget', db.Float(), info={'label': u'ค่าใช้จ่ายรวมทั้งหมด (บาท)'})
+    deduct_transfer = db.Column('deduct_transfer', db.Boolean(), nullable=False, default=False)
     attend_online = db.Column('attend_online', db.Boolean(), default=False,
                               info={'label': u'เข้าร่วมผ่านช่องทาง online'})
     middle_level_approver_account_id = db.Column('middle_level_approver_account_id', db.ForeignKey('staff_account.id'))
