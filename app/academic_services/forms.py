@@ -1441,7 +1441,7 @@ class QuantitativeConditionForm(FlaskForm):
                                         })
     quantitative_method = RadioField('Quantitative Method', choices=[('Label-Free', 'Label-Free'),
                                                                         ('Targeted', 'Targeted')],
-                                        validators=[DataRequired()])
+                                        validators=[Optional()])
 
 
 class QuantitativeRequestForm(FlaskForm):
