@@ -17,6 +17,8 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Circle
+from wcwidth import center
+
 from .models import (
     db,
     BankAccountInfo,
@@ -834,11 +836,11 @@ def _build_fnar02_context(ticket):
     }
 
 
-def _fnar02_asset_data_uri(path, mime_type):
-    """Embed a local font or image so Chromium can render a self-contained page."""
+def _pdf_asset_data_uri(path, mime_type):
+    """Embed a local font or image so Chromium can render self-contained HTML."""
     asset_path = Path(path)
     if not asset_path.is_file():
-        raise FileNotFoundError(f"FNAR02 asset not found: {asset_path}")
+        raise FileNotFoundError(f"PDF asset not found: {asset_path}")
     encoded = base64.b64encode(asset_path.read_bytes()).decode("ascii")
     return f"data:{mime_type};base64,{encoded}"
 
@@ -851,15 +853,15 @@ def _build_fnar02_html(memo_context):
         if key != "leave_approver_signatures"
     }
     app_static_dir = Path(BASE_DIR).parent / "static"
-    regular_font = _fnar02_asset_data_uri(
+    regular_font = _pdf_asset_data_uri(
         app_static_dir / "fonts" / "THSarabunNew.ttf",
         "font/ttf",
     )
-    bold_font = _fnar02_asset_data_uri(
+    bold_font = _pdf_asset_data_uri(
         app_static_dir / "fonts" / "THSarabunNewBold.ttf",
         "font/ttf",
     )
-    logo = _fnar02_asset_data_uri(
+    logo = _pdf_asset_data_uri(
         Path(BASE_DIR) / "static" / "logo-MU_black-white-2-1.png",
         "image/png",
     )
@@ -964,9 +966,7 @@ def _build_fnar02_html(memo_context):
     text-indent: 24.7mm;
   }}
   .signatures {{
-    width: fit-content;
-    max-width: 52%;
-    margin-left: auto;
+    margin-left: 51%;
     padding-top: 10mm;
     text-align: center;
   }}
@@ -1175,10 +1175,9 @@ def _build_fnar02_html(memo_context):
 </html>"""
 
 
-def _render_fnar02_with_chromium(fnar02_context):
+def _render_html_with_chromium(html_source):
     from playwright.sync_api import sync_playwright
 
-    html_source = _build_fnar02_html(fnar02_context)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         try:
@@ -1201,6 +1200,10 @@ def _render_fnar02_with_chromium(fnar02_context):
             browser.close()
 
 
+def _render_fnar02_with_chromium(fnar02_context):
+    return _render_html_with_chromium(_build_fnar02_html(fnar02_context))
+
+
 def generate_fnar02_pdf(ticket):
     """Generate both FNAR02 pages with Playwright Chromium."""
     from pypdf import PdfReader
@@ -1215,6 +1218,193 @@ def generate_fnar02_pdf(ticket):
     return chromium_pdf
 
 
+def _build_reimbursement_letter_html(context):
+    """Build a one-page Thai reimbursement letter for Chromium printing."""
+    app_static_dir = Path(BASE_DIR).parent / "static"
+    regular_font = _pdf_asset_data_uri(
+        app_static_dir / "fonts" / "THSarabunNew.ttf",
+        "font/ttf",
+    )
+    bold_font = _pdf_asset_data_uri(
+        app_static_dir / "fonts" / "THSarabunNewBold.ttf",
+        "font/ttf",
+    )
+    logo = _pdf_asset_data_uri(
+        Path(BASE_DIR) / "static" / "logo-MU_black-white-2-1.png",
+        "image/png",
+    )
+
+    def escaped(value):
+        return html.escape(str(value), quote=True)
+
+    paragraphs_html = "".join(
+        f'<p class="government-text">{escaped(paragraph)}</p>'
+        for paragraph in context["body_paragraphs"]
+    )
+    items_html = "".join(
+        f'<tr class="text-center">'
+        f'<td class="item-number">{index}.</td>'
+        f'<td>{escaped(description)}</td>'
+        f'<td class="amount">{escaped(amount)} บาท</td>'
+        "</tr>"
+        for index, description, amount in context["items"]
+    )
+    extra_header_class = " extra-header-space" if context.get("extra_header_space") else ""
+
+    return f"""<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>{escaped(context['title'])}</title>
+<style>
+  @font-face {{
+    font-family: "TH Sarabun New";
+    src: url("{regular_font}") format("truetype");
+    font-style: normal;
+    font-weight: 400;
+  }}
+  @font-face {{
+    font-family: "TH Sarabun New";
+    src: url("{bold_font}") format("truetype");
+    font-style: normal;
+    font-weight: 700;
+  }}
+  @page {{ size: A4; margin: 0; }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{
+    color: #000;
+    font-family: "TH Sarabun New", "TH Sarabun PSK", sans-serif;
+    font-size: 16pt;
+    line-height: 1.25;
+  }}
+  .letter-page {{
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 7.8mm 19.4mm;
+  }}
+  .letterhead {{
+    position: relative;
+    height: 27.5mm;
+  }}
+  .letter-page.extra-header-space .document-info {{ margin-top: 7mm; }}
+  .logo {{
+    position: absolute;
+    top: 0;
+    left: 67.7mm;
+    width: 23.3mm;
+    height: 23.3mm;
+    object-fit: contain;
+  }}
+  .organization {{
+    position: absolute;
+    top: 6mm;
+    right: 0;
+    width: 74.8mm;
+    text-align: right;
+  }}
+  .document-info {{
+    display: grid;
+    grid-template-columns: 16.9mm minmax(0, 1fr);
+    row-gap: .7mm;
+  }}
+  .letter-body {{
+    --summary-offset: 24.7mm;
+    --summary-width: 135.8mm;
+    margin-top: 6.3mm;
+  }}
+  .government-text {{
+    margin: 0 0 2.8mm;
+    text-indent: 24.7mm;
+    text-align: justify;
+    text-justify: inter-word;
+    text-align-last: left;
+    word-break: normal;
+    line-break: strict;
+    overflow-wrap: normal;
+  }}
+  .items {{
+    width: var(--summary-width);
+    margin: 0 0 1.4mm var(--summary-offset);
+    border-collapse: collapse;
+    table-layout: fixed;
+  }}
+  .items tr {{ break-inside: avoid; }}
+  .items td {{ padding: .7mm 0; vertical-align: top; }}
+  .items .item-number {{ width: 12.3mm; text-align: left; }}
+  .items .amount {{ width: 28.2mm; text-align: right; white-space: nowrap; }}
+  .total-row {{
+    display: grid;
+    grid-template-columns: 19.5mm minmax(0, 1fr) 28.2mm;
+    width: var(--summary-width);
+    margin: 0 0 3.5mm var(--summary-offset);
+  }}
+  .total-amount {{ text-align: right; }}
+  .total-amount {{ white-space: nowrap; }}
+  .total-label {{ text-align: left; text-decoration: underline; }}
+  .closing {{
+    margin: 0;
+    text-align: center;
+  }}
+  .head-signature {{
+    width: 50%;
+    margin-top: 16mm ;
+    margin-left: 51%;
+    text-align: center;
+    break-inside: avoid;
+  }}
+  .approval-signature {{
+    width: 50%;
+    margin-top: 16mm ;
+    margin-right: 51%;
+    text-align: center;
+    break-inside: avoid;
+  }}
+  .approval-title {{ margin-bottom: 14mm; }}
+</style>
+</head>
+<body>
+<main class="letter-page{extra_header_class}">
+  <header class="letterhead">
+    <img class="logo" src="{logo}" alt="ตรามหาวิทยาลัยมหิดล">
+    <div class="organization">
+      <br>{escaped(context['department_name'])}<br>
+      คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>
+      โทร.{escaped(context['telephone_number'])}
+    </div>
+  </header>
+  <section class="document-info">
+    <span>ที่</span><span>&nbsp;</span>
+    <span>วันที่</span><span>&nbsp;</span>
+    <span>เรื่อง</span><span>{escaped(context['subject'])}</span>
+    <span>เรียน</span><span>คณบดีคณะเทคนิคการแพทย์</span>
+  </section>
+  <section class="letter-body">
+    {paragraphs_html}
+    <table class="items"><tbody>{items_html}</tbody></table>
+    <div class="total-row">
+      <span class="total-label">รวมทั้งสิ้น</span>
+      <span>&nbsp;&nbsp;{escaped(context['amount_text'])}</span>
+      <span class="total-amount">{escaped(context['amount_numeric'])} บาท</span>
+    </div>
+    <p class="government-text">{escaped(context['reference_text'])}</p>
+    <p class="closing">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง</p>
+  </section>
+  <section class="head-signature">
+    <div>({escaped(context['head_name'])})</div>
+    <div>{escaped(context['head_position'])}</div>
+  </section>
+  <section class="approval-signature">
+    <div class="approval-title">อนุมัติ</div>
+    <div>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)</div>
+    <div>คณบดีคณะเทคนิคการแพทย์</div>
+  </section>
+</main>
+</body>
+</html>"""
+
+
 def generate_petty_claim(claim, claim_type="1"):
     """
     สร้างเอกสาร PDF สำหรับรายการขออนุมัติเบิกค่าใช้จ่ายของ petty cash claim
@@ -1225,7 +1415,7 @@ def generate_petty_claim(claim, claim_type="1"):
     - ตารางรายการแบบไม่มีเส้น
     - ส่วนลงนามท้ายหน้า
     """
-    from .views import convert_to_fiscal_year, get_department_data_service
+    from .views import get_department_data_service
 
     if not claim:
         return b""
@@ -1271,21 +1461,6 @@ def generate_petty_claim(claim, claim_type="1"):
         or PDF_BLANK
     )
 
-    request_date = (
-        getattr(fund_request, "approved_at", None)
-        or getattr(claim, "created_at", None)
-    )
-    date_thai = get_thai_month_year(request_date.date()) if request_date else PDF_BLANK
-
-    claim_number = (
-        getattr(claim, "claim_number", None)
-        or getattr(fund_request, "ticket_number", None)
-        or PDF_BLANK
-    )
-
-    claim_date = getattr(claim, "created_at", None)
-    claim_date_thai = get_thai_month_year(claim_date.date()) if claim_date else PDF_BLANK
-
     request_purpose = (
         getattr(fund_request, "purpose", None)
         or getattr(fund_request, "borrowing_ticket_name", None)
@@ -1306,28 +1481,6 @@ def generate_petty_claim(claim, claim_type="1"):
     )
     amount_numeric = f"{amount_value:,.2f}" if amount_value else PDF_BLANK
     amount_text = bahttext(amount_value) if amount_value else PDF_BLANK
-
-    if claim_items:
-        first_receipt = min(
-            (getattr(item, "receipt_date", None) for item in claim_items if getattr(item, "receipt_date", None)),
-            default=None,
-        )
-    else:
-        first_receipt = None
-
-    if first_receipt:
-        start_date_str = get_thai_month_year(first_receipt)
-    else:
-        start_date_str = date_thai
-
-    if display_items:
-        end_receipt = max(
-            (getattr(item, "receipt_date", None) for item in display_items if getattr(item, "receipt_date", None)),
-            default=None,
-        )
-    else:
-        end_receipt = None
-    end_date_str = get_thai_month_year(end_receipt) if end_receipt else PDF_BLANK
 
     bank_account_info = None
     request_account_number = getattr(borrowing_ticket, "account_number", None) if borrowing_ticket else None
@@ -1359,58 +1512,8 @@ def generate_petty_claim(claim, claim_type="1"):
     reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(claim, "product_code", None), "id", None) or PDF_BLANK
     cost_center_label = getattr(getattr(claim, "cost_center", None), "id", None) or PDF_BLANK
-    mission_label = getattr(getattr(claim, "iocode", None), "id", None) or PDF_BLANK # changed from mission_id => id
+    mission_label = getattr(getattr(claim, "iocode", None), "id", None) or PDF_BLANK
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=55,
-        rightMargin=55,
-        topMargin=22,
-        bottomMargin=22,
-        title="Petty Claim Request",
-    )
-
-    story = []
-
-    claim_style = ParagraphStyle(
-        name="ThaiClaimBody",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_JUSTIFY,
-        textColor=colors.black,
-    )
-    claim_body = ParagraphStyle(
-        name="ThaiClaimIndentedBody",
-        parent=claim_style,
-        firstLineIndent=70,
-    )
-    claim_center = ParagraphStyle(
-        name="ThaiClaimCenter",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_CENTER,
-        textColor=colors.black,
-    )
-    claim_right = ParagraphStyle(
-        name="ThaiClaimRight",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_RIGHT,
-        textColor=colors.black,
-    )
-    claim_left = ParagraphStyle(
-        name="ThaiClaimLeft",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_LEFT,
-        textColor=colors.black,
-    )
     dept_service_data = get_department_data_service(department_name) or {}
     org = getattr(getattr(requester, "personal_info", None), "org", None)
     telephone_number = (
@@ -1420,35 +1523,6 @@ def generate_petty_claim(claim, claim_type="1"):
         or PDF_BLANK
     )
 
-    header_table = _build_global_header(
-        department_name,
-        telephone_number,
-        claim_right,
-        leave_style=True,
-    )
-    story.append(header_table)
-    if no_approval_letter:
-        story.append(Spacer(1, 20))
-    story.append(Spacer(1, 10))
-
-    info_data = [
-        [Paragraph("ที่", claim_left), Paragraph(PDF_BLANK, claim_left)],
-        [Paragraph("วันที่", claim_left), Paragraph(PDF_BLANK, claim_left)],
-        [Paragraph("เรื่อง", claim_left), Paragraph(subject_text, claim_left)],
-        [Paragraph("เรียน", claim_left), Paragraph("คณบดีคณะเทคนิคการแพทย์", claim_left)],
-    ]
-    info_table = Table(info_data, colWidths=[48, doc.width - 48])
-    info_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-    ]))
-    story.append(info_table)
-    story.append(Spacer(1, 18))
-
     body_1 = (
         f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น"
     )
@@ -1456,117 +1530,46 @@ def generate_petty_claim(claim, claim_type="1"):
         f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
     )
 
-    if no_approval_letter:
-        story.append(Paragraph(
-            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ {request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
-            claim_body,
-        ))
-    else:
-        story.append(Paragraph(body_1, claim_body))
-        story.append(Spacer(1, 8))
-        story.append(Paragraph(body_2, claim_body))
-    story.append(Spacer(1, 10))
-
-    table_rows = []
-    for idx, item in enumerate(display_items, 1):
-        table_rows.append([
-            Paragraph(f"{idx}.", claim_center),
-            Paragraph(
-                getattr(item, "description", None)
-                or PDF_BLANK,
-                claim_style,
-            ),
-            Paragraph(
-                _pdf_amount(getattr(item, "amount", None)) + (" บาท" if no_approval_letter else ""),
-                claim_right,
-            ),
-        ])
-
-    if table_rows:
-        # Keep the item list aligned with the indented first line of the body.
-        items_table = Table(table_rows, colWidths=[35, 270, 80])
-        items_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ]))
-        story.append(items_table)
-        story.append(Spacer(1, 4))
-
-    total_table = Table(
-        [[
-            Paragraph("<u>รวมทั้งสิ้น</u> ", claim_right),
-            Paragraph(f"{amount_text}", claim_left),
-            Paragraph(f"{amount_numeric} บาท", claim_right),
-        ]],
-        colWidths=[65, 230, 90] if no_approval_letter else [55, 250, 80],
-    )
-    total_table.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-    ]))
-    if no_approval_letter:
-        total_table.setStyle(TableStyle([('LEFTPADDING', (1, 0), (1, 0), 8)]))
-    story.append(total_table)
-    story.append(Spacer(1, 10))
-
     ref_text = (
         f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
         f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
     )
     if no_approval_letter:
-        story.append(Paragraph(
-            f"ในการนี้&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
+        body_paragraphs = [
+            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ {request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้"
+        ]
+        ref_text = (
+            f"ในการนี้\u00a0จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
             f"ประจำปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
             f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
-            ,styles['ThaiOfficial'],
-        ))
+        )
     else:
-        story.append(Paragraph(ref_text, claim_style))
-    story.append(Spacer(1, 12))
-    story.append(Paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", claim_center))
-    story.append(Spacer(1, 34))
+        body_paragraphs = [body_1, body_2]
 
-    sign_right = Paragraph(
-        f"({head_name})<br/>"
-        f"{head_position}",
-        claim_center,
+    document_context = {
+        "title": "Petty Claim Request",
+        "department_name": department_name,
+        "telephone_number": telephone_number,
+        "subject": subject_text,
+        "body_paragraphs": body_paragraphs,
+        "items": [
+            (
+                index,
+                getattr(item, "description", None) or PDF_BLANK,
+                _pdf_amount(getattr(item, "amount", None)),
+            )
+            for index, item in enumerate(display_items, 1)
+        ],
+        "amount_text": amount_text,
+        "amount_numeric": amount_numeric,
+        "reference_text": ref_text,
+        "head_name": head_name,
+        "head_position": head_position,
+        "extra_header_space": no_approval_letter,
+    }
+    return _render_html_with_chromium(
+        _build_reimbursement_letter_html(document_context)
     )
-    head_sign_table = Table([["", sign_right]], colWidths=[170, 285])
-    head_sign_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-    ]))
-    story.append(head_sign_table)
-    story.append(Spacer(1, 45))
-
-    approval_sign = Paragraph(
-        "อนุมัติ<br/><br/><br/>"
-        "(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>"
-        "คณบดีคณะเทคนิคการแพทย์",
-        claim_center,
-    )
-    approval_sign_table = Table([[approval_sign, ""]], colWidths=[285, 285])
-    approval_sign_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-    ]))
-    story.append(approval_sign_table)
-
-    doc.build(story)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
 
 
 generate_petty_claim_pdf = generate_petty_claim
@@ -1581,16 +1584,14 @@ def generate_ticket_return(return_detail):
     if not ticket:
         return b""
 
-    from .views import convert_to_fiscal_year, get_department_data_service
+    from .views import get_department_data_service
 
     borrower = getattr(ticket, "borrower_user", None)
     borrower_org = getattr(getattr(borrower, "personal_info", None), "org", None)
     department_name = getattr(borrower_org, "name", None) or getattr(borrower, "department", None)
     department_name = department_name or PDF_BLANK
     ticket_number = getattr(ticket, "number", None) or PDF_BLANK
-    ticket_date = getattr(ticket, "approved_at", None) or getattr(ticket, "created_at", None)
     request_purpose = getattr(ticket, "borrowing_ticket_purpose", None) or PDF_BLANK
-    date_thai = get_thai_month_year(ticket_date.date()) if ticket_date else PDF_BLANK
     return_items = [
         item for item in (getattr(return_detail, "receipt_items", None) or [])
         if not getattr(item, "is_cash", False)
@@ -1608,53 +1609,7 @@ def generate_ticket_return(return_detail):
     reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(return_detail, "product_code", None), "name", None) or PDF_BLANK
     cost_center_label = getattr(getattr(return_detail, "cost_center", None), "id", None) or PDF_BLANK
-    mission_label = getattr(getattr(return_detail, "iocode", None), "id", None) or PDF_BLANK # changed from mission_id => id
-
-    return_body = ParagraphStyle(
-        name="ThaiTicketReturnBody",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_JUSTIFY,
-        firstLineIndent=70,
-        textColor=colors.black,
-    )
-    return_left = ParagraphStyle(
-        name="ThaiTicketReturnLeft",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_LEFT,
-        textColor=colors.black,
-    )
-    return_center = ParagraphStyle(
-        name="ThaiTicketReturnCenter",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_CENTER,
-        textColor=colors.black,
-    )
-    return_right = ParagraphStyle(
-        name="ThaiTicketReturnRight",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_RIGHT,
-        textColor=colors.black,
-    )
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=55,
-        rightMargin=55,
-        topMargin=22,
-        bottomMargin=22,
-        title="Ticket Return Request",
-    )
-    story = []
+    mission_label = getattr(getattr(return_detail, "iocode", None), "id", None) or PDF_BLANK
 
     dept_service_data = get_department_data_service(department_name) or {}
     telephone_number = (
@@ -1663,104 +1618,36 @@ def generate_ticket_return(return_detail):
         or dept_service_data.get("phone_number")
         or PDF_BLANK
     )
-    header_table = _build_global_header(
-        department_name,
-        telephone_number,
-        return_right,
-        leave_style=True,
-    )
-    story.extend([header_table, Spacer(1, 10)])
-
     head_name, head_position = _get_head_signature(ticket=ticket)
-
-    info_table = Table([
-        [Paragraph("ที่", return_left), Paragraph(PDF_BLANK, return_left)],
-        [Paragraph("วันที่", return_left), Paragraph(PDF_BLANK, return_left)],
-        [Paragraph("เรื่อง", return_left), Paragraph(f"ขออนุมัติเบิกจ่ายพร้อมส่งใช้เงินยืม บย. {ticket_number}", return_left)],
-        [Paragraph("เรียน", return_left), Paragraph("คณบดีคณะเทคนิคการแพทย์", return_left)],
-    ], colWidths=[48, doc.width - 48])
-    info_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-    ]))
-    story.extend([info_table, Spacer(1, 18)])
-
-    story.append(Paragraph(
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น",
-        return_body,
-    ))
-    story.append(Spacer(1, 8))
-    story.append(Paragraph(
-        f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัด โครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
-        return_body,
-    ))
-    story.append(Spacer(1, 10))
-
-    item_rows = []
-    for index, item in enumerate(return_items, 1):
-        item_rows.append([
-            Paragraph(f"{index}.", return_center),
-            Paragraph(item.description or PDF_BLANK, return_left),
-            Paragraph(_pdf_amount(item.amount), return_right),
-        ])
-    if item_rows:
-        item_table = Table(item_rows, colWidths=[35, 270, 80])
-        item_table.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 0),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ("TOPPADDING", (0, 0), (-1, -1), 2),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-        ]))
-        story.extend([item_table, Spacer(1, 4)])
-
-    total_table = Table([[
-        Paragraph("<u>รวมทั้งสิ้น</u> ", return_right),
-        Paragraph(amount_text, return_left),
-        Paragraph(f"{amount_numeric} บาท", return_right),
-    ]], colWidths=[55, 250, 80])
-    total_table.setStyle(TableStyle([
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-    ]))
-    story.extend([total_table, Spacer(1, 10)])
-
-    story.append(Paragraph(
-        f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
-        f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตาม เอกสารที่แนบมาพร้อมนี้",
-        return_body,
-    ))
-    story.extend([
-        Spacer(1, 12),
-        Paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", return_center),
-        Spacer(1, 34),
-    ])
-
-    head_sign = Table([["", Paragraph(f"({head_name})<br/>{head_position}", return_center)]], colWidths=[280, 285])
-    head_sign.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.append(head_sign)
-    story.append(Spacer(1, 45))
-    approval_sign = Table([[Paragraph("อนุมัติ<br/><br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์", return_center), ""]], colWidths=[280, 285])
-    approval_sign.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.append(approval_sign)
-
-    doc.build(story)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
+    document_context = {
+        "title": "Ticket Return Request",
+        "department_name": department_name,
+        "telephone_number": telephone_number,
+        "subject": f"ขออนุมัติเบิกจ่ายพร้อมส่งใช้เงินยืม บย. {ticket_number}",
+        "body_paragraphs": [
+            f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น",
+            f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัด โครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
+        ],
+        "items": [
+            (
+                index,
+                getattr(item, "description", None) or PDF_BLANK,
+                _pdf_amount(getattr(item, "amount", None)),
+            )
+            for index, item in enumerate(return_items, 1)
+        ],
+        "amount_text": amount_text,
+        "amount_numeric": amount_numeric,
+        "reference_text": (
+            f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
+            f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตาม เอกสารที่แนบมาพร้อมนี้"
+        ),
+        "head_name": head_name,
+        "head_position": head_position,
+    }
+    return _render_html_with_chromium(
+        _build_reimbursement_letter_html(document_context)
+    )
 
 
 generate_ticket_return_pdf = generate_ticket_return
