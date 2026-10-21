@@ -434,8 +434,8 @@
               <thead class="table-light">
                 <tr>
                   <th>เลขที่บย.</th>
-                  <th>ผู้ยืม</th>
-                  <th>ชื่อโครงการ/วัตถุประสงค์</th>
+                  <th style="width: 15%;">ผู้ยืม</th>
+                  <th style="width: 20%;">ชื่อโครงการ/วัตถุประสงค์</th>
                   <th>ยอดเงินยืม</th>
                   <th>สถานะสัญญา</th>
                   <th>วันครบกำหนด</th>
@@ -474,7 +474,7 @@
                     data-remaining="{{ 0 if ticket_status == 'ปฏิเสธ' else (borrowing_ticket.remaining_amount or borrowing_ticket.required_budget or 0) }}">
                     <td><strong>{{ borrowing_ticket.number if borrowing_ticket.number else "-" }}</strong></td>
                     <td>{{ borrowing_ticket.borrower_name or borrowing_ticket.borrower_email or '-' }}</td>
-                    <td>{{ borrowing_ticket.borrowing_ticket_purpose }}</td>
+                    <td style="width: 20%;">{{ borrowing_ticket.borrowing_ticket_purpose }}</td>
                     <td>{{ "{:,.2f}".format(borrowing_ticket.required_budget|float) if borrowing_ticket.required_budget else '0.00' }}</td>
                     <td>
                       <div class="d-inline-flex flex-column align-items-center gap-1">
@@ -558,7 +558,7 @@
               <th class="small fw-bold text-secondary text-start ps-3">เลขที่เอกสาร / บย.</th>
               <th class="small fw-bold text-secondary">ชื่อผู้ประสานงาน / ผู้เบิก</th>
               <th class="small fw-bold text-secondary text-center">ประเภทรายการ</th>
-              <th class="small fw-bold text-secondary">รายละเอียด</th>
+              <th class="small fw-bold text-secondary" style="width: 20%;">รายละเอียด</th>
               <th class="small fw-bold text-secondary text-end">จำนวนเงิน</th>
               <th class="small fw-bold text-secondary text-center">วันที่สร้างรายการ</th>
               <th class="small fw-bold text-secondary text-center">สถานะ</th>
@@ -586,7 +586,7 @@
                   </td>
                   <td><span class="text-dark fw-medium">{{ return_detail.borrowing_ticket.borrower_name }}</span></td>
                   <td class="text-center"><span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-arrow-return-left me-1"></i>ส่งใช้เงินยืม</span></td>
-                  <td class="text-start text-dark" style="min-width: 220px; white-space: normal;">{{ return_detail.description or '-' }}</td>
+                  <td class="text-start text-dark" style="width: 20%; min-width: 220px; white-space: normal;">{{ return_detail.description or '-' }}</td>
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }}</td>
                   <td class="text-center small text-secondary">{{ return_detail.created_at|thai_date if return_detail.created_at else '-' }}</td>
                   <td class="text-center"><span class="badge {{ r_badge }}">{{ r_status }}</span></td>
@@ -617,7 +617,7 @@
                   </td>
                   <td><span class="text-dark fw-medium">{{ parcel_return.display_borrower_name or '-' }}</span></td>
                   <td class="text-center">{{ parcel_return_type_badge(parcel_return.type_label, 'px-2 py-1') }}</td>
-                  <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
+                  <td class="text-start text-dark" style="width: 20%; min-width: 220px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                   <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                   <td class="text-center">

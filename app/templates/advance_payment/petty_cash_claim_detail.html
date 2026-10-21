@@ -320,7 +320,7 @@
             <tr>
                 <th scope="col" style="width: 60px;">ลำดับ</th>
                 <th scope="col">วันที่ในใบเสร็จ</th>
-                <th scope="col">รายการรายละเอียด</th>
+                <th scope="col" style="width: 20%;">รายการรายละเอียด</th>
                 <th scope="col">จำนวนเงิน</th>
                 <th scope="col">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่อัปโหลด</th>
@@ -342,7 +342,7 @@
                     {{ item.receipt_date|thai_date if item.receipt_date else '-' }}
                 </td>
                 
-                <td>
+                <td style="width: 20%;">
                     {{ item.description or '-' }}
                 </td>
                 

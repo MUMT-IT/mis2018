@@ -333,7 +333,7 @@
               <th class="text-start">เลขที่เอกสาร / บย.</th>
               <th>ชื่อผู้ขอเบิก</th>
               <th class="text-center">ประเภทรายการ</th>
-              <th>รายละเอียด</th>
+              <th style="width: 20%;">รายละเอียด</th>
               <th class="text-end">จำนวนเงิน (บาท)</th>
               <th class="text-center">วันที่สร้างรายการ</th>
               <th class="text-center">สถานะ</th>
@@ -346,7 +346,7 @@
                 <td class="text-start"><div class="text-dark fw-bold">{{ claim.claim_number if claim.claim_number else '-' }}</div></td>
                 <td><span class="text-dark fw-medium">{{ claim.user.name if claim.user_id else '-' }}</span></td>
                 <td class="text-center"><span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-receipt me-1"></i>ขอเบิกเงินสดย่อย</span></td>
-                <td class="text-start text-dark" style="max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ claim.items_description_summary or '-' }}</div></td>
+                <td class="text-start text-dark" style="width: 20%; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ claim.items_description_summary or '-' }}</div></td>
                 <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(claim.amount or claim.total_amount or 0.0) }}</td>
                 <td class="text-center small text-secondary">{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
                 
@@ -396,7 +396,7 @@
                 <td class="text-start"><div class="text-dark fw-bold">{{ parcel_return.display_ticket_number or '-' }}</div>{% if parcel_return.display_subject_name and parcel_return.display_subject_name != '-' %}<small class="text-muted d-block text-truncate" style="max-width: 180px;" title="{{ parcel_return.display_subject_name }}">{{ parcel_return.display_subject_name }}</small>{% endif %}</td>
                 <td><span class="text-dark fw-medium">{{ parcel_return.display_borrower_name or '-' }}</span></td>
                 <td class="text-center">{{ parcel_return_type_badge(parcel_return.type_label, 'px-2 py-1') }}</td>
-                <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
+                <td class="text-start text-dark" style="width: 20%; min-width: 220px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
                 <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                 <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                 <td class="text-center">

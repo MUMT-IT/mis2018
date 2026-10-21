@@ -357,7 +357,7 @@
             {% for return_detail in return_details %}
             <tr class="align-top">
               <td>{{ return_detail.created_at|thai_date }}</td>
-              <td>
+              <td style="width: 20%;">
                 <span class="text-center">{{ return_detail.description }}</span>
               </td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }}</td>
@@ -435,7 +435,7 @@
             {% for pr in parcel_section.rows %}
             <tr class="align-top">
               <td>{{ pr.sent_date|thai_date }}</td>
-              <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
+              <td style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent) }}</td>
               <td>
                 {{ status_badge(pr.status) }}
@@ -629,7 +629,7 @@
                 <tr>
                   <td></td>
                   <td>{{ item.receipt_date|thai_date if item.receipt_date else '-' }}</td>
-                  <td class="text-start ps-4">{{ item.description or '-' }}</td>
+                  <td class="text-start ps-4" style="width: 20%;">{{ item.description or '-' }}</td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(item.amount or 0) }}</td>
                   <td></td>
                   <td></td>
@@ -646,7 +646,7 @@
                 <tr>
                   <td>{{ row_counter[-1] }}</td>
                   <td>{{ pr.sent_date|thai_date }}</td>
-                  <td class="text-start text-dark" style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
+                  <td class="text-start text-dark" style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td>
                   <td></td>
