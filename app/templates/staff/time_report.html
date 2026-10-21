@@ -561,6 +561,7 @@
     .staff-login-calendar-legend-swatch.is-open { background: #7d9df0; border-color: #f56956; color: #fff; }
     .staff-login-calendar-legend-swatch.is-leave { background: #c5e8c9; border-color: #2b8c36; color: #247346; }
     .staff-login-calendar-legend-swatch.is-wfh { background: #c5ecfb; border-color: #109ad3; color: #285d9b; }
+    .staff-login-calendar-legend-swatch.is-seminar { background: #ff33a5; border-color: #ff33a5; color: #fff; }
     .staff-login-calendar-legend-swatch.is-holiday { background: #ff9f1a; border-color: #ff9f1a; color: #fff; }
     .staff-login-calendar-legend-swatch.is-correction { background: #fff; border-color: rgba(18, 39, 84, 0.1); color: #b8433f; }
 
@@ -896,6 +897,7 @@
                         <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-leave"><i class="fas fa-face-frown-open" aria-hidden="true"></i></span> ลาป่วย</span>
                         <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-leave"><i class="fas fa-plane-departure" aria-hidden="true"></i></span> ลาพักร้อน/พักผ่อน</span>
                         <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-wfh"><i class="fas fa-house-chimney-user" aria-hidden="true"></i></span> WFH</span>
+                        <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-seminar"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span> อบรม/สัมมนา</span>
                         <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-holiday"><i class="fas fa-calendar-day" aria-hidden="true"></i></span> วันหยุด</span>
                         <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-correction"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span> มีการแก้ไขเวลา</span>
                     </div>
@@ -1035,7 +1037,8 @@
                 {{ url_for('staff.send_time_report_data')|tojson|safe }},
                 {{ url_for('staff.send_holidays_data')|tojson|safe }},
                 {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id, approved_only=1)|tojson|safe }},
-                {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id, approved_only=1)|tojson|safe }}
+                {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id, approved_only=1)|tojson|safe }},
+                {{ url_for('staff.send_summary_data', tab='smr', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id)|tojson|safe }}
             ],
             defaultView: 'month',
             fixedWeekCount: false,
@@ -1065,6 +1068,10 @@
                     } else if (event.type === 'wfh') {
                         element.find('.fc-title').html(
                             '<i class="fas fa-house-chimney-user staff-login-wfh-icon" aria-hidden="true"></i> ' + escapedEventTitle
+                        );
+                    } else if (event.type === 'smr') {
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-chalkboard-user staff-login-seminar-icon" aria-hidden="true"></i> ' + escapedEventTitle
                         );
                     } else if (event.type === 'holiday') {
                         element.find('.fc-title').html(
