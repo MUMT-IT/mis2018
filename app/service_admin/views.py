@@ -5180,14 +5180,9 @@ def add_sds_page_condition_item():
                         <span class="has-text-danger">*</span>
                     </th>
                     <th style="border: none">{}</th>
-                    <th style="border: none">
-                        {}
-                        <span class="has-text-danger">*</span>
-                    </th>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
                         <td style="border: none">
@@ -5208,10 +5203,8 @@ def add_sds_page_condition_item():
                            index,
                            item_form.sample_name.label,
                            item_form.clean_up.label,
-                           item_form.staining.label,
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
-                           item_form.staining(),
                            url_for('service_admin.remove_sds_page_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
@@ -8763,7 +8756,7 @@ def generate_sds_page_quotation():
                             quote_details[p_key]["quantity"] += 1
                         else:
                             if field.label.text == 'SDS Page':
-                                quote_details[p_key] = {"value": f'SDS Page {values}', "price": prices,
+                                quote_details[p_key] = {"value": f'SDS Page {values} gel', "price": prices,
                                                         "quantity": quantity}
                             else:
                                 quote_details[p_key] = {"value": values, "price": prices, "quantity": quantity}

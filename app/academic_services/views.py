@@ -3671,14 +3671,9 @@ def add_sds_page_condition_item():
                         <span class="has-text-danger">*</span>
                     </th>
                     <th style="border: none">{}</th>
-                    <th style="border: none">
-                        {}
-                        <span class="has-text-danger">*</span>
-                    </th>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
                         <td style="border: none">
@@ -3699,10 +3694,8 @@ def add_sds_page_condition_item():
                            index,
                            item_form.sample_name.label,
                            item_form.clean_up.label,
-                           item_form.staining.label,
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
-                           item_form.staining(),
                            url_for('academic_services.remove_sds_page_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
