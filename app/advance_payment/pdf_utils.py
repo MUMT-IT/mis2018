@@ -1652,24 +1652,134 @@ def generate_ticket_return(return_detail):
 
 generate_ticket_return_pdf = generate_ticket_return
 
-def generate_fund_request_pdf(fund_request):
-    """
-    ฟังก์ชันสร้างเอกสาร PDF ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย
-    """
-    buffer = BytesIO()
-    
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=45,
-        rightMargin=45,
-        topMargin=16,
-        bottomMargin=16,
-        title=f"MT-Petty-Cash-02_{fund_request.ticket_number}"
+
+def _build_fund_request_html(context):
+    """Build the MT-Petty Cash-02 form for Playwright Chromium."""
+    regular_font = _pdf_asset_data_uri(
+        Path(BASE_DIR).parent / "static" / "fonts" / "THSarabunNew.ttf",
+        "font/ttf",
     )
-    
-    story = []
-    
+    bold_font = _pdf_asset_data_uri(
+        Path(BASE_DIR).parent / "static" / "fonts" / "THSarabunNewBold.ttf",
+        "font/ttf",
+    )
+    checkbox_font = _pdf_asset_data_uri(
+        Path(BASE_DIR) / "fonts" / "DejaVuSans.ttf",
+        "font/ttf",
+    )
+    logo = _pdf_asset_data_uri(
+        Path(BASE_DIR) / "static" / "logo-MU_black-white-2-1.png",
+        "image/png",
+    )
+
+    def escaped(value):
+        return html.escape(str(value), quote=True)
+
+    item_rows = "".join(
+        "<tr>"
+        f'<td class="center">{escaped(index)}</td>'
+        f"<td>{escaped(description)}</td>"
+        f'<td class="amount">{escaped(amount)}</td>'
+        "</tr>"
+        for index, description, amount in context["items"]
+    )
+
+    def signature_cells(signatures):
+        return "".join(
+            '<div class="signature-cell">'
+            f"<div>{escaped(label)}</div><div class=\"signature-space\"></div>"
+            f"<div>{escaped(signature_line)}</div><div>(&nbsp;{escaped(name)}&nbsp;)</div>"
+            f"<div>ตำแหน่ง {escaped(position)}</div><div>วันที่ {escaped(date)}</div>"
+            "</div>"
+            for label, signature_line, name, position, date in signatures
+        )
+
+    separator_dots = "." * 260
+
+    return f"""<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>{escaped(context['title'])}</title>
+<style>
+  @font-face {{ font-family: "TH Sarabun New"; src: url("{regular_font}") format("truetype"); font-weight: 400; }}
+  @font-face {{ font-family: "TH Sarabun New"; src: url("{bold_font}") format("truetype"); font-weight: 700; }}
+  @font-face {{ font-family: "DejaVu Sans"; src: url("{checkbox_font}") format("truetype"); }}
+  @page {{ size: A4; margin: 0; }}
+  :root {{ --form-border: .5px solid #8c8c8c; }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{ font-family: "TH Sarabun New", sans-serif; font-size: 16pt; line-height: 1.12; color: #000; }}
+  .page {{ width: 210mm; min-height: 297mm; padding: 5.6mm 15.9mm; margin: 0 auto; }}
+  .form-header {{ display: grid; grid-template-columns: 24mm 1fr 36mm; align-items: center; }}
+  .logo {{ width: 24.7mm; height: 24.7mm; object-fit: contain; }}
+  .form-title {{ text-align: center; font-weight: 700; }}
+  .form-code {{ text-align: right; font-size: 13pt; align-self: start; }}
+  .dotted-separator {{
+    height: 1.5mm;
+    margin: 2mm 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 10pt;
+    line-height: .6mm;
+    letter-spacing: .25mm;
+  }}
+  .section-heading {{ display: grid; grid-template-columns: 1fr auto; align-items: start; margin-bottom: .8mm; }}
+  .section-meta {{ text-align: right; font-size: 13pt; line-height: 1.2; }}
+  .section-body {{ margin-bottom: 1.3mm; }}
+  table {{ width: 100%; border-collapse: collapse; table-layout: fixed; }}
+  th, td {{ border: var(--form-border); padding: 1mm 1.2mm; vertical-align: middle; }}
+  th {{ text-align: center; font-weight: 700; }}
+  .item-number {{ width: 17mm; }}
+  .item-amount {{ width: 42mm; }}
+  .center {{ text-align: center; }}
+  .amount {{ text-align: right; white-space: nowrap; }}
+  .total-label {{ text-align: right; font-weight: 700; }}
+  .signature-grid {{ display: grid; border: var(--form-border); border-right: 0; margin-top: 5mm; break-inside: avoid; }}
+  .signature-grid.three {{ grid-template-columns: 1fr 1fr 1.2fr; }}
+  .signature-grid.two {{ grid-template-columns: 1fr 1fr; width: 87%; margin-left: auto; margin-right: auto; }}
+  .signature-cell {{ border-right: var(--form-border); padding: 1.4mm; text-align: center; min-height: 32mm; }}
+  .signature-space {{ height: 6mm; }}
+  .section-two {{ margin-top: 1mm; }}
+  .recipient {{ margin: 0 0 1mm; }}
+  .option {{ margin: 0 0 1mm; text-indent: 24.7mm; text-align: justify; text-justify: inter-word; line-break: strict; }}
+  .checkbox {{ font-family: "DejaVu Sans", sans-serif; text-indent: 0; }}
+  .footer-note {{ margin-top: 1.5mm; font-size: 11pt; line-height: 1; text-align: center; }}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="form-header">
+    <img class="logo" src="{logo}" alt="ตรามหาวิทยาลัยมหิดล">
+    <div class="form-title">ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย<br>{escaped(context['department'])}</div>
+    <div class="form-code">MT-Petty Cash-02</div>
+  </header>
+  <div class="dotted-separator">{separator_dots}</div>
+  <section>
+    <div class="section-heading"><strong>ส่วนที่ 1 ใบยืมเงินสดย่อย</strong><div class="section-meta">เลขที่ใบเบิกเงิน {escaped(context['ticket_number'])}<br>วันที่ {escaped(context['date_thai'])}</div></div>
+    <div class="section-body">ข้าพเจ้า {escaped(context['requester'])} ตำแหน่ง {escaped(context['requester_position'])} มีความประสงค์ขอยืมเงินสดย่อย<br>เพื่อ{escaped(context['purpose'])} มีรายละเอียดดังนี้</div>
+    <table>
+      <thead><tr><th class="item-number">ลำดับ</th><th>รายการ</th><th class="item-amount">จำนวนเงิน (บาท)</th></tr></thead>
+      <tbody>{item_rows}<tr><td class="total-label" colspan="2">รวมเป็นเงินทั้งสิ้น</td><td class="amount"><strong>{escaped(context['total_amount'])}</strong></td></tr></tbody>
+    </table>
+    <div class="signature-grid three">{signature_cells(context['section_one_signatures'])}</div>
+  </section>
+  <div class="dotted-separator">{separator_dots}</div>
+  <section class="section-two">
+    <div class="section-heading"><strong>ส่วนที่ 2 ใบเบิกเงิน</strong><div class="section-meta">เลขที่ใบเบิกเงิน {escaped(context['ticket_number'])}<br>วันที่ {escaped(context['date_thai'])}</div></div>
+    <p class="recipient"><strong>เรียน</strong>&nbsp;&nbsp;{escaped(context['head_position'])}</p>
+    <p class="option"><span class="checkbox">{escaped(context['petty_checkbox'])}</span> {escaped(context['petty_text'])}</p>
+    <p class="option"><span class="checkbox">{escaped(context['interest_checkbox'])}</span> {escaped(context['interest_text_before'])}&nbsp;<span class="checkbox">{escaped(context['june_checkbox'])}</span> งวดเดือน มิถุนายน พ.ศ. {escaped(context['period_year'])}&nbsp;<span class="checkbox">{escaped(context['december_checkbox'])}</span> งวดเดือน ธันวาคม พ.ศ. {escaped(context['period_year'])}<br>{escaped(context['interest_text_after'])}</p>
+    <div class="signature-grid two">{signature_cells(context['section_two_signatures'])}</div>
+    <div class="footer-note">หมายเหตุ: ใบเสร็จแต่ละใบจะต้องมียอดไม่เกิน -20,000- บาท</div>
+  </section>
+</main>
+</body>
+</html>"""
+
+
+def generate_fund_request_pdf(fund_request):
+    """Generate the MT-Petty Cash-02 form with Playwright Chromium."""
     form_type = str(fund_request.form_type or "")
     is_interest_form = form_type == FUND_REQUEST_FORM_INTEREST
     is_borrowing_form = form_type == FUND_REQUEST_FORM_BORROWING_TICKET
@@ -1782,67 +1892,9 @@ def generate_fund_request_pdf(fund_request):
     amount_str = _pdf_amount(amount_val)
     amount_text_th = bahttext(amount_val) if amount_val is not None else PDF_BLANK
 
-    # Header & Logo
-    logo_path = os.path.join(BASE_DIR, 'static', 'logo-MU_black-white-2-1.png')
-    if os.path.exists(logo_path):
-        from reportlab.platypus import Image
-        logo_flowable = Image(logo_path, width=70, height=70)
-    else:
-        d = Drawing(70, 70)
-        d.add(Circle(35, 35, 31, strokeColor=colors.black, strokeWidth=1, fillColor=colors.white))
-        logo_flowable = d
-
     dept_display = getattr(org, "name", None) or missing_department_notice()
-    form_title_text = "ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย"
-    header_title = Paragraph(
-        f"<b>{form_title_text}</b><br/>"
-        f"<b>{dept_display}</b>", 
-        styles['ThaiCenterBold']
-    )
-    header_code = Paragraph("MT-Petty Cash-02", styles['ThaiSmallRight'])
-    
-    header_table = Table([[logo_flowable, header_title, header_code]], colWidths=[60, 345, 100])
-    header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    story.append(header_table)
-    story.append(draw_dotted_line())
-
-    # ส่วนที่ 1 ใบยืมเงินสดย่อย
-    sec1_title_l = Paragraph("<b>ส่วนที่ 1 ใบยืมเงินสดย่อย</b>", styles['ThaiBold'])
-    sec1_title_r = Paragraph(
-        f"เลขที่ใบเบิกเงิน {ticket_number}<br/>"
-        f"วันที่ {date_thai}", 
-        styles['ThaiSmallRight']
-    )
-    sec1_header_table = Table([[sec1_title_l, sec1_title_r]], colWidths=[240, 265])
-    sec1_header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-    ]))
-    story.append(sec1_header_table)
-    story.append(Spacer(1, 2))
-
-    sec1_body = Paragraph(
-        f"ข้าพเจ้า {requester} ตำแหน่ง {requester_pos} มีความประสงค์ขอยืมเงินสดย่อย<br/>"
-        f"เพื่อ{purpose if not is_interest_form else PDF_BLANK} มีรายละเอียดดังนี้",
-        styles['ThaiNormal']
-    )
-    story.append(sec1_body)
-    story.append(Spacer(1, 4))
-
-    # ==================== ตารางรายการ ====================
-    table_data = [
-        [
-            Paragraph("<b>ลำดับ</b>", styles['ThaiCenterBold']),
-            Paragraph("<b>รายการ</b>", styles['ThaiCenterBold']),
-            Paragraph("<b>จำนวนเงิน (บาท)</b>", styles['ThaiCenterBold'])
-        ]
-    ]
-
     items = fund_request.items if hasattr(fund_request, 'items') and fund_request.items else []
+    item_rows = []
     total_amount = 0.0
     has_total_amount = False
 
@@ -1851,11 +1903,11 @@ def generate_fund_request_pdf(fund_request):
         ticket_amount = borrowing_ticket.required_budget
         if ticket_amount is None:
             ticket_amount = amount_val
-        table_data.append([
-            Paragraph("1", styles['ThaiCenter']),
-            Paragraph(f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_no}", styles['ThaiNormal']),
-            Paragraph(_pdf_amount(ticket_amount), styles['ThaiRight'])
-        ])
+        item_rows.append((
+            "1",
+            f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_no}",
+            _pdf_amount(ticket_amount),
+        ))
         total_amount = float(ticket_amount) if ticket_amount is not None else 0.0
         has_total_amount = ticket_amount is not None
     elif not is_interest_form and items:
@@ -1863,73 +1915,13 @@ def generate_fund_request_pdf(fund_request):
             amt = float(item.amount or 0)
             total_amount += amt
             has_total_amount = has_total_amount or item.amount is not None
-            table_data.append([
-                Paragraph(str(idx), styles['ThaiCenter']),
-                Paragraph(item.description or PDF_BLANK, styles['ThaiNormal']),
-                Paragraph(_pdf_amount(item.amount), styles['ThaiRight'])
-            ])
+            item_rows.append((
+                str(idx),
+                item.description or PDF_BLANK,
+                _pdf_amount(item.amount),
+            ))
     else:
-        table_data.append([
-            Paragraph("&nbsp;", styles['ThaiCenter']),
-            Paragraph("&nbsp;", styles['ThaiNormal']),
-            Paragraph("&nbsp;", styles['ThaiRight'])
-        ])
-
-    table_data.append([
-        Paragraph("<b>รวมเป็นเงินทั้งสิ้น</b>", styles['ThaiRightBold']),
-        "",
-        Paragraph(f"<b>{_pdf_amount(total_amount if has_total_amount else None)}</b>", styles['ThaiRightBold'])
-    ])
-
-    last_row_idx = len(table_data) - 1
-
-    item_table = Table(table_data, colWidths=[50, 325, 120])
-    item_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('SPAN', (0, last_row_idx), (1, last_row_idx)),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-    ]))
-    
-    story.append(item_table)
-    story.append(Spacer(1, 15))
-
-    sig_box_data_1 = [
-        [
-            Paragraph(f"ลงชื่อผู้ขอยืม<br/><br/>{requester_signature_line}<br/>( {requester} )<br/>ตำแหน่ง {requester_pos}<br/>วันที่ {requester_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>{custodian_signature_line}<br/>( {custodian_name} )<br/>ตำแหน่ง {custodian_position}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>{head_signature_line}<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
-        ]
-    ]
-    t_sig1 = Table(sig_box_data_1, colWidths=[165, 165, 200])
-    t_sig1.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-    ]))
-    story.append(t_sig1)
-    story.append(draw_dotted_line())
-
-    # ส่วนที่ 2 ใบเบิกเงิน
-    # =========================================================================
-    # ส่วนที่ 2 ใบเบิกเงิน (เงื่อนไข dynamic ตาม form_type)
-    # =========================================================================
-    sec2_title_l = Paragraph("<b>ส่วนที่ 2 ใบเบิกเงิน</b>", styles['ThaiBold'])
-    sec2_title_r = Paragraph(
-        f"เลขที่ใบเบิกเงิน {ticket_number}<br/>"
-        f"วันที่ {date_thai}", 
-        styles['ThaiSmallRight']
-    )
-    sec2_header_table = Table([[sec2_title_l, sec2_title_r]], colWidths=[240, 265])
-    sec2_header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-    ]))
-    story.append(sec2_header_table)
-    story.append(Spacer(1, 2))
+        item_rows.append((PDF_BLANK, PDF_BLANK, PDF_BLANK))
 
     dept_name = getattr(org, "name", None) or missing_department_notice()
     today = datetime.now().date()
@@ -1955,8 +1947,8 @@ def generate_fund_request_pdf(fund_request):
         if bank_account_info and bank_account_info.thai_name
         else PDF_BLANK
     )
-    chk_box = '<font name="DejaVuSans">&#x2610;</font>'
-    chk_box_checked = '<font name="DejaVuSans">&#x2611;</font>'
+    chk_box = "☐"
+    chk_box_checked = "☑"
 
     if not is_interest_form:
         box_petty_cash = chk_box_checked
@@ -2007,61 +1999,44 @@ def generate_fund_request_pdf(fund_request):
         p_amt_str_2 = f"-{amount_str}-" if amount_str.strip() else PDF_BLANK
         p_amt_text_2 = amount_text_th
 
-    # ใช้ Paragraph แยกเป็นย่อหน้า และใช้ firstLineIndent จาก ThaiOfficial
-    # แทนการนับ &nbsp; เพื่อให้ checkbox ของแต่ละรายการเริ่มตำแหน่งเดียวกัน
-    sec2_body_paragraphs = [
-        Paragraph(f"<b>เรียน</b> &nbsp;&nbsp;{head_position}", styles['ThaiJustify']),
-        Paragraph(
-            f"{box_petty_cash} ขออนุมัติเบิกเงินสดย่อยจากบัญชี{acc_name} "
-            f"เลขที่บัญชี {p_acc_1} เป็นจำนวนเงิน {p_amt_str_1} บาท "
-            f"({p_amt_text_1}) ตามใบยืมเงินสดย่อยเลขที่ {p_borrow_no} "
-            f"ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม",
-            styles['ThaiOfficial'],
+    context = {
+        "title": f"MT-Petty-Cash-02_{fund_request.ticket_number}",
+        "department": dept_display,
+        "ticket_number": ticket_number,
+        "date_thai": date_thai,
+        "requester": requester,
+        "requester_position": requester_pos,
+        "purpose": purpose if not is_interest_form else PDF_BLANK,
+        "items": item_rows,
+        "total_amount": _pdf_amount(total_amount if has_total_amount else None),
+        "section_one_signatures": [
+            ("ลงชื่อผู้ขอยืม", requester_signature_line, requester, requester_pos, requester_signature_date),
+            ("ลงชื่อผู้เก็บรักษาเงินสดย่อย", custodian_signature_line, custodian_name, custodian_position, custodian_signature_date),
+            ("ลงชื่อผู้อนุมัติ", head_signature_line, head_name, head_position, approver_signature_date),
+        ],
+        "head_position": head_position,
+        "petty_checkbox": box_petty_cash,
+        "petty_text": (
+            f"ขออนุมัติเบิกเงินสดย่อยจากบัญชี{acc_name} เลขที่บัญชี {p_acc_1} "
+            f"เป็นจำนวนเงิน {p_amt_str_1} บาท ({p_amt_text_1}) ตามใบยืมเงินสดย่อยเลขที่ "
+            f"{p_borrow_no} ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม"
         ),
-        Paragraph(
-            f"{box_interest} ขออนุมัติเบิกดอกเบี้ย &nbsp;{box_june} งวดเดือน มิถุนายน พ.ศ. {p_period_yr} "
-            f"&nbsp;{box_dec} งวดเดือน ธันวาคม พ.ศ. {p_period_yr}<br/>"
+        "interest_checkbox": box_interest,
+        "june_checkbox": box_june,
+        "december_checkbox": box_dec,
+        "period_year": p_period_yr,
+        "interest_text_before": "ขออนุมัติเบิกดอกเบี้ย",
+        "interest_text_after": (
             f"จากบัญชี {p_dept_2} เลขที่บัญชี {p_acc_1} ชื่อบัญชี {acc_name} "
-            f"เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
-            f"และขออนุมัตินำส่งดอกเบี้ยเข้าเป็นเงินรายได้คณะฯ "
-            f"โอนเข้าบัญชี เลขที่ 016-300-325-6 ชื่อบัญชีมหาวิทยาลัยมหิดล",
-            styles['ThaiOfficial'],
+            f"เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) และขออนุมัตินำส่งดอกเบี้ย"
+            "เข้าเป็นเงินรายได้คณะฯ โอนเข้าบัญชี เลขที่ 016-300-325-6 ชื่อบัญชีมหาวิทยาลัยมหิดล"
         ),
-    ]
-    story.extend(sec2_body_paragraphs)
-    story.append(Spacer(1, 6))
-
-    sig_box_data_2 = [
-        [
-            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>{custodian_signature_line}<br/>( {custodian_name} )<br/>ตำแหน่ง {custodian_position}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>{head_signature_line}<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
-        ]
-    ]
-    t_sig2 = Table(sig_box_data_2, colWidths=[220, 220])
-    t_sig2.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
-    
-    t_sig2_container = Table([[t_sig2]], colWidths=[505])
-    t_sig2_container.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-    footer_text = Paragraph(
-        # "แบบฟอร์ม MT-Petty Cash-02 ใช้สำหรับขออนุมัติยืมเงินและเบิกถอนเงินสำหรับดำเนินงานภายในภาควิชาฯ/ศูนย์ฯ/งานฯ "
-        # "และเบิกถอนดอกเบี้ย ทำรายการเป็นครั้งๆ",
-        "หมายเหตุ: ใบเสร็จแต่ละใบจะต้องมียอดไม่เกิน -20,000- บาท",
-        styles['ThaiFooter']
-    )
-    story.append(KeepTogether([t_sig2_container, Spacer(1, 4), footer_text]))
-
-    doc.build(story)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
+        "section_two_signatures": [
+            ("ลงชื่อผู้เก็บรักษาเงินสดย่อย", custodian_signature_line, custodian_name, custodian_position, custodian_signature_date),
+            ("ลงชื่อผู้อนุมัติ", head_signature_line, head_name, head_position, approver_signature_date),
+        ],
+    }
+    return _render_html_with_chromium(_build_fund_request_html(context))
 
 
 def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
