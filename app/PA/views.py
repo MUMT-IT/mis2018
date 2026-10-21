@@ -2750,6 +2750,28 @@ def update_fc_evaluator(evaluation_id):
     return redirect(request.referrer or url_for('pa.fc_evaluator'))
 
 
+@pa.route('/hr/fc/evaluator/<int:evaluation_id>/delete', methods=['POST'])
+@login_required
+@hr_permission.require()
+def delete_fc_evaluator(evaluation_id):
+    evaluation = PAFunctionalCompetencyEvaluation.query.get(evaluation_id)
+    for indicator_result in evaluation.evaluation_eva_indicator:
+        db.session.delete(indicator_result)
+
+    email_title = 'ลบข้อมูลผู้ประเมิน FC เรียบร้อยแล้ว'
+    email_msg = u'{} ได้ลบข้อมูล FC รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว' \
+                u'\n\n\nคณะเทคนิคการแพทย์'. \
+        format(current_user.personal_info.fullname, evaluation.round.desc, evaluation.staff.fullname, evaluation.evaluator.fullname)
+    if not current_app.debug:
+        send_mail([current_user.email + "@mahidol.ac.th"], email_title, email_msg)
+    else:
+        print(evaluation.round.desc, email_title, email_msg)
+    db.session.delete(evaluation)
+    db.session.commit()
+    flash('ลบข้อมูล FC รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว '.format(evaluation.round.desc, evaluation.staff.fullname, evaluation.evaluator.fullname), 'success')
+    return redirect(request.referrer or url_for('pa.fc_evaluator'))
+
+
 @pa.route('/hr/fc/evaluator/<int:evaluation_id>')
 @login_required
 @hr_permission.require()
