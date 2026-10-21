@@ -1447,8 +1447,12 @@ class QuantitativeConditionForm(FlaskForm):
 class QuantitativeRequestForm(FlaskForm):
     processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)',
                                     choices=[('Processing data', 'Do')])
-    sample_species = StringField('Sample species', validators=[DataRequired()],
-                                 render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+    sample_species = SelectField('Sample species', choices=[('', 'กรุณาเลือก Sample species'),
+                                                            ('Human', 'Human'),
+                                                            ('Mouse', 'Mouse'),
+                                                            ('Others', 'Others')],
+                                 validators=[DataRequired()],
+                                 render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือก Sample species')",
                                             "oninput": "this.setCustomValidity('')"
                                             })
     buffer_condition = StringField('Buffer conditions', validators=[DataRequired()],
