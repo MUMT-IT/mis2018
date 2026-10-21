@@ -108,12 +108,6 @@
                                     {{ form.image_analysis() }}
                                 </div>
                             </div>
-                            <div class="field">
-                                <label class="label">{{ form.comment.label }}</label>
-                                <div class="control">
-                                    {{ form.comment(class='input') }}
-                                </div>
-                            </div>
                         </div>
                         <div class="box">
                             <h5 class="title is-size-5">รายการทดสอบ</h5>
@@ -178,6 +172,16 @@
 {#                                        <span class="">ลบ</span>#}
 {#                                    </a>#}
 {#                                </div>#}
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">ความคิดเห็น</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">{{ form.comment.label }}</label>
+                                <div class="control">
+                                    {{ form.comment(class='input') }}
+                                </div>
                             </div>
                         </div>
                         <div class="field is-grouped is-justify-content-center">
