@@ -1369,8 +1369,8 @@ class SDSPageConditionForm(FlaskForm):
                                          "oninput": "this.setCustomValidity('')"
                                          })
     clean_up = CheckboxField('Clean up sample', choices=[('Clean up sample', 'Clean')], validators=[Optional()])
-    staining = RadioField('Staining', choices=[('Coomassie Stain', 'Coomassie Stain'),
-                                                  ('Silver Stain', 'Silver Stain')], validators=[Optional()])
+    # staining = RadioField('Staining', choices=[('Coomassie Stain', 'Coomassie Stain'),
+    #                                               ('Silver Stain', 'Silver Stain')], validators=[Optional()])
 
 
 class SDSPageRequestForm(FlaskForm):
