@@ -5393,14 +5393,14 @@ def add_metabolomic_condition_item():
                         {}
                         <span class="has-text-danger">*</span>
                     </th>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
+                    <th style="border: none" data-metabolomic-type="Untargeted">{}</th>
+                    <th style="border: none" data-metabolomic-type="Quantitative">{}</th>
                 </thead>
                 <tbody>
                     <tr>
                         <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control" data-metabolomic-type="Untargeted">{}</td>
+                        <td style="border: none" class="control" data-metabolomic-type="Quantitative">{}</td>
                         <td style="border: none">
                             <a class="button is-danger is-outlined"
                                 hx-delete="{}" 
