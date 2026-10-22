@@ -51,6 +51,15 @@
                                     {{ form.buffer_condition(class='input') }}
                                 </div>
                             </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.metabolomic_type.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.metabolomic_type() }}
+                                </div>
+                            </div>
                         </div>
                         <div class="box">
                             <h5 class="title is-size-5">รายการทดสอบ</h5>
