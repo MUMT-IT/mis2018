@@ -804,17 +804,25 @@ def _fund_request_signature_state(fund_request):
 
 
 def _fund_request_can_be_edited(user, fund_request):
-    """Allow creator edits before another actor, or custodian edits pre-approval."""
+    """Allow temporary edits without resetting an existing approval."""
     user_id = getattr(user, "id", None)
     creator_id = getattr(fund_request, "creator_id", None)
+    custodian_id = _fund_request_custodian_id(fund_request)
+    status = (getattr(fund_request, "status", None) or "").strip()
+
     if (
         not user_id
         or getattr(fund_request, "is_legacy_import", False)
-        or (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ"
+        or status not in {"รอการอนุมัติ", "เบิกเงินแล้ว"}
     ):
         return False
 
-    if user_id == _fund_request_custodian_id(fund_request):
+    # TEMPORARY: อนุญาตให้แก้รายการที่เบิกเงินแล้ว
+    # โดยเก็บผลการอนุมัติเดิมไว้
+    if status == "เบิกเงินแล้ว":
+        return user_id in {creator_id, custodian_id}
+
+    if user_id == custodian_id:
         return getattr(fund_request, "approved_at", None) is None
 
     if creator_id != user_id:
@@ -828,7 +836,6 @@ def _fund_request_can_be_edited(user, fund_request):
         actor_id = getattr(fund_request, actor_attr, None)
         if actor_id not in {None, creator_id}:
             return False
-        # A timestamp without an actor cannot be proven to belong to the creator.
         if acted_at and actor_id != creator_id:
             return False
 
@@ -8643,6 +8650,164 @@ def _carryover_amount(value):
     return amount.quantize(Decimal("0.01"))
 
 
+# def _petty_cash_top_up_difference(current_budget, previous_budget):
+#     """Return the default transfer amount for the new fiscal year."""
+#     current_amount = Decimal(str(current_budget or 0))
+#     previous_amount = Decimal(str(previous_budget or 0))
+#     return (current_amount - previous_amount).quantize(Decimal("0.01"))
+#
+#
+# def _petty_cash_top_up_amount(value):
+#     raw = (value or "").replace(",", "").strip()
+#     if not raw:
+#         raise ValueError("กรุณาระบุส่วนต่าง")
+#     try:
+#         amount = Decimal(raw)
+#     except Exception as exc:
+#         raise ValueError("จำนวนเงินส่วนต่างไม่ถูกต้อง") from exc
+#     if not amount.is_finite():
+#         raise ValueError("จำนวนเงินส่วนต่างไม่ถูกต้อง")
+#     return amount.quantize(Decimal("0.01"))
+#
+#
+# @bp.route("/finance/petty-cash-fiscal-year-top-up-transfers", methods=["GET", "POST"])
+# @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+# def petty_cash_fiscal_year_top_up_transfers():
+#     """Record annual petty-cash top-up transfers for the current settings."""
+#     current_fiscal_year = _current_petty_cash_fiscal_year()
+#     previous_fiscal_year = current_fiscal_year - 1
+#     current_settings = (
+#         db.session.query(PettyCashSetting)
+#         .filter(PettyCashSetting.fiscal_year == current_fiscal_year)
+#         .order_by(PettyCashSetting.org_id.asc(), PettyCashSetting.id.asc())
+#         .all()
+#     )
+#     settings_by_id = {setting.id: setting for setting in current_settings}
+#
+#     previous_carryovers = (
+#         db.session.query(PettyCashFiscalYearCarryover)
+#         .filter(
+#             PettyCashFiscalYearCarryover.source_fiscal_year == previous_fiscal_year,
+#             PettyCashFiscalYearCarryover.target_fiscal_year == current_fiscal_year,
+#             PettyCashFiscalYearCarryover.org_id.in_(
+#                 [setting.org_id for setting in current_settings]
+#             ),
+#         )
+#         .all()
+#         if current_settings
+#         else []
+#     )
+#     previous_carryover_by_org_id = {
+#         carryover.org_id: carryover for carryover in previous_carryovers
+#     }
+#
+#     transfers = (
+#         db.session.query(PettyCashFiscalYearTopUpTransfer)
+#         .filter(
+#             PettyCashFiscalYearTopUpTransfer.petty_cash_setting_id.in_(
+#                 list(settings_by_id)
+#             )
+#         )
+#         .all()
+#         if settings_by_id
+#         else []
+#     )
+#     transfers_by_setting_id = {
+#         transfer.petty_cash_setting_id: transfer for transfer in transfers
+#     }
+#
+#     if request.method == "POST":
+#         try:
+#             setting_ids = request.form.getlist("setting_id[]")
+#             transfer_amounts = request.form.getlist("transfer_amount[]")
+#             transferred_dates = request.form.getlist("transferred_at[]")
+#             submitted_setting_ids = set()
+#
+#             for index, raw_setting_id in enumerate(setting_ids):
+#                 setting_id = int(raw_setting_id) if raw_setting_id.isdigit() else None
+#                 setting = settings_by_id.get(setting_id)
+#                 if setting is None:
+#                     raise ValueError(f"แถวที่ {index + 1} ไม่พบข้อมูลหน่วยงานของปีงบประมาณปัจจุบัน")
+#                 if setting_id in submitted_setting_ids:
+#                     raise ValueError("ไม่สามารถบันทึกหน่วยงานเดิมซ้ำได้")
+#                 submitted_setting_ids.add(setting_id)
+#
+#                 amount = _petty_cash_top_up_amount(
+#                     transfer_amounts[index] if index < len(transfer_amounts) else ""
+#                 )
+#                 raw_transferred_at = (
+#                     transferred_dates[index].strip()
+#                     if index < len(transferred_dates)
+#                     else ""
+#                 )
+#                 try:
+#                     transferred_at = (
+#                         date.fromisoformat(raw_transferred_at)
+#                         if raw_transferred_at
+#                         else None
+#                     )
+#                 except ValueError as exc:
+#                     raise ValueError(f"แถวที่ {index + 1} วันที่โอนเงินสำเร็จไม่ถูกต้อง") from exc
+#
+#                 transfer = transfers_by_setting_id.get(setting_id)
+#                 if transfer is None:
+#                     transfer = PettyCashFiscalYearTopUpTransfer(
+#                         petty_cash_setting_id=setting_id,
+#                     )
+#                     transfers_by_setting_id[setting_id] = transfer
+#                 transfer.transfer_amount = amount
+#                 transfer.transferred_at = transferred_at
+#                 db.session.add(transfer)
+#
+#             if submitted_setting_ids != set(settings_by_id):
+#                 raise ValueError("ข้อมูลหน่วยงานไม่ครบ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง")
+#
+#             db.session.commit()
+#             flash("บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณเรียบร้อยแล้ว", "success")
+#             return redirect(url_for("advance_payment.petty_cash_fiscal_year_top_up_transfers"))
+#         except ValueError as exc:
+#             db.session.rollback()
+#             flash(str(exc), "danger")
+#         except Exception:
+#             db.session.rollback()
+#             current_app.logger.exception("Unable to save petty-cash fiscal-year top-up transfers")
+#             flash("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง", "danger")
+#
+#     rows = []
+#     for setting in current_settings:
+#         previous_carryover = previous_carryover_by_org_id.get(setting.org_id)
+#         previous_budget = (
+#             previous_carryover.finance_budget
+#             if previous_carryover is not None
+#             else None
+#         )
+#         transfer = transfers_by_setting_id.get(setting.id)
+#         rows.append(
+#             SimpleNamespace(
+#                 setting=setting,
+#                 previous_carryover=previous_carryover,
+#                 previous_budget=previous_budget,
+#                 transfer=transfer,
+#                 transfer_amount=(
+#                     transfer.transfer_amount
+#                     if transfer is not None
+#                     else _petty_cash_top_up_difference(
+#                         setting.budget,
+#                         previous_budget,
+#                     )
+#                 ),
+#             )
+#         )
+#
+#     return render_template(
+#         "petty_cash_fiscal_year_top_up_transfers.html",
+#         rows=rows,
+#         transfer_records=transfers,
+#         current_fiscal_year=current_fiscal_year,
+#         previous_fiscal_year=previous_fiscal_year,
+#     )
+#
+
 @bp.route("/petty-cash/fiscal-year-carryover", methods=["GET", "POST"])
 @module_system_required(FINANCE_SYSTEM)
 def petty_cash_fiscal_year_carryover():
@@ -9711,13 +9876,13 @@ def record_fund_request_withdrawal(request_id):
     if not staff.is_authenticated or not _is_petty_cash_custodian(staff, setting):
         abort(403)
 
-    if (
-        (fund_req.status or "").strip() != "อนุมัติแล้ว"
-        or not _fund_request_is_fully_approved(fund_req)
-    ):
-        return _validation_error_response(
-            "ไม่สามารถบันทึกวันที่เบิกได้จนกว่าการยืนยันและอนุมัติจะครบถ้วน"
-        )
+    # if (
+    #     (fund_req.status or "").strip() != "อนุมัติแล้ว"
+    #     or not _fund_request_is_fully_approved(fund_req)
+    # ):
+    #     return _validation_error_response(
+    #         "ไม่สามารถบันทึกวันที่เบิกได้จนกว่าการยืนยันและอนุมัติจะครบถ้วน"
+    #     )
 
     request_date = _coerce_date(request.form.get("request_date"))
     if request_date is None:
@@ -11612,9 +11777,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     )
     can_record_fund_request_withdrawal = bool(
         verification_fund_request
-        and fund_request_status == "อนุมัติแล้ว"
+        and fund_request_status in ["อนุมัติแล้ว","รอการอนุมัติ"]
         and current_is_custodian
-        and _fund_request_is_fully_approved(verification_fund_request)
+        #and _fund_request_is_fully_approved(verification_fund_request)
     )
     can_edit_fund_request = bool(
         verification_fund_request
