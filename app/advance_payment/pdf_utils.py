@@ -8,6 +8,7 @@ from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 from bahttext import bahttext
+from numpy.distutils.fcompiler import none
 
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether
@@ -646,7 +647,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     pending = []
     pending_amount = Decimal("0.00")
     for fr in requests:
-        if fr.form_type != FUND_REQUEST_FORM_PETTY_CASH:
+        if fr.form_type != FUND_REQUEST_FORM_PETTY_CASH or not fr.request_date:
             continue
         remaining = max(
             Decimal(str(fr.amount or 0))
