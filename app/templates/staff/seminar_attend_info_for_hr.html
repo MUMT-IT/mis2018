@@ -14,15 +14,6 @@
                 <h1 class="subtitle has-text-danger">สำหรับเจ้าหน้าที่ HR/ผู้จัดงาน</h1>
                 <div class="columns">
                         <div class="column has-text-centered">
-                            <a href="{{ url_for('staff.seminar_create_record', seminar_id=seminar.id) }}"
-                               class="button is-light is-success">
-                                <span class="icon">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                                <span>จัดทำบันทึกขออนุมัติ</span>
-                            </a>
-                        </div>
-                        <div class="column has-text-centered">
                             <a href="{{ url_for('staff.seminar_pre_register_info', seminar_id=seminar.id) }}"
                                class="button is-light is-success">
                                 <span class="icon">
@@ -94,6 +85,15 @@
                         </tr>
                         {% endif %}
                     </table>
+                    <div class="column has-text-centered">
+                        <a href="{{ url_for('staff.seminar_create_record', seminar_id=seminar.id) }}"
+                               class="button is-light is-success">
+                            <span class="icon">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            <span>จัดทำบันทึกขออนุมัติ</span>
+                        </a>
+                    </div>
                 </div>
                 <div class="box">
                 <div class="columns">
@@ -122,7 +122,7 @@
                             <a href="{{ url_for('staff.attend_download', seminar_id=seminar.id)}}"
                                class="button is-warning" >
                                 <span class="icon"><i class="fas fa-download"></i></span>
-                                <span>Download</span>
+                                <span>รายงาน</span>
                             </a>
                         </div>
                     </div>
