@@ -1324,7 +1324,7 @@ class ProteinIdentificationConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    clean_up = CheckboxField('Clean Up Sample', choices=[('Sample cleanup service', 'Do')], validators=[Optional()])
+    clean_up = CheckboxField('Clean up sample', choices=[('Clean up sample', 'Clean')], validators=[Optional()])
     protein_identification = CheckboxField('Protein Identification by LC/MS', choices=[('In-gel digestion',
                                                                                         'In-gel digestion'),
                                                                                        ('In-solution digestion',
@@ -1476,7 +1476,7 @@ class MetabolomicConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    clean_up = CheckboxField('Clean Up Sample', choices=[('Sample cleanup service', 'Do')], validators=[Optional()])
+    clean_up = CheckboxField('Clean up sample', choices=[('Clean up sample', 'Clean')], validators=[Optional()])
     untargeted_metabolomic = CheckboxField('Untargeted Metabolomic', choices=[('Negative', 'Negative'),
                                                                               ('Positive', 'Positive')],
                                            validators=[Optional()])
