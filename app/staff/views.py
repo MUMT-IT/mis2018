@@ -6827,6 +6827,20 @@ def show_seminar_info_each_person(record_id):
     _,END_FISCAL_DATE  = get_fiscal_date(attend.start_datetime)
     fiscal_year = END_FISCAL_DATE.year+543
     is_deduct_transfer = '' if not attend.deduct_transfer else f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_year}'
+    seminar_start_local = seminar_attend.start_datetime.astimezone(tz) if seminar_attend.start_datetime else None
+    thai_months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+    seminar_start_date_thai = (
+        f'{seminar_start_local.day} {thai_months[seminar_start_local.month - 1]} '
+        f'{seminar_start_local.year + 543}'
+        if seminar_start_local else ''
+    )
+    seminar_end_local = seminar_attend.end_datetime.astimezone(tz) if seminar_attend.end_datetime else None
+    seminar_end_date_thai = (
+        f'{seminar_end_local.day} {thai_months[seminar_end_local.month - 1]} '
+        f'{seminar_end_local.year + 543}'
+        if seminar_end_local else ''
+    )
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
@@ -6835,6 +6849,8 @@ def show_seminar_info_each_person(record_id):
                            taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
                            prefix_position=prefix_position, telephone=telephone,
                            proposer_list_text=proposer_list_text, proposer_names=proposer_names,
+                           seminar_start_date_thai=seminar_start_date_thai,
+                           seminar_end_date_thai=seminar_end_date_thai,
                            approver=approver, approver_position=approver_position, idp_value=idp_value,
                            idp_pre_item=idp_pre_item, idp_item=idp_item, is_deduct_transfer=is_deduct_transfer)
 
