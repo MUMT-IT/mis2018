@@ -1323,6 +1323,15 @@ def _can_edit_borrowing_ticket(user_id, borrowing_ticket):
     )
 
 
+def _can_delete_borrowing_ticket(user_id, borrowing_ticket):
+    """Allow deletion only while a ticket is waiting to be processed."""
+    return bool(
+        borrowing_ticket
+        and user_id == borrowing_ticket.creator_id
+        and (borrowing_ticket.status or "").strip() == "กำลังส่งคำขอ"
+    )
+
+
 def _can_edit_parcel_return(user_id, parcel_return, borrowing_ticket=None):
     """Allow only the ticket creator to edit a pending or rejected parcel return."""
     if not user_id or not parcel_return:
@@ -5774,6 +5783,9 @@ def verification_view(ticket_id):
         _selected_system() == ADVANCE_PAYMENT_SYSTEM
         and _can_edit_borrowing_ticket(_current_user_id(), borrowing_ticket)
     )
+    can_delete_borrowing_ticket = _can_delete_borrowing_ticket(
+        _current_user_id(), borrowing_ticket
+    )
     borrowing_ticket_edit_endpoint = (
         "advance_payment.coordinator_dashboard"
         if _can_use_coordinator_dashboard()
@@ -5935,6 +5947,7 @@ def verification_view(ticket_id):
         proof_files_dict=proof_files_dict,
         today=datetime.now().date(),
         can_edit_borrowing_ticket=can_edit_borrowing_ticket,
+        can_delete_borrowing_ticket=can_delete_borrowing_ticket,
         borrowing_ticket_edit_endpoint=borrowing_ticket_edit_endpoint,
         can_submit_return=can_submit_return,
         return_edit_detail=edit_return_detail,
@@ -7729,6 +7742,56 @@ def start_processing_borrowing_ticket(ticket_id):
     db.session.commit()
     flash("เปลี่ยนสถานะสัญญาเงินยืมเป็นกำลังดำเนินการเรียบร้อยแล้ว")
     return verification_view(ticket_id)
+
+
+@bp.route("/tickets/<int:ticket_id>/delete", methods=["POST"])
+@module_system_required({ADVANCE_PAYMENT_SYSTEM, FINANCE_SYSTEM})
+def delete_borrowing_ticket(ticket_id):
+    borrowing_ticket = (
+        db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
+    )
+    if borrowing_ticket is None:
+        abort(404)
+
+    if (borrowing_ticket.status or "").strip() != "กำลังส่งคำขอ":
+        return _validation_error_response(
+            "ลบได้เฉพาะสัญญาเงินยืมที่อยู่ในสถานะ กำลังส่งคำขอ เท่านั้น"
+        )
+    if not _can_delete_borrowing_ticket(_current_user_id(), borrowing_ticket):
+        abort(403)
+
+    has_related_records = any((
+        db.session.query(ReturnDetail.id).filter_by(ticket_id=ticket_id).first(),
+        db.session.query(ParcelReturnDetail.id).filter_by(ticket_id=ticket_id).first(),
+        db.session.query(FundRequest.id).filter_by(borrowing_ticket_id=ticket_id).first(),
+        db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+            return_borrowing_ticket_association.c.ticket_id == ticket_id
+        ).first(),
+        db.session.query(parcel_borrowing_ticket_association.c.parcel_return_id).filter(
+            parcel_borrowing_ticket_association.c.ticket_id == ticket_id
+        ).first(),
+    ))
+    if has_related_records:
+        return _validation_error_response(
+            "ไม่สามารถลบสัญญาเงินยืมนี้ได้ เนื่องจากมีรายการที่เชื่อมโยงอยู่"
+        )
+
+    if borrowing_ticket.notification is not None:
+        db.session.delete(borrowing_ticket.notification)
+    db.session.delete(borrowing_ticket)
+    db.session.commit()
+
+    flash("ลบสัญญาเงินยืมทดรองจ่ายเรียบร้อยแล้ว")
+    dashboard_endpoint = (
+        "advance_payment.finance_dashboard"
+        if _selected_system() == FINANCE_SYSTEM
+        else (
+            "advance_payment.coordinator_dashboard"
+            if _can_use_coordinator_dashboard()
+            else "advance_payment.borrower_dashboard"
+        )
+    )
+    return redirect(url_for(dashboard_endpoint))
 
 
 @bp.route("/api/login", methods=["POST"])
