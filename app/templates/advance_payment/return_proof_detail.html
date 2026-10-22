@@ -63,7 +63,7 @@
       <div class="d-flex gap-2 justify-content-md-end mt-3">
         <a class="btn btn-outline-warning btn-sm fw-bold px-3 py-2"
            href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id, edit_return_id=return_detail.id) }}#return_block_ticket_{{ borrowing_ticket.id }}">
-          <i class="bi bi-pencil-square me-1"></i>แก้ไขทั้งฟอร์ม
+          <i class="bi bi-pencil-square me-1"></i>แก้ไขข้อมูลเอกสาร
         </a>
       </div>
     {% endif %}
@@ -170,7 +170,7 @@
                 <th scope="col">ลำดับ</th>
                 <th scope="col">วันที่ในใบเสร็จ</th>
                 <th scope="col">ชื่อร้านค้า / ผู้รับเงิน</th>
-                <th scope="col">รายการ</th>
+                <th scope="col" style="width: 20%;">รายการ</th>
                 <th scope="col">จำนวนเงิน</th>
                 <th scope="col">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่แก้ไขล่าสุด</th>
@@ -197,7 +197,7 @@
                     </div>
                 </td>
                 
-                <td>
+                <td style="width: 20%;">
                     {{ file.receipt_item.description if file.receipt_item and file.receipt_item.description else '-' }}
                 </td>
                 
@@ -240,7 +240,7 @@
                 <td>
                   {% if can_edit_return_detail %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ file.id or file.receipt_item.id }}">
-                        <i class="bi bi-pencil-square"></i> แก้ไข
+                        <i class="bi bi-pencil-square"></i> แก้ไขข้อมูลรายการ
                     </button>
                     {% endif %}
                 </td>

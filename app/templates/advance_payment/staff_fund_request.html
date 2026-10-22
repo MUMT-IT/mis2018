@@ -40,17 +40,16 @@
                   <input class="form-check-input" type="radio" name="form_type" id="form_type_petty_cash" value="petty_cash" {% if selected_form_type not in ['interest', 'borrowing'] %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
                   <label class="form-check-label fw-bold text-primary" for="form_type_petty_cash">ขออนุมัติเบิกเงินสดย่อย</label>
                 </div>
-                <div class="form-check form-check-inline m-0 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_interest" value="interest" {% if selected_form_type == 'interest' %}checked{% endif %}{% if not is_custodian or is_editing %} disabled{% endif %}>
-                  <label class="form-check-label fw-bold text-primary" for="form_type_interest">ขออนุมัติเบิกดอกเบี้ย</label>
-                  {% if not is_custodian %}
-                    <span class="badge bg-secondary ms-1">เฉพาะผู้ดูแลเงินสดย่อย</span>
-                  {% endif %}
-                </div>
-                <div class="form-check form-check-inline m-0 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
-                  <label class="form-check-label fw-bold text-primary" for="form_type_borrowing">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</label>
-                </div>
+                {% if is_custodian %}
+                  <div class="form-check form-check-inline m-0 py-1">
+                    <input class="form-check-input" type="radio" name="form_type" id="form_type_interest" value="interest" {% if selected_form_type == 'interest' %}checked{% endif %}{% if not is_custodian or is_editing %} disabled{% endif %}>
+                    <label class="form-check-label fw-bold text-primary" for="form_type_interest">ขออนุมัติเบิกดอกเบี้ย</label>
+                  </div>
+                  <div class="form-check form-check-inline m-0 py-1">
+                    <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
+                    <label class="form-check-label fw-bold text-primary" for="form_type_borrowing">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</label>
+                  </div>
+                {% endif %}
               </div>
             </div>
 
@@ -219,9 +218,9 @@
                           <option value="">เลือกหมวดหมู่</option>
                           <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
                           <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
-                          <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+                          <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง, ค่ารถตู้)</option>
                           <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                          <option value="5">อื่น ๆ (เช่น สัญญาเงินยืม บย.01/2569)</option>
+                          <option value="5">อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option>
                         </select>
                       </td>
                       <td>
@@ -255,7 +254,7 @@
             <!-- ส่วนกรอกจำนวนเงินและแสดงข้อความแจ้งเตือนข้อผิดพลาด (จัดชิดขวา) -->
           <div class="row g-3 mb-4 justify-content-end align-items-end">
             
-            {% set available_budget = dept_summary.remaining_budget if dept_summary else 0 %}
+            {% set available_budget = ledger_running_balance if ledger_running_balance is not none else 0 %}
             <!-- ช่องกรอกจำนวนเงิน: ใช้กรอกเองเฉพาะแบบฟอร์มดอกเบี้ย -->
             <div class="col-md-5 col-lg-4 ms-auto text-end">
               <div id="manualAmountSection"{% if selected_form_type != 'interest' %} class="d-none"{% endif %}>
@@ -271,7 +270,7 @@
                        value="{{ '%.2f'|format(form.amount.data or 0) if form.amount.data is not none else '' }}"
                        style="border-radius: 12px; font-size: 1.1rem;"
                        oninput="handleUserTotalInput(this)"
-                       data-available-budget="{{ '%.2f'|format(available_budget if available_budget else '') }}">
+                       data-available-budget="{{ '%.2f'|format(available_budget or 0) }}">
               </div>
               <div id="budgetSummary" class="p-3 mt-2 border rounded-3 bg-light text-start{% if selected_form_type in ['interest', 'borrowing'] %} d-none{% endif %}">
                 <div class="d-flex justify-content-between align-items-center gap-3">
@@ -288,7 +287,7 @@
                 </div>
                 <div class="d-flex justify-content-between align-items-center gap-3 mt-1">
                   <span class="fw-bold text-muted">ยอดคงเหลือหลังเบิก</span>
-                  <span class="fw-bold text-success" id="budgetAfterRequestDisplay">
+                  <span class="fw-bold {% if available_budget <= 0 %}text-danger{% else %}text-success{% endif %}" id="budgetAfterRequestDisplay">
                     {{ "{:,.2f}".format(available_budget or 0) }}
                   </span>
                 </div>
@@ -474,8 +473,8 @@
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         });
-        budgetAfterRequestDisplay.classList.toggle("text-danger", isOverBudget && !isBudgetExemptForm);
-        budgetAfterRequestDisplay.classList.toggle("text-success", !isOverBudget && !isBudgetExemptForm);
+        budgetAfterRequestDisplay.classList.toggle("text-danger", remainingAfterRequest <= 0 && !isBudgetExemptForm);
+        budgetAfterRequestDisplay.classList.toggle("text-success", remainingAfterRequest > 0 && !isBudgetExemptForm);
       }
 
       if (budgetLimitAlert) {
@@ -810,9 +809,9 @@
             <option value="">เลือกหมวดหมู่</option>
             <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
             <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
-            <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+            <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง, ค่ารถตู้)</option>
             <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-            <option value="5">อื่น ๆ (เช่น สัญญาเงินยืม บย.01/2569)</option>
+            <option value="5">อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option>
           </select>
         </td>
         <td>

@@ -13,15 +13,8 @@
           <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
         </a>
     {% endif %}
-    <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">สัญญาเงินยืม</p>
     <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
       <h1 class="fw-bold display-6 mb-2">รายละเอียดสัญญาเงินยืม</h1>
-      {% if can_edit_borrowing_ticket %}
-        <a href="{{ url_for(borrowing_ticket_edit_endpoint, edit_ticket_id=borrowing_ticket.id) }}#{{ 'create-ticket-pane' if borrowing_ticket_edit_endpoint == 'advance_payment.coordinator_dashboard' else 'borrowing-ticket-form-section' }}"
-           class="btn btn-outline-warning btn-sm fw-bold px-3 py-2">
-          <i class="bi bi-pencil-square me-1"></i>แก้ไขสัญญาเงินยืม
-        </a>
-      {% endif %}
     </div>
   </header>
 
@@ -34,7 +27,7 @@
         <h2 class="h3 fw-bold mb-0 py-2">{{ borrowing_ticket.number if borrowing_ticket.number else 'รอการตั้งเลขบย.' }}</h2>
       </div>
     </div>
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-8">
         <h5 class="text-muted small mb-1"><strong>ชื่อโครงการ/วัตุถุประสงค์</strong></h5>
         <h6 class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_ticket_purpose }}</h6>
     </div></br>
@@ -272,19 +265,29 @@
           </form>
       </div>
     {% endif %}
-    {% if borrowing_ticket.status|lower == "อนุมัติจ่ายเงิน" and advance_payment_role != 'finance' %}
-      <div class="d-flex justify-content-end mt-3">
-        <button type="button" class="btn btn-outline-primary fw-bold" style="border-radius:6px;" onclick="switchReturnTicketForm({{ borrowing_ticket.id }})">
-          <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
-        </button>
-      </div>
-    {% elif advance_payment_role != 'finance' and borrowing_ticket.status|lower != 'ปฏิเสธ'  %}
-      <div class="d-flex justify-content-end mt-3">
-        <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
-          <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน
-        </a>
-      </div>
-    {% endif %}
+    <div class="d-flex flex-row justify-content-end gap-2 mt-3">
+      {% if borrowing_ticket.status|lower == "อนุมัติจ่ายเงิน" and advance_payment_role != 'finance' %}
+        <div class="d-flex justify-content-end mt-3">
+          <button type="button" class="btn btn-outline-primary fw-bold" style="border-radius:6px;" onclick="switchReturnTicketForm({{ borrowing_ticket.id }})">
+            <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
+          </button>
+        </div>
+      {% elif advance_payment_role != 'finance' and borrowing_ticket.status|lower != 'ปฏิเสธ'  %}
+        <div class="d-flex justify-content-end mt-3">
+          <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญาเงินยืม
+          </a>
+        </div>
+      {% endif %}
+      {% if can_edit_borrowing_ticket %}
+        <div class="d-flex justify-content-end mt-3">
+          <a href="{{ url_for(borrowing_ticket_edit_endpoint, edit_ticket_id=borrowing_ticket.id) }}#{{ 'create-ticket-pane' if borrowing_ticket_edit_endpoint == 'advance_payment.coordinator_dashboard' else 'borrowing-ticket-form-section' }}"
+             class="btn btn-outline-secondary">
+            <i class="bi bi-pencil-square me-1"></i>แก้ไขสัญญาเงินยืม
+          </a>
+        </div>
+      {% endif %}
+    </div>
   </section>
 {% if ticket_allocation_rows|length > 1 %}
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
@@ -354,7 +357,7 @@
             {% for return_detail in return_details %}
             <tr class="align-top">
               <td>{{ return_detail.created_at|thai_date }}</td>
-              <td>
+              <td style="width: 20%;">
                 <span class="text-center">{{ return_detail.description }}</span>
               </td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }}</td>
@@ -432,7 +435,7 @@
             {% for pr in parcel_section.rows %}
             <tr class="align-top">
               <td>{{ pr.sent_date|thai_date }}</td>
-              <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
+              <td style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent) }}</td>
               <td>
                 {{ status_badge(pr.status) }}
@@ -626,7 +629,7 @@
                 <tr>
                   <td></td>
                   <td>{{ item.receipt_date|thai_date if item.receipt_date else '-' }}</td>
-                  <td class="text-start ps-4">{{ item.description or '-' }}</td>
+                  <td class="text-start ps-4" style="width: 20%;">{{ item.description or '-' }}</td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(item.amount or 0) }}</td>
                   <td></td>
                   <td></td>
@@ -643,7 +646,7 @@
                 <tr>
                   <td>{{ row_counter[-1] }}</td>
                   <td>{{ pr.sent_date|thai_date }}</td>
-                  <td class="text-start text-dark" style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
+                  <td class="text-start text-dark" style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td>
                   <td></td>

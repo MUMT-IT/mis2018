@@ -7,7 +7,7 @@
 {% block content %}
 <header class="mb-4 pb-2 border-bottom text-start">
   {% if session.get('advance_payment_system') == 'petty_cash' %}
-  <a href="{{ url_for('advance_payment.submit_petty_cash_claim') }}" title="กลับไปยังแบบฟอร์มส่งเบิกเงินสดย่อย">
+  <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=claim_detail.fund_request_id) }}" title="กลับไปยังแบบฟอร์มส่งเบิกเงินสดย่อย">
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
   {% endif %}
@@ -141,7 +141,7 @@
     <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
       <a class="btn btn-outline-warning btn-sm fw-bold px-3 py-2"
          href="{{ url_for('advance_payment.submit_petty_cash_claim', edit_claim_id=claim_detail.id) }}#pettyCashClaimFormPanel">
-        <i class="bi bi-pencil-square me-1"></i>แก้ไขทั้งฟอร์ม
+        <i class="bi bi-pencil-square me-1"></i>แก้ไขข้อมูลเอกสาร
       </a>
     </div>
     {% endif %}
@@ -320,7 +320,7 @@
             <tr>
                 <th scope="col" style="width: 60px;">ลำดับ</th>
                 <th scope="col">วันที่ในใบเสร็จ</th>
-                <th scope="col">รายการรายละเอียด</th>
+                <th scope="col" style="width: 20%;">รายการรายละเอียด</th>
                 <th scope="col">จำนวนเงิน</th>
                 <th scope="col">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่อัปโหลด</th>
@@ -342,7 +342,7 @@
                     {{ item.receipt_date|thai_date if item.receipt_date else '-' }}
                 </td>
                 
-                <td>
+                <td style="width: 20%;">
                     {{ item.description or '-' }}
                 </td>
                 
@@ -382,7 +382,7 @@
                 <td class="text-end">
                     {% if can_edit_claim %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ item.id }}">
-                        <i class="bi bi-pencil-square"></i> แก้ไข
+                        <i class="bi bi-pencil-square"></i> แก้ไขข้อมูลรายการ
                     </button>
                     {% endif %}
                 </td>

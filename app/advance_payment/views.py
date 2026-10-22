@@ -91,6 +91,10 @@ def render_template(template_name, *args, **kwargs):
     kwargs.setdefault("petty_cash_settings", custodian_settings)
     kwargs.setdefault("advance_payment_is_custodian", is_custodian)
     kwargs.setdefault(
+        "advance_payment_is_org_head",
+        current_user.is_authenticated and _is_staff_org_head(current_user),
+    )
+    kwargs.setdefault(
         "advance_payment_is_cash_advance_manager",
         is_cash_advance_manager,
     )
@@ -284,7 +288,7 @@ CIRCULAR_RETURN_REFERENCE_DRIVE_ID = "1ZhYI4pAD4sOSV0LlkaTAM--HnA4ugatE"
 MODULE_ROLE_LABELS = {
     FINANCE_SYSTEM: "ฝ่ายการเงิน",
     PETTY_CASH_SYSTEM: "ระบบเงินสดย่อย",
-    ADVANCE_PAYMENT_SYSTEM: "ระบบเงินทดรองจ่าย",
+    ADVANCE_PAYMENT_SYSTEM: "ระบบเงินยืมทดรองจ่าย",
 }
 
 def convert_to_fiscal_year(date):
@@ -1309,6 +1313,15 @@ def _can_edit_borrowing_ticket(user_id, borrowing_ticket):
         and borrowing_ticket.approved_at is None
         and borrowing_ticket.rejection_comment is None
         and borrowing_ticket.status != "กำลังดำเนินการ"
+    )
+
+
+def _can_delete_borrowing_ticket(user_id, borrowing_ticket):
+    """Allow deletion only while a ticket is waiting to be processed."""
+    return bool(
+        borrowing_ticket
+        and user_id == borrowing_ticket.creator_id
+        and (borrowing_ticket.status or "").strip() == "กำลังส่งคำขอ"
     )
 
 
@@ -5763,6 +5776,9 @@ def verification_view(ticket_id):
         _selected_system() == ADVANCE_PAYMENT_SYSTEM
         and _can_edit_borrowing_ticket(_current_user_id(), borrowing_ticket)
     )
+    can_delete_borrowing_ticket = _can_delete_borrowing_ticket(
+        _current_user_id(), borrowing_ticket
+    )
     borrowing_ticket_edit_endpoint = (
         "advance_payment.coordinator_dashboard"
         if _can_use_coordinator_dashboard()
@@ -5924,6 +5940,7 @@ def verification_view(ticket_id):
         proof_files_dict=proof_files_dict,
         today=datetime.now().date(),
         can_edit_borrowing_ticket=can_edit_borrowing_ticket,
+        can_delete_borrowing_ticket=can_delete_borrowing_ticket,
         borrowing_ticket_edit_endpoint=borrowing_ticket_edit_endpoint,
         can_submit_return=can_submit_return,
         return_edit_detail=edit_return_detail,
@@ -7697,7 +7714,7 @@ def approve_borrowing_ticket(ticket_id):
 
     _send_notification_email(borrowing_ticket)
 
-    flash("อนุมัติสัญญาเงินยืมเงินทดรองจ่ายและส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว")
+    flash("อนุมัติสัญญาเงินยืมทดรองจ่ายและส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว")
 
     return verification_view(ticket_id)
 
@@ -7718,6 +7735,56 @@ def start_processing_borrowing_ticket(ticket_id):
     db.session.commit()
     flash("เปลี่ยนสถานะสัญญาเงินยืมเป็นกำลังดำเนินการเรียบร้อยแล้ว")
     return verification_view(ticket_id)
+
+
+@bp.route("/tickets/<int:ticket_id>/delete", methods=["POST"])
+@module_system_required({ADVANCE_PAYMENT_SYSTEM, FINANCE_SYSTEM})
+def delete_borrowing_ticket(ticket_id):
+    borrowing_ticket = (
+        db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
+    )
+    if borrowing_ticket is None:
+        abort(404)
+
+    if (borrowing_ticket.status or "").strip() != "กำลังส่งคำขอ":
+        return _validation_error_response(
+            "ลบได้เฉพาะสัญญาเงินยืมที่อยู่ในสถานะ กำลังส่งคำขอ เท่านั้น"
+        )
+    if not _can_delete_borrowing_ticket(_current_user_id(), borrowing_ticket):
+        abort(403)
+
+    has_related_records = any((
+        db.session.query(ReturnDetail.id).filter_by(ticket_id=ticket_id).first(),
+        db.session.query(ParcelReturnDetail.id).filter_by(ticket_id=ticket_id).first(),
+        db.session.query(FundRequest.id).filter_by(borrowing_ticket_id=ticket_id).first(),
+        db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+            return_borrowing_ticket_association.c.ticket_id == ticket_id
+        ).first(),
+        db.session.query(parcel_borrowing_ticket_association.c.parcel_return_id).filter(
+            parcel_borrowing_ticket_association.c.ticket_id == ticket_id
+        ).first(),
+    ))
+    if has_related_records:
+        return _validation_error_response(
+            "ไม่สามารถลบสัญญาเงินยืมนี้ได้ เนื่องจากมีรายการที่เชื่อมโยงอยู่"
+        )
+
+    if borrowing_ticket.notification is not None:
+        db.session.delete(borrowing_ticket.notification)
+    db.session.delete(borrowing_ticket)
+    db.session.commit()
+
+    flash("ลบสัญญาเงินยืมทดรองจ่ายเรียบร้อยแล้ว")
+    dashboard_endpoint = (
+        "advance_payment.finance_dashboard"
+        if _selected_system() == FINANCE_SYSTEM
+        else (
+            "advance_payment.coordinator_dashboard"
+            if _can_use_coordinator_dashboard()
+            else "advance_payment.borrower_dashboard"
+        )
+    )
+    return redirect(url_for(dashboard_endpoint))
 
 
 @bp.route("/api/login", methods=["POST"])
@@ -7781,7 +7848,7 @@ def reject_borrowing_ticket(ticket_id):
     borrowing_ticket.status = "ปฏิเสธ"
     db.session.commit()
     _send_notification_email(borrowing_ticket)
-    flash("ปฏิเสธสัญญาเงินยืมเงินทดรองจ่ายเรียบร้อยแล้ว")
+    flash("ปฏิเสธสัญญาเงินยืมทดรองจ่ายเรียบร้อยแล้ว")
     return verification_view(ticket_id)
 
 @bp.route("/finance/return-records", methods=["GET"])
@@ -8639,6 +8706,164 @@ def _carryover_amount(value):
     return amount.quantize(Decimal("0.01"))
 
 
+# def _petty_cash_top_up_difference(current_budget, previous_budget):
+#     """Return the default transfer amount for the new fiscal year."""
+#     current_amount = Decimal(str(current_budget or 0))
+#     previous_amount = Decimal(str(previous_budget or 0))
+#     return (current_amount - previous_amount).quantize(Decimal("0.01"))
+#
+#
+# def _petty_cash_top_up_amount(value):
+#     raw = (value or "").replace(",", "").strip()
+#     if not raw:
+#         raise ValueError("กรุณาระบุส่วนต่าง")
+#     try:
+#         amount = Decimal(raw)
+#     except Exception as exc:
+#         raise ValueError("จำนวนเงินส่วนต่างไม่ถูกต้อง") from exc
+#     if not amount.is_finite():
+#         raise ValueError("จำนวนเงินส่วนต่างไม่ถูกต้อง")
+#     return amount.quantize(Decimal("0.01"))
+#
+#
+# @bp.route("/finance/petty-cash-fiscal-year-top-up-transfers", methods=["GET", "POST"])
+# @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+# def petty_cash_fiscal_year_top_up_transfers():
+#     """Record annual petty-cash top-up transfers for the current settings."""
+#     current_fiscal_year = _current_petty_cash_fiscal_year()
+#     previous_fiscal_year = current_fiscal_year - 1
+#     current_settings = (
+#         db.session.query(PettyCashSetting)
+#         .filter(PettyCashSetting.fiscal_year == current_fiscal_year)
+#         .order_by(PettyCashSetting.org_id.asc(), PettyCashSetting.id.asc())
+#         .all()
+#     )
+#     settings_by_id = {setting.id: setting for setting in current_settings}
+#
+#     previous_carryovers = (
+#         db.session.query(PettyCashFiscalYearCarryover)
+#         .filter(
+#             PettyCashFiscalYearCarryover.source_fiscal_year == previous_fiscal_year,
+#             PettyCashFiscalYearCarryover.target_fiscal_year == current_fiscal_year,
+#             PettyCashFiscalYearCarryover.org_id.in_(
+#                 [setting.org_id for setting in current_settings]
+#             ),
+#         )
+#         .all()
+#         if current_settings
+#         else []
+#     )
+#     previous_carryover_by_org_id = {
+#         carryover.org_id: carryover for carryover in previous_carryovers
+#     }
+#
+#     transfers = (
+#         db.session.query(PettyCashFiscalYearTopUpTransfer)
+#         .filter(
+#             PettyCashFiscalYearTopUpTransfer.petty_cash_setting_id.in_(
+#                 list(settings_by_id)
+#             )
+#         )
+#         .all()
+#         if settings_by_id
+#         else []
+#     )
+#     transfers_by_setting_id = {
+#         transfer.petty_cash_setting_id: transfer for transfer in transfers
+#     }
+#
+#     if request.method == "POST":
+#         try:
+#             setting_ids = request.form.getlist("setting_id[]")
+#             transfer_amounts = request.form.getlist("transfer_amount[]")
+#             transferred_dates = request.form.getlist("transferred_at[]")
+#             submitted_setting_ids = set()
+#
+#             for index, raw_setting_id in enumerate(setting_ids):
+#                 setting_id = int(raw_setting_id) if raw_setting_id.isdigit() else None
+#                 setting = settings_by_id.get(setting_id)
+#                 if setting is None:
+#                     raise ValueError(f"แถวที่ {index + 1} ไม่พบข้อมูลหน่วยงานของปีงบประมาณปัจจุบัน")
+#                 if setting_id in submitted_setting_ids:
+#                     raise ValueError("ไม่สามารถบันทึกหน่วยงานเดิมซ้ำได้")
+#                 submitted_setting_ids.add(setting_id)
+#
+#                 amount = _petty_cash_top_up_amount(
+#                     transfer_amounts[index] if index < len(transfer_amounts) else ""
+#                 )
+#                 raw_transferred_at = (
+#                     transferred_dates[index].strip()
+#                     if index < len(transferred_dates)
+#                     else ""
+#                 )
+#                 try:
+#                     transferred_at = (
+#                         date.fromisoformat(raw_transferred_at)
+#                         if raw_transferred_at
+#                         else None
+#                     )
+#                 except ValueError as exc:
+#                     raise ValueError(f"แถวที่ {index + 1} วันที่โอนเงินสำเร็จไม่ถูกต้อง") from exc
+#
+#                 transfer = transfers_by_setting_id.get(setting_id)
+#                 if transfer is None:
+#                     transfer = PettyCashFiscalYearTopUpTransfer(
+#                         petty_cash_setting_id=setting_id,
+#                     )
+#                     transfers_by_setting_id[setting_id] = transfer
+#                 transfer.transfer_amount = amount
+#                 transfer.transferred_at = transferred_at
+#                 db.session.add(transfer)
+#
+#             if submitted_setting_ids != set(settings_by_id):
+#                 raise ValueError("ข้อมูลหน่วยงานไม่ครบ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง")
+#
+#             db.session.commit()
+#             flash("บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณเรียบร้อยแล้ว", "success")
+#             return redirect(url_for("advance_payment.petty_cash_fiscal_year_top_up_transfers"))
+#         except ValueError as exc:
+#             db.session.rollback()
+#             flash(str(exc), "danger")
+#         except Exception:
+#             db.session.rollback()
+#             current_app.logger.exception("Unable to save petty-cash fiscal-year top-up transfers")
+#             flash("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง", "danger")
+#
+#     rows = []
+#     for setting in current_settings:
+#         previous_carryover = previous_carryover_by_org_id.get(setting.org_id)
+#         previous_budget = (
+#             previous_carryover.finance_budget
+#             if previous_carryover is not None
+#             else None
+#         )
+#         transfer = transfers_by_setting_id.get(setting.id)
+#         rows.append(
+#             SimpleNamespace(
+#                 setting=setting,
+#                 previous_carryover=previous_carryover,
+#                 previous_budget=previous_budget,
+#                 transfer=transfer,
+#                 transfer_amount=(
+#                     transfer.transfer_amount
+#                     if transfer is not None
+#                     else _petty_cash_top_up_difference(
+#                         setting.budget,
+#                         previous_budget,
+#                     )
+#                 ),
+#             )
+#         )
+#
+#     return render_template(
+#         "petty_cash_fiscal_year_top_up_transfers.html",
+#         rows=rows,
+#         transfer_records=transfers,
+#         current_fiscal_year=current_fiscal_year,
+#         previous_fiscal_year=previous_fiscal_year,
+#     )
+#
+
 @bp.route("/petty-cash/fiscal-year-carryover", methods=["GET", "POST"])
 @module_system_required(FINANCE_SYSTEM)
 def petty_cash_fiscal_year_carryover():
@@ -9240,6 +9465,15 @@ def staff_fund_request():
         setting,
         user_id=user.id if not (setting and setting.id) else None,
     )
+    ledger_running_balance = (
+        _build_petty_cash_ledger(
+            user,
+            selected_month_start=datetime.now().date().replace(day=1),
+            balance_only=True,
+        )
+        if setting
+        else 0.0
+    )
     # Borrower choices must follow the organization configured for the petty-cash
     # setting, including every child organization, not the custodian's own profile
     # organization.
@@ -9322,7 +9556,7 @@ def staff_fund_request():
                 )
             selected_borrowing_ticket = None
             requester_id = user.id
-            available_budget = float(dept_summary.get("remaining_budget", 0.0) or 0.0)
+            available_budget = float(ledger_running_balance or 0.0)
 
             if form_type == FUND_REQUEST_FORM_INTEREST:
                 requester_id = getattr(setting, "custodian_id", None)
@@ -9590,6 +9824,7 @@ def staff_fund_request():
         custodian_display_name=custodian_display_name,
         custodian_display_position=custodian_display_position,
         dept_summary=dept_summary,
+        ledger_running_balance=ledger_running_balance,
     )
 
 
@@ -9997,6 +10232,53 @@ def staff_fund_request_history():
             and getattr(carryover_setting, "id", None)
             and getattr(carryover_setting, "custodian_id", None) == user.id
         ),
+    )
+
+
+@bp.route("/petty-cash/pending-approvals", methods=["GET"])
+@module_system_required(PETTY_CASH_SYSTEM)
+def petty_cash_pending_approvals():
+    user = db.session.query(StaffAccount).filter_by(id=_current_user_id()).first()
+    if not user:
+        abort(404)
+    if not _is_staff_org_head(user):
+        abort(403)
+
+    org = _get_staff_org(user)
+    setting = _resolve_petty_cash_setting(user)
+    is_custodian = _is_petty_cash_custodian(user, setting)
+
+    fund_requests = (
+        _fund_request_org_filter(db.session.query(FundRequest), org)
+        .filter(
+            FundRequest.is_legacy_import.is_(False),
+            FundRequest.status == "รอการอนุมัติ",
+            FundRequest.confirmed_at.isnot(None),
+            FundRequest.approved_at.is_(None),
+        )
+        .order_by(FundRequest.id.desc())
+        .all()
+    )
+    for fund_request in fund_requests:
+        fund_request.display_requester_name = _fund_request_requester_name(
+            fund_request,
+            "-",
+        )
+        fund_request.can_edit = False
+        fund_request.has_rejected_followup = False
+
+    return render_template(
+        "petty_cash_pending_approvals.html",
+        approval_queue_mode=True,
+        approval_org=org,
+        is_custodian=is_custodian,
+        setting=setting,
+        fund_requests=fund_requests,
+        claim_history=[],
+        parcel_return_history=[],
+        dept_summary={},
+        ledger_running_balance=0.0,
+        can_import_legacy_fund_request=False,
     )
 
 
@@ -12351,7 +12633,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
         _append_ledger_row(
             receipt_date=claim_receipt_date,
             created_at=claim.created_at,
-            description=f"คณะคืนเงินสดย่อย ({claim_reference})",
+            description=f"งานคลังคืนเงินสดย่อย ({claim_reference})",
             doc_number=doc_no,
             bank_income=claim_total,
             cat_7=cat_7,
@@ -12434,7 +12716,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             opening_balance += item["bank_income"] - item["bank_expense"]
 
     opening_row_description = (
-        "ยกยอดมาจากปีงบ"
+        "ยกยอดมาจากปีก่อน"
         if carryover
         else ("งบประมาณตั้งต้น" if selected_month_start.month == 10 else "ยกยอดมา")
     )

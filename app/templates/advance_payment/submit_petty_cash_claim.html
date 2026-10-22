@@ -4,6 +4,10 @@
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom">
+  <a href="{{ url_for('advance_payment.petty_cash_pending_approvals') if advance_payment_is_org_head else url_for('advance_payment.staff_fund_request_history') }}"
+     title="{{ 'กลับไปยังรายการรออนุมัติ' if advance_payment_is_org_head else 'กลับไปยังรายการเงินสดย่อย' }}">
+    <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
+  </a>
   <h1 class="fw-bold display-6 mb-2">ใบส่งเบิกเงินสดย่อย</h1>
 </header>
 {% if verification_fund_request or claim_detail %}
@@ -26,7 +30,7 @@
         </div>
       </div>
 
-      <div class="col-12 col-md-4 mb-3">
+      <div class="col-12 col-md-8 mb-3">
         <p class="text-muted small mb-1"><strong>วัตถุประสงค์</strong></p>
         <h5 class="mb-0 text-dark fw-semibold">{{ verification_purpose }}</h5>
       </div>
@@ -487,9 +491,9 @@
                     <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
                       <option value="1" {% if item.category_type|string == '1' %}selected{% endif %}>ค่าตอบแทน (เช่น ค่าเบี้ยเลี้ยง, ค่าตอบแทนวิทยากร)</option>
                       <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)</option>
-                      <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น เครื่องเขียน, วัสดุสำนักงาน, อุปกรณ์)</option>
+                      <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง, ค่ารถตู้)</option>
                       <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)</option>
-                      <option value="5" {% if item.category_type|string == '5' %}selected{% endif %}>อื่น ๆ (เช่น สัญญาเงินยืม บย.01/2569)</option>
+                      <option value="5" {% if item.category_type|string == '5' %}selected{% endif %}>อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option>
                     </select>
                     </td>
                   <td>
@@ -531,9 +535,9 @@
                     <option value="">เลือกหมวดหมู่</option>
                     <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
                     <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
-                    <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+                    <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง, ค่ารถตู้)</option>
                     <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                    <option value="5">อื่น ๆ (เช่น สัญญาเงินยืม บย.01/2569)</option>
+                    <option value="5">อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option>
                   </select>
                 </td>
                 <td>
@@ -829,7 +833,7 @@ function togglePettyCashClaimForm() {
           {% for claim in claim_history %}
           <tr class="align-top">
             <td>{{ claim.created_at|thai_date }}</td>
-            <td>
+            <td style="width: 20%;">
               {% if claim.items_description_summary %}
                 <span style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ claim.items_description_summary }}</span>
               {% else %}
@@ -902,7 +906,7 @@ function togglePettyCashClaimForm() {
           {% for pr in parcel_section.rows %}
           <tr class="align-top">
             <td>{{ pr.sent_date|thai_date }}</td>
-            <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
+            <td style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
             <td>
               {{ status_badge(pr.status) }}
@@ -1756,9 +1760,9 @@ function addRow() {
         <option value="">เลือกหมวดหมู่</option>
         <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
         <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
-        <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+        <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง, ค่ารถตู้)</option>
         <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-        <option value="5">อื่น ๆ (เช่น สัญญาเงินยืม บย.01/2569)</option>
+        <option value="5">อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option>
       </select>
     </td>
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>

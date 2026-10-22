@@ -1,10 +1,14 @@
+import base64
+import html
 import os
 import re
 from calendar import monthrange
 from decimal import Decimal
 from io import BytesIO
 from datetime import datetime
+from pathlib import Path
 from bahttext import bahttext
+from numpy.distutils.fcompiler import none
 
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether
@@ -14,6 +18,8 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Circle
+from wcwidth import center
+
 from .models import (
     db,
     BankAccountInfo,
@@ -33,7 +39,6 @@ from app.staff.models import StaffHeadPosition, StaffLeaveApprover, StaffPersona
 # Non-breaking spaces keep a writable gap in ReportLab paragraphs.
 # Unicode whitespace also remains empty under strip() in data checks.
 PDF_BLANK = "\u00a0" * 24
-
 
 INTEREST_PERIOD_MONTH_LABELS = {
     "06": "มิถุนายน",
@@ -66,13 +71,18 @@ def _format_interest_period_label(period_value):
 # =========================================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FONTS_DIR = os.path.join(BASE_DIR, 'fonts')
+APP_STATIC_DIR = Path(BASE_DIR).parent / "static"
+PDF_REGULAR_FONT_PATH = APP_STATIC_DIR / "fonts" / "THSarabunNew.ttf"
+PDF_BOLD_FONT_PATH = APP_STATIC_DIR / "fonts" / "THSarabunNewBold.ttf"
+PDF_CHECKBOX_FONT_PATH = Path(FONTS_DIR) / "DejaVuSans.ttf"
+PDF_LOGO_PATH = Path(BASE_DIR) / "static" / "logo-MU_black-white-2-1.png"
 
 R_PATH = os.path.join(FONTS_DIR, 'THSarabun.ttf')
 B_PATH = os.path.join(FONTS_DIR, 'THSarabun Bold.ttf')
 I_PATH = os.path.join(FONTS_DIR, 'THSarabun Italic.ttf')
 BI_PATH = os.path.join(FONTS_DIR, 'THSarabun BoldItalic.ttf')
 
-DEJAVU_PATH = os.path.join(FONTS_DIR, 'DejaVuSans.ttf')
+DEJAVU_PATH = str(PDF_CHECKBOX_FONT_PATH)
 if os.path.exists(DEJAVU_PATH):
     pdfmetrics.registerFont(TTFont('DejaVuSans', DEJAVU_PATH))
 
@@ -204,9 +214,8 @@ def _build_global_header(
     leave_record_info PDF.  It is opt-in so existing PDFs using the original
     three-column header keep their current layout.
     """
-    logo_path = os.path.join(BASE_DIR, "static", "logo-MU_black-white-2-1.png")
-    if os.path.exists(logo_path):
-        logo = Image(logo_path, width=logo_size, height=logo_size)
+    if PDF_LOGO_PATH.is_file():
+        logo = Image(str(PDF_LOGO_PATH), width=logo_size, height=logo_size)
         logo.hAlign = "CENTER"
     else:
         logo = Drawing(logo_size, logo_size)
@@ -638,7 +647,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     pending = []
     pending_amount = Decimal("0.00")
     for fr in requests:
-        if fr.form_type != FUND_REQUEST_FORM_PETTY_CASH:
+        if fr.form_type != FUND_REQUEST_FORM_PETTY_CASH or not fr.request_date:
             continue
         remaining = max(
             Decimal(str(fr.amount or 0))
@@ -706,9 +715,8 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
                             topMargin=36, bottomMargin=40,
                             title=f"รายงานสถานะเงินสดย่อย ประจำเดือน{month_label}")
     story = [p("MT-Petty Cash-004", right)]
-    logo_path = os.path.join(BASE_DIR, "static", "logo-MU_black-white-2-1.png")
-    if os.path.exists(logo_path):
-        logo = Image(logo_path, width=70, height=70)
+    if PDF_LOGO_PATH.is_file():
+        logo = Image(str(PDF_LOGO_PATH), width=70, height=70)
         logo.hAlign = "CENTER"
         story.append(logo)
     story.extend([
@@ -749,24 +757,18 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     return buffer.getvalue()
 
 
-from reportlab.platypus import PageBreak  # เพิ่ม Import PageBreak สำหรับขึ้นหน้าใหม่
-
-def generate_fnar02_pdf(ticket):
-    """
-    สร้างเอกสาร PDF หน้าปกและสัญญาการยืมเงินทดรองจ่าย (แบบฟอร์ม FNAR02)
-    - หน้า 1: บันทึกข้อความ ขออนุมัติยืมเงินทดรองจ่าย
-    - หน้า 2: สัญญาการยืมเงิน (แบบฟอร์ม FNAR02)
-    """
-    borrower_name = (
-        getattr(ticket, "borrower_name", None)
-        or PDF_BLANK
+def _build_fnar02_context(ticket):
+    """Collect the values shared by both Chromium-rendered FNAR02 pages."""
+    borrower_name = getattr(ticket, "borrower_name", None) or PDF_BLANK
+    borrower_user = (
+        getattr(ticket, "borrower_user", None)
+        or _get_user_by_id(getattr(ticket, "borrower_id", None))
     )
-    
-    borrower_user = getattr(ticket, "borrower_user", None) or _get_user_by_id(getattr(ticket, "borrower_id", None))
-    creator_user = getattr(ticket, "creator_user", None) or _get_user_by_id(getattr(ticket, "creator_id", None))
-
-    # 1. ดึงชื่อหน่วยงานจาก org ของผู้ยืมก่อน แล้วค่อย fallback ของเก่า
-    borrower_org = getattr(getattr(borrower_user, "personal_info", None), "org", None)
+    borrower_org = getattr(
+        getattr(borrower_user, "personal_info", None),
+        "org",
+        None,
+    )
     department_name = (
         getattr(borrower_org, "name", None)
         or getattr(borrower_user, "department", None)
@@ -774,330 +776,615 @@ def generate_fnar02_pdf(ticket):
         or PDF_BLANK
     )
 
-    # 2. ใช้ลำดับผู้อนุมัติเดียวกับ staff.record_each_request_leave_request
-    # หน้า 1 แสดงทั้ง lower และ middle หากมีข้อมูลทั้งสองระดับ
-    # FNAR02 intentionally leaves this blank instead of falling back to org.head.
-    leave_approver_signatures = _get_leave_approver_signatures(ticket)
+    due_date = getattr(ticket, "due_date", None)
+    start_date = getattr(ticket, "borrowing_ticket_start_date", None)
+    end_date = getattr(ticket, "borrowing_ticket_end_date", None)
+    required_budget = getattr(ticket, "required_budget", None)
 
-    # แปลงข้อมูลวันที่ และงบประมาณ
-    date_thai = get_thai_month_year(ticket.request_date) if hasattr(ticket, 'request_date') and ticket.request_date else PDF_BLANK
-    due_date_thai = get_thai_month_year(ticket.due_date) if ticket.due_date else PDF_BLANK
-    
-    start_date_str = get_thai_month_year(ticket.borrowing_ticket_start_date) if hasattr(ticket, 'borrowing_ticket_start_date') and ticket.borrowing_ticket_start_date else PDF_BLANK
-    end_date_str = get_thai_month_year(ticket.borrowing_ticket_end_date) if hasattr(ticket, 'borrowing_ticket_end_date') and ticket.borrowing_ticket_end_date else PDF_BLANK
-    
-    req_budget = getattr(ticket, 'required_budget', None)
-    amount_numeric = _pdf_amount(req_budget)
-    amount_text = bahttext(req_budget) if req_budget is not None else PDF_BLANK
-    
     bank_account_info = _get_bank_account_info_for_ticket(ticket)
-    account_number = (getattr(ticket, 'account_number', '') or '').strip() or (
-        _pdf_text(bank_account_info.account_number) if bank_account_info else PDF_BLANK
+    account_number = (getattr(ticket, "account_number", "") or "").strip() or (
+        _pdf_text(bank_account_info.account_number)
+        if bank_account_info
+        else PDF_BLANK
     )
     account_name = (
         bank_account_info.thai_name
         if bank_account_info and bank_account_info.thai_name
         else PDF_BLANK
     )
-    borrowing_purpose = getattr(ticket, 'borrowing_ticket_purpose', None) or getattr(ticket, 'borrowing_ticket_name', None) or PDF_BLANK
-    
-    buffer = BytesIO()
-    
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        # Keep the document frame unchanged so the FNAR02 form on page 2 is
-        # not affected by the page-1 memo layout refinement.
-        leftMargin=72,
-        rightMargin=72,
-        topMargin=36,
-        bottomMargin=20,
-        title="บันทึกข้อความ - ขออนุมัติยืมเงินทดรองจ่าย"
+    borrowing_purpose = (
+        getattr(ticket, "borrowing_ticket_purpose", None)
+        or getattr(ticket, "borrowing_ticket_name", None)
+        or PDF_BLANK
     )
-    
-    story = []
-
-    # =========================================================================
-    # PAGE 1: บันทึกข้อความ
-    # =========================================================================
-
-    from .views import get_department_data_service
-    telephone_number = _pdf_text((get_department_data_service(department_name) or {}).get("telephone_number"))
-
-    # Keep the logo and organization text in one fixed row, as in the
-    # leave_record_info document.  This prevents a long department name from
-    # pushing the text below the logo or allowing it to overlap the logo.
-    story.append(_build_global_header(
-        department_name,
-        telephone_number,
-        styles['ThaiRight'],
-        logo_size=73,
-        leave_style=True,
-    ))
-    story.append(Spacer(1, 8))
-
-    # 3. ข้อมูลเลขที่, วันที่, เรื่อง, เรียน
-    info_table_data = [
-        [Paragraph("<b>ที่</b>", styles['ThaiNormal']), Paragraph(PDF_BLANK, styles['ThaiNormal'])],
-        [Paragraph("<b>วันที่</b>", styles['ThaiNormal']), Paragraph(PDF_BLANK, styles['ThaiNormal'])],
-        [Paragraph("<b>เรื่อง</b>", styles['ThaiNormal']), Paragraph("ขออนุมัติยืมเงินทดรองจ่าย", styles['ThaiNormal'])],
-        [Paragraph("<b>เรียน</b>", styles['ThaiNormal']), Paragraph("คณบดีคณะเทคนิคการแพทย์", styles['ThaiNormal'])],
-    ]
-    t_info = Table(info_table_data, colWidths=[48, doc.width - 48])
-    t_info.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 1),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
-    ]))
-    story.append(t_info)
-    story.append(Spacer(1, 12))
-
-    # 4. เนื้อหาบันทึกข้อความ (ย่อหน้า)
-    p1_html = f"ด้วย{department_name} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric} บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} - {end_date_str}"
-    story.append(Paragraph(p1_html, styles['ThaiOfficial']))
-    story.append(Spacer(1, 12))
-
-    p2_html = f"ทั้งนี้โดยมอบหมายให้ {borrower_name} เป็นผู้ยืมเงิน โดยโปรดโอนเงินเข้าบัญชี เลขที่ {account_number} ชื่อบัญชี {account_name} โดยมีระยะเวลาในการดำเนินภายในวันที่ {due_date_thai}"
-    story.append(Paragraph(p2_html, styles['ThaiOfficial']))
-    story.append(Spacer(1, 12))
-
-    p3_html = "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้<br/>ด้วยจักเป็นพระคุณยิ่ง"
-    story.append(Paragraph(p3_html, styles['ThaiOfficial']))
-    # 5. ส่วนลงนาม (ชิดขวา/กึ่งกลางขวา)
-    sign_html = "<br/><br/><br/><br/>".join(
-        f"({signer_name})<br/>{signer_position}"
-        for signer_name, signer_position in leave_approver_signatures
-    )
-    p_sign = Paragraph(sign_html, styles['ThaiCenter'])
-    
-    t_sign = Table([["", p_sign]], colWidths=[doc.width * 0.48, doc.width * 0.52])
-    t_sign.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        # Reserve a predictable signature area without relying on a large
-        # standalone Spacer that can move unpredictably when text wraps.
-        ('TOPPADDING', (0, 0), (-1, -1), 42),
-    ]))
-    story.append(t_sign)
-
-    # =========================================================================
-    # PAGE 2: แบบฟอร์ม FNAR02 (สัญญาการยืมเงิน)
-    # =========================================================================
-    story.append(PageBreak())  # ขึ้นหน้าใหม่สำหรับหน้า 2
-
-    p_title = Paragraph("<b>สัญญาการยืมเงิน</b><br/><br/>", styles['ThaiCenterBold'])
-    p_sub_title = Paragraph("ยื่นต่อ คณบดีคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล", styles['ThaiCenter'])
-    from .views import convert_to_fiscal_year
-
-    fiscal_year_date = (
-        getattr(ticket, "request_date", None)
-        or getattr(ticket, "approved_at", None)
-        or getattr(ticket, "created_at", None)
-    )
-    fiscal_year_be = convert_to_fiscal_year(fiscal_year_date) + 543 if fiscal_year_date else None
-    fiscal_year_label = fiscal_year_be or PDF_BLANK
-    p_no = Paragraph(f"เลขที่................................./{fiscal_year_label}", styles['ThaiCenter'])
-    p_due_lbl = Paragraph("<b>วันครบกำหนด</b>", styles['ThaiCenterBold'])
-    p_due_line = Paragraph(f"{due_date_thai}", styles['ThaiCenter'])
-    
     borrower_position = (
         getattr(borrower_user, "position", None)
         or getattr(ticket, "borrower_position", None)
         or PDF_BLANK
     )
 
-    borrower_html = f"""
-    ข้าพเจ้า &nbsp;&nbsp;{borrower_name}&nbsp;&nbsp; ตำแหน่ง &nbsp;&nbsp;{borrower_position}<br/>
-    สังกัด &nbsp;&nbsp;{department_name} มหาวิทยาลัยมหิดล<br/>
-    มีความประสงค์ขอยืมเงินจาก คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    เพื่อทดรองจ่าย&nbsp;&nbsp;{getattr(ticket, 'borrowing_ticket_purpose', None) or ticket.borrowing_ticket_name or PDF_BLANK}
-    """
-    p_borrower = Paragraph(borrower_html, styles['ThaiNormal'])
-    p_amt_txt = Paragraph(f"(ตัวอักษร) ( &nbsp;&nbsp;{amount_text} &nbsp;&nbsp;)", styles['ThaiCenter'])
-    p_amt_num = Paragraph(f"(ตัวเลข) &nbsp;&nbsp;{amount_numeric} &nbsp;&nbsp;บาท", styles['ThaiCenter'])
+    from .views import convert_to_fiscal_year, get_department_data_service
 
-    def fnar02_signature_table(
-        signature_label,
-        signer_name,
-        position=None,
-        line_suffix=None,
-    ):
-        """Render FNAR02 signature/date fields in a stable, borderless grid."""
-        sign_dot = "............................................................................."
-        signature_label_width = max(
-            1,
-            pdfmetrics.stringWidth(signature_label, 'Sarabun', DEFAULT_FONT_SIZE) + 2,
-        )
-        dotted_width = pdfmetrics.stringWidth(
-            sign_dot,
-            'Sarabun',
-            DEFAULT_FONT_SIZE,
-        ) + 2
-        suffix_width = (
-            max(1, pdfmetrics.stringWidth(line_suffix, 'Sarabun', DEFAULT_FONT_SIZE) + 2)
-            if line_suffix
-            else 1
-        )
-        signature_line_table = Table(
-            [[
-                Paragraph(signature_label, styles['ThaiCenter']),
-                Paragraph(sign_dot, styles['ThaiCenter']),
-                Paragraph(line_suffix or "", styles['ThaiCenter']),
-            ], [
-                "",
-                Paragraph(f"( {signer_name} )", styles['ThaiCenter']),
-                "",
-            ], [
-                "",
-                Paragraph(str(position), styles['ThaiCenter']) if position else "",
-                "",
-            ]],
-            colWidths=[signature_label_width, dotted_width, suffix_width],
-        )
-        signature_line_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ]))
-        signature_line_table.hAlign = 'CENTER'
-        date_cell = Paragraph(
-            "วันที่ .........................................................",
-            styles['ThaiCenter'],
-        )
-        signature_table = Table(
-            [
-                [signature_line_table, date_cell],
-            ],
-            colWidths=[300, 230],
-        )
-        signature_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ]))
-        signature_table.hAlign = 'CENTER'
-        return signature_table
-
-    agreement_intro_html = f"""
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ข้าพเจ้าสัญญาว่าจะปฏิบัติตามระเบียบของมหาวิทยาลัยมหิดลทุกประการ และจะนำใบสำคัญคู่จ่ายที่ถูกต้อง พร้อมทั้ง
-    เงินเหลือจ่าย (ถ้ามี) ส่งใช้ภายในกำหนด 15 วัน หลังจากเสร็จสิ้นภารกิจ คือวันที่ &nbsp;{due_date_thai}&nbsp; ถ้าข้าพเจ้าไม่ส่งตามกำหนด ข้าพเจ้ายินยอมให้หักเงินเดือน ค่าจ้าง เบี้ยหวัด บำเหน็จ บำนาญหรือเงินอื่นใด ที่ข้าพเจ้าพึงได้รับจาก
-    มหาวิทยาลัยมหิดล ชดใช้จำนวนเงินที่ยืมไปจนครบถ้วนได้ทันที
-    """
-    p_agreement = Table([
-        [Paragraph(agreement_intro_html, styles['ThaiNormal'])],
-        [fnar02_signature_table("ลงชื่อ", borrower_name, line_suffix="ผู้ยืม")],
-    ], colWidths=[520])
-    p_agreement.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-
-    box3_intro_html = f"""
-    <b>เสนอ คณบดี</b><br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมตามใบยืมฉบับนี้ได้ จำนวนเงิน {amount_numeric} บาท ( {amount_text} )<br/><br/>
-    """
-    p_box3 = Table([
-        [Paragraph(box3_intro_html, styles['ThaiNormal'])],
-        [fnar02_signature_table(
-            "ลงชื่อ",
-            "รองศาสตราจารย์ ดร.วิลาสินี จึงประสบสุข",
-            "รองคณบดีฝ่ายการคลังและสินทรัพย์",
-        )],
-    ], colWidths=[520])
-    p_box3.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-
-    p_title_box4 = Paragraph("<b>คำอนุมัติ</b>", styles['ThaiCenterBold'])
-
-    box4_intro_html = f"""
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นจำนวนเงิน {amount_numeric} บาท ( {amount_text} )<br/><br/>
-    """
-    p_content_box4 = Table([
-        [Paragraph(box4_intro_html, styles['ThaiNormal'])],
-        [fnar02_signature_table(
-            "ลงชื่อผู้อนุมัติ",
-            "ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง",
-            "คณบดีคณะเทคนิคการแพทย์",
-        )],
-    ], colWidths=[520])
-    p_content_box4.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    p_box4 = [p_title_box4, p_content_box4]
-
-    p_title_box5 = Paragraph("<b>ใบรับเงิน</b>", styles['ThaiCenterBold'])
-
-    box5_intro_html = f"""
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ได้รับเงินยืมจำนวนเงิน {amount_numeric} บาท ( {amount_text} ) ไว้เป็นการถูกต้องแล้ว<br/><br/>
-    """
-    p_content_box5 = Table([
-        [Paragraph(box5_intro_html, styles['ThaiNormal'])],
-        [fnar02_signature_table("ลายมือชื่อ", borrower_name, line_suffix="ผู้รับเงิน")],
-    ], colWidths=[520])
-    p_content_box5.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    p_box5 = [p_title_box5, p_content_box5]
-
-    form_data = [
-        [[p_title, p_sub_title], [p_no, p_due_lbl, p_due_line]],
-        [[p_borrower], ""],
-        [[p_amt_txt], [p_amt_num]],
-        [[p_agreement], ""],
-        [[p_box3], ""],
-        [p_box4, ""],
-        [p_box5, ""]
-    ]
-    
-    master_table = Table(form_data, colWidths=[275, 256])
-    master_table.setStyle(TableStyle([
-        ('SPAN', (0, 1), (1, 1)),
-        ('SPAN', (0, 3), (1, 3)),
-        ('SPAN', (0, 4), (1, 4)),
-        ('SPAN', (0, 5), (1, 5)),
-        ('SPAN', (0, 6), (1, 6)),
-        ('BOX', (0, 0), (-1, -1), 1, colors.black),
-        ('INNERGRID', (0, 0), (-1, -1), 1, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-    ]))
-    
-    footer_text = Paragraph(
-        "หมายเหตุ: ใบเสร็จแต่ละใบจะต้องมียอดไม่เกิน -100,000- บาท",
-        styles['ThaiFooter']
+    telephone_number = _pdf_text(
+        (get_department_data_service(department_name) or {}).get("telephone_number")
     )
-    story.append(KeepTogether([master_table, Spacer(1, 4), footer_text]))
+    fiscal_year_date = (
+        getattr(ticket, "request_date", None)
+        or getattr(ticket, "approved_at", None)
+        or getattr(ticket, "created_at", None)
+    )
+    fiscal_year_label = (
+        convert_to_fiscal_year(fiscal_year_date) + 543
+        if fiscal_year_date
+        else PDF_BLANK
+    )
+    return {
+        "borrower_name": borrower_name,
+        "borrower_position": borrower_position,
+        "department_name": department_name,
+        "leave_approver_signatures": _get_leave_approver_signatures(ticket),
+        "due_date_thai": get_thai_month_year(due_date) if due_date else PDF_BLANK,
+        "start_date_str": get_thai_month_year(start_date) if start_date else PDF_BLANK,
+        "end_date_str": get_thai_month_year(end_date) if end_date else PDF_BLANK,
+        "amount_numeric": _pdf_amount(required_budget),
+        "amount_text": (
+            bahttext(required_budget)
+            if required_budget is not None
+            else PDF_BLANK
+        ),
+        "account_number": account_number,
+        "account_name": account_name,
+        "borrowing_purpose": borrowing_purpose,
+        "telephone_number": telephone_number,
+        "fiscal_year_label": fiscal_year_label,
+    }
 
-    # สร้างและส่งคืน PDF Bytes
-    doc.build(story)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
+
+def _pdf_asset_data_uri(path, mime_type):
+    """Embed a local font or image so Chromium can render self-contained HTML."""
+    asset_path = Path(path)
+    if not asset_path.is_file():
+        raise FileNotFoundError(f"PDF asset not found: {asset_path}")
+    encoded = base64.b64encode(asset_path.read_bytes()).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
+
+
+PDF_REGULAR_FONT_DATA_URI = _pdf_asset_data_uri(PDF_REGULAR_FONT_PATH, "font/ttf")
+PDF_BOLD_FONT_DATA_URI = _pdf_asset_data_uri(PDF_BOLD_FONT_PATH, "font/ttf")
+PDF_CHECKBOX_FONT_DATA_URI = _pdf_asset_data_uri(PDF_CHECKBOX_FONT_PATH, "font/ttf")
+PDF_LOGO_DATA_URI = _pdf_asset_data_uri(PDF_LOGO_PATH, "image/png")
+
+
+def _build_fnar02_html(memo_context):
+    """Build both FNAR02 pages as Thai print HTML for Chromium."""
+    escaped = {
+        key: html.escape(str(value), quote=True)
+        for key, value in memo_context.items()
+        if key != "leave_approver_signatures"
+    }
+    signature_blocks = []
+    for signer_name, signer_position in memo_context["leave_approver_signatures"]:
+        signature_blocks.append(
+            '<div class="signature">'
+            f"({html.escape(str(signer_name))})<br>"
+            f"{html.escape(str(signer_position))}"
+            "</div>"
+        )
+    signatures_html = "".join(signature_blocks)
+
+    paragraph_one = (
+        f"ด้วย{escaped['department_name']} มีความประสงค์จะขอยืมเงินทดรองจ่าย "
+        f"จำนวนเงิน {escaped['amount_numeric']} บาท ({escaped['amount_text']}) "
+        f"เพื่อทดรองจ่าย{escaped['borrowing_purpose']} ตั้งแต่วันที่ "
+        f"{escaped['start_date_str']} - {escaped['end_date_str']}"
+    )
+    paragraph_two = (
+        f"ทั้งนี้โดยมอบหมายให้ {escaped['borrower_name']} เป็นผู้ยืมเงิน "
+        f"โดยโปรดโอนเงินเข้าบัญชี เลขที่ {escaped['account_number']} "
+        f"ชื่อบัญชี {escaped['account_name']} โดยมีระยะเวลาในการดำเนินภายในวันที่ "
+        f"{escaped['due_date_thai']}"
+    )
+
+    return f"""<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>บันทึกข้อความ - ขออนุมัติยืมเงินทดรองจ่าย</title>
+<style>
+  @font-face {{
+    font-family: "TH Sarabun New";
+    src: url("{PDF_REGULAR_FONT_DATA_URI}") format("truetype");
+    font-style: normal;
+    font-weight: 400;
+  }}
+  @font-face {{
+    font-family: "TH Sarabun New";
+    src: url("{PDF_BOLD_FONT_DATA_URI}") format("truetype");
+    font-style: normal;
+    font-weight: 700;
+  }}
+  @page {{ size: A4; margin: 0; }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{
+    font-family: "TH Sarabun New", "TH Sarabun PSK", sans-serif;
+    font-size: 16pt;
+    line-height: 1.25;
+    color: #000;
+  }}
+  .page {{
+    min-height: 297mm;
+    margin: 0 auto;
+    break-after: page;
+  }}
+  .memo-page {{
+    width: 200mm;
+    padding: 12.7mm 14.82mm 7mm;
+  }}
+  .contract-page {{
+    width: 190mm;
+    padding: 14.8mm 0 5mm;
+    break-after: auto;
+  }}
+  .memo-header {{ height: 37mm; position: relative; }}
+  .logo {{
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 25.75mm;
+    height: 25.75mm;
+    transform: translateX(-50%);
+    object-fit: contain;
+  }}
+  .organization {{
+    position: absolute;
+    top: 7mm;
+    right: 0;
+    width: 77mm;
+    text-align: right;
+  }}
+  .memo-info {{
+    display: grid;
+    grid-template-columns: 17mm 1fr;
+    row-gap: .5mm;
+  }}
+  .memo-info strong {{ font-weight: 700; }}
+  .memo-body {{ margin-top: 4mm; }}
+  .government-text {{
+    font-family: "TH Sarabun New", "TH Sarabun PSK", sans-serif;
+    word-break: normal;
+    line-break: strict;
+    overflow-wrap: normal;
+    text-align: justify;
+    text-justify: inter-word;
+    text-align-last: left;
+    margin: 0 0 4.2mm;
+    text-indent: 24.7mm;
+  }}
+  .signatures {{
+    margin-left: 51%;
+    padding-top: 10mm;
+    text-align: center;
+  }}
+  .signature {{ break-inside: avoid; }}
+  .signature + .signature {{ margin-top: 22mm; }}
+  .contract-page {{
+    font-size: 16pt;
+    line-height: 1.15;
+  }}
+  .contract-table {{
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }}
+  .contract-table td {{
+    border: .3mm solid #000;
+    padding: 1.4mm 3.5mm;
+    vertical-align: top;
+  }}
+  .contract-table tr {{ break-inside: avoid; }}
+  .contract-center {{ text-align: center; }}
+  .contract-title {{
+    font-size: 17pt;
+    font-weight: 700;
+    margin-bottom: 7mm;
+  }}
+  .contract-section-title {{
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 1mm;
+  }}
+  .contract-line {{ margin-bottom: .7mm; }}
+  .contract-indent {{
+    margin: 0;
+    text-indent: 12mm;
+    text-align: justify;
+    text-justify: inter-word;
+    text-align-last: left;
+    word-break: normal;
+    line-break: strict;
+  }}
+  .contract-header {{ height: 25mm; }}
+  .contract-borrower {{ height: 31mm; }}
+  .contract-amount {{ height: 10.5mm; }}
+  .contract-agreement {{ height: 50mm; }}
+  .contract-proposal {{ height: 46mm; }}
+  .contract-approval {{ height: 45mm; }}
+  .contract-receipt {{ height: 40.5mm; }}
+  .signature-grid {{
+    display: grid;
+    grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+    column-gap: 4mm;
+    align-items: start;
+    margin-top: 8mm;
+  }}
+  .signature-block {{
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 0;
+    align-items: end;
+    padding-right: 11mm;
+  }}
+  .signature-line {{
+    display: contents;
+  }}
+  .signature-rule {{
+    height: .9em;
+    overflow: hidden;
+    white-space: nowrap;
+    line-height: .75em;
+  }}
+  .signature-rule::after {{
+    content: "..................................................................................................................................";
+    letter-spacing: .25mm;
+  }}
+  .signature-name,
+  .signature-position {{
+    grid-column: 2;
+    text-align: center;
+    line-height: 1.1;
+  }}
+  .date-line {{
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 1mm;
+    align-items: end;
+    align-self: start;
+  }}
+  .contract-footer {{
+    margin-top: 1mm;
+    font-size: 11pt;
+    line-height: 1;
+    text-align: center;
+  }}
+</style>
+</head>
+<body>
+<main class="page memo-page">
+  <header class="memo-header">
+    <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
+    <div class="organization">
+      <br>{escaped['department_name']}<br>
+      คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>
+      โทร.{escaped['telephone_number']}
+    </div>
+  </header>
+  <section class="memo-info">
+    <span>ที่</span><span>&nbsp;</span>
+    <span>วันที่</span><span>&nbsp;</span>
+    <span>เรื่อง</span><span>ขออนุมัติยืมเงินทดรองจ่าย</span>
+    <span>เรียน</span><span>คณบดีคณะเทคนิคการแพทย์</span>
+  </section>
+  <section class="memo-body">
+    <p class="government-text">{paragraph_one}</p>
+    <p class="government-text">{paragraph_two}</p>
+    <p class="government-text">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้<br>ด้วยจักเป็นพระคุณยิ่ง</p>
+  </section>
+  <section class="signatures">{signatures_html}</section>
+</main>
+<main class="page contract-page">
+  <table class="contract-table">
+    <colgroup>
+      <col style="width: 50%">
+      <col style="width: 50%">
+    </colgroup>
+    <tr class="contract-header">
+      <td class="contract-center">
+        <div class="contract-title">สัญญาการยืมเงิน</div>
+        <div>ยื่นต่อ คณบดีคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</div>
+      </td>
+      <td class="contract-center">
+        <div class="contract-line">เลขที่.................................../{escaped['fiscal_year_label']}</div>
+        <div class="contract-section-title">วันครบกำหนด</div>
+        <div>{escaped['due_date_thai']}</div>
+      </td>
+    </tr>
+    <tr class="contract-borrower">
+      <td colspan="2">
+        <div class="contract-line">ข้าพเจ้า&nbsp;&nbsp;{escaped['borrower_name']}&nbsp;&nbsp;ตำแหน่ง&nbsp;&nbsp;{escaped['borrower_position']}</div>
+        <div class="contract-line">สังกัด&nbsp;&nbsp;{escaped['department_name']} มหาวิทยาลัยมหิดล</div>
+        <div class="contract-line">มีความประสงค์ขอยืมเงินจาก คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</div>
+        <div>เพื่อทดรองจ่าย&nbsp;&nbsp;{escaped['borrowing_purpose']}</div>
+      </td>
+    </tr>
+    <tr class="contract-amount">
+      <td class="contract-center">(ตัวอักษร)&nbsp;(&nbsp;{escaped['amount_text']}&nbsp;)</td>
+      <td class="contract-center">(ตัวเลข)&nbsp;&nbsp;{escaped['amount_numeric']}&nbsp;&nbsp;บาท</td>
+    </tr>
+    <tr class="contract-agreement">
+      <td colspan="2">
+        <p class="contract-indent">ข้าพเจ้าสัญญาว่าจะปฏิบัติตามระเบียบของมหาวิทยาลัยมหิดลทุกประการ และจะนำใบสำคัญคู่จ่ายที่ถูกต้อง พร้อมทั้งเงินเหลือจ่าย (ถ้ามี) ส่งใช้ภายในกำหนด 15 วัน หลังจากเสร็จสิ้นภารกิจ คือวันที่ {escaped['due_date_thai']} ถ้าข้าพเจ้าไม่ส่งตามกำหนด ข้าพเจ้ายินยอมให้หักเงินเดือน ค่าจ้าง เบี้ยหวัด บำเหน็จ บำนาญหรือเงินอื่นใด ที่ข้าพเจ้าพึงได้รับจากมหาวิทยาลัยมหิดล ชดใช้จำนวนเงินที่ยืมไปจนครบถ้วนได้ทันที</p>
+        <div class="signature-grid">
+          <div class="signature-block">
+            <div class="signature-line"><span>ลงชื่อ</span><span class="signature-rule"></span><span>ผู้ยืม</span></div>
+            <div class="signature-name">(&nbsp;{escaped['borrower_name']}&nbsp;)</div>
+          </div>
+          <div class="date-line"><span>วันที่</span><span class="signature-rule"></span></div>
+        </div>
+      </td>
+    </tr>
+    <tr class="contract-proposal">
+      <td colspan="2">
+        <div>เสนอ คณบดี</div>
+        <p class="contract-indent">ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมตามใบยืมฉบับนี้ได้ จำนวนเงิน {escaped['amount_numeric']} บาท ({escaped['amount_text']})</p>
+        <div class="signature-grid">
+          <div class="signature-block">
+            <div class="signature-line"><span>ลงชื่อ</span><span class="signature-rule"></span><span></span></div>
+            <div class="signature-name">(&nbsp;รองศาสตราจารย์ ดร.วิลาสินี จึงประสบสุข&nbsp;)</div>
+            <div class="signature-position">รองคณบดีฝ่ายการคลังและสินทรัพย์</div>
+          </div>
+          <div class="date-line"><span>วันที่</span><span class="signature-rule"></span></div>
+        </div>
+      </td>
+    </tr>
+    <tr class="contract-approval">
+      <td colspan="2">
+        <div class="contract-section-title">คำอนุมัติ</div>
+        <p class="contract-indent">อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นจำนวนเงิน {escaped['amount_numeric']} บาท ({escaped['amount_text']})</p>
+        <div class="signature-grid">
+          <div class="signature-block">
+            <div class="signature-line"><span>ลงชื่อผู้อนุมัติ</span><span class="signature-rule"></span><span></span></div>
+            <div class="signature-name">(&nbsp;ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง&nbsp;)</div>
+            <div class="signature-position">คณบดีคณะเทคนิคการแพทย์</div>
+          </div>
+          <div class="date-line"><span>วันที่</span><span class="signature-rule"></span></div>
+        </div>
+      </td>
+    </tr>
+    <tr class="contract-receipt">
+      <td colspan="2">
+        <div class="contract-section-title">ใบรับเงิน</div>
+        <p class="contract-indent">ได้รับเงินยืมจำนวนเงิน {escaped['amount_numeric']} บาท ({escaped['amount_text']}) ไว้เป็นการถูกต้องแล้ว</p>
+        <div class="signature-grid">
+          <div class="signature-block">
+            <div class="signature-line"><span>ลายมือชื่อ</span><span class="signature-rule"></span><span>ผู้รับเงิน</span></div>
+            <div class="signature-name">(&nbsp;{escaped['borrower_name']}&nbsp;)</div>
+          </div>
+          <div class="date-line"><span>วันที่</span><span class="signature-rule"></span></div>
+        </div>
+      </td>
+    </tr>
+  </table>
+  <div class="contract-footer">หมายเหตุ: ใบเสร็จแต่ละใบจะต้องมียอดไม่เกิน -100,000- บาท</div>
+</main>
+</body>
+</html>"""
+
+
+def _render_html_with_chromium(html_source):
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=True)
+        try:
+            page = browser.new_page()
+            page.set_content(html_source, wait_until="load")
+            page.evaluate("() => document.fonts.ready")
+            return page.pdf(
+                format="A4",
+                print_background=True,
+                prefer_css_page_size=True,
+                display_header_footer=False,
+                margin={
+                    "top": "0",
+                    "right": "0",
+                    "bottom": "0",
+                    "left": "0",
+                },
+            )
+        finally:
+            browser.close()
+
+
+def _render_fnar02_with_chromium(fnar02_context):
+    return _render_html_with_chromium(_build_fnar02_html(fnar02_context))
+
+
+def generate_fnar02_pdf(ticket):
+    """Generate both FNAR02 pages with Playwright Chromium."""
+    from pypdf import PdfReader
+
+    fnar02_context = _build_fnar02_context(ticket)
+    chromium_pdf = _render_fnar02_with_chromium(fnar02_context)
+    page_count = len(PdfReader(BytesIO(chromium_pdf)).pages)
+    if page_count != 2:
+        raise ValueError(
+            f"Chromium rendered {page_count} FNAR02 pages; expected exactly 2"
+        )
+    return chromium_pdf
+
+
+def _build_reimbursement_letter_html(context):
+    """Build a one-page Thai reimbursement letter for Chromium printing."""
+    def escaped(value):
+        return html.escape(str(value), quote=True)
+
+    paragraphs_html = "".join(
+        f'<p class="government-text">{escaped(paragraph)}</p>'
+        for paragraph in context["body_paragraphs"]
+    )
+    items_html = "".join(
+        f'<tr class="text-center">'
+        f'<td class="item-number">{index}.</td>'
+        f'<td>{escaped(description)}</td>'
+        f'<td class="amount">{escaped(amount)} บาท</td>'
+        "</tr>"
+        for index, description, amount in context["items"]
+    )
+    extra_header_class = " extra-header-space" if context.get("extra_header_space") else ""
+
+    return f"""<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>{escaped(context['title'])}</title>
+<style>
+  @font-face {{
+    font-family: "TH Sarabun New";
+    src: url("{PDF_REGULAR_FONT_DATA_URI}") format("truetype");
+    font-style: normal;
+    font-weight: 400;
+  }}
+  @font-face {{
+    font-family: "TH Sarabun New";
+    src: url("{PDF_BOLD_FONT_DATA_URI}") format("truetype");
+    font-style: normal;
+    font-weight: 700;
+  }}
+  @page {{ size: A4; margin: 0; }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{
+    color: #000;
+    font-family: "TH Sarabun New", "TH Sarabun PSK", sans-serif;
+    font-size: 16pt;
+    line-height: 1.25;
+  }}
+  .letter-page {{
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 7.8mm 19.4mm;
+  }}
+  .letterhead {{
+    position: relative;
+    height: 27.5mm;
+  }}
+  .letter-page.extra-header-space .document-info {{ margin-top: 7mm; }}
+  .logo {{
+    position: absolute;
+    top: 0;
+    left: 67.7mm;
+    width: 23.3mm;
+    height: 23.3mm;
+    object-fit: contain;
+  }}
+  .organization {{
+    position: absolute;
+    top: 6mm;
+    right: 0;
+    width: 74.8mm;
+    text-align: right;
+  }}
+  .document-info {{
+    display: grid;
+    grid-template-columns: 16.9mm minmax(0, 1fr);
+    row-gap: .7mm;
+  }}
+  .letter-body {{
+    --summary-offset: 24.7mm;
+    --summary-width: 135.8mm;
+    margin-top: 6.3mm;
+  }}
+  .government-text {{
+    margin: 0 0 2.8mm;
+    text-indent: 24.7mm;
+    text-align: justify;
+    text-justify: inter-word;
+    text-align-last: left;
+    word-break: normal;
+    line-break: strict;
+    overflow-wrap: normal;
+  }}
+  .items {{
+    width: var(--summary-width);
+    margin: 0 0 1.4mm var(--summary-offset);
+    border-collapse: collapse;
+    table-layout: fixed;
+  }}
+  .items tr {{ break-inside: avoid; }}
+  .items td {{ padding: .7mm 0; vertical-align: top; }}
+  .items .item-number {{ width: 12.3mm; text-align: left; }}
+  .items .amount {{ width: 28.2mm; text-align: right; white-space: nowrap; }}
+  .total-row {{
+    display: grid;
+    grid-template-columns: 19.5mm minmax(0, 1fr) 28.2mm;
+    width: var(--summary-width);
+    margin: 0 0 3.5mm var(--summary-offset);
+  }}
+  .total-amount {{ text-align: right; }}
+  .total-amount {{ white-space: nowrap; }}
+  .total-label {{ text-align: left; text-decoration: underline; }}
+  .closing {{
+    margin: 0;
+    text-align: center;
+  }}
+  .head-signature {{
+    width: 50%;
+    margin-top: 16mm ;
+    margin-left: 51%;
+    text-align: center;
+    break-inside: avoid;
+  }}
+  .approval-signature {{
+    width: 50%;
+    margin-top: 16mm ;
+    margin-right: 51%;
+    text-align: center;
+    break-inside: avoid;
+  }}
+  .approval-title {{ margin-bottom: 14mm; }}
+</style>
+</head>
+<body>
+<main class="letter-page{extra_header_class}">
+  <header class="letterhead">
+    <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
+    <div class="organization">
+      <br>{escaped(context['department_name'])}<br>
+      คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>
+      โทร.{escaped(context['telephone_number'])}
+    </div>
+  </header>
+  <section class="document-info">
+    <span>ที่</span><span>&nbsp;</span>
+    <span>วันที่</span><span>&nbsp;</span>
+    <span>เรื่อง</span><span>{escaped(context['subject'])}</span>
+    <span>เรียน</span><span>คณบดีคณะเทคนิคการแพทย์</span>
+  </section>
+  <section class="letter-body">
+    {paragraphs_html}
+    <table class="items"><tbody>{items_html}</tbody></table>
+    <div class="total-row">
+      <span class="total-label">รวมทั้งสิ้น</span>
+      <span>&nbsp;&nbsp;{escaped(context['amount_text'])}</span>
+      <span class="total-amount">{escaped(context['amount_numeric'])} บาท</span>
+    </div>
+    <p class="government-text">{escaped(context['reference_text'])}</p>
+    <p class="closing">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง</p>
+  </section>
+  <section class="head-signature">
+    <div>({escaped(context['head_name'])})</div>
+    <div>{escaped(context['head_position'])}</div>
+  </section>
+  <section class="approval-signature">
+    <div class="approval-title">อนุมัติ</div>
+    <div>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)</div>
+    <div>คณบดีคณะเทคนิคการแพทย์</div>
+  </section>
+</main>
+</body>
+</html>"""
 
 
 def generate_petty_claim(claim, claim_type="1"):
@@ -1110,7 +1397,7 @@ def generate_petty_claim(claim, claim_type="1"):
     - ตารางรายการแบบไม่มีเส้น
     - ส่วนลงนามท้ายหน้า
     """
-    from .views import convert_to_fiscal_year, get_department_data_service
+    from .views import get_department_data_service
 
     if not claim:
         return b""
@@ -1156,21 +1443,6 @@ def generate_petty_claim(claim, claim_type="1"):
         or PDF_BLANK
     )
 
-    request_date = (
-        getattr(fund_request, "approved_at", None)
-        or getattr(claim, "created_at", None)
-    )
-    date_thai = get_thai_month_year(request_date.date()) if request_date else PDF_BLANK
-
-    claim_number = (
-        getattr(claim, "claim_number", None)
-        or getattr(fund_request, "ticket_number", None)
-        or PDF_BLANK
-    )
-
-    claim_date = getattr(claim, "created_at", None)
-    claim_date_thai = get_thai_month_year(claim_date.date()) if claim_date else PDF_BLANK
-
     request_purpose = (
         getattr(fund_request, "purpose", None)
         or getattr(fund_request, "borrowing_ticket_name", None)
@@ -1191,28 +1463,6 @@ def generate_petty_claim(claim, claim_type="1"):
     )
     amount_numeric = f"{amount_value:,.2f}" if amount_value else PDF_BLANK
     amount_text = bahttext(amount_value) if amount_value else PDF_BLANK
-
-    if claim_items:
-        first_receipt = min(
-            (getattr(item, "receipt_date", None) for item in claim_items if getattr(item, "receipt_date", None)),
-            default=None,
-        )
-    else:
-        first_receipt = None
-
-    if first_receipt:
-        start_date_str = get_thai_month_year(first_receipt)
-    else:
-        start_date_str = date_thai
-
-    if display_items:
-        end_receipt = max(
-            (getattr(item, "receipt_date", None) for item in display_items if getattr(item, "receipt_date", None)),
-            default=None,
-        )
-    else:
-        end_receipt = None
-    end_date_str = get_thai_month_year(end_receipt) if end_receipt else PDF_BLANK
 
     bank_account_info = None
     request_account_number = getattr(borrowing_ticket, "account_number", None) if borrowing_ticket else None
@@ -1244,58 +1494,8 @@ def generate_petty_claim(claim, claim_type="1"):
     reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(claim, "product_code", None), "id", None) or PDF_BLANK
     cost_center_label = getattr(getattr(claim, "cost_center", None), "id", None) or PDF_BLANK
-    mission_label = getattr(getattr(claim, "iocode", None), "id", None) or PDF_BLANK # changed from mission_id => id
+    mission_label = getattr(getattr(claim, "iocode", None), "id", None) or PDF_BLANK
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=55,
-        rightMargin=55,
-        topMargin=22,
-        bottomMargin=22,
-        title="Petty Claim Request",
-    )
-
-    story = []
-
-    claim_style = ParagraphStyle(
-        name="ThaiClaimBody",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_JUSTIFY,
-        textColor=colors.black,
-    )
-    claim_body = ParagraphStyle(
-        name="ThaiClaimIndentedBody",
-        parent=claim_style,
-        firstLineIndent=70,
-    )
-    claim_center = ParagraphStyle(
-        name="ThaiClaimCenter",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_CENTER,
-        textColor=colors.black,
-    )
-    claim_right = ParagraphStyle(
-        name="ThaiClaimRight",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_RIGHT,
-        textColor=colors.black,
-    )
-    claim_left = ParagraphStyle(
-        name="ThaiClaimLeft",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_LEFT,
-        textColor=colors.black,
-    )
     dept_service_data = get_department_data_service(department_name) or {}
     org = getattr(getattr(requester, "personal_info", None), "org", None)
     telephone_number = (
@@ -1305,35 +1505,6 @@ def generate_petty_claim(claim, claim_type="1"):
         or PDF_BLANK
     )
 
-    header_table = _build_global_header(
-        department_name,
-        telephone_number,
-        claim_right,
-        leave_style=True,
-    )
-    story.append(header_table)
-    if no_approval_letter:
-        story.append(Spacer(1, 20))
-    story.append(Spacer(1, 10))
-
-    info_data = [
-        [Paragraph("ที่", claim_left), Paragraph(PDF_BLANK, claim_left)],
-        [Paragraph("วันที่", claim_left), Paragraph(PDF_BLANK, claim_left)],
-        [Paragraph("เรื่อง", claim_left), Paragraph(subject_text, claim_left)],
-        [Paragraph("เรียน", claim_left), Paragraph("คณบดีคณะเทคนิคการแพทย์", claim_left)],
-    ]
-    info_table = Table(info_data, colWidths=[48, doc.width - 48])
-    info_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-    ]))
-    story.append(info_table)
-    story.append(Spacer(1, 18))
-
     body_1 = (
         f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น"
     )
@@ -1341,117 +1512,46 @@ def generate_petty_claim(claim, claim_type="1"):
         f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
     )
 
-    if no_approval_letter:
-        story.append(Paragraph(
-            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ {request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
-            claim_body,
-        ))
-    else:
-        story.append(Paragraph(body_1, claim_body))
-        story.append(Spacer(1, 8))
-        story.append(Paragraph(body_2, claim_body))
-    story.append(Spacer(1, 10))
-
-    table_rows = []
-    for idx, item in enumerate(display_items, 1):
-        table_rows.append([
-            Paragraph(f"{idx}.", claim_center),
-            Paragraph(
-                getattr(item, "description", None)
-                or PDF_BLANK,
-                claim_style,
-            ),
-            Paragraph(
-                _pdf_amount(getattr(item, "amount", None)) + (" บาท" if no_approval_letter else ""),
-                claim_right,
-            ),
-        ])
-
-    if table_rows:
-        # Keep the item list aligned with the indented first line of the body.
-        items_table = Table(table_rows, colWidths=[35, 270, 80])
-        items_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ]))
-        story.append(items_table)
-        story.append(Spacer(1, 4))
-
-    total_table = Table(
-        [[
-            Paragraph("<u>รวมทั้งสิ้น</u> ", claim_right),
-            Paragraph(f"{amount_text}", claim_left),
-            Paragraph(f"{amount_numeric} บาท", claim_right),
-        ]],
-        colWidths=[65, 230, 90] if no_approval_letter else [55, 250, 80],
-    )
-    total_table.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-    ]))
-    if no_approval_letter:
-        total_table.setStyle(TableStyle([('LEFTPADDING', (1, 0), (1, 0), 8)]))
-    story.append(total_table)
-    story.append(Spacer(1, 10))
-
     ref_text = (
         f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
         f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
     )
     if no_approval_letter:
-        story.append(Paragraph(
-            f"ในการนี้&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
+        body_paragraphs = [
+            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ {request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้"
+        ]
+        ref_text = (
+            f"ในการนี้\u00a0จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
             f"ประจำปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
             f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
-            ,styles['ThaiOfficial'],
-        ))
+        )
     else:
-        story.append(Paragraph(ref_text, claim_style))
-    story.append(Spacer(1, 12))
-    story.append(Paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", claim_center))
-    story.append(Spacer(1, 34))
+        body_paragraphs = [body_1, body_2]
 
-    sign_right = Paragraph(
-        f"({head_name})<br/>"
-        f"{head_position}",
-        claim_center,
+    document_context = {
+        "title": "Petty Claim Request",
+        "department_name": department_name,
+        "telephone_number": telephone_number,
+        "subject": subject_text,
+        "body_paragraphs": body_paragraphs,
+        "items": [
+            (
+                index,
+                getattr(item, "description", None) or PDF_BLANK,
+                _pdf_amount(getattr(item, "amount", None)),
+            )
+            for index, item in enumerate(display_items, 1)
+        ],
+        "amount_text": amount_text,
+        "amount_numeric": amount_numeric,
+        "reference_text": ref_text,
+        "head_name": head_name,
+        "head_position": head_position,
+        "extra_header_space": no_approval_letter,
+    }
+    return _render_html_with_chromium(
+        _build_reimbursement_letter_html(document_context)
     )
-    head_sign_table = Table([["", sign_right]], colWidths=[170, 285])
-    head_sign_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-    ]))
-    story.append(head_sign_table)
-    story.append(Spacer(1, 45))
-
-    approval_sign = Paragraph(
-        "อนุมัติ<br/><br/><br/>"
-        "(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>"
-        "คณบดีคณะเทคนิคการแพทย์",
-        claim_center,
-    )
-    approval_sign_table = Table([[approval_sign, ""]], colWidths=[285, 285])
-    approval_sign_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-    ]))
-    story.append(approval_sign_table)
-
-    doc.build(story)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
 
 
 generate_petty_claim_pdf = generate_petty_claim
@@ -1466,16 +1566,14 @@ def generate_ticket_return(return_detail):
     if not ticket:
         return b""
 
-    from .views import convert_to_fiscal_year, get_department_data_service
+    from .views import get_department_data_service
 
     borrower = getattr(ticket, "borrower_user", None)
     borrower_org = getattr(getattr(borrower, "personal_info", None), "org", None)
     department_name = getattr(borrower_org, "name", None) or getattr(borrower, "department", None)
     department_name = department_name or PDF_BLANK
     ticket_number = getattr(ticket, "number", None) or PDF_BLANK
-    ticket_date = getattr(ticket, "approved_at", None) or getattr(ticket, "created_at", None)
     request_purpose = getattr(ticket, "borrowing_ticket_purpose", None) or PDF_BLANK
-    date_thai = get_thai_month_year(ticket_date.date()) if ticket_date else PDF_BLANK
     return_items = [
         item for item in (getattr(return_detail, "receipt_items", None) or [])
         if not getattr(item, "is_cash", False)
@@ -1493,53 +1591,7 @@ def generate_ticket_return(return_detail):
     reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(return_detail, "product_code", None), "name", None) or PDF_BLANK
     cost_center_label = getattr(getattr(return_detail, "cost_center", None), "id", None) or PDF_BLANK
-    mission_label = getattr(getattr(return_detail, "iocode", None), "id", None) or PDF_BLANK # changed from mission_id => id
-
-    return_body = ParagraphStyle(
-        name="ThaiTicketReturnBody",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_JUSTIFY,
-        firstLineIndent=70,
-        textColor=colors.black,
-    )
-    return_left = ParagraphStyle(
-        name="ThaiTicketReturnLeft",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_LEFT,
-        textColor=colors.black,
-    )
-    return_center = ParagraphStyle(
-        name="ThaiTicketReturnCenter",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_CENTER,
-        textColor=colors.black,
-    )
-    return_right = ParagraphStyle(
-        name="ThaiTicketReturnRight",
-        fontName="Sarabun",
-        fontSize=16,
-        leading=20,
-        alignment=TA_RIGHT,
-        textColor=colors.black,
-    )
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=55,
-        rightMargin=55,
-        topMargin=22,
-        bottomMargin=22,
-        title="Ticket Return Request",
-    )
-    story = []
+    mission_label = getattr(getattr(return_detail, "iocode", None), "id", None) or PDF_BLANK
 
     dept_service_data = get_department_data_service(department_name) or {}
     telephone_number = (
@@ -1548,126 +1600,151 @@ def generate_ticket_return(return_detail):
         or dept_service_data.get("phone_number")
         or PDF_BLANK
     )
-    header_table = _build_global_header(
-        department_name,
-        telephone_number,
-        return_right,
-        leave_style=True,
-    )
-    story.extend([header_table, Spacer(1, 10)])
-
     head_name, head_position = _get_head_signature(ticket=ticket)
-
-    info_table = Table([
-        [Paragraph("ที่", return_left), Paragraph(PDF_BLANK, return_left)],
-        [Paragraph("วันที่", return_left), Paragraph(PDF_BLANK, return_left)],
-        [Paragraph("เรื่อง", return_left), Paragraph(f"ขออนุมัติเบิกจ่ายพร้อมส่งใช้เงินยืม บย. {ticket_number}", return_left)],
-        [Paragraph("เรียน", return_left), Paragraph("คณบดีคณะเทคนิคการแพทย์", return_left)],
-    ], colWidths=[48, doc.width - 48])
-    info_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-    ]))
-    story.extend([info_table, Spacer(1, 18)])
-
-    story.append(Paragraph(
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น",
-        return_body,
-    ))
-    story.append(Spacer(1, 8))
-    story.append(Paragraph(
-        f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัด โครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
-        return_body,
-    ))
-    story.append(Spacer(1, 10))
-
-    item_rows = []
-    for index, item in enumerate(return_items, 1):
-        item_rows.append([
-            Paragraph(f"{index}.", return_center),
-            Paragraph(item.description or PDF_BLANK, return_left),
-            Paragraph(_pdf_amount(item.amount), return_right),
-        ])
-    if item_rows:
-        item_table = Table(item_rows, colWidths=[35, 270, 80])
-        item_table.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 0),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ("TOPPADDING", (0, 0), (-1, -1), 2),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-        ]))
-        story.extend([item_table, Spacer(1, 4)])
-
-    total_table = Table([[
-        Paragraph("<u>รวมทั้งสิ้น</u> ", return_right),
-        Paragraph(amount_text, return_left),
-        Paragraph(f"{amount_numeric} บาท", return_right),
-    ]], colWidths=[55, 250, 80])
-    total_table.setStyle(TableStyle([
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-    ]))
-    story.extend([total_table, Spacer(1, 10)])
-
-    story.append(Paragraph(
-        f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
-        f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตาม เอกสารที่แนบมาพร้อมนี้",
-        return_body,
-    ))
-    story.extend([
-        Spacer(1, 12),
-        Paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", return_center),
-        Spacer(1, 34),
-    ])
-
-    head_sign = Table([["", Paragraph(f"({head_name})<br/>{head_position}", return_center)]], colWidths=[280, 285])
-    head_sign.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.append(head_sign)
-    story.append(Spacer(1, 45))
-    approval_sign = Table([[Paragraph("อนุมัติ<br/><br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์", return_center), ""]], colWidths=[280, 285])
-    approval_sign.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.append(approval_sign)
-
-    doc.build(story)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
+    document_context = {
+        "title": "Ticket Return Request",
+        "department_name": department_name,
+        "telephone_number": telephone_number,
+        "subject": f"ขออนุมัติเบิกจ่ายพร้อมส่งใช้เงินยืม บย. {ticket_number}",
+        "body_paragraphs": [
+            f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น",
+            f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัด โครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
+        ],
+        "items": [
+            (
+                index,
+                getattr(item, "description", None) or PDF_BLANK,
+                _pdf_amount(getattr(item, "amount", None)),
+            )
+            for index, item in enumerate(return_items, 1)
+        ],
+        "amount_text": amount_text,
+        "amount_numeric": amount_numeric,
+        "reference_text": (
+            f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
+            f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตาม เอกสารที่แนบมาพร้อมนี้"
+        ),
+        "head_name": head_name,
+        "head_position": head_position,
+    }
+    return _render_html_with_chromium(
+        _build_reimbursement_letter_html(document_context)
+    )
 
 
 generate_ticket_return_pdf = generate_ticket_return
 
-def generate_fund_request_pdf(fund_request):
-    """
-    ฟังก์ชันสร้างเอกสาร PDF ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย
-    """
-    buffer = BytesIO()
-    
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=45,
-        rightMargin=45,
-        topMargin=16,
-        bottomMargin=16,
-        title=f"MT-Petty-Cash-02_{fund_request.ticket_number}"
+
+def _build_fund_request_html(context):
+    """Build the MT-Petty Cash-02 form for Playwright Chromium."""
+    def escaped(value):
+        return html.escape(str(value), quote=True)
+
+    item_rows = "".join(
+        "<tr>"
+        f'<td class="center">{escaped(index)}</td>'
+        f"<td>{escaped(description)}</td>"
+        f'<td class="amount">{escaped(amount)}</td>'
+        "</tr>"
+        for index, description, amount in context["items"]
     )
-    
-    story = []
-    
+
+    def signature_cells(signatures):
+        return "".join(
+            '<div class="signature-cell">'
+            f"<div>{escaped(label)}</div><div class=\"signature-space\"></div>"
+            f"<div>{escaped(signature_line)}</div><div>(&nbsp;{escaped(name)}&nbsp;)</div>"
+            f"<div>ตำแหน่ง {escaped(position)}</div><div>วันที่ {escaped(date)}</div>"
+            "</div>"
+            for label, signature_line, name, position, date in signatures
+        )
+
+    separator_dots = "." * 260
+
+    return f"""<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>{escaped(context['title'])}</title>
+<style>
+  @font-face {{ font-family: "TH Sarabun New"; src: url("{PDF_REGULAR_FONT_DATA_URI}") format("truetype"); font-weight: 400; }}
+  @font-face {{ font-family: "TH Sarabun New"; src: url("{PDF_BOLD_FONT_DATA_URI}") format("truetype"); font-weight: 700; }}
+  @font-face {{ font-family: "DejaVu Sans"; src: url("{PDF_CHECKBOX_FONT_DATA_URI}") format("truetype"); }}
+  @page {{ size: A4; margin: 0; }}
+  :root {{ --form-border: .5px solid #8c8c8c; }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{ font-family: "TH Sarabun New", sans-serif; font-size: 16pt; line-height: 1.12; color: #000; }}
+  .page {{ width: 210mm; min-height: 297mm; padding: 5.6mm 15.9mm; margin: 0 auto; }}
+  .form-header {{ display: grid; grid-template-columns: 24mm 1fr 36mm; align-items: center; }}
+  .logo {{ width: 24.7mm; height: 24.7mm; object-fit: contain; }}
+  .form-title {{ text-align: center; font-weight: 700; }}
+  .form-code {{ text-align: right; font-size: 13pt; align-self: start; }}
+  .dotted-separator {{
+    height: 1.5mm;
+    margin: 2mm 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 10pt;
+    line-height: .6mm;
+    letter-spacing: .25mm;
+  }}
+  .section-heading {{ display: grid; grid-template-columns: 1fr auto; align-items: start; margin-bottom: .8mm; }}
+  .section-meta {{ text-align: right; font-size: 13pt; line-height: 1.2; }}
+  .section-body {{ margin-bottom: 1.3mm; }}
+  table {{ width: 100%; border-collapse: collapse; table-layout: fixed; }}
+  th, td {{ border: var(--form-border); padding: 1mm 1.2mm; vertical-align: middle; }}
+  th {{ text-align: center; font-weight: 700; }}
+  .item-number {{ width: 17mm; }}
+  .item-amount {{ width: 42mm; }}
+  .center {{ text-align: center; }}
+  .amount {{ text-align: right; white-space: nowrap; }}
+  .total-label {{ text-align: right; font-weight: 700; }}
+  .signature-grid {{ display: grid; border: var(--form-border); border-right: 0; margin-top: 5mm; break-inside: avoid; }}
+  .signature-grid.three {{ grid-template-columns: 1fr 1fr 1.2fr; }}
+  .signature-grid.two {{ grid-template-columns: 1fr 1fr; width: 87%; margin-left: auto; margin-right: auto; }}
+  .signature-cell {{ border-right: var(--form-border); padding: 1.4mm; text-align: center; min-height: 32mm; }}
+  .signature-space {{ height: 6mm; }}
+  .section-two {{ margin-top: 1mm; }}
+  .recipient {{ margin: 0 0 1mm; }}
+  .option {{ margin: 0 0 1mm; text-indent: 24.7mm; text-align: justify; text-justify: inter-word; line-break: strict; }}
+  .checkbox {{ font-family: "DejaVu Sans", sans-serif; text-indent: 0; }}
+  .footer-note {{ margin-top: 1.5mm; font-size: 11pt; line-height: 1; text-align: center; }}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="form-header">
+    <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
+    <div class="form-title">ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย<br>{escaped(context['department'])}</div>
+    <div class="form-code">MT-Petty Cash-02</div>
+  </header>
+  <div class="dotted-separator">{separator_dots}</div>
+  <section>
+    <div class="section-heading"><strong>ส่วนที่ 1 ใบยืมเงินสดย่อย</strong><div class="section-meta">เลขที่ใบเบิกเงิน {escaped(context['ticket_number'])}<br>วันที่ {escaped(context['date_thai'])}</div></div>
+    <div class="section-body">ข้าพเจ้า {escaped(context['requester'])} ตำแหน่ง {escaped(context['requester_position'])} มีความประสงค์ขอยืมเงินสดย่อย<br>เพื่อ{escaped(context['purpose'])} มีรายละเอียดดังนี้</div>
+    <table>
+      <thead><tr><th class="item-number">ลำดับ</th><th>รายการ</th><th class="item-amount">จำนวนเงิน (บาท)</th></tr></thead>
+      <tbody>{item_rows}<tr><td class="total-label" colspan="2">รวมเป็นเงินทั้งสิ้น</td><td class="amount"><strong>{escaped(context['total_amount'])}</strong></td></tr></tbody>
+    </table>
+    <div class="signature-grid three">{signature_cells(context['section_one_signatures'])}</div>
+  </section>
+  <div class="dotted-separator">{separator_dots}</div>
+  <section class="section-two">
+    <div class="section-heading"><strong>ส่วนที่ 2 ใบเบิกเงิน</strong><div class="section-meta">เลขที่ใบเบิกเงิน {escaped(context['ticket_number'])}<br>วันที่ {escaped(context['date_thai'])}</div></div>
+    <p class="recipient"><strong>เรียน</strong>&nbsp;&nbsp;{escaped(context['head_position'])}</p>
+    <p class="option"><span class="checkbox">{escaped(context['petty_checkbox'])}</span> {escaped(context['petty_text'])}</p>
+    <p class="option"><span class="checkbox">{escaped(context['interest_checkbox'])}</span> {escaped(context['interest_text_before'])}&nbsp;<span class="checkbox">{escaped(context['june_checkbox'])}</span> งวดเดือน มิถุนายน พ.ศ. {escaped(context['period_year'])}&nbsp;<span class="checkbox">{escaped(context['december_checkbox'])}</span> งวดเดือน ธันวาคม พ.ศ. {escaped(context['period_year'])}<br>{escaped(context['interest_text_after'])}</p>
+    <div class="signature-grid two">{signature_cells(context['section_two_signatures'])}</div>
+    <div class="footer-note">หมายเหตุ: ใบเสร็จแต่ละใบจะต้องมียอดไม่เกิน -20,000- บาท</div>
+  </section>
+</main>
+</body>
+</html>"""
+
+
+def generate_fund_request_pdf(fund_request):
+    """Generate the MT-Petty Cash-02 form with Playwright Chromium."""
     form_type = str(fund_request.form_type or "")
     is_interest_form = form_type == FUND_REQUEST_FORM_INTEREST
     is_borrowing_form = form_type == FUND_REQUEST_FORM_BORROWING_TICKET
@@ -1780,67 +1857,9 @@ def generate_fund_request_pdf(fund_request):
     amount_str = _pdf_amount(amount_val)
     amount_text_th = bahttext(amount_val) if amount_val is not None else PDF_BLANK
 
-    # Header & Logo
-    logo_path = os.path.join(BASE_DIR, 'static', 'logo-MU_black-white-2-1.png')
-    if os.path.exists(logo_path):
-        from reportlab.platypus import Image
-        logo_flowable = Image(logo_path, width=70, height=70)
-    else:
-        d = Drawing(70, 70)
-        d.add(Circle(35, 35, 31, strokeColor=colors.black, strokeWidth=1, fillColor=colors.white))
-        logo_flowable = d
-
     dept_display = getattr(org, "name", None) or missing_department_notice()
-    form_title_text = "ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย"
-    header_title = Paragraph(
-        f"<b>{form_title_text}</b><br/>"
-        f"<b>{dept_display}</b>", 
-        styles['ThaiCenterBold']
-    )
-    header_code = Paragraph("MT-Petty Cash-02", styles['ThaiSmallRight'])
-    
-    header_table = Table([[logo_flowable, header_title, header_code]], colWidths=[60, 345, 100])
-    header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    story.append(header_table)
-    story.append(draw_dotted_line())
-
-    # ส่วนที่ 1 ใบยืมเงินสดย่อย
-    sec1_title_l = Paragraph("<b>ส่วนที่ 1 ใบยืมเงินสดย่อย</b>", styles['ThaiBold'])
-    sec1_title_r = Paragraph(
-        f"เลขที่ใบเบิกเงิน {ticket_number}<br/>"
-        f"วันที่ {date_thai}", 
-        styles['ThaiSmallRight']
-    )
-    sec1_header_table = Table([[sec1_title_l, sec1_title_r]], colWidths=[240, 265])
-    sec1_header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-    ]))
-    story.append(sec1_header_table)
-    story.append(Spacer(1, 2))
-
-    sec1_body = Paragraph(
-        f"ข้าพเจ้า {requester} ตำแหน่ง {requester_pos} มีความประสงค์ขอยืมเงินสดย่อย<br/>"
-        f"เพื่อ{purpose if not is_interest_form else PDF_BLANK} มีรายละเอียดดังนี้",
-        styles['ThaiNormal']
-    )
-    story.append(sec1_body)
-    story.append(Spacer(1, 4))
-
-    # ==================== ตารางรายการ ====================
-    table_data = [
-        [
-            Paragraph("<b>ลำดับ</b>", styles['ThaiCenterBold']),
-            Paragraph("<b>รายการ</b>", styles['ThaiCenterBold']),
-            Paragraph("<b>จำนวนเงิน (บาท)</b>", styles['ThaiCenterBold'])
-        ]
-    ]
-
     items = fund_request.items if hasattr(fund_request, 'items') and fund_request.items else []
+    item_rows = []
     total_amount = 0.0
     has_total_amount = False
 
@@ -1849,11 +1868,11 @@ def generate_fund_request_pdf(fund_request):
         ticket_amount = borrowing_ticket.required_budget
         if ticket_amount is None:
             ticket_amount = amount_val
-        table_data.append([
-            Paragraph("1", styles['ThaiCenter']),
-            Paragraph(f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_no}", styles['ThaiNormal']),
-            Paragraph(_pdf_amount(ticket_amount), styles['ThaiRight'])
-        ])
+        item_rows.append((
+            "1",
+            f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_no}",
+            _pdf_amount(ticket_amount),
+        ))
         total_amount = float(ticket_amount) if ticket_amount is not None else 0.0
         has_total_amount = ticket_amount is not None
     elif not is_interest_form and items:
@@ -1861,73 +1880,13 @@ def generate_fund_request_pdf(fund_request):
             amt = float(item.amount or 0)
             total_amount += amt
             has_total_amount = has_total_amount or item.amount is not None
-            table_data.append([
-                Paragraph(str(idx), styles['ThaiCenter']),
-                Paragraph(item.description or PDF_BLANK, styles['ThaiNormal']),
-                Paragraph(_pdf_amount(item.amount), styles['ThaiRight'])
-            ])
+            item_rows.append((
+                str(idx),
+                item.description or PDF_BLANK,
+                _pdf_amount(item.amount),
+            ))
     else:
-        table_data.append([
-            Paragraph("&nbsp;", styles['ThaiCenter']),
-            Paragraph("&nbsp;", styles['ThaiNormal']),
-            Paragraph("&nbsp;", styles['ThaiRight'])
-        ])
-
-    table_data.append([
-        Paragraph("<b>รวมเป็นเงินทั้งสิ้น</b>", styles['ThaiRightBold']),
-        "",
-        Paragraph(f"<b>{_pdf_amount(total_amount if has_total_amount else None)}</b>", styles['ThaiRightBold'])
-    ])
-
-    last_row_idx = len(table_data) - 1
-
-    item_table = Table(table_data, colWidths=[50, 325, 120])
-    item_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('SPAN', (0, last_row_idx), (1, last_row_idx)),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-    ]))
-    
-    story.append(item_table)
-    story.append(Spacer(1, 15))
-
-    sig_box_data_1 = [
-        [
-            Paragraph(f"ลงชื่อผู้ขอยืม<br/><br/>{requester_signature_line}<br/>( {requester} )<br/>ตำแหน่ง {requester_pos}<br/>วันที่ {requester_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>{custodian_signature_line}<br/>( {custodian_name} )<br/>ตำแหน่ง {custodian_position}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>{head_signature_line}<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
-        ]
-    ]
-    t_sig1 = Table(sig_box_data_1, colWidths=[165, 165, 200])
-    t_sig1.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-    ]))
-    story.append(t_sig1)
-    story.append(draw_dotted_line())
-
-    # ส่วนที่ 2 ใบเบิกเงิน
-    # =========================================================================
-    # ส่วนที่ 2 ใบเบิกเงิน (เงื่อนไข dynamic ตาม form_type)
-    # =========================================================================
-    sec2_title_l = Paragraph("<b>ส่วนที่ 2 ใบเบิกเงิน</b>", styles['ThaiBold'])
-    sec2_title_r = Paragraph(
-        f"เลขที่ใบเบิกเงิน {ticket_number}<br/>"
-        f"วันที่ {date_thai}", 
-        styles['ThaiSmallRight']
-    )
-    sec2_header_table = Table([[sec2_title_l, sec2_title_r]], colWidths=[240, 265])
-    sec2_header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-    ]))
-    story.append(sec2_header_table)
-    story.append(Spacer(1, 2))
+        item_rows.append((PDF_BLANK, PDF_BLANK, PDF_BLANK))
 
     dept_name = getattr(org, "name", None) or missing_department_notice()
     today = datetime.now().date()
@@ -1953,8 +1912,8 @@ def generate_fund_request_pdf(fund_request):
         if bank_account_info and bank_account_info.thai_name
         else PDF_BLANK
     )
-    chk_box = '<font name="DejaVuSans">&#x2610;</font>'
-    chk_box_checked = '<font name="DejaVuSans">&#x2611;</font>'
+    chk_box = "☐"
+    chk_box_checked = "☑"
 
     if not is_interest_form:
         box_petty_cash = chk_box_checked
@@ -2005,61 +1964,44 @@ def generate_fund_request_pdf(fund_request):
         p_amt_str_2 = f"-{amount_str}-" if amount_str.strip() else PDF_BLANK
         p_amt_text_2 = amount_text_th
 
-    # ใช้ Paragraph แยกเป็นย่อหน้า และใช้ firstLineIndent จาก ThaiOfficial
-    # แทนการนับ &nbsp; เพื่อให้ checkbox ของแต่ละรายการเริ่มตำแหน่งเดียวกัน
-    sec2_body_paragraphs = [
-        Paragraph(f"<b>เรียน</b> &nbsp;&nbsp;{head_position}", styles['ThaiJustify']),
-        Paragraph(
-            f"{box_petty_cash} ขออนุมัติเบิกเงินสดย่อยจากบัญชี{acc_name} "
-            f"เลขที่บัญชี {p_acc_1} เป็นจำนวนเงิน {p_amt_str_1} บาท "
-            f"({p_amt_text_1}) ตามใบยืมเงินสดย่อยเลขที่ {p_borrow_no} "
-            f"ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม",
-            styles['ThaiOfficial'],
+    context = {
+        "title": f"MT-Petty-Cash-02_{fund_request.ticket_number}",
+        "department": dept_display,
+        "ticket_number": ticket_number,
+        "date_thai": date_thai,
+        "requester": requester,
+        "requester_position": requester_pos,
+        "purpose": purpose if not is_interest_form else PDF_BLANK,
+        "items": item_rows,
+        "total_amount": _pdf_amount(total_amount if has_total_amount else None),
+        "section_one_signatures": [
+            ("ลงชื่อผู้ขอยืม", requester_signature_line, requester, requester_pos, requester_signature_date),
+            ("ลงชื่อผู้เก็บรักษาเงินสดย่อย", custodian_signature_line, custodian_name, custodian_position, custodian_signature_date),
+            ("ลงชื่อผู้อนุมัติ", head_signature_line, head_name, head_position, approver_signature_date),
+        ],
+        "head_position": head_position,
+        "petty_checkbox": box_petty_cash,
+        "petty_text": (
+            f"ขออนุมัติเบิกเงินสดย่อยจากบัญชี{acc_name} เลขที่บัญชี {p_acc_1} "
+            f"เป็นจำนวนเงิน {p_amt_str_1} บาท ({p_amt_text_1}) ตามใบยืมเงินสดย่อยเลขที่ "
+            f"{p_borrow_no} ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม"
         ),
-        Paragraph(
-            f"{box_interest} ขออนุมัติเบิกดอกเบี้ย &nbsp;{box_june} งวดเดือน มิถุนายน พ.ศ. {p_period_yr} "
-            f"&nbsp;{box_dec} งวดเดือน ธันวาคม พ.ศ. {p_period_yr}<br/>"
+        "interest_checkbox": box_interest,
+        "june_checkbox": box_june,
+        "december_checkbox": box_dec,
+        "period_year": p_period_yr,
+        "interest_text_before": "ขออนุมัติเบิกดอกเบี้ย",
+        "interest_text_after": (
             f"จากบัญชี {p_dept_2} เลขที่บัญชี {p_acc_1} ชื่อบัญชี {acc_name} "
-            f"เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
-            f"และขออนุมัตินำส่งดอกเบี้ยเข้าเป็นเงินรายได้คณะฯ "
-            f"โอนเข้าบัญชี เลขที่ 016-300-325-6 ชื่อบัญชีมหาวิทยาลัยมหิดล",
-            styles['ThaiOfficial'],
+            f"เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) และขออนุมัตินำส่งดอกเบี้ย"
+            "เข้าเป็นเงินรายได้คณะฯ โอนเข้าบัญชี เลขที่ 016-300-325-6 ชื่อบัญชีมหาวิทยาลัยมหิดล"
         ),
-    ]
-    story.extend(sec2_body_paragraphs)
-    story.append(Spacer(1, 6))
-
-    sig_box_data_2 = [
-        [
-            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>{custodian_signature_line}<br/>( {custodian_name} )<br/>ตำแหน่ง {custodian_position}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>{head_signature_line}<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
-        ]
-    ]
-    t_sig2 = Table(sig_box_data_2, colWidths=[220, 220])
-    t_sig2.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
-    
-    t_sig2_container = Table([[t_sig2]], colWidths=[505])
-    t_sig2_container.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-    footer_text = Paragraph(
-        # "แบบฟอร์ม MT-Petty Cash-02 ใช้สำหรับขออนุมัติยืมเงินและเบิกถอนเงินสำหรับดำเนินงานภายในภาควิชาฯ/ศูนย์ฯ/งานฯ "
-        # "และเบิกถอนดอกเบี้ย ทำรายการเป็นครั้งๆ",
-        "หมายเหตุ: ใบเสร็จแต่ละใบจะต้องมียอดไม่เกิน -20,000- บาท",
-        styles['ThaiFooter']
-    )
-    story.append(KeepTogether([t_sig2_container, Spacer(1, 4), footer_text]))
-
-    doc.build(story)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
+        "section_two_signatures": [
+            ("ลงชื่อผู้เก็บรักษาเงินสดย่อย", custodian_signature_line, custodian_name, custodian_position, custodian_signature_date),
+            ("ลงชื่อผู้อนุมัติ", head_signature_line, head_name, head_position, approver_signature_date),
+        ],
+    }
+    return _render_html_with_chromium(_build_fund_request_html(context))
 
 
 def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
