@@ -4,7 +4,8 @@
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom">
-  <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
+  <a href="{{ url_for('advance_payment.petty_cash_pending_approvals') if advance_payment_is_org_head else url_for('advance_payment.staff_fund_request_history') }}"
+     title="{{ 'กลับไปยังรายการรออนุมัติ' if advance_payment_is_org_head else 'กลับไปยังรายการเงินสดย่อย' }}">
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
   <h1 class="fw-bold display-6 mb-2">ใบส่งเบิกเงินสดย่อย</h1>
