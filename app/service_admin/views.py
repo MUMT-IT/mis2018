@@ -5395,11 +5395,9 @@ def add_metabolomic_condition_item():
                     </th>
                     <th style="border: none">{}</th>
                     <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
@@ -5420,11 +5418,9 @@ def add_metabolomic_condition_item():
     resp = template.format(item_form.id,
                            index,
                            item_form.sample_name.label,
-                           item_form.clean_up.label,
                            item_form.untargeted_metabolomic.label,
                            item_form.quantitative_metabolomic.label,
                            item_form.sample_name(class_='input'),
-                           item_form.clean_up(),
                            item_form.untargeted_metabolomic(),
                            item_form.quantitative_metabolomic(),
                            url_for('service_admin.remove_metabolomic_condition_item', name=item_form.id)
