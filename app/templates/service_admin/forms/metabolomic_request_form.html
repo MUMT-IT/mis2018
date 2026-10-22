@@ -65,7 +65,6 @@
                                                     {{ item_form.sample_name.label }}
                                                     <span class="has-text-danger">*</span>
                                                 </th>
-                                                <th style="border: none">{{ item_form.clean_up.label }}</th>
                                                 <th style="border: none">{{ item_form.untargeted_metabolomic.label }}</th>
                                                 <th style="border: none">{{ item_form.quantitative_metabolomic.label }}</th>
                                             </thead>
@@ -73,9 +72,6 @@
                                                 <tr>
                                                     <td style="border: none" class="control">
                                                         {{ item_form.sample_name(class='input') }}
-                                                    </td>
-                                                    <td style="border: none" class="control">
-                                                        {{ item_form.clean_up() }}
                                                     </td>
                                                     <td style="border: none" class="control">
                                                         {{ item_form.untargeted_metabolomic() }}
