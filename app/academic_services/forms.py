@@ -1419,10 +1419,14 @@ class SDSPageRequestForm(FlaskForm):
                                          "oninput": "this.setCustomValidity('')"
                                          })
     sample_type_other = StringField('Other')
-    sample_amount = StringField('Sample amount (mg/ml)', validators=[DataRequired()],
-                                render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
-                                           "oninput": "this.setCustomValidity('')"
-                                           })
+    sample_amount = FloatField('Sample amount (mg/ml)', validators=[DataRequired()],
+                               render_kw={
+                                   "type": "number",
+                                   "min": "0",
+                                   "step": "any",
+                                   "oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                   "oninput": "this.setCustomValidity('')"
+                               })
     image_capture = CheckboxField('Image capture', choices=[('Capture', 'Capture')])
     image_analysis = CheckboxField('Image analysis', choices=[('Analysis', 'Analysis')])
     comment = StringField('Comments')
