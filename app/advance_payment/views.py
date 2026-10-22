@@ -804,25 +804,17 @@ def _fund_request_signature_state(fund_request):
 
 
 def _fund_request_can_be_edited(user, fund_request):
-    """Allow temporary edits without resetting an existing approval."""
+    """Allow creator edits before another actor, or custodian edits pre-approval."""
     user_id = getattr(user, "id", None)
     creator_id = getattr(fund_request, "creator_id", None)
-    custodian_id = _fund_request_custodian_id(fund_request)
-    status = (getattr(fund_request, "status", None) or "").strip()
-
     if (
         not user_id
         or getattr(fund_request, "is_legacy_import", False)
-        or status not in {"รอการอนุมัติ", "เบิกเงินแล้ว"}
+        or (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ"
     ):
         return False
 
-    # TEMPORARY: อนุญาตให้แก้รายการที่เบิกเงินแล้ว
-    # โดยเก็บผลการอนุมัติเดิมไว้
-    if status == "เบิกเงินแล้ว":
-        return user_id in {creator_id, custodian_id}
-
-    if user_id == custodian_id:
+    if user_id == _fund_request_custodian_id(fund_request):
         return getattr(fund_request, "approved_at", None) is None
 
     if creator_id != user_id:
@@ -836,6 +828,7 @@ def _fund_request_can_be_edited(user, fund_request):
         actor_id = getattr(fund_request, actor_attr, None)
         if actor_id not in {None, creator_id}:
             return False
+        # A timestamp without an actor cannot be proven to belong to the creator.
         if acted_at and actor_id != creator_id:
             return False
 
@@ -9939,13 +9932,13 @@ def record_fund_request_withdrawal(request_id):
     if not staff.is_authenticated or not _is_petty_cash_custodian(staff, setting):
         abort(403)
 
-    # if (
-    #     (fund_req.status or "").strip() != "อนุมัติแล้ว"
-    #     or not _fund_request_is_fully_approved(fund_req)
-    # ):
-    #     return _validation_error_response(
-    #         "ไม่สามารถบันทึกวันที่เบิกได้จนกว่าการยืนยันและอนุมัติจะครบถ้วน"
-    #     )
+    if (
+        (fund_req.status or "").strip() != "อนุมัติแล้ว"
+        or not _fund_request_is_fully_approved(fund_req)
+    ):
+        return _validation_error_response(
+            "ไม่สามารถบันทึกวันที่เบิกได้จนกว่าการยืนยันและอนุมัติจะครบถ้วน"
+        )
 
     request_date = _coerce_date(request.form.get("request_date"))
     if request_date is None:
@@ -11840,9 +11833,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     )
     can_record_fund_request_withdrawal = bool(
         verification_fund_request
-        and fund_request_status in ["อนุมัติแล้ว","รอการอนุมัติ"]
+        and fund_request_status == "อนุมัติแล้ว"
         and current_is_custodian
-        #and _fund_request_is_fully_approved(verification_fund_request)
+        and _fund_request_is_fully_approved(verification_fund_request)
     )
     can_edit_fund_request = bool(
         verification_fund_request
