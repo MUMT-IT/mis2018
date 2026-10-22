@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <style>
+        .hide-choice label {
+            font-size: 0;
+        }
+
+        .hide-choice input {
+            margin-right: 5px;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "service_admin/admin_nav.html" %}
@@ -15,12 +24,6 @@
                         <div class="box">
                             <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
                             <hr style="background-color: gainsboro">
-                            <div class="field">
-                                <label class="label">{{ form.processing_data.label }}</label>
-                                <div class="control">
-                                    {{ form.processing_data() }}
-                                </div>
-                            </div>
                             <div class="field">
                                 <label class="label">
                                     {{ form.sample_species.label }}
@@ -46,12 +49,6 @@
                                 </label>
                                 <div class="control">
                                     {{ form.buffer_condition(class='input') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.comment.label }}</label>
-                                <div class="control">
-                                    {{ form.comment(class='input') }}
                                 </div>
                             </div>
                         </div>
@@ -128,6 +125,22 @@
 {#                                        <span class="">ลบ</span>#}
 {#                                    </a>#}
 {#                                </div>#}
+                            </div>
+                        </div>
+                        <div class="box">
+                            <div class="field">
+                                <label class="checkbox" style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="hide-choice">
+                                        {{ form.processing_data() }}
+                                    </span>
+                                    <strong>{{ form.processing_data.label.text }}</strong>
+                                </label>
+                            </div>
+                            <div class="field" style="display: flex; align-items: center; gap: 10px;">
+                                <label class="label">{{ form.comment.label }}</label>
+                                <div class="control" style="flex: 1;">
+                                    {{ form.comment(class='input') }}
+                                </div>
                             </div>
                         </div>
                         <div class="field is-grouped is-justify-content-center">
