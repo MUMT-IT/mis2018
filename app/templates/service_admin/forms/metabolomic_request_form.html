@@ -131,7 +131,7 @@
                             </div>
                         </div>
                         <div class="box">
-                            <div class="field">
+                            <div class="field" id="process-data-field" style="display:none;">
                                 <label class="checkbox" style="display: flex; align-items: center; gap: 8px;">
                                     <span class="hide-choice">
                                         {{ form.processing_data() }}
@@ -159,6 +159,21 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        $(document).ready(function () {
+            function showField() {
+                const metabolomicType = document.querySelector('[name="metabolomic_type"]');
+                const processDataField = document.getElementById('process-data-field')
+                if (metabolomicType.value === "Quantitative") {
+                    processDataField.style.display = "block";
+                } else {
+                    processDataField.style.display = "none";
+                }
+            }
+            showField()
+            document.querySelector('select[name="metabolomic_type"]').addEventListener("change", showField)
+        })
+    </script>
     <script>
         function renumberItems() {
             const items = document.querySelectorAll('#condition-field .condition-item');
