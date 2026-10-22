@@ -274,7 +274,7 @@
         </div>
       {% elif advance_payment_role != 'finance' and borrowing_ticket.status|lower != 'ปฏิเสธ'  %}
         <div class="d-flex justify-content-end mt-3">
-          <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
+          <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-dark" style="border-radius:6px;" target="_blank">
             <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญาเงินยืม
           </a>
         </div>
@@ -285,6 +285,21 @@
              class="btn btn-outline-secondary">
             <i class="bi bi-pencil-square me-1"></i>แก้ไขสัญญาเงินยืม
           </a>
+        </div>
+      {% endif %}
+      {% if can_delete_borrowing_ticket %}
+        <div class="d-flex justify-content-end mt-3">
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            data-popup-trigger="true"
+            data-popup-title="ยืนยันการลบสัญญาเงินยืม"
+            data-popup-message="คุณต้องการลบสัญญาเงินยืมนี้ใช่หรือไม่? เมื่อลบแล้วจะไม่สามารถเรียกคืนข้อมูลได้"
+            data-popup-action="{{ request.script_root }}/advance_payment/tickets/{{ borrowing_ticket.id }}/delete"
+            data-popup-confirm-text="ยืนยันการลบ"
+            data-popup-confirm-class="btn-danger">
+            <i class="bi bi-trash me-1"></i>ลบสัญญาเงินยืม
+          </button>
         </div>
       {% endif %}
     </div>
