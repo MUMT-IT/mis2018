@@ -74,18 +74,18 @@
                                                     {{ item_form.sample_name.label }}
                                                     <span class="has-text-danger">*</span>
                                                 </th>
-                                                <th style="border: none">{{ item_form.untargeted_metabolomic.label }}</th>
-                                                <th style="border: none">{{ item_form.quantitative_metabolomic.label }}</th>
+                                                <th style="border: none" data-metabolomic-type="Untargeted">{{ item_form.untargeted_metabolomic.label }}</th>
+                                                <th style="border: none" data-metabolomic-type="Quantitative">{{ item_form.quantitative_metabolomic.label }}</th>
                                             </thead>
                                             <tbody>
                                                 <tr>
                                                     <td style="border: none" class="control">
                                                         {{ item_form.sample_name(class='input') }}
                                                     </td>
-                                                    <td style="border: none" class="control">
+                                                    <td style="border: none" class="control" data-metabolomic-type="Untargeted">
                                                         {{ item_form.untargeted_metabolomic() }}
                                                     </td>
-                                                    <td style="border: none" class="control">
+                                                    <td style="border: none" class="control" data-metabolomic-type="Quantitative">
                                                         {{ item_form.quantitative_metabolomic() }}
                                                     </td>
                                                     <td style="border: none">
@@ -170,8 +170,37 @@
                     processDataField.style.display = "none";
                 }
             }
+
+            function updateMetabolomicConditionFields() {
+                const metabolomicType = document.querySelector('[name="metabolomic_type"]');
+                const selectedType = metabolomicType ? metabolomicType.value : '';
+
+                document.querySelectorAll('[data-metabolomic-type]').forEach(function (field) {
+                    field.style.display = selectedType === field.dataset.metabolomicType ? '' : 'none';
+                });
+
+                document.querySelectorAll('#condition-field .condition-item').forEach(function (item) {
+                    const untargetedField = item.querySelector('input[name$="untargeted_metabolomic"]');
+                    const quantitativeField = item.querySelector('input[name$="quantitative_metabolomic"]');
+
+                    if (selectedType === 'Untargeted') {
+                        if (quantitativeField) quantitativeField.checked = false;
+                    } else if (selectedType === 'Quantitative') {
+                        if (untargetedField) untargetedField.checked = false;
+                    } else {
+                        if (untargetedField) untargetedField.checked = false;
+                        if (quantitativeField) quantitativeField.checked = false;
+                    }
+                });
+            }
+
             showField()
-            document.querySelector('select[name="metabolomic_type"]').addEventListener("change", showField)
+            updateMetabolomicConditionFields();
+            document.querySelector('select[name="metabolomic_type"]').addEventListener("change", function () {
+                showField();
+                updateMetabolomicConditionFields();
+            });
+            document.body.addEventListener('htmx:afterSwap', updateMetabolomicConditionFields);
         })
     </script>
     <script>
