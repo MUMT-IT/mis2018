@@ -1034,31 +1034,32 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
     return quota_limit
 
 def get_seminar_yearly_budget(staff_account_id, start_datetime):
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(start_datetime)
+    START_FISCAL_DATE, _ = get_fiscal_date(start_datetime)
+    NEXT_FISCAL_DATE = datetime(START_FISCAL_DATE.year + 1, 10, 1)
     yearly_budget = SeminarYearlyBudget.query.filter_by(staff_account_id=staff_account_id,
                                                         year=START_FISCAL_DATE.year).first()
-    if yearly_budget:
-        return yearly_budget
-
     staff_account = StaffAccount.query.get(staff_account_id)
     total_budget = 15000 if staff_account.personal_info.academic_staff else 10000
-    total_used = 0
-    for a in StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
-             StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
-             StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all():
-        if any("IDP" in obj.objective for obj in a.objectives):
-            if a.budget:
-                total_used += a.budget
-    seminar_yearly_budget = SeminarYearlyBudget(
-            staff=staff_account,
-            year=START_FISCAL_DATE.year,
-            budget=total_budget,
-            total_used=total_used,
-            remaining=total_budget - total_used
-    )
-    db.session.add(seminar_yearly_budget)
+    fiscal_start = tz.localize(START_FISCAL_DATE)
+    next_fiscal_start = tz.localize(NEXT_FISCAL_DATE)
+    idp_attends = StaffSeminarAttend.query.outerjoin(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminarAttend.staff_account_id == staff_account_id,
+        func.coalesce(StaffSeminar.start_datetime, StaffSeminarAttend.start_datetime) >= fiscal_start,
+        func.coalesce(StaffSeminar.start_datetime, StaffSeminarAttend.start_datetime) < next_fiscal_start,
+        StaffSeminarAttend.objectives.any(StaffSeminarObjective.objective.contains('IDP'))
+    ).all()
+    total_used = sum(attend.budget or 0 for attend in idp_attends)
+
+    if yearly_budget is None:
+        yearly_budget = SeminarYearlyBudget(staff=staff_account, year=START_FISCAL_DATE.year)
+        db.session.add(yearly_budget)
+    yearly_budget.budget = total_budget
+    yearly_budget.total_used = total_used
+    yearly_budget.remaining = total_budget - total_used
     db.session.commit()
-    return seminar_yearly_budget
+    return yearly_budget
 
 def get_org_and_children_ids(org):
     ids = [org.id]
@@ -6580,10 +6581,6 @@ def seminar_create_record(seminar_id):
                 db.session.add(document_approver)
                 if "IDP" in request.form.get('objective'):
                     yearly_budget = get_seminar_yearly_budget(staff_account.id, seminar.start_datetime)
-                    if attend.budget:
-                        yearly_budget.total_used = yearly_budget.total_used + attend.budget
-                        yearly_budget.remaining = yearly_budget.remaining - attend.budget
-                        db.session.add(yearly_budget)
                     idp_items = request.form.getlist('idps')
                     if idp_items:
                         from app.PA.models import IDPItem
@@ -6635,10 +6632,6 @@ def seminar_create_record(seminar_id):
             db.session.add(document_approver)
             if "IDP" in request.form.get('objective'):
                 yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
-                if attend.budget:
-                    yearly_budget.total_used = yearly_budget.total_used + attend.budget
-                    yearly_budget.remaining = yearly_budget.remaining - attend.budget
-                    db.session.add(yearly_budget)
                 idp_items = request.form.getlist('idps')
                 if idp_items:
                     from app.PA.models import IDPItem
@@ -7068,10 +7061,24 @@ def seminar_add_attendee(seminar_id):
 @login_required
 def delete_participant(attend_id):
     attend = StaffSeminarAttend.query.get(attend_id)
+    seminar_id = attend.seminar_id
+    staff_account_id = attend.staff_account_id
+    seminar_start_datetime = attend.seminar.start_datetime if attend.seminar else attend.start_datetime
+    is_idp = any('IDP' in objective.objective for objective in attend.objectives)
+    if is_idp and attend.budget:
+        fiscal_start, _ = get_fiscal_date(seminar_start_datetime)
+        yearly_budget = SeminarYearlyBudget.query.filter_by(
+            staff_account_id=staff_account_id,
+            year=fiscal_start.year
+        ).first()
+        if yearly_budget:
+            yearly_budget.total_used = yearly_budget.total_used - attend.budget
+            yearly_budget.remaining = yearly_budget.remaining + attend.budget
+            db.session.add(yearly_budget)
     db.session.delete(attend)
     db.session.commit()
-    seminar = StaffSeminar.query.get(attend.seminar_id)
-    attends = StaffSeminarAttend.query.filter_by(seminar_id=attend.seminar_id).all()
+    seminar = StaffSeminar.query.get(seminar_id)
+    attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
     return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
 
 
@@ -7159,6 +7166,20 @@ def show_seminar_info_each_person(record_id):
     _,END_FISCAL_DATE  = get_fiscal_date(attend.start_datetime)
     fiscal_year = END_FISCAL_DATE.year+543
     is_deduct_transfer = '' if not attend.deduct_transfer else f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_year}'
+    seminar_start_local = seminar_attend.start_datetime.astimezone(tz) if seminar_attend.start_datetime else None
+    thai_months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+    seminar_start_date_thai = (
+        f'{seminar_start_local.day} {thai_months[seminar_start_local.month - 1]} '
+        f'{seminar_start_local.year + 543}'
+        if seminar_start_local else ''
+    )
+    seminar_end_local = seminar_attend.end_datetime.astimezone(tz) if seminar_attend.end_datetime else None
+    seminar_end_date_thai = (
+        f'{seminar_end_local.day} {thai_months[seminar_end_local.month - 1]} '
+        f'{seminar_end_local.year + 543}'
+        if seminar_end_local else ''
+    )
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
@@ -7167,6 +7188,8 @@ def show_seminar_info_each_person(record_id):
                            taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
                            prefix_position=prefix_position, telephone=telephone,
                            proposer_list_text=proposer_list_text, proposer_names=proposer_names,
+                           seminar_start_date_thai=seminar_start_date_thai,
+                           seminar_end_date_thai=seminar_end_date_thai,
                            approver=approver, approver_position=approver_position, idp_value=idp_value,
                            idp_pre_item=idp_pre_item, idp_item=idp_item, is_deduct_transfer=is_deduct_transfer)
 

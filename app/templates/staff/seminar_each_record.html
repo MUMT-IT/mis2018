@@ -295,6 +295,18 @@
                 </div>
             </div>
         </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.seminar_attends_each_person') }}" class="button is-light">
+                        <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                            <span>หน้าหลักการอบรม</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
     </div>
 </section>
@@ -378,7 +390,7 @@
                                 'ประเภท '+"{{ seminar_attend.seminar.topic_type }}",
                                 'หน่วยงานที่จัด '+"{{ seminar_attend.seminar.organize_by }}",
                                 'ข้อมูลการขออนุมัติหัวข้อ '+"{{ seminar_attend.seminar.topic }}"+
-                                '\nระยะเวลาสถานที่จัด '+"{{ seminar_attend.start_datetime|localdatetime }}"+' น. ถึง '+ "{{ seminar_attend.end_datetime|localdatetime  }}"+' น.'+
+                                '\nระยะเวลาสถานที่จัด '+"{{ seminar_start_date_thai }} {{ seminar_attend.start_datetime|localtime }}"+' น. ถึง '+ "{{ seminar_end_date_thai }} {{ seminar_attend.end_datetime|localtime  }}"+' น.'+
                                 '\nสถานที่จัด '+"{{ seminar_attend.seminar.location }}"+"{{ attend_online }}" ,
                                 'ค่าลงทะเบียน จำนวน '+"{{ registration_fee }}"+ ' บาท '+"{{ transaction_fee }}"+"{{ accommodation_cost }}"
                                 +"{{ flight_ticket_cost }}"+"{{ train_ticket_cost }}"+"{{ taxi_cost }}"+"{{ fuel_cost }}"
