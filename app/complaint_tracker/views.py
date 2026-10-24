@@ -1059,7 +1059,7 @@ def repair_request_landing():
 
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
-    topic = ComplaintTopic.query.get(topic_id)
+    topic = ComplaintTopic.query.get_or_404(topic_id)
     ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
     room_number = request.values.get('number')
@@ -1453,7 +1453,7 @@ def admin_index():
 
 @complaint_tracker.route('/topics/<code>')
 def scan_qr_code_room(code):
-    topic = ComplaintTopic.query.filter_by(code=code).first()
+    topic = ComplaintTopic.query.filter_by(code=code).first_or_404()
     return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, **request.args))
 
 
