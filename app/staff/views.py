@@ -7098,8 +7098,8 @@ def cancel_seminar(seminar_id):
 def seminar_attends_each_person():
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     seminar_records = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None,
-                                        StaffSeminar.end_datetime >= START_FISCAL_DATE - timedelta(days=90),
-                                        StaffSeminar.start_datetime <= END_FISCAL_DATE + timedelta(days=90)).all()
+                                        StaffSeminar.end_datetime >= START_FISCAL_DATE - timedelta(days=60),
+                                        StaffSeminar.start_datetime <= END_FISCAL_DATE + timedelta(days=60)).all()
     # for seminars in seminar_query:
         # if seminars.upload_file_url:
         #     upload_file = drive.CreateFile({'id': seminars.upload_file_url})
