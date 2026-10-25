@@ -172,11 +172,28 @@
                 return {
                     startDateTime: null,
                     endDateTime: null,
+                    syncingEndDateTime: false,
                     data: [],
                     timepicker: {
                         incrementMinutes: 15
                     },
                     file: null,
+                }
+            },
+            watch: {
+                startDateTime: function (value) {
+                    if (!value || this.syncingEndDateTime) {
+                        return;
+                    }
+                    const start = new Date(value);
+                    if (Number.isNaN(start.getTime())) {
+                        return;
+                    }
+                    this.syncingEndDateTime = true;
+                    this.endDateTime = new Date(start.getTime() + 3 * 60 * 60 * 1000);
+                    this.$nextTick(() => {
+                        this.syncingEndDateTime = false;
+                    });
                 }
             },
             computed: {
@@ -215,9 +232,10 @@
                 topicTypeSelect.value = data.topic_type;
             }
             if (data.start_datetime) {
-                vm.startDateTime = new Date(data.start_datetime);
-            }
-            if (data.end_datetime) {
+                const suggestedStart = new Date(data.start_datetime);
+                vm.startDateTime = suggestedStart;
+                vm.endDateTime = new Date(suggestedStart.getTime() + 3 * 60 * 60 * 1000);
+            } else if (data.end_datetime) {
                 vm.endDateTime = new Date(data.end_datetime);
             }
             let onlineCheckbox = document.querySelector("input[name='is_online']");

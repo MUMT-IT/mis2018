@@ -52,7 +52,7 @@
                 <div class="columns">
                 <div class="column is-8 is-offset-2">
                         {{ form.hidden_tag() }}
-                        {% if is_secretary %}
+                        {% if is_secretary and not is_edit %}
                         <div class="box">
                             <p class="title is-size-5">กรณีทำหนังสือแทน (เฉพาะธุรการ)</p>
                             <div class="field">
@@ -122,7 +122,7 @@
                         <div class="field-body">
                             <label class="checkbox">
                                 <input type="checkbox" name="is_online"
-                                        {% if seminar.is_online %}
+                                        {% if form_initial.is_online %}
                                        checked
                                         {% endif %}>
                                 เข้าร่วมผ่านช่องทาง online
@@ -131,13 +131,14 @@
                         <br>
                         <span class="is-size-5"><strong>รายละเอียด</strong></span>
                         <b-field>
-                            <b-select placeholder="เลือก" name="objective" id="objective" required
-                                 hx-get="{{ url_for('staff.get_idp_for_seminar', seminar_id=seminar.id) }}"
+                            <b-select placeholder="เลือก" name="objective" id="objective" required v-model="objective"
+                                hx-get="{{ url_for('staff.get_idp_for_seminar', seminar_id=seminar.id, staff_account_id=form_initial.staff_account_id) }}"
                                  hx-target="#related-idp"
                                  hx-swap="innerHTML"
-                                 hx-trigger="change">
-                                <option value="แผนพัฒนาบุคลากรรายบุคคล (IDP)">แผนพัฒนาบุคลากรรายบุคคล (IDP)</option>
-                                <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
+                                 hx-trigger="change, load">
+                                <option value="" disabled>เลือก</option>
+                                <option value="แผนพัฒนาบุคลากรรายบุคคล (IDP)" {% if form_initial.objective and 'IDP' in form_initial.objective %}selected{% endif %}>แผนพัฒนาบุคลากรรายบุคคล (IDP)</option>
+                                <option value="พัฒนาศักยภาพตามความสนใจ" {% if form_initial.objective and 'IDP' not in form_initial.objective %}selected{% endif %}>พัฒนาศักยภาพตามความสนใจ</option>
                             </b-select>
                         </b-field>
                         <div class="field">
@@ -199,13 +200,17 @@
                         <b-field label="แหล่งงบประมาณ/เงินทุน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget_type"
+                                     v-model="budgetType"
+                                     :required="Number(totalBudget) > 0"
                                      icon-pack="far"
-                                     icon="comment">
+                                     icon="comment"
+                                     placeholder="เช่น เงินรายได้คณะ">
                             </b-input>
                         </b-field>
                         <b-field label="ค่าลงทะเบียน (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="registration_fee"
+                                     v-model="registrationFee"
                                      icon-pack="far"
                                      icon="registered">
                             </b-input>
@@ -213,6 +218,7 @@
                         <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="accommodation_cost"
+                                     v-model="accommodationCost"
                                      icon-pack="far"
                                      icon="house">
                             </b-input>
@@ -239,52 +245,57 @@
                                 </b-radio>
                             </div>
                         </div>
-                        <b-field label="ค่าน้ำมัน (บาท)" v-if="transportation === 'fuel_cost'">
+                        <b-field label="ค่าน้ำมัน (บาท)" v-show="transportation === 'fuel_cost'">
                             <b-input type="text"
                                      name="fuel_cost"
+                                     v-model="fuelCost"
                                      icon-pack="far"
                                      icon="gas-pump">
                             </b-input>
                         </b-field>
-                        <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
+                        <b-field label="ค่า Taxi (บาท)" v-show="transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="taxi_cost"
+                                     v-model="taxiCost"
                                      icon-pack="far"
                                      icon="taxi">
                             </b-input>
                         </b-field>
                         <b-field label="ค่ารถไฟ (บาท)"
-                                 v-if="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
+                                 v-show="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="train_ticket_cost"
+                                     v-model="trainTicketCost"
                                      icon-pack="far"
                                      icon="train">
                             </b-input>
                         </b-field>
                         <b-field label="ค่าตั๋วเครื่องบิน (บาท)"
-                                 v-if="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
+                                 v-show="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="flight_ticket_cost"
+                                     v-model="flightTicketCost"
                                      icon-pack="far"
                                      icon="plane">
                             </b-input>
                         </b-field>
-                        <b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
+                        {#<b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="transaction_fee"
                                      icon-pack="far"
                                      icon="retweet">
                             </b-input>
-                        </b-field>
+                        </b-field>#}
                         <b-field label="รวมทั้งสิ้น (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget"
+                                     :value="totalBudget"
                                      required>
                             </b-input>
                         </b-field>
                         <div class="field" v-if="payment === 'paid'">
                             <label class="checkbox">
-                                <input type="checkbox" name="deduct_transfer" value="yes">
+                                <input type="checkbox" name="deduct_transfer" value="yes" {% if form_initial.deduct_transfer %}checked{% endif %}>
                                 ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {{ fiscal_year+543 }}
                             </label>
                         </div>
@@ -320,7 +331,7 @@
                             <div>
                                 <label>ผู้อนุมัติ</label>
                                 <div class="select">
-                                {{ form.approver(required=True,**{'hx-get': url_for('staff.get_positions'),
+                                {{ form.approver(required=True,**{'hx-get': url_for('staff.get_positions', selected_position_id=edit_position_id),
                                 'hx-target': '#related-position', 'hx-swap': 'innerHTML', 'hx-trigger': 'change, load'}) }}
                                 </div>
                             </div>
@@ -355,11 +366,11 @@
                     <div class="column is-8 is-offset-2">
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('staff.seminar_attend_info', seminar_id=seminar.id) }}"
+                                <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=attend.id) if is_edit else url_for('staff.seminar_attend_info', seminar_id=seminar.id) }}"
                                    class="button is-light">Cancel</a>
                             </div>
                             <div class="control">
-                                <input v-if="hasApproverPosition" type="submit" value="submit" class="button is-success"/>
+                                <input v-if="canSubmitForm" type="submit" value="{{ 'บันทึกการแก้ไข' if is_edit else 'submit' }}" class="button is-success"/>
                             </div>
                         </div>
                     </div>
@@ -372,23 +383,33 @@
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        let start_datetime = new Date({{ seminar.start_datetime|tojsdatetime(single=True) }});
-        let end_datetime = new Date({{ seminar.end_datetime|tojsdatetime(single=True) }});
+        const formInitial = {{ form_initial|tojson|safe }};
+        let start_datetime = new Date(formInitial.start_datetime);
+        let end_datetime = new Date(formInitial.end_datetime);
         let vm = new Vue({
             el: '#app',
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
-                    endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
+                    startDateTime: new Date(formInitial.start_datetime),
+                    endDateTime: new Date(formInitial.end_datetime),
                     documentDateTime: null,
                     status: "wanttogo",
                     is_online: "no",
                     wantdocument: "want",
-                    payment: "unpaid",
-                    objective: "others",
-                    transportation: "no_cost",
+                    payment: formInitial.payment,
+                    objective: formInitial.objective || '',
+                    transportation: formInitial.transportation,
+                    registrationFee: formInitial.registration_fee || '',
+                    accommodationCost: formInitial.accommodation_cost || '',
+                    fuelCost: formInitial.fuel_cost || '',
+                    taxiCost: formInitial.taxi_cost || '',
+                    trainTicketCost: formInitial.train_ticket_cost || '',
+                    flightTicketCost: formInitial.flight_ticket_cost || '',
+                    budgetType: formInitial.budget_type || '',
                     hasApproverPosition: false,
+                    hasIdpChoices: false,
+                    idpSelectedCount: 0,
                     data: [],
                     participants: [],
                     timepicker: {
@@ -397,6 +418,15 @@
                 }
             },
             computed: {
+                canSubmitForm: function () {
+                    if (!this.hasApproverPosition) {
+                        return false;
+                    }
+                    const objectiveSelect = document.querySelector('select[name="objective"]');
+                    const selectedObjective = objectiveSelect ? objectiveSelect.value : this.objective;
+                    return !String(selectedObjective || '').includes('IDP')
+                        || (this.hasIdpChoices && this.idpSelectedCount > 0);
+                },
                 formattedStartDateTime: function () {
                     if (this.startDateTime) {
                         return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
@@ -414,6 +444,26 @@
                         return new moment(this.documentDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
                     }
                     return null
+                },
+                totalBudget: function () {
+                    const toAmount = value => {
+                        const amount = parseFloat(String(value || '').replace(/,/g, '').trim());
+                        return Number.isFinite(amount) ? amount : 0;
+                    };
+                    let travelTotal = 0;
+                    if (this.transportation === 'fuel_cost') {
+                        travelTotal = toAmount(this.fuelCost);
+                    } else if (this.transportation === 'train_ticket_cost') {
+                        travelTotal = toAmount(this.trainTicketCost);
+                    } else if (this.transportation === 'taxi_cost') {
+                        travelTotal = toAmount(this.taxiCost)
+                            + toAmount(this.trainTicketCost)
+                            + toAmount(this.flightTicketCost);
+                    } else if (this.transportation === 'flight_ticket_cost') {
+                        travelTotal = toAmount(this.flightTicketCost);
+                    }
+                    const total = toAmount(this.registrationFee) + toAmount(this.accommodationCost) + travelTotal;
+                    return total.toFixed(2);
                 }
             }
         });
@@ -421,9 +471,27 @@
             if (event.detail.elt && event.detail.elt.id === 'approver') {
                 vm.hasApproverPosition = false;
             }
+            if (event.detail.elt && event.detail.elt.name === 'objective') {
+                vm.hasIdpChoices = false;
+                vm.idpSelectedCount = 0;
+            }
         });
         document.body.addEventListener('htmx:afterSwap', event => {
             const target = event.detail.target;
+            if (target && target.id === 'related-idp') {
+                const objectiveSelect = document.querySelector('select[name="objective"]');
+                if (objectiveSelect) {
+                    vm.objective = objectiveSelect.value;
+                }
+                const idpChoices = target.querySelectorAll('input[name="idps"]');
+                if (formInitial.idp_item_ids) {
+                    idpChoices.forEach(input => {
+                    input.checked = formInitial.idp_item_ids.includes(Number(input.value));
+                    });
+                }
+                vm.hasIdpChoices = idpChoices.length > 0;
+                vm.idpSelectedCount = target.querySelectorAll('input[name="idps"]:checked').length;
+            }
             if (target && target.id === 'related-position') {
                 const hasPosition = Boolean(target.querySelector('select[name="position"]'));
                 if (!hasPosition) {
@@ -432,6 +500,31 @@
                 vm.hasApproverPosition = hasPosition;
             }
         });
+        document.body.addEventListener('change', event => {
+            if (event.target && event.target.name === 'objective') {
+                vm.objective = event.target.value;
+            }
+            if (event.target && event.target.name === 'idps') {
+                vm.idpSelectedCount = document.querySelectorAll('#related-idp input[name="idps"]:checked').length;
+            }
+        });
+        const seminarAttendForm = document.querySelector('#app form');
+        if (seminarAttendForm) {
+            seminarAttendForm.addEventListener('submit', event => {
+                const objectiveSelect = seminarAttendForm.querySelector('select[name="objective"]');
+                const selectedObjective = objectiveSelect ? objectiveSelect.value : '';
+                if (selectedObjective.includes('IDP')) {
+                    const idpChoices = seminarAttendForm.querySelectorAll('#related-idp input[name="idps"]');
+                    const selectedIdpChoices = seminarAttendForm.querySelectorAll('#related-idp input[name="idps"]:checked');
+                    if (!idpChoices.length || !selectedIdpChoices.length) {
+                        event.preventDefault();
+                        alert(idpChoices.length
+                            ? 'กรุณาเลือก IDP อย่างน้อย 1 รายการก่อนบันทึก'
+                            : 'ไม่พบรายการ IDP จึงไม่สามารถบันทึกรายการนี้ด้วยวัตถุประสงค์ IDP ได้');
+                    }
+                }
+            });
+        }
         $(document).ready(() => {
             $('#other_objective').hide()
             $('#objective').change(e => {

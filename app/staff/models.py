@@ -929,7 +929,7 @@ class StaffSeminarAttend(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     role = db.Column('role', db.String(), info={'label': u'บทบาท', 'choices': [
-        (c, c) for c in [u'ผู้เข้าร่วม', u'ศึกษาดูงาน', u'ปฏิบัติงาน']]})
+        (c, c) for c in [u'ผู้เข้าร่วม', u'ศึกษาดูงาน', u'ปฏิบัติงานนอกสถานที่']]})
     registration_fee = db.Column('registration_fee', db.Float(), info={'label': u'ค่าลงทะเบียน (บาท)'})
     invited_document_id = db.Column('document_id', db.String(), info={'label': u'เลขที่หนังสือเชิญ'})
     invited_organization = db.Column('invited_organization', db.String(), info={'label': u'หน่วยงานที่เชิญ'})
