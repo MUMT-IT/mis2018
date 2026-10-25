@@ -237,9 +237,18 @@ def maintenance_system_check():
     items_by_group = {}
     equipment_by_group = {}
     for system in systems:
+        linked_group_ids = db.session.query(
+            MaintenanceRoomSystemEquipment.check_group_id
+        ).filter(
+            MaintenanceRoomSystemEquipment.room_id == room.id,
+            MaintenanceRoomSystemEquipment.system_id == system.id,
+            MaintenanceRoomSystemEquipment.is_active.is_(True)
+        ).distinct().subquery()
         groups = system.check_groups.filter_by(is_active=True).order_by(
             MaintenanceRoomSystemCheckGroup.sort_order.asc(),
             MaintenanceRoomSystemCheckGroup.name.asc()
+        ).filter(
+            MaintenanceRoomSystemCheckGroup.id.in_(linked_group_ids)
         ).all()
         groups_by_system[system.id] = groups
         for group in groups:
