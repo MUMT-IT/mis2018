@@ -6189,6 +6189,36 @@ def seminar_create_record(seminar_id):
     MyStaffSeminarAttendForm = create_seminar_attend_form(current_user)
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
+
+    def apply_selected_seminar_expenses(attend):
+        expense_fields = (
+            'registration_fee', 'accommodation_cost', 'fuel_cost', 'taxi_cost',
+            'train_ticket_cost', 'flight_ticket_cost'
+        )
+        if request.form.get('payment') != 'paid':
+            for field in expense_fields:
+                setattr(attend, field, None)
+            attend.budget = None
+            attend.deduct_transfer = False
+            return
+
+        active_travel_fields = {
+            'fuel_cost': {'fuel_cost'},
+            'train_ticket_cost': {'train_ticket_cost'},
+            'taxi_cost': {'taxi_cost', 'train_ticket_cost', 'flight_ticket_cost'},
+            'flight_ticket_cost': {'flight_ticket_cost'},
+        }.get(request.form.get('transportation'), set())
+        all_travel_fields = {'fuel_cost', 'taxi_cost', 'train_ticket_cost', 'flight_ticket_cost'}
+        for field in all_travel_fields - active_travel_fields:
+            setattr(attend, field, None)
+
+        attend.budget = sum(
+            float(getattr(attend, field) or 0)
+            for field in ('registration_fee', 'accommodation_cost', *active_travel_fields)
+        ) or None
+        if attend.budget is None:
+            attend.deduct_transfer = False
+
     if form.validate_on_submit():
         deduct_transfer = (
             request.form.get('deduct_transfer') == 'yes'
@@ -6214,6 +6244,7 @@ def seminar_create_record(seminar_id):
                 attend = StaffSeminarAttend()
                 form.populate_obj(attend)
                 attend.deduct_transfer = deduct_transfer
+                apply_selected_seminar_expenses(attend)
                 objective = StaffSeminarObjective.query.filter_by(objective=request.form.get('objective')).first()
                 if objective:
                     attend.objectives = [objective]
@@ -6265,6 +6296,7 @@ def seminar_create_record(seminar_id):
             attend = StaffSeminarAttend()
             form.populate_obj(attend)
             attend.deduct_transfer = deduct_transfer
+            apply_selected_seminar_expenses(attend)
             objective = StaffSeminarObjective.query.filter_by(objective=request.form.get('objective')).first()
             if objective:
                 attend.objectives = [objective]

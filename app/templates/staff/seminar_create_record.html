@@ -199,13 +199,16 @@
                         <b-field label="แหล่งงบประมาณ/เงินทุน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget_type"
+                                     :required="Number(totalBudget) > 0"
                                      icon-pack="far"
-                                     icon="comment">
+                                     icon="comment"
+                                     placeholder="เช่น เงินรายได้คณะ">
                             </b-input>
                         </b-field>
                         <b-field label="ค่าลงทะเบียน (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="registration_fee"
+                                     v-model="registrationFee"
                                      icon-pack="far"
                                      icon="registered">
                             </b-input>
@@ -213,6 +216,7 @@
                         <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="accommodation_cost"
+                                     v-model="accommodationCost"
                                      icon-pack="far"
                                      icon="house">
                             </b-input>
@@ -239,46 +243,51 @@
                                 </b-radio>
                             </div>
                         </div>
-                        <b-field label="ค่าน้ำมัน (บาท)" v-if="transportation === 'fuel_cost'">
+                        <b-field label="ค่าน้ำมัน (บาท)" v-show="transportation === 'fuel_cost'">
                             <b-input type="text"
                                      name="fuel_cost"
+                                     v-model="fuelCost"
                                      icon-pack="far"
                                      icon="gas-pump">
                             </b-input>
                         </b-field>
-                        <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
+                        <b-field label="ค่า Taxi (บาท)" v-show="transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="taxi_cost"
+                                     v-model="taxiCost"
                                      icon-pack="far"
                                      icon="taxi">
                             </b-input>
                         </b-field>
                         <b-field label="ค่ารถไฟ (บาท)"
-                                 v-if="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
+                                 v-show="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="train_ticket_cost"
+                                     v-model="trainTicketCost"
                                      icon-pack="far"
                                      icon="train">
                             </b-input>
                         </b-field>
                         <b-field label="ค่าตั๋วเครื่องบิน (บาท)"
-                                 v-if="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
+                                 v-show="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="flight_ticket_cost"
+                                     v-model="flightTicketCost"
                                      icon-pack="far"
                                      icon="plane">
                             </b-input>
                         </b-field>
-                        <b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
+                        {#<b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="transaction_fee"
                                      icon-pack="far"
                                      icon="retweet">
                             </b-input>
-                        </b-field>
+                        </b-field>#}
                         <b-field label="รวมทั้งสิ้น (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget"
+                                     :value="totalBudget"
                                      required>
                             </b-input>
                         </b-field>
@@ -388,6 +397,12 @@
                     payment: "unpaid",
                     objective: "others",
                     transportation: "no_cost",
+                    registrationFee: '',
+                    accommodationCost: '',
+                    fuelCost: '',
+                    taxiCost: '',
+                    trainTicketCost: '',
+                    flightTicketCost: '',
                     hasApproverPosition: false,
                     data: [],
                     participants: [],
@@ -414,6 +429,26 @@
                         return new moment(this.documentDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
                     }
                     return null
+                },
+                totalBudget: function () {
+                    const toAmount = value => {
+                        const amount = parseFloat(String(value || '').replace(/,/g, '').trim());
+                        return Number.isFinite(amount) ? amount : 0;
+                    };
+                    let travelTotal = 0;
+                    if (this.transportation === 'fuel_cost') {
+                        travelTotal = toAmount(this.fuelCost);
+                    } else if (this.transportation === 'train_ticket_cost') {
+                        travelTotal = toAmount(this.trainTicketCost);
+                    } else if (this.transportation === 'taxi_cost') {
+                        travelTotal = toAmount(this.taxiCost)
+                            + toAmount(this.trainTicketCost)
+                            + toAmount(this.flightTicketCost);
+                    } else if (this.transportation === 'flight_ticket_cost') {
+                        travelTotal = toAmount(this.flightTicketCost);
+                    }
+                    const total = toAmount(this.registrationFee) + toAmount(this.accommodationCost) + travelTotal;
+                    return total.toFixed(2);
                 }
             }
         });
