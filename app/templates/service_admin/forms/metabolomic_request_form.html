@@ -174,16 +174,17 @@
                         input.setCustomValidity('');
                     });
 
-                    const hasSelection = item.querySelector(
-                        'input[name$="untargeted_metabolomic"]:checked, input[name$="quantitative_metabolomic"]:checked'
-                    );
+                    const inputSelector = selectedType === 'Untargeted'
+                        ? 'input[name$="untargeted_metabolomic"]'
+                        : 'input[name$="quantitative_metabolomic"]';
+                    const selectedInputs = item.querySelectorAll(inputSelector);
+                    const hasSelection = Array.from(selectedInputs).some(function (input) {
+                        return input.checked;
+                    });
 
                     if (selectedType && !hasSelection) {
                         hasInvalidItem = true;
-                        const inputSelector = selectedType === 'Untargeted'
-                            ? 'input[name$="untargeted_metabolomic"]'
-                            : 'input[name$="quantitative_metabolomic"]';
-                        const invalidInput = item.querySelector(inputSelector);
+                        const invalidInput = selectedInputs[0];
                         if (invalidInput) {
                             invalidInput.setCustomValidity('Please select item');
                             firstInvalidInput = firstInvalidInput || invalidInput;
@@ -216,16 +217,24 @@
                 });
 
                 document.querySelectorAll('#condition-field .condition-item').forEach(function (item) {
-                    const untargetedField = item.querySelector('input[name$="untargeted_metabolomic"]');
-                    const quantitativeField = item.querySelector('input[name$="quantitative_metabolomic"]');
+                    const untargetedFields = item.querySelectorAll('input[name$="untargeted_metabolomic"]');
+                    const quantitativeFields = item.querySelectorAll('input[name$="quantitative_metabolomic"]');
 
                     if (selectedType === 'Untargeted') {
-                        if (quantitativeField) quantitativeField.checked = false;
+                        quantitativeFields.forEach(function (input) {
+                            input.checked = false;
+                        });
                     } else if (selectedType === 'Quantitative') {
-                        if (untargetedField) untargetedField.checked = false;
+                        untargetedFields.forEach(function (input) {
+                            input.checked = false;
+                        });
                     } else {
-                        if (untargetedField) untargetedField.checked = false;
-                        if (quantitativeField) quantitativeField.checked = false;
+                        untargetedFields.forEach(function (input) {
+                            input.checked = false;
+                        });
+                        quantitativeFields.forEach(function (input) {
+                            input.checked = false;
+                        });
                     }
                 });
             }
