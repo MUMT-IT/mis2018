@@ -405,7 +405,9 @@
                   <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_detail.id) }}" class="btn btn-sm btn-outline-primary px-2" target="_blank">
                     ตรวจสอบหลักฐาน
                   </a>
-                  {% if advance_payment_role != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
+                  {% if advance_payment_role != 'finance'
+                        and return_detail.status == 'ผ่านการตรวจสอบ'
+                        and return_detail_is_cash(return_detail) %}
                     <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
                       ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
                     </button>
