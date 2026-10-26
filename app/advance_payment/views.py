@@ -103,6 +103,7 @@ def render_template(template_name, *args, **kwargs):
         session.get(PETTY_CASH_SETTING_SESSION_KEY),
     )
     kwargs.setdefault("cash_mng_finance_open", _is_cash_mng_finance_open())
+    kwargs.setdefault("return_detail_is_cash", _return_detail_is_cash)
     return _render_template(template_name, *args, **kwargs)
 
 
