@@ -1324,7 +1324,7 @@ class ProteinIdentificationConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    clean_up = CheckboxField('Clean Up Sample', choices=[('Sample cleanup service', 'Do')], validators=[Optional()])
+    clean_up = CheckboxField('Clean up sample', choices=[('Clean up sample', 'Clean')], validators=[Optional()])
     protein_identification = CheckboxField('Protein Identification by LC/MS', choices=[('In-gel digestion',
                                                                                         'In-gel digestion'),
                                                                                        ('In-solution digestion',
@@ -1374,7 +1374,7 @@ class SDSPageConditionForm(FlaskForm):
 
 
 class SDSPageRequestForm(FlaskForm):
-    sds_page = SelectField('SDS Page', choices=[('', 'กรุณาเลือก SDS Page'),
+    sds_page = SelectField('SDS Page', choices=[('', 'Please select a SDS Page'),
                                                       ('1', '1'),
                                                       ('2', '2'),
                                                       ('3', '3'),
@@ -1387,26 +1387,26 @@ class SDSPageRequestForm(FlaskForm):
                                                       ('10', '10')
                                                       ],
                                  validators=[DataRequired()],
-                                 render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือก SDS Page')",
+                                 render_kw={"oninvalid": "this.setCustomValidity('Please select a SDS Page')",
                                             "oninput": "this.setCustomValidity('')"
                                             })
-    staining = SelectField('Staining', choices=[('', 'กรุณาเลือก Staining'),
+    staining = SelectField('Staining', choices=[('', 'Please select a staining'),
                                                 ('Coomassie Stain', 'Coomassie Stain'),
                                                 ('Silver Stain', 'Silver Stain')],
                            validators=[DataRequired()],
-                           render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือก Staining')",
+                           render_kw={"oninvalid": "this.setCustomValidity('Please select a staining')",
                                       "oninput": "this.setCustomValidity('')"
                                       })
-    sample_species = SelectField('Sample species', choices=[('', 'กรุณาเลือก Sample species'),
+    sample_species = SelectField('Sample species', choices=[('', 'Please select a sample species'),
                                                             ('Human', 'Human'),
                                                             ('Mouse', 'Mouse'),
                                                             ('Others', 'Others')],
                                  validators=[DataRequired()],
-                                 render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือก Sample species')",
+                                 render_kw={"oninvalid": "this.setCustomValidity('Please select a sample species')",
                                              "oninput": "this.setCustomValidity('')"
                                              })
     sample_species_other = StringField('Other')
-    sample_type = SelectField('Sample type', choices=[('', 'กรุณาเลือก Sample type'),
+    sample_type = SelectField('Sample type', choices=[('', 'Please select a sample type'),
                                                       ('Cell pellet', 'Cell pellet'),
                                                       ('Protein extract', 'Protein extract'),
                                                       ('Immunoprecipitation', 'Immunoprecipitation'),
@@ -1415,14 +1415,18 @@ class SDSPageRequestForm(FlaskForm):
                                                       ('Cerebrospinal fluid', 'Cerebrospinal fluid'),
                                                       ('Others', 'Others')],
                               validators=[DataRequired()],
-                              render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือก Sample type')",
+                              render_kw={"oninvalid": "this.setCustomValidity('Please select a sample type')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
     sample_type_other = StringField('Other')
-    sample_amount = StringField('Sample amount (mg/ml)', validators=[DataRequired()],
-                                render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
-                                           "oninput": "this.setCustomValidity('')"
-                                           })
+    sample_amount = FloatField('Sample amount (mg/ml)', validators=[DataRequired()],
+                               render_kw={
+                                   "type": "number",
+                                   "min": "0",
+                                   "step": "any",
+                                   "oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                   "oninput": "this.setCustomValidity('')"
+                               })
     image_capture = CheckboxField('Image capture', choices=[('Capture', 'Capture')])
     image_analysis = CheckboxField('Image analysis', choices=[('Analysis', 'Analysis')])
     comment = StringField('Comments')
@@ -1434,27 +1438,35 @@ class QuantitativeConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    protein_concentration = StringField('Protein concentration (μg/μl)', validators=[DataRequired()],
+    protein_concentration = FloatField('Protein concentration (μg/μl)', validators=[DataRequired()],
                                         render_kw={
+                                            "type": "number",
+                                            "min": "0",
+                                            "step": "any",
                                             "oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                             "oninput": "this.setCustomValidity('')"
                                         })
-    quantitative_method = CheckboxField('Quantitative Method', choices=[('Label-Free', 'Label-Free'),
+    quantitative_method = RadioField('Quantitative Method', choices=[('Label-Free', 'Label-Free'),
                                                                         ('Targeted', 'Targeted')],
                                         validators=[Optional()])
 
 
 class QuantitativeRequestForm(FlaskForm):
-    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)',
-                                    choices=[('Processing data', 'Do')])
-    sample_species = StringField('Sample species', validators=[DataRequired()],
-                                 render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+    sample_species = SelectField('Sample species', choices=[('', 'Please select a sample species'),
+                                                            ('Human', 'Human'),
+                                                            ('Mouse', 'Mouse'),
+                                                            ('Others', 'Others')],
+                                 validators=[DataRequired()],
+                                 render_kw={"oninvalid": "this.setCustomValidity('Please select a sample species')",
                                             "oninput": "this.setCustomValidity('')"
                                             })
+    sample_species_other = StringField('Other')
     buffer_condition = StringField('Buffer conditions', validators=[DataRequired()],
                                    render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                               "oninput": "this.setCustomValidity('')"
                                               })
+    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)',
+                                    choices=[('Processing data', 'Do')])
     comment = StringField('Comments')
     quantitative_condition_field = FieldList(FormField(QuantitativeConditionForm), min_entries=1)
 
@@ -1464,7 +1476,6 @@ class MetabolomicConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    clean_up = CheckboxField('Clean Up Sample', choices=[('Sample cleanup service', 'Do')], validators=[Optional()])
     untargeted_metabolomic = CheckboxField('Untargeted Metabolomic', choices=[('Negative', 'Negative'),
                                                                               ('Positive', 'Positive')],
                                            validators=[Optional()])
@@ -1474,16 +1485,29 @@ class MetabolomicConditionForm(FlaskForm):
 
 
 class MetabolomicRequestForm(FlaskForm):
-    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)',
-                                    choices=[('Processing data', 'Do')])
-    sample_species = StringField('Sample species', validators=[DataRequired()],
-                                 render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+    sample_species = SelectField('Sample species', choices=[('', 'Please select a sample species'),
+                                                            ('Human', 'Human'),
+                                                            ('Mouse', 'Mouse'),
+                                                            ('Others', 'Others')],
+                                 validators=[DataRequired()],
+                                 render_kw={"oninvalid": "this.setCustomValidity('Please select a sample species')",
                                             "oninput": "this.setCustomValidity('')"
                                             })
+    sample_species_other = StringField('Other')
     buffer_condition = StringField('Buffer conditions', validators=[DataRequired()],
                                    render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                               "oninput": "this.setCustomValidity('')"
                                               })
+    metabolomic_type = SelectField('Metabolomic type', choices=[('', 'Please select a metabolomic type'),
+                                                            ('Untargeted', 'Untargeted'),
+                                                            ('Quantitative', 'Quantitative')
+                                                      ],
+                                 validators=[DataRequired()],
+                                 render_kw={"oninvalid": "this.setCustomValidity('Please select a metabolomic type')",
+                                            "oninput": "this.setCustomValidity('')"
+                                            })
+    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)',
+                                    choices=[('Processing data', 'Do')])
     comment = StringField('Comments')
     metabolomic_condition_field = FieldList(FormField(MetabolomicConditionForm), min_entries=1)
 
