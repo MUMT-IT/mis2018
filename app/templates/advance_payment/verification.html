@@ -407,7 +407,7 @@
                   </a>
                   {% if advance_payment_role != 'finance'
                         and return_detail.status == 'ผ่านการตรวจสอบ'
-                        and return_detail_is_cash(return_detail) %}
+                        and not return_detail_is_cash(return_detail) %}
                     <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
                       ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
                     </button>
