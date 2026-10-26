@@ -301,7 +301,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
                 "body": body,
             }
 
-        if action == "confirm_requester":
+        if action == "confirm":
             subject = "[รอยืนยัน] กรุณาตรวจสอบและยืนยันรายการเบิกเงินบัญชีเงินสดย่อย"
             body = f"""มีคำขออนุมัติเบิกเงินสดย่อยรายการใหม่ซึ่งดำเนินการภายใต้ชื่อของท่าน
 
@@ -388,9 +388,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
             }
 
         action_messages = {
-            "confirm": "กรุณาตรวจสอบและยืนยันข้อมูลใบเบิก",
             "approve": "กรุณาตรวจสอบและอนุมัติใบเบิก",
-            "withdrawn": "บันทึกการเบิกเงินเรียบร้อยแล้ว",
             "edited": (
                 "ใบเบิกได้รับการแก้ไขโดย "
                 f"{ctx.get('editor_name') or 'ผู้เก็บรักษาเงินสดย่อย'} "

@@ -2751,7 +2751,7 @@ def _notify_next_fund_request_actor(fund_request):
         ):
             action = "approve"
         elif expected_confirmer_id == getattr(fund_request, "requester_id", None):
-            action = "confirm_requester"
+            action = "confirm"
         elif expected_confirmer_id == _fund_request_custodian_id(fund_request):
             action = "confirm_custodian"
         else:
@@ -9930,19 +9930,6 @@ def record_fund_request_withdrawal(request_id):
     fund_req.request_date = request_date
     fund_req.status = "เบิกเงินแล้ว"
     db.session.commit()
-    requester = _get_user_by_id(fund_req.requester_id)
-    creator = _get_user_by_id(fund_req.creator_id)
-    _send_notification_email(
-        fund_req,
-        object_type="fund_request",
-        extra_ctx={
-            "recipient_emails": [
-                getattr(requester, "email", None),
-                getattr(creator, "email", None),
-            ],
-            "action": "withdrawn",
-        },
-    )
     flash("บันทึกวันที่เบิกเงินเรียบร้อยแล้ว", "success")
     return redirect(
         url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_req.id)
