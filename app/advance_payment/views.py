@@ -9803,13 +9803,6 @@ def staff_fund_request():
                 db.session.add(new_request)
                 db.session.flush()
 
-                # A creator who is also the organization head signs the approval
-                # role at creation. The request remains pending until any other
-                # required requester/custodian signature is present.
-                if _is_fund_request_org_head(user, new_request):
-                    new_request.approved_at = created_at
-                    new_request.approved_by_id = user.id
-
             if form_type in {
                 FUND_REQUEST_FORM_PETTY_CASH,
                 FUND_REQUEST_FORM_REDUCTION,
