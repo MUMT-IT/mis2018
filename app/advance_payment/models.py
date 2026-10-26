@@ -690,6 +690,43 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
         return None
 
 
+class PettyCashFiscalYearTopUpTransfer(FinanceEditMixin, db.Model):
+    """Finance record for a petty-cash budget top-up between fiscal years."""
+
+    __tablename__ = "petty_cash_fiscal_year_top_up_transfers"
+    __table_args__ = (
+        UniqueConstraint(
+            "petty_cash_setting_id",
+            name="uq_petty_cash_top_up_transfer_setting",
+        ),
+        Index(
+            "ix_petty_cash_top_up_transfer_setting_id",
+            "petty_cash_setting_id",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    petty_cash_setting_id = Column(
+        Integer,
+        ForeignKey("petty_cash_settings.id"),
+        nullable=False,
+    )
+    transfer_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    transferred_at = Column(Date, nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    setting = relationship(
+        "PettyCashSetting",
+        foreign_keys=[petty_cash_setting_id],
+    )
+
+
 class CashManagementFinanceState(FinanceEditMixin, db.Model):
     """Singleton switch controlling external petty-cash claim submissions."""
 

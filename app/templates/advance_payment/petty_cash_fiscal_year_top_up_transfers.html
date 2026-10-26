@@ -1,0 +1,253 @@
+{% extends "advance_payment/base.html" %}
+
+{% from "advance_payment/_finance_last_edit.html" import last_edit with context %}
+
+{% macro transfer_rows(section_rows, empty_message) -%}
+  {% for row in section_rows %}
+  <tr>
+    <td class="fw-semibold">
+      {{ row.setting.department_name or 'ไม่พบข้อมูลหน่วยงาน' }}
+      {% if not row.setting.valid %}
+        <span class="badge bg-secondary ms-1">ปิดใช้งาน</span>
+      {% endif %}
+      <input type="hidden" name="setting_id[]" value="{{ row.setting.id }}">
+      <input type="hidden" name="transfer_direction[]" value="{{ 'reduction' if row.transfer_amount < 0 else 'top_up' }}">
+    </td>
+    <td class="text-end fw-bold text-primary">
+      {{ '{:,.2f}'.format(row.setting.budget or 0) }}
+    </td>
+    <td class="text-end">
+      {% if row.previous_carryover and row.previous_budget is not none %}
+        {{ '{:,.2f}'.format(row.previous_budget) }}
+      {% else %}
+        <span class="text-muted">0.00</span>
+        <div class="small text-muted">ไม่มีข้อมูลจากการยกยอดปีก่อน</div>
+      {% endif %}
+    </td>
+    <td>
+      <span class="transfer-read-only d-block text-end fw-bold{% if row.transfer_amount < 0 %} text-danger{% else %} text-success{% endif %}">
+        {{ '{:,.2f}'.format(row.display_transfer_amount or 0) }}
+      </span>
+      <input type="text"
+             name="transfer_amount[]"
+             class="form-control text-end top-up-amount transfer-edit-control d-none{% if row.transfer_amount < 0 %} text-danger{% endif %}"
+             value="{{ '{:,.2f}'.format(row.display_transfer_amount or 0) }}"
+             inputmode="decimal"
+             required>
+    </td>
+    <td>
+      <span class="transfer-read-only d-block text-center">
+        {{ row.transfer.transferred_at|thai_date if row.transfer and row.transfer.transferred_at else '-' }}
+      </span>
+      <input type="date"
+             name="transferred_at[]"
+             class="form-control text-center top-up-date transfer-edit-control d-none"
+             value="{{ row.transfer.transferred_at.isoformat() if row.transfer and row.transfer.transferred_at else '' }}">
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="5" class="text-center text-muted py-4">{{ empty_message }}</td>
+  </tr>
+  {% endfor %}
+{%- endmacro %}
+
+{% block title %}บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณ | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+<style>
+  .transfer-budget-table {
+    table-layout: fixed;
+    min-width: 1000px;
+  }
+</style>
+
+<header class="mb-4 pb-3 border-bottom">
+  <a href="{{ url_for('advance_payment.petty_cash_settings') }}" title="กลับไปหน้าการจัดการเงินสดย่อย">
+    <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
+  </a>
+  <h1 class="fw-bold display-6 mb-2">บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณ</h1>
+</header>
+
+<form method="post" id="topUpTransferForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <section class="card shadow-sm border rounded-4 bg-white mb-4" id="budget-top-up-section">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h5 class="fw-bold text-primary mb-1">
+          <i class="bi bi-cash-coin me-2"></i>รายการโอนเพิ่มวงเงิน
+          <span class="badge bg-primary rounded-pill ms-1">{{ top_up_rows|length }}</span>
+        </h5>
+        {{ last_edit(transfer_records) }}
+      </div>
+      {% if rows %}
+      <button type="button" class="btn btn-warning btn-sm fw-bold" id="toggleTopUpEdit">
+        <i class="bi bi-pencil-square me-2"></i>แก้ไขข้อมูล
+      </button>
+      {% endif %}
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 transfer-budget-table">
+        <colgroup>
+          <col style="width: 28%;">
+          <col style="width: 18%;">
+          <col style="width: 18%;">
+          <col style="width: 18%;">
+          <col style="width: 18%;">
+        </colgroup>
+        <thead class="table-light small fw-bold">
+          <tr>
+            <th>หน่วยงานเงินสดย่อย</th>
+            <th class="text-end">งบประมาณปีการศึกษา {{ current_fiscal_year + 543 }}</th>
+            <th class="text-end">งบประมาณปีการศึกษา {{ previous_fiscal_year + 543 }}</th>
+            <th class="text-end" style="min-width: 190px;">ส่วนต่าง (บาท)</th>
+            <th class="text-center" style="min-width: 190px;">วันที่โอนเงินสำเร็จ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ transfer_rows(top_up_rows, 'ไม่มีรายการโอนเพิ่มวงเงิน') }}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border rounded-4 bg-white mb-4" id="reduction-section">
+    <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <h5 class="fw-bold text-danger mb-0">
+        <i class="bi bi-arrow-down-circle me-2"></i>รายการลดวงเงิน
+        <span class="badge bg-danger rounded-pill ms-1">{{ reduction_rows|length }}</span>
+      </h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 transfer-budget-table">
+        <colgroup>
+          <col style="width: 28%;">
+          <col style="width: 18%;">
+          <col style="width: 18%;">
+          <col style="width: 18%;">
+          <col style="width: 18%;">
+        </colgroup>
+        <thead class="table-light small fw-bold">
+          <tr>
+            <th>หน่วยงานเงินสดย่อย</th>
+            <th class="text-end">งบประมาณปีการศึกษา {{ current_fiscal_year + 543 }}</th>
+            <th class="text-end">งบประมาณปีการศึกษา {{ previous_fiscal_year + 543 }}</th>
+            <th class="text-end" style="min-width: 190px;">ส่วนต่าง (บาท)</th>
+            <th class="text-center" style="min-width: 190px;">วันที่โอนเงินสำเร็จ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ transfer_rows(reduction_rows, 'ไม่มีรายการลดวงเงิน') }}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% if rows %}
+  <div class="d-none mb-4" id="topUpActions">
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-light fw-bold" id="cancelTopUpEdit">ยกเลิก</button>
+      <button type="submit" class="btn btn-primary px-4 fw-bold">
+        <i class="bi bi-save me-2"></i>บันทึกข้อมูล
+      </button>
+    </div>
+  </div>
+  {% endif %}
+</form>
+
+<section class="card shadow-sm border rounded-4 bg-white mb-4" id="reduction-fund-requests">
+  <div class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <h5 class="fw-bold text-danger mb-0">
+      <i class="bi bi-file-earmark-minus me-2"></i>ข้อมูลการเบิกลดวงเงิน
+      <span class="badge bg-danger rounded-pill ms-1">{{ reduction_requests|length }}</span>
+    </h5>
+    <span class="small text-muted">รายการใบเบิกลดวงเงินในปีงบประมาณปัจจุบัน</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light small fw-bold">
+        <tr>
+          <th class="text-center">เลขที่ใบเบิก</th>
+          <th class="text-center">วันที่เบิกเงิน</th>
+          <th>หน่วยงาน</th>
+          <th>ผู้ขอเบิก</th>
+          <th>วัตถุประสงค์</th>
+          <th class="text-end">จำนวนเงิน (บาท)</th>
+          <th class="text-center">สถานะ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fund_request in reduction_requests %}
+        <tr>
+          <td class="text-center fw-bold">{{ fund_request.ticket_number or '-' }}</td>
+          <td class="text-center">
+            {{ fund_request.request_date|thai_date if fund_request.request_date else '-' }}
+          </td>
+          <td class="fw-semibold">{{ fund_request.department_name or '-' }}</td>
+          <td>{{ fund_request.display_requester_name }}</td>
+          <td>{{ fund_request.purpose or '-' }}</td>
+          <td class="text-end fw-bold text-danger">{{ '{:,.2f}'.format(fund_request.amount or 0) }}</td>
+          <td class="text-center">{{ status_badge(fund_request.status, none, 'border') }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            ยังไม่มีข้อมูลการเบิกประเภทลดวงเงินในปีงบประมาณนี้
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  (function () {
+    const form = document.getElementById('topUpTransferForm');
+    const toggleButton = document.getElementById('toggleTopUpEdit');
+    const cancelButton = document.getElementById('cancelTopUpEdit');
+    const actions = document.getElementById('topUpActions');
+    if (!form || !toggleButton || !actions) return;
+
+    const readOnlyValues = form.querySelectorAll('.transfer-read-only');
+    const editableInputs = form.querySelectorAll('.transfer-edit-control');
+    const originalValues = new Map(
+      Array.from(editableInputs).map((input) => [input, input.value])
+    );
+
+    function setEditing(isEditing) {
+      readOnlyValues.forEach((value) => value.classList.toggle('d-none', isEditing));
+      editableInputs.forEach((input) => input.classList.toggle('d-none', !isEditing));
+      actions.classList.toggle('d-none', !isEditing);
+      toggleButton.classList.toggle('d-none', isEditing);
+    }
+
+    toggleButton.addEventListener('click', () => setEditing(true));
+    cancelButton.addEventListener('click', () => {
+      originalValues.forEach((value, input) => { input.value = value; });
+      setEditing(false);
+    });
+
+    form.querySelectorAll('.top-up-amount').forEach((input) => {
+      input.addEventListener('blur', () => {
+        const rawValue = input.value.replace(/,/g, '').trim();
+        if (!rawValue) return;
+        const amount = Number(rawValue);
+        if (!Number.isNaN(amount)) {
+          input.value = amount.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        }
+      });
+    });
+
+    form.addEventListener('submit', () => {
+      form.querySelectorAll('.top-up-amount').forEach((input) => {
+        input.value = input.value.replace(/,/g, '');
+      });
+    });
+  })();
+</script>
+{% endblock %}

@@ -35,7 +35,7 @@ from werkzeug.utils import secure_filename
 
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .email_utils import (
     generate_finance_notification_email_content,
     generate_notification_email_content,
@@ -184,6 +184,7 @@ PETTY_CASH_SETTING_SESSION_KEY = "advance_payment_petty_cash_setting_id"
 FUND_REQUEST_FORM_PETTY_CASH = "petty_cash"
 FUND_REQUEST_FORM_INTEREST = "interest"
 FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
+FUND_REQUEST_FORM_REDUCTION = "reduction"
 MAX_RETURN_LINKED_TICKETS = 2
 FUND_REQUEST_NUMBERED_STATUSES = {
     "รอการอนุมัติ",
@@ -8706,163 +8707,211 @@ def _carryover_amount(value):
     return amount.quantize(Decimal("0.01"))
 
 
-# def _petty_cash_top_up_difference(current_budget, previous_budget):
-#     """Return the default transfer amount for the new fiscal year."""
-#     current_amount = Decimal(str(current_budget or 0))
-#     previous_amount = Decimal(str(previous_budget or 0))
-#     return (current_amount - previous_amount).quantize(Decimal("0.01"))
-#
-#
-# def _petty_cash_top_up_amount(value):
-#     raw = (value or "").replace(",", "").strip()
-#     if not raw:
-#         raise ValueError("กรุณาระบุส่วนต่าง")
-#     try:
-#         amount = Decimal(raw)
-#     except Exception as exc:
-#         raise ValueError("จำนวนเงินส่วนต่างไม่ถูกต้อง") from exc
-#     if not amount.is_finite():
-#         raise ValueError("จำนวนเงินส่วนต่างไม่ถูกต้อง")
-#     return amount.quantize(Decimal("0.01"))
-#
-#
-# @bp.route("/finance/petty-cash-fiscal-year-top-up-transfers", methods=["GET", "POST"])
-# @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
-# def petty_cash_fiscal_year_top_up_transfers():
-#     """Record annual petty-cash top-up transfers for the current settings."""
-#     current_fiscal_year = _current_petty_cash_fiscal_year()
-#     previous_fiscal_year = current_fiscal_year - 1
-#     current_settings = (
-#         db.session.query(PettyCashSetting)
-#         .filter(PettyCashSetting.fiscal_year == current_fiscal_year)
-#         .order_by(PettyCashSetting.org_id.asc(), PettyCashSetting.id.asc())
-#         .all()
-#     )
-#     settings_by_id = {setting.id: setting for setting in current_settings}
-#
-#     previous_carryovers = (
-#         db.session.query(PettyCashFiscalYearCarryover)
-#         .filter(
-#             PettyCashFiscalYearCarryover.source_fiscal_year == previous_fiscal_year,
-#             PettyCashFiscalYearCarryover.target_fiscal_year == current_fiscal_year,
-#             PettyCashFiscalYearCarryover.org_id.in_(
-#                 [setting.org_id for setting in current_settings]
-#             ),
-#         )
-#         .all()
-#         if current_settings
-#         else []
-#     )
-#     previous_carryover_by_org_id = {
-#         carryover.org_id: carryover for carryover in previous_carryovers
-#     }
-#
-#     transfers = (
-#         db.session.query(PettyCashFiscalYearTopUpTransfer)
-#         .filter(
-#             PettyCashFiscalYearTopUpTransfer.petty_cash_setting_id.in_(
-#                 list(settings_by_id)
-#             )
-#         )
-#         .all()
-#         if settings_by_id
-#         else []
-#     )
-#     transfers_by_setting_id = {
-#         transfer.petty_cash_setting_id: transfer for transfer in transfers
-#     }
-#
-#     if request.method == "POST":
-#         try:
-#             setting_ids = request.form.getlist("setting_id[]")
-#             transfer_amounts = request.form.getlist("transfer_amount[]")
-#             transferred_dates = request.form.getlist("transferred_at[]")
-#             submitted_setting_ids = set()
-#
-#             for index, raw_setting_id in enumerate(setting_ids):
-#                 setting_id = int(raw_setting_id) if raw_setting_id.isdigit() else None
-#                 setting = settings_by_id.get(setting_id)
-#                 if setting is None:
-#                     raise ValueError(f"แถวที่ {index + 1} ไม่พบข้อมูลหน่วยงานของปีงบประมาณปัจจุบัน")
-#                 if setting_id in submitted_setting_ids:
-#                     raise ValueError("ไม่สามารถบันทึกหน่วยงานเดิมซ้ำได้")
-#                 submitted_setting_ids.add(setting_id)
-#
-#                 amount = _petty_cash_top_up_amount(
-#                     transfer_amounts[index] if index < len(transfer_amounts) else ""
-#                 )
-#                 raw_transferred_at = (
-#                     transferred_dates[index].strip()
-#                     if index < len(transferred_dates)
-#                     else ""
-#                 )
-#                 try:
-#                     transferred_at = (
-#                         date.fromisoformat(raw_transferred_at)
-#                         if raw_transferred_at
-#                         else None
-#                     )
-#                 except ValueError as exc:
-#                     raise ValueError(f"แถวที่ {index + 1} วันที่โอนเงินสำเร็จไม่ถูกต้อง") from exc
-#
-#                 transfer = transfers_by_setting_id.get(setting_id)
-#                 if transfer is None:
-#                     transfer = PettyCashFiscalYearTopUpTransfer(
-#                         petty_cash_setting_id=setting_id,
-#                     )
-#                     transfers_by_setting_id[setting_id] = transfer
-#                 transfer.transfer_amount = amount
-#                 transfer.transferred_at = transferred_at
-#                 db.session.add(transfer)
-#
-#             if submitted_setting_ids != set(settings_by_id):
-#                 raise ValueError("ข้อมูลหน่วยงานไม่ครบ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง")
-#
-#             db.session.commit()
-#             flash("บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณเรียบร้อยแล้ว", "success")
-#             return redirect(url_for("advance_payment.petty_cash_fiscal_year_top_up_transfers"))
-#         except ValueError as exc:
-#             db.session.rollback()
-#             flash(str(exc), "danger")
-#         except Exception:
-#             db.session.rollback()
-#             current_app.logger.exception("Unable to save petty-cash fiscal-year top-up transfers")
-#             flash("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง", "danger")
-#
-#     rows = []
-#     for setting in current_settings:
-#         previous_carryover = previous_carryover_by_org_id.get(setting.org_id)
-#         previous_budget = (
-#             previous_carryover.finance_budget
-#             if previous_carryover is not None
-#             else None
-#         )
-#         transfer = transfers_by_setting_id.get(setting.id)
-#         rows.append(
-#             SimpleNamespace(
-#                 setting=setting,
-#                 previous_carryover=previous_carryover,
-#                 previous_budget=previous_budget,
-#                 transfer=transfer,
-#                 transfer_amount=(
-#                     transfer.transfer_amount
-#                     if transfer is not None
-#                     else _petty_cash_top_up_difference(
-#                         setting.budget,
-#                         previous_budget,
-#                     )
-#                 ),
-#             )
-#         )
-#
-#     return render_template(
-#         "petty_cash_fiscal_year_top_up_transfers.html",
-#         rows=rows,
-#         transfer_records=transfers,
-#         current_fiscal_year=current_fiscal_year,
-#         previous_fiscal_year=previous_fiscal_year,
-#     )
-#
+def _petty_cash_top_up_difference(current_budget, previous_budget):
+    """Return the default transfer amount for the new fiscal year."""
+    current_amount = Decimal(str(current_budget or 0))
+    previous_amount = Decimal(str(previous_budget or 0))
+    return (current_amount - previous_amount).quantize(Decimal("0.01"))
+
+
+def _partition_petty_cash_transfer_rows(rows):
+    """Split non-negative top-ups from negative budget reductions."""
+    top_up_rows = [row for row in rows if row.transfer_amount >= 0]
+    reduction_rows = [row for row in rows if row.transfer_amount < 0]
+    return top_up_rows, reduction_rows
+
+
+def _petty_cash_top_up_amount(value):
+    raw = (value or "").replace(",", "").strip()
+    if not raw:
+        raise ValueError("กรุณาระบุส่วนต่าง")
+    try:
+        amount = Decimal(raw)
+    except Exception as exc:
+        raise ValueError("จำนวนเงินส่วนต่างไม่ถูกต้อง") from exc
+    if not amount.is_finite():
+        raise ValueError("จำนวนเงินส่วนต่างไม่ถูกต้อง")
+    return amount.quantize(Decimal("0.01"))
+
+
+def _apply_petty_cash_transfer_direction(amount, direction):
+    """Persist reductions as negative while the form displays absolute values."""
+    if direction == "reduction":
+        return -abs(amount)
+    if direction == "top_up":
+        return abs(amount)
+    raise ValueError("ประเภทการปรับวงเงินไม่ถูกต้อง")
+
+
+@bp.route("/finance/petty-cash-fiscal-year-top-up-transfers", methods=["GET", "POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def petty_cash_fiscal_year_top_up_transfers():
+    """Record annual petty-cash top-up transfers for the current settings."""
+    current_fiscal_year = _current_petty_cash_fiscal_year()
+    previous_fiscal_year = current_fiscal_year - 1
+    current_settings = (
+        db.session.query(PettyCashSetting)
+        .filter(PettyCashSetting.fiscal_year == current_fiscal_year)
+        .order_by(PettyCashSetting.org_id.asc(), PettyCashSetting.id.asc())
+        .all()
+    )
+    settings_by_id = {setting.id: setting for setting in current_settings}
+
+    previous_carryovers = (
+        db.session.query(PettyCashFiscalYearCarryover)
+        .filter(
+            PettyCashFiscalYearCarryover.source_fiscal_year == previous_fiscal_year,
+            PettyCashFiscalYearCarryover.target_fiscal_year == current_fiscal_year,
+            PettyCashFiscalYearCarryover.org_id.in_(
+                [setting.org_id for setting in current_settings]
+            ),
+        )
+        .all()
+        if current_settings
+        else []
+    )
+    previous_carryover_by_org_id = {
+        carryover.org_id: carryover for carryover in previous_carryovers
+    }
+
+    transfers = (
+        db.session.query(PettyCashFiscalYearTopUpTransfer)
+        .filter(
+            PettyCashFiscalYearTopUpTransfer.petty_cash_setting_id.in_(
+                list(settings_by_id)
+            )
+        )
+        .all()
+        if settings_by_id
+        else []
+    )
+    transfers_by_setting_id = {
+        transfer.petty_cash_setting_id: transfer for transfer in transfers
+    }
+
+    reduction_requests = (
+        db.session.query(FundRequest)
+        .filter(
+            FundRequest.form_type == FUND_REQUEST_FORM_REDUCTION,
+            FundRequest.is_legacy_import.is_(False),
+            FundRequest.petty_cash_setting_id.in_(list(settings_by_id)),
+        )
+        .order_by(FundRequest.created_at.desc(), FundRequest.id.desc())
+        .all()
+        if settings_by_id
+        else []
+    )
+    for fund_request in reduction_requests:
+        fund_request.display_requester_name = _fund_request_requester_name(
+            fund_request,
+            "-",
+        )
+
+    if request.method == "POST":
+        try:
+            setting_ids = request.form.getlist("setting_id[]")
+            transfer_amounts = request.form.getlist("transfer_amount[]")
+            transfer_directions = request.form.getlist("transfer_direction[]")
+            transferred_dates = request.form.getlist("transferred_at[]")
+            submitted_setting_ids = set()
+
+            for index, raw_setting_id in enumerate(setting_ids):
+                setting_id = int(raw_setting_id) if raw_setting_id.isdigit() else None
+                setting = settings_by_id.get(setting_id)
+                if setting is None:
+                    raise ValueError(f"แถวที่ {index + 1} ไม่พบข้อมูลหน่วยงานของปีงบประมาณปัจจุบัน")
+                if setting_id in submitted_setting_ids:
+                    raise ValueError("ไม่สามารถบันทึกหน่วยงานเดิมซ้ำได้")
+                submitted_setting_ids.add(setting_id)
+
+                entered_amount = _petty_cash_top_up_amount(
+                    transfer_amounts[index] if index < len(transfer_amounts) else ""
+                )
+                amount = _apply_petty_cash_transfer_direction(
+                    entered_amount,
+                    transfer_directions[index]
+                    if index < len(transfer_directions)
+                    else "",
+                )
+                raw_transferred_at = (
+                    transferred_dates[index].strip()
+                    if index < len(transferred_dates)
+                    else ""
+                )
+                try:
+                    transferred_at = (
+                        date.fromisoformat(raw_transferred_at)
+                        if raw_transferred_at
+                        else None
+                    )
+                except ValueError as exc:
+                    raise ValueError(f"แถวที่ {index + 1} วันที่โอนเงินสำเร็จไม่ถูกต้อง") from exc
+
+                transfer = transfers_by_setting_id.get(setting_id)
+                if transfer is None:
+                    transfer = PettyCashFiscalYearTopUpTransfer(
+                        petty_cash_setting_id=setting_id,
+                    )
+                    transfers_by_setting_id[setting_id] = transfer
+                transfer.transfer_amount = amount
+                transfer.transferred_at = transferred_at
+                db.session.add(transfer)
+
+            if submitted_setting_ids != set(settings_by_id):
+                raise ValueError("ข้อมูลหน่วยงานไม่ครบ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง")
+
+            db.session.commit()
+            flash("บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณเรียบร้อยแล้ว", "success")
+            return redirect(url_for("advance_payment.petty_cash_fiscal_year_top_up_transfers"))
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Unable to save petty-cash fiscal-year top-up transfers")
+            flash("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง", "danger")
+
+    rows = []
+    for setting in current_settings:
+        previous_carryover = previous_carryover_by_org_id.get(setting.org_id)
+        previous_budget = (
+            previous_carryover.finance_budget
+            if previous_carryover is not None
+            else None
+        )
+        transfer = transfers_by_setting_id.get(setting.id)
+        transfer_amount = (
+            transfer.transfer_amount
+            if transfer is not None
+            else _petty_cash_top_up_difference(
+                setting.budget,
+                previous_budget,
+            )
+        )
+        rows.append(
+            SimpleNamespace(
+                setting=setting,
+                previous_carryover=previous_carryover,
+                previous_budget=previous_budget,
+                transfer=transfer,
+                transfer_amount=transfer_amount,
+                display_transfer_amount=abs(transfer_amount),
+            )
+        )
+
+    top_up_rows, reduction_rows = _partition_petty_cash_transfer_rows(rows)
+
+    return render_template(
+        "petty_cash_fiscal_year_top_up_transfers.html",
+        rows=rows,
+        top_up_rows=top_up_rows,
+        reduction_rows=reduction_rows,
+        reduction_requests=reduction_requests,
+        transfer_records=transfers,
+        current_fiscal_year=current_fiscal_year,
+        previous_fiscal_year=previous_fiscal_year,
+    )
+
 
 @bp.route("/petty-cash/fiscal-year-carryover", methods=["GET", "POST"])
 @module_system_required(FINANCE_SYSTEM)
@@ -9506,7 +9555,10 @@ def staff_fund_request():
         if editing_request
         else request.args.get("form_type", form.form_type.data or FUND_REQUEST_FORM_PETTY_CASH)
     )
-    if selected_form_type == FUND_REQUEST_FORM_INTEREST and not is_custodian:
+    if selected_form_type in {
+        FUND_REQUEST_FORM_INTEREST,
+        FUND_REQUEST_FORM_REDUCTION,
+    } and not is_custodian:
         selected_form_type = FUND_REQUEST_FORM_PETTY_CASH
     if request.method == "GET":
         if editing_request:
@@ -9514,7 +9566,10 @@ def staff_fund_request():
             form.requester_position.data = _fund_request_requester_position(editing_request, "")
             form.department.data = _fund_request_department_name(editing_request, "")
             form.account_number.data = _fund_request_account_number(editing_request, "")
-        elif selected_form_type == FUND_REQUEST_FORM_INTEREST or (
+        elif selected_form_type in {
+            FUND_REQUEST_FORM_INTEREST,
+            FUND_REQUEST_FORM_REDUCTION,
+        } or (
             selected_form_type == FUND_REQUEST_FORM_PETTY_CASH and is_custodian
         ):
             form.requester_name.data = custodian_display_name
@@ -9536,11 +9591,19 @@ def staff_fund_request():
 
     if (
         request.method == "POST"
-        and request.form.get("form_type") == FUND_REQUEST_FORM_INTEREST
+        and request.form.get("form_type") in {
+            FUND_REQUEST_FORM_INTEREST,
+            FUND_REQUEST_FORM_REDUCTION,
+        }
         and not is_custodian
     ):
+        requested_form_type = request.form.get("form_type")
         return _validation_redirect_response(
-            "แบบฟอร์มขออนุมัติเบิกดอกเบี้ยสร้างได้เฉพาะผู้ดูแลเงินสดย่อยเท่านั้น",
+            (
+                "แบบฟอร์มเบิกลดวงเงินสร้างได้เฉพาะผู้ดูแลเงินสดย่อยเท่านั้น"
+                if requested_form_type == FUND_REQUEST_FORM_REDUCTION
+                else "แบบฟอร์มขออนุมัติเบิกดอกเบี้ยสร้างได้เฉพาะผู้ดูแลเงินสดย่อยเท่านั้น"
+            ),
             form_url(FUND_REQUEST_FORM_PETTY_CASH),
         )
 
@@ -9549,6 +9612,17 @@ def staff_fund_request():
             req_dept = (setting.department_name if setting else None) or _get_staff_department_name(user) or "ไม่ระบุหน่วยงาน"
             req_acc = setting.account_number if setting else ""
             form_type = form.form_type.data
+            allowed_form_types = {
+                FUND_REQUEST_FORM_PETTY_CASH,
+                FUND_REQUEST_FORM_INTEREST,
+                FUND_REQUEST_FORM_BORROWING_TICKET,
+                FUND_REQUEST_FORM_REDUCTION,
+            }
+            if form_type not in allowed_form_types:
+                return _validation_redirect_response(
+                    "ประเภทแบบฟอร์มไม่ถูกต้อง",
+                    form_url(FUND_REQUEST_FORM_PETTY_CASH),
+                )
             if editing_request and form_type != editing_request.form_type:
                 return _validation_redirect_response(
                     "ไม่สามารถเปลี่ยนประเภทแบบฟอร์มขณะแก้ไขรายการได้",
@@ -9558,12 +9632,15 @@ def staff_fund_request():
             requester_id = user.id
             available_budget = float(ledger_running_balance or 0.0)
 
-            if form_type == FUND_REQUEST_FORM_INTEREST:
+            if form_type in {
+                FUND_REQUEST_FORM_INTEREST,
+                FUND_REQUEST_FORM_REDUCTION,
+            }:
                 requester_id = getattr(setting, "custodian_id", None)
                 if not requester_id:
                     return _validation_redirect_response(
-                        "ไม่พบผู้ดูแลเงินสดย่อยสำหรับแบบฟอร์มขออนุมัติเบิกดอกเบี้ย",
-                        form_url(FUND_REQUEST_FORM_INTEREST),
+                        "ไม่พบผู้ดูแลเงินสดย่อยสำหรับแบบฟอร์มนี้",
+                        form_url(form_type),
                     )
                 req_name = custodian_display_name
                 req_pos = custodian_display_position
@@ -9669,7 +9746,10 @@ def staff_fund_request():
                 new_request.amount = form.amount.data
                 new_request.purpose = (
                     form.purpose.data
-                    if form_type == FUND_REQUEST_FORM_PETTY_CASH
+                    if form_type in {
+                        FUND_REQUEST_FORM_PETTY_CASH,
+                        FUND_REQUEST_FORM_REDUCTION,
+                    }
                     else (
                         "ขออนุมัติเบิกดอกเบี้ย"
                         if form_type == FUND_REQUEST_FORM_INTEREST
@@ -9693,7 +9773,18 @@ def staff_fund_request():
                     ticket_number=None,  # ระบบจะออกเลขที่ให้ทันทีหลังสร้างรายการ
                     request_date=None,
                     amount=form.amount.data,
-                    purpose=form.purpose.data if form_type == FUND_REQUEST_FORM_PETTY_CASH else ("ขออนุมัติเบิกดอกเบี้ย" if form_type == FUND_REQUEST_FORM_INTEREST else ""),
+                    purpose=(
+                        form.purpose.data
+                        if form_type in {
+                            FUND_REQUEST_FORM_PETTY_CASH,
+                            FUND_REQUEST_FORM_REDUCTION,
+                        }
+                        else (
+                            "ขออนุมัติเบิกดอกเบี้ย"
+                            if form_type == FUND_REQUEST_FORM_INTEREST
+                            else ""
+                        )
+                    ),
                     personal_note=(form.personal_note.data or "").strip() or None,
                     period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == FUND_REQUEST_FORM_INTEREST else "",
                     borrowing_ticket_id=selected_borrowing_ticket.id if selected_borrowing_ticket else None,
@@ -9718,7 +9809,10 @@ def staff_fund_request():
                     new_request.approved_at = created_at
                     new_request.approved_by_id = user.id
 
-            if form_type == FUND_REQUEST_FORM_PETTY_CASH:
+            if form_type in {
+                FUND_REQUEST_FORM_PETTY_CASH,
+                FUND_REQUEST_FORM_REDUCTION,
+            }:
                 descriptions = request.form.getlist("item_description[]")
                 amounts = request.form.getlist("item_amount[]")
                 categories = request.form.getlist("item_category[]")
@@ -9726,7 +9820,11 @@ def staff_fund_request():
                 for i in range(len(descriptions)):
                     desc = descriptions[i].strip()
                     amt_str = amounts[i].strip().replace(",", "")
-                    category = categories[i].strip()
+                    category = (
+                        categories[i].strip()
+                        if i < len(categories)
+                        else ""
+                    )
 
                     if desc:
                         amt = float(amt_str) if amt_str else 0.0
@@ -9734,7 +9832,11 @@ def staff_fund_request():
                             fund_request_id=new_request.id,
                             description=desc,
                             amount=amt,
-                            category_type=int(category) if category.isdigit() else 1,
+                            category_type=(
+                                5
+                                if form_type == FUND_REQUEST_FORM_REDUCTION
+                                else (int(category) if category.isdigit() else 1)
+                            ),
                             created_at=datetime.now()
                         )
                         db.session.add(item_obj)
