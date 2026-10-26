@@ -114,10 +114,6 @@
                       >
                   </div>
                 </div>
-                <div class="col-md-12">
-                  <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
-                  {{ form.personal_note(class="form-control", id="personal_note", style="border-radius: 12px;") }}
-                </div>
               </div>
             </div>
 
@@ -196,6 +192,13 @@
                   ไม่พบใบยืมเงินที่อนุมัติแล้ว ผูกกับบัญชีเงินสดย่อยของหน่วยงานนี้ และยังไม่เคยใช้สร้างใบเบิก
                 </div>
               {% endif %}
+            </div>
+
+            <div id="personal_note_section" class="row g-3 mb-4">
+              <div class="col-md-12">
+                <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
+                {{ form.personal_note(class="form-control", id="personal_note", style="border-radius: 12px;") }}
+              </div>
             </div>
 
             <!-- ตารางเพิ่มรายการและจำนวนเงิน -->
@@ -531,6 +534,7 @@
       const pettyCashSection = document.getElementById("section_form_petty_cash");
       const interestSection = document.getElementById("section_form_interest");
       const borrowingSection = document.getElementById("section_form_borrowing");
+      const personalNoteSection = document.getElementById("personal_note_section");
       const borrowerSection = document.getElementById("section_borrower_info");
       const requesterIsEditable = requesterInput && requesterInput.tagName === "SELECT";
       const receiptContainer = document.getElementById("receiptTableContainer");
@@ -644,6 +648,9 @@
         const isBorrowingTicketForm = borrowingRadio && borrowingRadio.checked;
         const isInterestForm = interestRadio.checked;
         const isReductionForm = reductionRadio && reductionRadio.checked;
+        if (personalNoteSection) {
+          personalNoteSection.style.display = isInterestForm ? "none" : "flex";
+        }
         if (requesterInput) {
           requesterInput.disabled = isInterestForm || isBorrowingTicketForm || isReductionForm;
           if (requesterInput.tagName === "SELECT" && window.jQuery) {
