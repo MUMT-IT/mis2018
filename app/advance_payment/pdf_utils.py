@@ -1269,6 +1269,7 @@ def _build_reimbursement_letter_html(context):
   .letterhead {{
     position: relative;
     height: 27.5mm;
+    margin-bottom: 6mm
   }}
   .letter-page.extra-header-space .document-info {{ margin-top: 7mm; }}
   .logo {{
