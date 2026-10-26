@@ -211,14 +211,6 @@ PETTY_CASH_CLAIM_EDITABLE_STATUSES = {
     "ฉบับร่าง",
     "รอยืนยันการแก้ไข",
 }
-FINANCE_PENDING_NOTIFICATION_STATUSES = {
-    "ticket": {"กำลังส่งคำขอ", "รอตรวจสอบ"},
-    "return": {"รอตรวจสอบ"},
-    "parcel_return": {"กำลังส่งคำขอ", "รอตรวจสอบ"},
-    "petty_claim": {"รอตรวจสอบ"},
-}
-
-
 def _closed_fund_request_status(fund_request):
     return (
         "ยกเลิกใบเบิก"
@@ -2144,11 +2136,13 @@ def recheck_overdue_and_upcoming_statuses():
                 "days_remaining": days_remaining,
                 "return_summary": return_summary,
             }
-            finance_email_sent = _send_finance_ticket_deadline_email(
-                ticket,
-                notification_type=("overdue" if is_overdue else "upcoming"),
-                return_summary=return_summary,
-            )
+            finance_email_sent = False
+            if is_overdue:
+                finance_email_sent = _send_finance_ticket_deadline_email(
+                    ticket,
+                    notification_type="overdue",
+                    return_summary=return_summary,
+                )
             borrower_email_sent = _send_notification_email(
                 ticket,
                 extra_ctx=notification_ctx,
@@ -2551,129 +2545,14 @@ def _deliver_advance_payment_email(email_data):
         return False
 
 
-def _finance_pending_review_context(target_object, object_type, email_ctx):
-    if not _should_notify_finance_on_status_change(target_object, object_type):
-        return None
-
-    if object_type == "ticket":
-        number = getattr(target_object, "number", None)
-        aip_reference = getattr(target_object, "aip_ref_no", None)
-        reference = (
-            f"บย.{number}"
-            if number
-            else f"เลขอ้างอิง {aip_reference}" if aip_reference else "-"
-        )
-        return {
-            "document_type": "สัญญาเงินยืม",
-            "reference": reference,
-            "person_name": email_ctx.get("borrower_name") or "-",
-            "amount": getattr(target_object, "required_budget", 0),
-            "created_at": getattr(target_object, "created_at", None),
-            "action_url": url_for(
-                "advance_payment.verification_view",
-                ticket_id=target_object.id,
-                _external=True,
-            ),
-        }
-
-    if object_type == "return":
-        ticket = email_ctx.get("ticket")
-        number = getattr(ticket, "number", None) or "-"
-        return {
-            "document_type": "เอกสารส่งใช้เงินยืมทดรองจ่าย",
-            "reference": f"บย.{number}",
-            "person_name": email_ctx.get("borrower_name") or "-",
-            "amount": getattr(target_object, "amount_spent", 0),
-            "created_at": getattr(target_object, "created_at", None),
-            "action_url": url_for(
-                "advance_payment.view_return_proof_detail",
-                return_id=target_object.id,
-                _external=True,
-            ),
-        }
-
-    if object_type == "petty_claim":
-        fund_request = email_ctx.get("fund_request")
-        ticket_number = getattr(fund_request, "ticket_number", None) or "-"
-        return {
-            "document_type": "รายการขออนุมัติเบิกค่าใช้จ่ายเงินสดย่อย",
-            "reference": f"เลขที่ {ticket_number}",
-            "person_name": email_ctx.get("requester_name") or "-",
-            "amount": getattr(target_object, "total_amount", 0),
-            "created_at": getattr(target_object, "created_at", None),
-            "action_url": url_for(
-                "advance_payment.petty_cash_claim_detail",
-                claim_id=target_object.id,
-                _external=True,
-            ),
-        }
-
-    if object_type == "parcel_return":
-        ticket = email_ctx.get("ticket")
-        fund_request = email_ctx.get("fund_request")
-        type_label = PARCEL_RETURN_TYPE_LABELS.get(
-            getattr(target_object, "type", None)
-        )
-        document_type = (
-            f"รายการส่ง {type_label}" if type_label else "รายการส่งคืนพัสดุ"
-        )
-        if ticket:
-            reference = f"บย.{getattr(ticket, 'number', None) or '-'}"
-            action_url = url_for(
-                "advance_payment.verification_view",
-                ticket_id=ticket.id,
-                _external=True,
-            )
-        else:
-            reference = (
-                f"ใบเบิกเลขที่ {getattr(fund_request, 'ticket_number', None) or '-'}"
-            )
-            action_url = url_for(
-                "advance_payment.petty_cash_claim_history",
-                _external=True,
-            )
-        return {
-            "document_type": document_type,
-            "reference": reference,
-            "person_name": email_ctx.get("borrower_name") or "-",
-            "amount": getattr(target_object, "amount_spent", 0),
-            "created_at": getattr(target_object, "created_at", None),
-            "action_url": action_url,
-        }
-
-    return None
-
-
-def _should_notify_finance_on_status_change(target_object, object_type):
-    """Notify only when a workflow event enters finance's pending queue."""
-    status = (getattr(target_object, "status", None) or "").strip()
-    return status in FINANCE_PENDING_NOTIFICATION_STATUSES.get(
-        object_type,
-        set(),
-    )
-
-
-def _send_finance_pending_review_email(target_object, object_type, email_ctx):
-    finance_ctx = _finance_pending_review_context(
-        target_object,
-        object_type,
-        email_ctx,
-    )
-    if finance_ctx is None:
-        return False
-    email_data = generate_finance_notification_email_content(
-        target_object,
-        notification_type="pending_review",
-        extra_ctx=finance_ctx,
-    )
-    return _deliver_advance_payment_email(email_data)
-
-
 def _send_finance_ticket_deadline_email(
     ticket,
     notification_type,
     return_summary=None,
 ):
+    if notification_type != "overdue":
+        return False
+
     borrower = db.session.query(StaffAccount).filter_by(
         email=ticket.borrower_email
     ).first()
@@ -2854,13 +2733,6 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
         extra_ctx=extra_ctx,
     )
     recipient_email_sent = _deliver_advance_payment_email(email_data)
-
-    if object_type in {"ticket", "return", "petty_claim", "parcel_return"}:
-        _send_finance_pending_review_email(
-            target_object,
-            object_type,
-            extra_ctx,
-        )
 
     return recipient_email_sent
 

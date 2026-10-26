@@ -63,49 +63,21 @@ def generate_finance_notification_email_content(
     notification_type,
     extra_ctx=None,
 ):
-    """Build the finance-only pending-review and deadline notifications."""
+    """Build finance-only overdue notifications."""
     ctx = extra_ctx or {}
     recipient_emails = (FINANCE_NOTIFICATION_EMAIL,)
     footer = "ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย\nคณะเทคนิคการแพทย์"
     action_url = str(ctx.get("action_url") or "").strip()
     action_section = f"\n\n{action_url}" if action_url else ""
 
-    if notification_type == "pending_review":
-        document_type = str(ctx.get("document_type") or "รายการ").strip()
-        reference = str(ctx.get("reference") or "").strip()
-        document_label = " ".join(
-            value for value in (document_type, reference) if value
-        )
-        person_name = str(ctx.get("person_name") or "-").strip()
-        amount = _amount(ctx.get("amount", 0))
-        created_at = thai_datetime(ctx.get("created_at")) or "-"
-
-        subject = f"มีรายการใหม่รอตรวจสอบ: {document_label}"
-        body = f"""เรียน ฝ่ายการเงิน
-
-มีรายการใหม่ส่งเข้ามาเพื่อรอการตรวจสอบในระบบ
-
-รายละเอียดรายการ
-- ประเภทเอกสาร: {document_label}
-- ผู้ยืม/ผู้ขอเบิก: {person_name}
-- จำนวนเงิน: {amount} บาท
-- วันที่สร้างรายการ: {created_at}
-- สถานะปัจจุบัน: รอตรวจสอบ{action_section}
-
-{footer}"""
-    elif notification_type in {"upcoming", "overdue"}:
+    if notification_type == "overdue":
         number = _ticket_number(target_object)
         borrower_name = str(ctx.get("borrower_name") or "-").strip()
         due_date = thai_date(getattr(target_object, "due_date", None)) or "-"
         remaining_amount = _amount(ctx.get("remaining_amount", 0))
 
-        if notification_type == "upcoming":
-            subject = f"สัญญาเงินยืม บย.{number} ใกล้ครบกำหนด"
-            intro = """สัญญาเงินยืมทดรองจ่ายต่อไปนี้ใกล้ถึงกำหนดส่งใช้
-กรุณาตรวจสอบและติดตามผู้ยืมเพื่อดำเนินการส่งใช้เงินยืมภายในกำหนด"""
-        else:
-            subject = f"สัญญาเงินยืม บย.{number} เกินกำหนด"
-            intro = """สัญญาเงินยืมทดรองจ่ายต่อไปนี้เกินกำหนดส่งใช้แล้ว
+        subject = f"สัญญาเงินยืม บย.{number} เกินกำหนด"
+        intro = """สัญญาเงินยืมทดรองจ่ายต่อไปนี้เกินกำหนดส่งใช้แล้ว
 กรุณาตรวจสอบและติดตามผู้ยืมเพื่อดำเนินการส่งใช้เงินยืมโดยเร็ว"""
 
         body = f"""เรียน ฝ่ายการเงิน
@@ -304,8 +276,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         ticket_number = getattr(target_object, "ticket_number", None) or "-"
         status = getattr(target_object, "status", "")
         action = ctx.get("action", "status")
-        action_url = ctx.get("action_url")
-        action_link = f"\n- เปิดรายการ {action_url}" if action_url else ""
+        action_url = str(ctx.get("action_url") or "").strip()
         bank_account_name = ctx.get("bank_account_name") or "-"
 
         if action == "approve":
@@ -407,7 +378,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 - จำนวนเงิน {_amount(getattr(target_object, 'amount', 0))} บาท
 - ผู้อนุมัติ {approver_name}
 - วันที่อนุมัติ {approved_at}
-- สถานะ {status}{action_link}{next_step}
+- สถานะ {status}{action_url}{next_step}
 
 {footer}"""
             return {
@@ -441,7 +412,11 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 - เลขที่ใบเบิก {ticket_number}
 - ผู้ขอเบิก {requester_name}
 - จำนวนเงิน {_amount(getattr(target_object, 'amount', 0))} บาท
-- สถานะ {status}{action_link}
+- สถานะ {status}
+
+ท่านสามารถตรวจสอบข้อมูลล่าสุดได้ที่ลิงก์ด้านล่าง
+
+{action_url}
 
 {footer}"""
 
