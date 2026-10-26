@@ -5689,7 +5689,8 @@ def seminar_approval_records():
 
     query = StaffSeminarAttend.query.join(StaffSeminar).filter(
         StaffSeminar.cancelled_at.is_(None),
-        func.date(StaffSeminarAttend.end_datetime) >= start_fiscal_date.date(),
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime,
+                                StaffSeminarAttend.start_datetime)) >= start_fiscal_date.date(),
         func.date(StaffSeminarAttend.start_datetime) <= end_fiscal_date.date(),
     )
 
@@ -5703,7 +5704,8 @@ def seminar_approval_records():
 
         query = StaffSeminarAttend.query.join(StaffSeminar).filter(
             StaffSeminar.cancelled_at.is_(None),
-            func.date(StaffSeminarAttend.end_datetime) >= start_date,
+            func.date(func.coalesce(StaffSeminarAttend.end_datetime,
+                                    StaffSeminarAttend.start_datetime)) >= start_date,
             func.date(StaffSeminarAttend.start_datetime) <= end_date,
         )
 
