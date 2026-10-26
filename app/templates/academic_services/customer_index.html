@@ -77,7 +77,7 @@
                                         <div class="card" style="height: 100%;">
                                             <div class="card-image">
                                                 <figure class="image is-4by3">
-                                                    <img src="{{ url_for('static', filename=lab.image) }}" alt="Logo"/>
+                                                    <img src="{{ lab.image|s3_asset }}" alt="Logo"/>
                                                 </figure>
                                             </div>
                                             <div class="card-content">
