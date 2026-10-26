@@ -161,6 +161,42 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
+            function validateMetabolomicConditions(event) {
+                const selectedType = document.querySelector('[name="metabolomic_type"]')?.value;
+                let hasInvalidItem = false;
+                let firstInvalidInput = null;
+
+                document.querySelectorAll('#condition-field .condition-item').forEach(function (item) {
+                    const metabolomicInputs = item.querySelectorAll(
+                        'input[name$="untargeted_metabolomic"], input[name$="quantitative_metabolomic"]'
+                    );
+                    metabolomicInputs.forEach(function (input) {
+                        input.setCustomValidity('');
+                    });
+
+                    const hasSelection = item.querySelector(
+                        'input[name$="untargeted_metabolomic"]:checked, input[name$="quantitative_metabolomic"]:checked'
+                    );
+
+                    if (selectedType && !hasSelection) {
+                        hasInvalidItem = true;
+                        const inputSelector = selectedType === 'Untargeted'
+                            ? 'input[name$="untargeted_metabolomic"]'
+                            : 'input[name$="quantitative_metabolomic"]';
+                        const invalidInput = item.querySelector(inputSelector);
+                        if (invalidInput) {
+                            invalidInput.setCustomValidity('Please select item');
+                            firstInvalidInput = firstInvalidInput || invalidInput;
+                        }
+                    }
+                });
+
+                if (hasInvalidItem) {
+                    event.preventDefault();
+                    if (firstInvalidInput) firstInvalidInput.reportValidity();
+                }
+            }
+
             function showField() {
                 const metabolomicType = document.querySelector('[name="metabolomic_type"]');
                 const processDataField = document.getElementById('process-data-field')
@@ -201,6 +237,16 @@
                 updateMetabolomicConditionFields();
             });
             document.body.addEventListener('htmx:afterSwap', updateMetabolomicConditionFields);
+            document.body.addEventListener('change', function (event) {
+                if (!event.target.matches('input[name$="untargeted_metabolomic"], input[name$="quantitative_metabolomic"]')) return;
+                const item = event.target.closest('.condition-item');
+                if (item && item.querySelector('input[name$="untargeted_metabolomic"]:checked, input[name$="quantitative_metabolomic"]:checked')) {
+                    item.querySelectorAll('input[name$="untargeted_metabolomic"], input[name$="quantitative_metabolomic"]').forEach(function (input) {
+                        input.setCustomValidity('');
+                    });
+                }
+            });
+            document.querySelector('form').addEventListener('submit', validateMetabolomicConditions);
         })
     </script>
     <script>
