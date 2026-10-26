@@ -775,6 +775,11 @@ def _build_fnar02_context(ticket):
         or getattr(ticket, "borrower_department", None)
         or PDF_BLANK
     )
+    header_org = getattr(borrower_org, "parent", None) or borrower_org
+    header_department_name = (
+        getattr(header_org, "name", None)
+        or department_name
+    )
 
     due_date = getattr(ticket, "due_date", None)
     start_date = getattr(ticket, "borrowing_ticket_start_date", None)
@@ -822,6 +827,7 @@ def _build_fnar02_context(ticket):
         "borrower_name": borrower_name,
         "borrower_position": borrower_position,
         "department_name": department_name,
+        "header_department_name": header_department_name,
         "leave_approver_signatures": _get_leave_approver_signatures(ticket),
         "due_date_thai": get_thai_month_year(due_date) if due_date else PDF_BLANK,
         "start_date_str": get_thai_month_year(start_date) if start_date else PDF_BLANK,
@@ -1064,7 +1070,7 @@ def _build_fnar02_html(memo_context):
   <header class="memo-header">
     <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
     <div class="organization">
-      <br>{escaped['department_name']}<br>
+      <br>{escaped['header_department_name']}<br>
       คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>
       โทร.{escaped['telephone_number']}
     </div>
