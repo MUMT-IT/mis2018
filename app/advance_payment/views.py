@@ -198,6 +198,7 @@ FUND_REQUEST_STATUS_STEPS = ["รอการอนุมัติ", "อนุ�
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
 CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
 PARCEL_RETURN_CONFIRMED_STATUS = "ยืนยันการตรวจสอบ"
+ADVANCE_PAYMENT_EMAIL_RECIPIENT_ROLE = "advance_payment_email_recipient"
 DIRECT_LEGACY_CLAIM_NOTE = "รายการย้อนหลังที่ฝ่ายการเงินบันทึกโดยตรง"
 RETURN_DETAIL_EDITABLE_STATUSES = {
     "รอตรวจสอบ",
@@ -2545,6 +2546,18 @@ def _deliver_advance_payment_email(email_data):
         return False
 
 
+def _advance_payment_email_recipient_emails():
+    """Return active staff emails assigned to the system notification role."""
+    return tuple(dict.fromkeys(
+        email
+        for email in (
+            (getattr(staff, "email", None) or "").strip()
+            for staff in StaffAccount.get_role(ADVANCE_PAYMENT_EMAIL_RECIPIENT_ROLE).all()
+        )
+        if email
+    ))
+
+
 def _send_finance_ticket_deadline_email(
     ticket,
     notification_type,
@@ -2566,6 +2579,7 @@ def _send_finance_ticket_deadline_email(
         ticket,
         notification_type=notification_type,
         extra_ctx={
+            "recipient_emails": _advance_payment_email_recipient_emails(),
             "borrower_name": (
                 ticket.borrower_name
                 or (borrower.name if borrower else None)

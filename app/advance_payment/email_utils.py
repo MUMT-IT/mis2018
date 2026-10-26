@@ -4,7 +4,6 @@ import re
 
 
 REJECTION_HISTORY_MARKER = re.compile(r"(?m)^ครั้งที่\s+\d+\s*:")
-FINANCE_NOTIFICATION_EMAIL = "exam.ple.com"
 
 
 def thai_date(value):
@@ -65,7 +64,14 @@ def generate_finance_notification_email_content(
 ):
     """Build finance-only overdue notifications."""
     ctx = extra_ctx or {}
-    recipient_emails = (FINANCE_NOTIFICATION_EMAIL,)
+    recipient_emails = tuple(dict.fromkeys(
+        normalized_email
+        for normalized_email in (
+            _normalize_recipient_email(email)
+            for email in ctx.get("recipient_emails", ())
+        )
+        if normalized_email
+    ))
     footer = "ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย\nคณะเทคนิคการแพทย์"
     action_url = str(ctx.get("action_url") or "").strip()
     action_section = f"\n\n{action_url}" if action_url else ""
