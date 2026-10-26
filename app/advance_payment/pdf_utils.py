@@ -799,7 +799,6 @@ def _build_fnar02_context(ticket):
     )
     borrowing_purpose = (
         getattr(ticket, "borrowing_ticket_purpose", None)
-        or getattr(ticket, "borrowing_ticket_name", None)
         or PDF_BLANK
     )
     borrower_position = (
@@ -1452,7 +1451,6 @@ def generate_petty_claim(claim, claim_type="1"):
 
     request_purpose = (
         getattr(fund_request, "purpose", None)
-        or getattr(fund_request, "borrowing_ticket_name", None)
         or getattr(fund_request, "claim_name", None)
         or PDF_BLANK
     )

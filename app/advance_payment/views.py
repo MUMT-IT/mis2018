@@ -1488,7 +1488,7 @@ def _attach_parcel_return_context(parcel_return):
         parcel_return.display_ticket_number = ticket.number if ticket.number is not None else (ticket.aip_ref_no or "-")
         parcel_return.display_borrower_name = ticket.borrower_name or getattr(borrower_user, "name", "") or "-"
         parcel_return.display_ticket_id = ticket.id
-        parcel_return.display_subject_name = ticket.borrowing_ticket_name or "-"
+        parcel_return.display_subject_name = ticket.borrowing_ticket_purpose or "-"
     elif fund_request:
         requester_user = _get_user_by_id(getattr(fund_request, "requester_id", None))
         parcel_return.display_ticket_number = fund_request.ticket_number or getattr(fund_request, "id", None) or "-"
@@ -7873,7 +7873,7 @@ def return_records_history():
             "id": record.id,
             "ticket_id": record.ticket_id,
             "ticket_number": f"บย. {ticket.number}" if ticket and ticket.number else "N/A",
-            "borrowing_ticket_name": ticket.borrowing_ticket_name if ticket else "N/A",
+            "borrowing_ticket_purpose": ticket.borrowing_ticket_purpose if ticket else "N/A",
             "borrower_name": (ticket.borrower_name or getattr(_get_user_by_id(getattr(ticket, "borrower_id", None)), "name", "")) if ticket else "N/A",
             "org_id": getattr(borrower_org, "id", None),
             "org_name": getattr(borrower_org, "name", None) or getattr(borrower_org, "en_name", None) or "",
@@ -7917,7 +7917,7 @@ def return_records_history():
                 if record.ticket_id and record.display_ticket_number not in {None, "-", "N/A"}
                 else (record.display_ticket_number or "N/A")
             ),
-            "borrowing_ticket_name": record.display_subject_name if getattr(record, "display_subject_name", None) else "N/A",
+            "borrowing_ticket_purpose": record.display_subject_name if getattr(record, "display_subject_name", None) else "N/A",
             "borrower_name": record.display_borrower_name if getattr(record, "display_borrower_name", None) else "N/A",
             "org_id": getattr(org, "id", None),
             "org_name": getattr(org, "name", None) or getattr(org, "en_name", None) or "",
@@ -8125,7 +8125,7 @@ def petty_cash_claim_history():
             "fund_request_id": claim.fund_request_id,
             "ticket_id": None,
             "ticket_number": ticket_num,
-            "borrowing_ticket_name": dept_name,
+            "borrowing_ticket_purpose": dept_name,
             "borrower_name": borrower_name,
             "org_id": getattr(org, "id", None),
             "org_name": getattr(org, "name", None) or getattr(org, "en_name", None) or "",
@@ -8175,7 +8175,7 @@ def petty_cash_claim_history():
                 if record.ticket_id and record.display_ticket_number not in {None, "-", "N/A"}
                 else (record.display_ticket_number or "N/A")
             ),
-            "borrowing_ticket_name": record.display_subject_name if getattr(record, "display_subject_name", None) else "N/A",
+                "borrowing_ticket_purpose": record.display_subject_name if getattr(record, "display_subject_name", None) else "N/A",
             "borrower_name": record.display_borrower_name if getattr(record, "display_borrower_name", None) else "N/A",
             "org_id": getattr(org, "id", None),
             "org_name": getattr(org, "name", None) or getattr(org, "en_name", None) or "",
@@ -9195,7 +9195,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
         processed_records.append({
             "id": record.id,
             "ticket_id": record.ticket_id,
-            "borrowing_ticket_name": ticket.borrowing_ticket_name if ticket else "N/A",
+            "borrowing_ticket_purpose": ticket.borrowing_ticket_purpose if ticket else "N/A",
             "borrowing_ticket_number": ticket.number if ticket else "N/A",
             "borrower_name": (ticket.borrower_name or getattr(_get_user_by_id(getattr(ticket, "borrower_id", None)), "name", "")) if ticket else "N/A",
             "amount_spent": float(record.amount_spent or 0),
@@ -9242,12 +9242,12 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
         fund_request = getattr(pr, "fund_request", None)
         borrower_name = "N/A"
         borrowing_ticket_number = "N/A"
-        borrowing_ticket_name = "N/A"
+        borrowing_ticket_purpose = "N/A"
         display_ticket_id = getattr(pr, "display_ticket_id", None)
 
         if ticket:
             borrowing_ticket_number = ticket.number if ticket.number else "N/A"
-            borrowing_ticket_name = ticket.borrowing_ticket_name
+            borrowing_ticket_purpose = ticket.borrowing_ticket_purpose
             borrower_name = (
                 ticket.borrower_name
                 or getattr(_get_user_by_id(getattr(ticket, "borrower_id", None)), "name", "")
@@ -9255,7 +9255,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             )
         elif fund_request:
             borrowing_ticket_number = fund_request.ticket_number if fund_request.ticket_number else "ไม่พบข้อมูล"
-            borrowing_ticket_name = fund_request.purpose or "ไม่พบข้อมูล"
+            borrowing_ticket_purpose = fund_request.purpose or "ไม่พบข้อมูล"
             borrower_name = _fund_request_requester_name(fund_request, borrower_name)
 
         processed_parcels.append({
@@ -9263,7 +9263,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             "ticket_id": pr.ticket_id,
             "fund_request_id": pr.fund_request_id,
             "display_ticket_id": display_ticket_id,
-            "borrowing_ticket_name": borrowing_ticket_name,
+            "borrowing_ticket_purpose": borrowing_ticket_purpose,
             "borrowing_ticket_number": borrowing_ticket_number,
             "borrower_name": borrower_name,
             "amount_spent": float(pr.amount_spent or 0),
@@ -9838,7 +9838,7 @@ def staff_fund_request():
             if form_type == FUND_REQUEST_FORM_BORROWING_TICKET and selected_borrowing_ticket:
                 ticket_amount = float(selected_borrowing_ticket.required_budget or 0)
                 ticket_number = selected_borrowing_ticket.number or "-"
-                ticket_name = selected_borrowing_ticket.borrowing_ticket_name or "ใบยืมเงิน"
+                ticket_name = selected_borrowing_ticket.borrowing_ticket_purpose or "ใบยืมเงิน"
                 new_request.amount = ticket_amount
                 new_request.purpose = f"เบิกเงินยืมผ่านบัญชีเงินสดย่อย บ.ย. {ticket_number}"
                 db.session.add(

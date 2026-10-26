@@ -32,7 +32,7 @@ def _amount(value):
 
 
 def _ticket_name(ticket):
-    return getattr(ticket, "borrowing_ticket_purpose", None) or getattr(ticket, "borrowing_ticket_name", None) or "-"
+    return getattr(ticket, "borrowing_ticket_purpose", None) or "-"
 
 
 def _ticket_number(ticket):
@@ -133,8 +133,8 @@ def generate_finance_notification_email_content(
 
 def generate_notification_email_content(target_object, object_type="ticket", extra_ctx=None):
     ctx = extra_ctx or {}
-    borrower_name = ctx.get("borrower_name", "ผู้รับบริการ")
-    requester_name = ctx.get("requester_name", "ผู้ขอเบิก")
+    borrower_name = ctx.get("borrower_name", "ผู้ยืม")
+    requester_name = ctx.get("requester_name", "ผู้ยืม")
     recipient_emails = tuple(dict.fromkeys(
         normalized_email
         for normalized_email in (

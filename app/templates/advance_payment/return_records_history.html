@@ -156,9 +156,9 @@
               <!-- 1. เลขที่เอกสาร / บย. -->
               <td class="text-start ps-3">
                 <div class="text-dark fw-bold">{{ record.ticket_number }}</div>
-                {% if record.borrowing_ticket_name and record.borrowing_ticket_name != 'N/A' %}
-                  <small class="text-muted d-block text-truncate" style="max-width: 140px;" title="{{ record.borrowing_ticket_name }}">
-                    {{ record.borrowing_ticket_name }}
+                {% if record.borrowing_ticket_purpose and record.borrowing_ticket_purpose != 'N/A' %}
+                  <small class="text-muted d-block text-truncate" style="max-width: 140px;" title="{{ record.borrowing_ticket_purpose }}">
+                    {{ record.borrowing_ticket_purpose }}
                   </small>
                 {% endif %}
               </td>

@@ -208,14 +208,6 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     def borrower_email(self, value):
         self._borrower_email = value
 
-    @property
-    def borrowing_ticket_name(self):
-        return self.borrowing_ticket_purpose
-
-    @borrowing_ticket_name.setter
-    def borrowing_ticket_name(self, value):
-        self.borrowing_ticket_purpose = value
-
 BorrowingTicket = CashAdvanceBorrowingTicket
 
 class CashManagementNotifications(db.Model):
