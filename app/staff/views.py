@@ -1032,15 +1032,14 @@ def get_seminar_yearly_budget(staff_account_id, start_datetime):
     total_budget = 15000 if staff_account.personal_info.academic_staff else 10000
     fiscal_start = tz.localize(START_FISCAL_DATE)
     next_fiscal_start = tz.localize(NEXT_FISCAL_DATE)
-    idp_attends = StaffSeminarAttend.query.outerjoin(
+    budget_attends = StaffSeminarAttend.query.outerjoin(
         StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
     ).filter(
         StaffSeminarAttend.staff_account_id == staff_account_id,
         func.coalesce(StaffSeminar.start_datetime, StaffSeminarAttend.start_datetime) >= fiscal_start,
-        func.coalesce(StaffSeminar.start_datetime, StaffSeminarAttend.start_datetime) < next_fiscal_start,
-        StaffSeminarAttend.objectives.any(StaffSeminarObjective.objective.contains('IDP'))
+        func.coalesce(StaffSeminar.start_datetime, StaffSeminarAttend.start_datetime) < next_fiscal_start
     ).all()
-    total_used = sum(attend.budget or 0 for attend in idp_attends)
+    total_used = sum(attend.budget or 0 for attend in budget_attends)
 
     if yearly_budget is None:
         yearly_budget = SeminarYearlyBudget(staff=staff_account, year=START_FISCAL_DATE.year)
@@ -6923,8 +6922,7 @@ def delete_participant(attend_id):
     seminar_id = attend.seminar_id
     staff_account_id = attend.staff_account_id
     seminar_start_datetime = attend.seminar.start_datetime if attend.seminar else attend.start_datetime
-    is_idp = any('IDP' in objective.objective for objective in attend.objectives)
-    if is_idp and attend.budget:
+    if attend.budget:
         fiscal_start, _ = get_fiscal_date(seminar_start_datetime)
         yearly_budget = SeminarYearlyBudget.query.filter_by(
             staff_account_id=staff_account_id,
