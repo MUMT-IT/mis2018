@@ -5024,15 +5024,11 @@ def export_ticket_pdf(ticket_id):
     if not ticket:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
-        is_custodian = bool(_petty_cash_settings_for_custodian(current_user))
-        if _is_current_coordinator():
-            if ticket.creator_id != _current_user_id():
-                abort(403)
-        elif is_custodian and ticket.creator_id == _current_user_id():
-            pass
-        elif not _can_submit_return_detail(_current_user_id(), ticket):
-            abort(403)
+    if (
+            _selected_system() == ADVANCE_PAYMENT_SYSTEM
+            and not _can_submit_return_detail(_current_user_id(), ticket)
+    ):
+        abort(403)
 
     pdf_bytes = generate_fnar02_pdf(ticket)
 

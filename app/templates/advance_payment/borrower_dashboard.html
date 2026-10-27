@@ -270,7 +270,7 @@
                 {% endfor %}
               </div>
               <div class="col-md-6">
-                <label for="aip_ref_date" class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
+                <label for="aip_ref_date" class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ (หากมีมากกว่าหนึ่ง ให้เลือกวันที่เก่าที่สุด)</label>
                 <input id="aip_ref_date" name="aip_ref_date" type="text" value="{{ borrowing_ticket_form.aip_ref_date.data or '' }}" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                 {% for error in borrowing_ticket_form.aip_ref_date.errors %}
                   <div class="text-danger small mt-1">{{ error }}</div>

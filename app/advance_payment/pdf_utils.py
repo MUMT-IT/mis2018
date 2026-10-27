@@ -1180,7 +1180,10 @@ def _render_html_with_chromium(html_source):
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox"],
+        )
         try:
             page = browser.new_page()
             page.set_content(html_source, wait_until="load")
