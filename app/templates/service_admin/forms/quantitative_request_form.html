@@ -31,7 +31,7 @@
                                 </label>
                                 <div class="select">
                                     {{ form.sample_species(
-                                        **{'hx-get': url_for("academic_services.get_sample_species_other",
+                                        **{'hx-get': url_for("service_admin.get_sample_species_other",
                                                 request_id=request_id),
                                             'hx-target': '#sample-species-other-container',
                                             'hx-swap': 'innerHTML',
