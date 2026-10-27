@@ -1421,7 +1421,7 @@ def customer_account():
             message += f'''มีผู้รับบริการดำเนินการแก้ไขข้อมูลตามที่แจ้งเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''ระบบงานงานบริการวิชาการ'''
-            if current_app.debug:
+            if not current_app.debug:
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
@@ -3671,14 +3671,9 @@ def add_sds_page_condition_item():
                         <span class="has-text-danger">*</span>
                     </th>
                     <th style="border: none">{}</th>
-                    <th style="border: none">
-                        {}
-                        <span class="has-text-danger">*</span>
-                    </th>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
                         <td style="border: none" class="control">{}</td>
                         <td style="border: none">
@@ -3699,10 +3694,8 @@ def add_sds_page_condition_item():
                            index,
                            item_form.sample_name.label,
                            item_form.clean_up.label,
-                           item_form.staining.label,
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
-                           item_form.staining(),
                            url_for('academic_services.remove_sds_page_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
@@ -3978,22 +3971,20 @@ def add_metabolomic_condition_item():
         <div id="{}" class="condition-item">
             <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
-            <table class="table is-fullwidth ">
+            <table class="table is-fullwidth">
                 <thead>
                     <th style="border: none">
                         {}
                         <span class="has-text-danger">*</span>
                     </th>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
+                    <th style="border: none" data-metabolomic-type="Untargeted">{}</th>
+                    <th style="border: none" data-metabolomic-type="Quantitative">{}</th>
                 </thead>
                 <tbody>
                     <tr>
                         <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control" data-metabolomic-type="Untargeted">{}</td>
+                        <td style="border: none" class="control" data-metabolomic-type="Quantitative">{}</td>
                         <td style="border: none">
                             <a class="button is-danger is-outlined"
                                 hx-delete="{}" 
@@ -4011,11 +4002,9 @@ def add_metabolomic_condition_item():
     resp = template.format(item_form.id,
                            index,
                            item_form.sample_name.label,
-                           item_form.clean_up.label,
                            item_form.untargeted_metabolomic.label,
                            item_form.quantitative_metabolomic.label,
                            item_form.sample_name(class_='input'),
-                           item_form.clean_up(),
                            item_form.untargeted_metabolomic(),
                            item_form.quantitative_metabolomic(),
                            url_for('academic_services.remove_metabolomic_condition_item', name=item_form.id)

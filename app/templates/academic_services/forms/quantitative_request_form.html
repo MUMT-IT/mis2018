@@ -1,6 +1,15 @@
 {% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
+    <style>
+        .hide-choice label {
+            font-size: 0;
+        }
+
+        .hide-choice input {
+            margin-right: 5px;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "academic_services/customer_nav.html" %}
@@ -16,18 +25,20 @@
                             <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">{{ form.processing_data.label }}</label>
-                                <div class="control">
-                                    {{ form.processing_data() }}
-                                </div>
-                            </div>
-                            <div class="field">
                                 <label class="label">
                                     {{ form.sample_species.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control">
-                                    {{ form.sample_species(class='input') }}
+                                <div class="select">
+                                    {{ form.sample_species(
+                                        **{'hx-get': url_for("academic_services.get_sample_species_other",
+                                                request_id=request_id),
+                                            'hx-target': '#sample-species-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="sample_species"]'
+                                            })
+                                        }}
                                 </div>
                             </div>
                             <div id="sample-species-other-container"></div>
@@ -38,12 +49,6 @@
                                 </label>
                                 <div class="control">
                                     {{ form.buffer_condition(class='input') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.comment.label }}</label>
-                                <div class="control">
-                                    {{ form.comment(class='input') }}
                                 </div>
                             </div>
                         </div>
@@ -122,6 +127,22 @@
 {#                                </div>#}
                             </div>
                         </div>
+                        <div class="box">
+                            <div class="field">
+                                <label class="checkbox" style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="hide-choice">
+                                        {{ form.processing_data() }}
+                                    </span>
+                                    <strong>{{ form.processing_data.label.text }}</strong>
+                                </label>
+                            </div>
+                            <div class="field" style="display: flex; align-items: center; gap: 10px;">
+                                <label class="label">{{ form.comment.label }}</label>
+                                <div class="control" style="flex: 1;">
+                                    {{ form.comment(class='input') }}
+                                </div>
+                            </div>
+                        </div>
                         <div class="field is-grouped is-justify-content-center">
                             <div class="control">
                                 <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
@@ -148,26 +169,20 @@
 
         function initSubforms() {
             $('#condition-field div[id]').each(function () {
-                const quantitativeMethod = $('input[type="checkbox"][name$="quantitative_method"]');
+                const quantitativeMethod = $('input[type="radio"][name$="quantitative_method"]');
 
-                function validateQuantitativeMethodInput() {
-                    const checkedCount = quantitativeMethod.filter(':checked').length;
+                function validateQuantitativeInput() {
+                    quantitativeMethod.prop('required', true).attr('oninvalid', "this.setCustomValidity('Please select item')");
 
-                    if (checkedCount === 0) {
-                        quantitativeMethod.prop('required', true);
-                        quantitativeMethod.each(function () {
-                            this.setCustomValidity('Please select at least 1 item.');
-                        });
-                    } else {
-                        quantitativeMethod.prop('required', false);
+                    quantitativeMethod.on('change', function () {
                         quantitativeMethod.each(function () {
                             this.setCustomValidity('');
                         });
-                    }
+                    });
                 }
 
-                validateQuantitativeMethodInput();
-                quantitativeMethod.on('change', validateQuantitativeMethodInput);
+                validateQuantitativeInput();
+                quantitativeMethod.on('change', validateQuantitativeInput);
             });
         }
 

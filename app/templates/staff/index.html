@@ -286,15 +286,15 @@
                     <span><i class="fas fa-flask mr-2" aria-hidden="true"></i>อยู่ระหว่างการทดสอบ</span>
                     <span class="staff-experimental-badge">Experimental</span>
                 </p>
+                <a class="panel-block" href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}">
+                    <span class="panel-icon"><i class="far fa-comments"></i></span>
+                    <span class="is-size-5">ระบบขออนุมัติประชุมอบรมสัมนา</span><br>
+                </a>
                 <a href="{{ url_for('doc.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="far fa-paper-plane"></i>
                         </span>
                     <span class="is-size-5">ระบบหนังสือเวียน</span><br>
-                </a>
-                <a class="panel-block" href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}">
-                    <span class="panel-icon"><i class="far fa-comments"></i></span>
-                    <span class="is-size-5">ระบบขออนุมัติฝึกอบรม</span><br>
                 </a>
                 <a class="panel-block" href="{{ url_for('e_sign.index') }}">
                     <span class="panel-icon">

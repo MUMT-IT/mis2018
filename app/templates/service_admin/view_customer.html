@@ -179,7 +179,7 @@
                                             {% if item.attachment %}
                                                 <a class="button is-small is-link is-light is-rounded"
                                                    href="{{ url_for('service_admin.download_file', key=item.attachment,
-                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                   download_filename=item.attachment) }}">
                                                     <span class="icon"><i class="fas fa-download"></i></span>
                                                     <span>ดาวน์โหลด</span>
                                                 </a>
@@ -200,7 +200,7 @@
                                             {% if item.attachment %}
                                                 <a class="button is-small is-link is-light is-rounded"
                                                    href="{{ url_for('service_admin.download_file', key=item.attachment,
-                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                   download_filename=item.attachment) }}">
                                                     <span class="icon"><i class="fas fa-download"></i></span>
                                                     <span>ดาวน์โหลด</span>
                                                 </a>

@@ -223,7 +223,31 @@
                                 <a onclick="return confirm('ต้องการดำเนินการเปลี่ยนผู้อนุมัติ IDP รอบ {{ idp.round.desc }} ใช่หรือไม่');"
                                    href="{{ url_for('pa.change_head_idp', round_id=pa.round.id, pa_id=pa.id, idp_id=idp.id) }}"
                                   class="button is-danger is-outlined">
-                                <span>เปลี่ยน</span>
+                                <span>เปลี่ยนผู้ประเมินให้ตรงกับ PA</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <table class="table">
+                    <thead>
+                    <th>รอบ FC</th>
+                    <th>ช่วง</th>
+                    <th>ผู้ประเมิน FC</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for evaluation in relate_fc %}
+                        <tr>
+                            <td>{{ evaluation.round.desc }}</td>
+                            <td>{{ evaluation.round }}</td>
+                            <td>{{ evaluation.evaluator.personal_info }}</td>
+                            <td>
+                                <a onclick="return confirm('ต้องการดำเนินการเปลี่ยนผู้ประเมิน FC รอบ {{ evaluation.round.desc }} ใช่หรือไม่');"
+                                   href="{{ url_for('pa.change_head_fc_evaluator', round_id=pa.round.id, pa_id=pa.id, evaluation_id=evaluation.id) }}"
+                                   class="button is-danger is-outlined">
+                                    <span>เปลี่ยนผู้ประเมินให้ตรงกับ PA </span>
                                 </a>
                             </td>
                         </tr>

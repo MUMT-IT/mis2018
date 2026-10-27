@@ -75,6 +75,7 @@
             var table = $('#data').DataTable({
                 serverSide: true,
                 searchDelay: 1000,
+                order: [[2, 'asc']],
                 ajax: '{{ url_for("procurement.get_procurement_search_data") }}',
 
                 columns: [

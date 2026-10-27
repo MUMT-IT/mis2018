@@ -8,6 +8,12 @@
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
+                    <div class="field has-text-centered">
+                        <a class="button is-info" href="{{ url_for('staff.list_group_detail') }}">
+                            <span class="icon"><i class="fas fa-user-edit"></i></span>
+                            <span>จัดการรายชื่อกลุ่ม</span>
+                        </a>
+                    </div>
                 <div id="group-detail-modal"></div>
                 <div class="field">
                     <div class="select">

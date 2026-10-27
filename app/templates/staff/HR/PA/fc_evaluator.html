@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
+{% block vendor_styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <style>
+        .fc-evaluator-modal .select2-container { width: 100% !important; z-index: 1000; }
+        .fc-evaluator-modal .select2-dropdown { z-index: 1001; }
+    </style>
+{% endblock %}
 {% block page_content %}
     <section class="section" id="app">
         <div class="container">
@@ -46,6 +54,7 @@
                         <th>ผู้รับการประเมิน</th>
                         <th>สังกัด</th>
                         <th>สถานะ</th>
+                        <th>จัดการ</th>
                         </thead>
                         <tbody>
                         {% for e in fc_evaluator %}
@@ -76,12 +85,69 @@
                                        class="tag is-rounded is-danger">รอดำเนินการ</a>
                                     {% endif %}
                                 </td>
+                                <td>
+                                    <button type="button" class="button is-small is-info is-light"
+                                            onclick="var modal = document.getElementById('fc-evaluator-modal-{{ e.id }}'); modal.classList.add('is-active'); window.initFcEvaluatorSelect2(modal)">
+                                        <span class="icon"><i class="fas fa-edit"></i></span>
+                                        <span>แก้ไขผู้ประเมิน</span>
+                                    </button>
+                                    <form method="post" action="{{ url_for('pa.delete_fc_evaluator', evaluation_id=e.id) }}"
+                                          onsubmit="return confirm({{ ('ยืนยันการลบข้อมูลผู้ประเมิน FC รอบ ' ~ e.round.desc ~ ' ผู้ประเมิน ' ~ e.evaluator.fullname ~ ' ผู้รับการประเมิน ' ~ e.staff.fullname ~ '? การลบนี้ไม่สามารถกู้คืนได้')|tojson|forceescape }});">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="button is-small is-danger is-light mt-2">
+                                            <span class="icon"><i class="fas fa-trash"></i></span>
+                                            <span>ลบข้อมูล</span>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
+            {% for e in fc_evaluator %}
+            <div class="modal fc-evaluator-modal" id="fc-evaluator-modal-{{ e.id }}">
+                <div class="modal-background" onclick="this.closest('.fc-evaluator-modal').classList.remove('is-active')"></div>
+                <div class="modal-card">
+                    <header class="modal-card-head">
+                        <p class="modal-card-title">แก้ไขผู้ประเมิน</p>
+                        <button type="button" class="delete" aria-label="close"
+                                onclick="this.closest('.fc-evaluator-modal').classList.remove('is-active')"></button>
+                    </header>
+                    <form method="post" action="{{ url_for('pa.update_fc_evaluator', evaluation_id=e.id) }}">
+                        <section class="modal-card-body">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label">รอบการประเมิน</label>
+                                <input class="input" value="{{ e.round.desc }}" readonly>
+                            </div>
+                            <div class="field">
+                                <label class="label">ผู้รับการประเมิน</label>
+                                <input class="input" value="{{ e.staff.fullname }}" readonly>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="fc-evaluator-search-{{ e.id }}">ค้นหาผู้ประเมิน</label>
+                                <div>
+                                    <select id="fc-evaluator-search-{{ e.id }}" name="evaluator_account_id"
+                                            class="js-fc-evaluator-select" required>
+                                        <option value="">เลือกผู้ประเมิน</option>
+                                        {% for account in evaluator_accounts %}
+                                            <option value="{{ account.id }}" {% if account.id == e.evaluator_account_id %}selected{% endif %}>{{ account.fullname }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </section>
+                        <footer class="modal-card-foot">
+                            <button type="button" class="button"
+                                    onclick="this.closest('.fc-evaluator-modal').classList.remove('is-active')">ยกเลิก</button>
+                            <button type="submit" class="button is-primary">บันทึก</button>
+                        </footer>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
             <div class="columns">
                 <div class="column">
                     <div class="buttons is-centered">
@@ -99,6 +165,22 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        window.initFcEvaluatorSelect2 = function (modal) {
+            $(modal).find('.js-fc-evaluator-select').each(function () {
+                if (!$(this).hasClass('select2-hidden-accessible')) {
+                    $(this).select2({
+                        width: '100%',
+                        dropdownParent: $(modal),
+                        placeholder: 'เลือกผู้ประเมิน',
+                        allowClear: true,
+                        minimumResultsForSearch: 0
+                    });
+                }
+            });
+        };
+    </script>
     <script>
         $(document).ready(function () {
             $('#roundTable').DataTable();

@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <style>
+        .hide-choice label {
+            font-size: 0;
+        }
+
+        .hide-choice input {
+            margin-right: 5px;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "service_admin/admin_nav.html" %}
@@ -16,18 +25,20 @@
                             <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">{{ form.processing_data.label }}</label>
-                                <div class="control">
-                                    {{ form.processing_data() }}
-                                </div>
-                            </div>
-                            <div class="field">
                                 <label class="label">
                                     {{ form.sample_species.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control">
-                                    {{ form.sample_species(class='input') }}
+                                <div class="select">
+                                    {{ form.sample_species(
+                                        **{'hx-get': url_for("academic_services.get_sample_species_other",
+                                                request_id=request_id),
+                                            'hx-target': '#sample-species-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="sample_species"]'
+                                            })
+                                        }}
                                 </div>
                             </div>
                             <div id="sample-species-other-container"></div>
@@ -41,9 +52,12 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.comment.label }}</label>
-                                <div class="control">
-                                    {{ form.comment(class='input') }}
+                                <label class="label">
+                                    {{ form.metabolomic_type.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.metabolomic_type() }}
                                 </div>
                             </div>
                         </div>
@@ -60,22 +74,18 @@
                                                     {{ item_form.sample_name.label }}
                                                     <span class="has-text-danger">*</span>
                                                 </th>
-                                                <th style="border: none">{{ item_form.clean_up.label }}</th>
-                                                <th style="border: none">{{ item_form.untargeted_metabolomic.label }}</th>
-                                                <th style="border: none">{{ item_form.quantitative_metabolomic.label }}</th>
+                                                <th style="border: none" data-metabolomic-type="Untargeted">{{ item_form.untargeted_metabolomic.label }}</th>
+                                                <th style="border: none" data-metabolomic-type="Quantitative">{{ item_form.quantitative_metabolomic.label }}</th>
                                             </thead>
                                             <tbody>
                                                 <tr>
                                                     <td style="border: none" class="control">
                                                         {{ item_form.sample_name(class='input') }}
                                                     </td>
-                                                    <td style="border: none" class="control">
-                                                        {{ item_form.clean_up() }}
-                                                    </td>
-                                                    <td style="border: none" class="control">
+                                                    <td style="border: none" class="control" data-metabolomic-type="Untargeted">
                                                         {{ item_form.untargeted_metabolomic() }}
                                                     </td>
-                                                    <td style="border: none" class="control">
+                                                    <td style="border: none" class="control" data-metabolomic-type="Quantitative">
                                                         {{ item_form.quantitative_metabolomic() }}
                                                     </td>
                                                     <td style="border: none">
@@ -120,6 +130,22 @@
 {#                                </div>#}
                             </div>
                         </div>
+                        <div class="box">
+                            <div class="field" id="process-data-field" style="display:none;">
+                                <label class="checkbox" style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="hide-choice">
+                                        {{ form.processing_data() }}
+                                    </span>
+                                    <strong>{{ form.processing_data.label.text }}</strong>
+                                </label>
+                            </div>
+                            <div class="field" style="display: flex; align-items: center; gap: 10px;">
+                                <label class="label">{{ form.comment.label }}</label>
+                                <div class="control" style="flex: 1;">
+                                    {{ form.comment(class='input') }}
+                                </div>
+                            </div>
+                        </div>
                         <div class="field is-grouped is-justify-content-center">
                             <div class="control">
                                 <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
@@ -133,6 +159,105 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        $(document).ready(function () {
+            function validateMetabolomicConditions(event) {
+                const selectedType = document.querySelector('[name="metabolomic_type"]')?.value;
+                let hasInvalidItem = false;
+                let firstInvalidInput = null;
+
+                document.querySelectorAll('#condition-field .condition-item').forEach(function (item) {
+                    const metabolomicInputs = item.querySelectorAll(
+                        'input[name$="untargeted_metabolomic"], input[name$="quantitative_metabolomic"]'
+                    );
+                    metabolomicInputs.forEach(function (input) {
+                        input.setCustomValidity('');
+                    });
+
+                    const inputSelector = selectedType === 'Untargeted'
+                        ? 'input[name$="untargeted_metabolomic"]'
+                        : 'input[name$="quantitative_metabolomic"]';
+                    const selectedInputs = item.querySelectorAll(inputSelector);
+                    const hasSelection = Array.from(selectedInputs).some(function (input) {
+                        return input.checked;
+                    });
+
+                    if (selectedType && !hasSelection) {
+                        hasInvalidItem = true;
+                        const invalidInput = selectedInputs[0];
+                        if (invalidInput) {
+                            invalidInput.setCustomValidity('Please select item');
+                            firstInvalidInput = firstInvalidInput || invalidInput;
+                        }
+                    }
+                });
+
+                if (hasInvalidItem) {
+                    event.preventDefault();
+                    if (firstInvalidInput) firstInvalidInput.reportValidity();
+                }
+            }
+
+            function showField() {
+                const metabolomicType = document.querySelector('[name="metabolomic_type"]');
+                const processDataField = document.getElementById('process-data-field')
+                if (metabolomicType.value === "Quantitative") {
+                    processDataField.style.display = "block";
+                } else {
+                    processDataField.style.display = "none";
+                }
+            }
+
+            function updateMetabolomicConditionFields() {
+                const metabolomicType = document.querySelector('[name="metabolomic_type"]');
+                const selectedType = metabolomicType ? metabolomicType.value : '';
+
+                document.querySelectorAll('[data-metabolomic-type]').forEach(function (field) {
+                    field.style.display = selectedType === field.dataset.metabolomicType ? '' : 'none';
+                });
+
+                document.querySelectorAll('#condition-field .condition-item').forEach(function (item) {
+                    const untargetedFields = item.querySelectorAll('input[name$="untargeted_metabolomic"]');
+                    const quantitativeFields = item.querySelectorAll('input[name$="quantitative_metabolomic"]');
+
+                    if (selectedType === 'Untargeted') {
+                        quantitativeFields.forEach(function (input) {
+                            input.checked = false;
+                        });
+                    } else if (selectedType === 'Quantitative') {
+                        untargetedFields.forEach(function (input) {
+                            input.checked = false;
+                        });
+                    } else {
+                        untargetedFields.forEach(function (input) {
+                            input.checked = false;
+                        });
+                        quantitativeFields.forEach(function (input) {
+                            input.checked = false;
+                        });
+                    }
+                });
+            }
+
+            showField()
+            updateMetabolomicConditionFields();
+            document.querySelector('select[name="metabolomic_type"]').addEventListener("change", function () {
+                showField();
+                updateMetabolomicConditionFields();
+            });
+            document.body.addEventListener('htmx:afterSwap', updateMetabolomicConditionFields);
+            document.body.addEventListener('change', function (event) {
+                if (!event.target.matches('input[name$="untargeted_metabolomic"], input[name$="quantitative_metabolomic"]')) return;
+                const item = event.target.closest('.condition-item');
+                if (item && item.querySelector('input[name$="untargeted_metabolomic"]:checked, input[name$="quantitative_metabolomic"]:checked')) {
+                    item.querySelectorAll('input[name$="untargeted_metabolomic"], input[name$="quantitative_metabolomic"]').forEach(function (input) {
+                        input.setCustomValidity('');
+                    });
+                }
+            });
+            document.querySelector('form').addEventListener('submit', validateMetabolomicConditions);
+        })
+    </script>
     <script>
         function renumberItems() {
             const items = document.querySelectorAll('#condition-field .condition-item');
