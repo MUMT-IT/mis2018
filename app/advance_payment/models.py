@@ -170,6 +170,8 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
         "CashManagementNotifications",
         back_populates="ticket",
         uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     @property
@@ -214,7 +216,12 @@ class CashManagementNotifications(db.Model):
     __tablename__ = "cash_mng_notifications"
 
     id = Column(Integer, primary_key=True)
-    ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=False, unique=True)
+    ticket_id = Column(
+        Integer,
+        ForeignKey("cash_advance_borrowing_tickets.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
     borrower_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
 
     ticket = relationship(
@@ -234,8 +241,18 @@ Notifications = CashManagementNotifications
 document_return_association = Table(
     "cash_mng_document_return_association",
     db.metadata,
-    Column("document_id", Integer, ForeignKey("cash_mng_documents.id"), primary_key=True),
-    Column("return_id", Integer, ForeignKey("cash_advance_return_details.id"), primary_key=True),
+    Column(
+        "document_id",
+        Integer,
+        ForeignKey("cash_mng_documents.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "return_id",
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -245,14 +262,24 @@ document_return_association = Table(
 return_borrowing_ticket_association = Table(
     "cash_advance_return_borrowing_ticket_association",
     db.metadata,
-    Column("return_id", Integer, ForeignKey("cash_advance_return_details.id"), primary_key=True),
+    Column(
+        "return_id",
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
     Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
 )
 
 parcel_borrowing_ticket_association = Table(
     "cash_advance_parcel_borrowing_ticket_association",
     db.metadata,
-    Column("parcel_return_id", Integer, ForeignKey("cash_mng_parcel_return_details.id"), primary_key=True),
+    Column(
+        "parcel_return_id",
+        Integer,
+        ForeignKey("cash_mng_parcel_return_details.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
     Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
 )
 
@@ -275,6 +302,8 @@ class ClosingDocumentRecordMixin(FinanceEditMixin):
             "ClosingDocumentLink",
             foreign_keys="ClosingDocumentLink." + cls._closing_fk,
             back_populates=cls._closing_record,
+            cascade="all, delete-orphan",
+            passive_deletes=True,
             order_by="ClosingDocumentLink.id",
         )
 
@@ -358,23 +387,29 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     linked_borrowing_tickets = relationship(
         "CashAdvanceBorrowingTicket",
         secondary=return_borrowing_ticket_association,
+        passive_deletes=True,
         order_by="CashAdvanceBorrowingTicket.id",
     )
     receipt_items = relationship(
         "ReturnReceiptItem",
         back_populates="return_detail",
         foreign_keys="ReturnReceiptItem.return_detail_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="ReturnReceiptItem.id",
     )
     proof_files = relationship(
         "ReturnProofFile",
         back_populates="return_detail",
         foreign_keys="ReturnProofFile.return_detail_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="ReturnProofFile.id",
     )
     documents = relationship(
         "Document",
         secondary=document_return_association,
+        passive_deletes=True,
         order_by="Document.id",
     )
 
@@ -426,7 +461,11 @@ class ReturnReceiptItem(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_receipt_items"
 
     id = Column(Integer, primary_key=True)
-    return_detail_id = Column(Integer, ForeignKey("cash_advance_return_details.id"), nullable=False)
+    return_detail_id = Column(
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     receipt_date = Column(Date, nullable=False)
     store_name = Column(String(255), nullable=False, default="")
     description = Column(String(255), nullable=False, default="")
@@ -443,6 +482,8 @@ class ReturnReceiptItem(FinanceEditMixin, db.Model):
         "ReturnProofFile",
         back_populates="receipt_item",
         foreign_keys="ReturnProofFile.return_receipt_item_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="ReturnProofFile.id",
     )
 
@@ -507,8 +548,16 @@ class ReturnProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_proof_files"
 
     id = Column(Integer, primary_key=True)
-    return_detail_id = Column(Integer, ForeignKey("cash_advance_return_details.id"), nullable=False)
-    return_receipt_item_id = Column(Integer, ForeignKey("cash_advance_return_receipt_items.id"), nullable=True)
+    return_detail_id = Column(
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    return_receipt_item_id = Column(
+        Integer,
+        ForeignKey("cash_advance_return_receipt_items.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     proof_reference = Column(String(255), nullable=False)
     filename = Column(String(255), nullable=False, default="")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
@@ -543,7 +592,11 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
 
     id = Column(Integer, primary_key=True)
     ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
-    fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=True)
+    fund_request_id = Column(
+        Integer,
+        ForeignKey("petty_cash_fund_requests.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     amount_spent = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     items_description = Column(String(1000), nullable=False)
     sent_date = Column(Date, nullable=False)
@@ -561,11 +614,13 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     )
     fund_request = relationship(
         "FundRequest",
+        back_populates="parcel_returns",
         foreign_keys=[fund_request_id],
     )
     linked_borrowing_tickets = relationship(
         "CashAdvanceBorrowingTicket",
         secondary=parcel_borrowing_ticket_association,
+        passive_deletes=True,
         order_by="CashAdvanceBorrowingTicket.id",
     )
 
@@ -581,7 +636,13 @@ class ClosingDocument(FinanceEditMixin, db.Model):
     settled_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
-    links = relationship("ClosingDocumentLink", back_populates="document", order_by="ClosingDocumentLink.id")
+    links = relationship(
+        "ClosingDocumentLink",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ClosingDocumentLink.id",
+    )
 
     @property
     def is_settled(self):
@@ -606,10 +667,27 @@ class ClosingDocumentLink(FinanceEditMixin, db.Model):
     )
 
     id = Column(Integer, primary_key=True)
-    document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=False, index=True)
-    ticket_return_id = Column(Integer, ForeignKey("cash_advance_return_details.id"), nullable=True)
-    parcel_return_id = Column(Integer, ForeignKey("cash_mng_parcel_return_details.id"), nullable=True)
-    claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=True)
+    document_id = Column(
+        Integer,
+        ForeignKey("cash_mng_closing_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    ticket_return_id = Column(
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    parcel_return_id = Column(
+        Integer,
+        ForeignKey("cash_mng_parcel_return_details.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    claim_id = Column(
+        Integer,
+        ForeignKey("petty_cash_claim_details.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     document = relationship("ClosingDocument", back_populates="links")
@@ -917,7 +995,25 @@ class FundRequest(FinanceEditMixin, db.Model):
         "FundRequestItem",
         back_populates="fund_request",
         foreign_keys="FundRequestItem.fund_request_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="FundRequestItem.id",
+    )
+    claims = relationship(
+        "PettyCashClaimDetail",
+        back_populates="fund_request",
+        foreign_keys="PettyCashClaimDetail.fund_request_id",
+        cascade="all, delete",
+        passive_deletes=True,
+        order_by="PettyCashClaimDetail.id",
+    )
+    parcel_returns = relationship(
+        "ParcelReturnDetail",
+        back_populates="fund_request",
+        foreign_keys="ParcelReturnDetail.fund_request_id",
+        cascade="all, delete",
+        passive_deletes=True,
+        order_by="ParcelReturnDetail.id",
     )
 
     @property
@@ -967,7 +1063,11 @@ class FundRequestItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_request_items"
 
     id = Column(Integer, primary_key=True)
-    fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=False)
+    fund_request_id = Column(
+        Integer,
+        ForeignKey("petty_cash_fund_requests.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     description = Column(String(255), nullable=False)
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -983,8 +1083,18 @@ class FundRequestItem(FinanceEditMixin, db.Model):
 document_petty_claim_association = Table(
     "cash_mng_document_petty_claim_association",
     db.metadata,
-    Column("document_id", Integer, ForeignKey("cash_mng_documents.id"), primary_key=True),
-    Column("claim_id", Integer, ForeignKey("petty_cash_claim_details.id"), primary_key=True),
+    Column(
+        "document_id",
+        Integer,
+        ForeignKey("cash_mng_documents.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "claim_id",
+        Integer,
+        ForeignKey("petty_cash_claim_details.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -998,7 +1108,11 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     claim_number = Column("Claim_number", String(255), nullable=True)
     status = Column(String(32), nullable=False, default="ฉบับร่าง")
     petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=False)
-    fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=True)
+    fund_request_id = Column(
+        Integer,
+        ForeignKey("petty_cash_fund_requests.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     total_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     approved_at = Column(DateTime, nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
@@ -1025,23 +1139,29 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     )
     fund_request = relationship(
         "FundRequest",
+        back_populates="claims",
         foreign_keys=[fund_request_id],
     )
     items = relationship(
         "PettyCashClaimItem",
         back_populates="claim",
         foreign_keys="PettyCashClaimItem.claim_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="PettyCashClaimItem.id",
     )
     proof_files = relationship(
         "PettyCashClaimProofFile",
         back_populates="claim",
         foreign_keys="PettyCashClaimProofFile.claim_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="PettyCashClaimProofFile.id",
     )
     documents = relationship(
         "Document",
         secondary=document_petty_claim_association,
+        passive_deletes=True,
         order_by="Document.id",
     )
 
@@ -1066,7 +1186,11 @@ class PettyCashClaimItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_items"
 
     id = Column(Integer, primary_key=True)
-    claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=False)
+    claim_id = Column(
+        Integer,
+        ForeignKey("petty_cash_claim_details.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     receipt_date = Column(Date, nullable=False)
     description = Column(String(255), nullable=False, default="")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
@@ -1082,6 +1206,8 @@ class PettyCashClaimItem(FinanceEditMixin, db.Model):
         "PettyCashClaimProofFile",
         back_populates="claim_item",
         foreign_keys="PettyCashClaimProofFile.claim_item_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="PettyCashClaimProofFile.id",
     )
 
@@ -1147,8 +1273,16 @@ class PettyCashClaimProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_proof_files"
 
     id = Column(Integer, primary_key=True)
-    claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=False)
-    claim_item_id = Column(Integer, ForeignKey("petty_cash_claim_items.id"), nullable=True)
+    claim_id = Column(
+        Integer,
+        ForeignKey("petty_cash_claim_details.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    claim_item_id = Column(
+        Integer,
+        ForeignKey("petty_cash_claim_items.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     proof_reference = Column(String(255), nullable=False)
     filename = Column(String(255), nullable=False, default="")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
