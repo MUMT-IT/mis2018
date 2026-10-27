@@ -3234,10 +3234,15 @@ def generate_repair_approval_pdf(repair_approval):
         ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
     ]))
 
+    if repair_approval.price and repair_approval.price >= 100000:
+        approver_name = '(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์'
+    else:
+        approver_name = '(รองศาสตราจารย์ ดร.ธนาวุฒิ ตันติมงคลวัฒน์)<br/>รองคณบดีคณะเทคนิคการแพทย์'
+
     approval = Table([
         [Paragraph('อนุมัติ', style=approver_style)],
-        [Paragraph('(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์', style=center_style)]
-    ], colWidths=195)
+        [Paragraph(f'{approver_name}', style=center_style)]
+    ], colWidths=215)
 
     approval.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 1, colors.black),
