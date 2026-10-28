@@ -650,7 +650,7 @@
 
       function toggleFormFields() {
         const isBorrowingTicketForm = borrowingRadio && borrowingRadio.checked;
-        const isInterestForm = interestRadio.checked;
+        const isInterestForm = Boolean(interestRadio && interestRadio.checked);
         const isReductionForm = reductionRadio && reductionRadio.checked;
         if (personalNoteSection) {
           personalNoteSection.style.display = isInterestForm ? "none" : "flex";
@@ -701,7 +701,7 @@
             syncBorrowingTicketPreview();
           }
           calculateTotalSpent();
-        } else if (interestRadio.checked) {
+        } else if (isInterestForm) {
           pettyCashSection.style.display = "none";
           interestSection.style.display = "block";
           if (borrowingSection) borrowingSection.style.display = "none";
@@ -743,7 +743,9 @@
       }
 
       pettyCashRadio.addEventListener("change", toggleFormFields);
-      interestRadio.addEventListener("change", toggleFormFields);
+      if (interestRadio) {
+        interestRadio.addEventListener("change", toggleFormFields);
+      }
       if (borrowingRadio) {
         borrowingRadio.addEventListener("change", toggleFormFields);
       }
@@ -761,6 +763,7 @@
         e.preventDefault();
 
         const budgetState = updateBudgetLimitState();
+        const isInterestForm = Boolean(interestRadio && interestRadio.checked);
         const isReductionForm = reductionRadio && reductionRadio.checked;
         const isItemizedForm = pettyCashRadio.checked || isReductionForm;
         if (isItemizedForm && (budgetState.isOverBudget || (budgetState.availableBudget <= 0 && budgetState.requestedAmount > 0))) {
@@ -785,7 +788,7 @@
         }
         // 1. ตรวจสอบ Radio ประจำปี
         const selectedRadio = document.querySelector('input[name="period_year_radio"]:checked');
-        if (selectedRadio && interestRadio.checked) {
+        if (selectedRadio && isInterestForm) {
           document.getElementById("hidden_period_year").value = selectedRadio.value;
         } else {
           document.getElementById("hidden_period_year").value = "";
@@ -801,10 +804,6 @@
             userTotalInput.focus();
             return false;
           }
-
-          document.querySelectorAll(".item-amount-input").forEach(input => {
-            input.value = input.value.replace(/,/g, "");
-          });
         }
         if (borrowingRadio && borrowingRadio.checked) {
           if (!borrowingTicketSelect || !borrowingTicketSelect.value) {
@@ -813,6 +812,9 @@
           }
         }
 
+        mainForm.querySelectorAll(".item-amount-input").forEach(input => {
+          input.value = input.value.replace(/,/g, "");
+        });
         userTotalInput.value = userTotalInput.value.replace(/,/g, "");
         updateBudgetLimitState();
 
@@ -831,7 +833,7 @@
       });
       
       toggleFormFields();
-      if (!interestRadio.checked) {
+      if (!interestRadio || !interestRadio.checked) {
         calculateTotalSpent();
       } else if (userTotalInput) {
         formatInputNumberOnBlur(userTotalInput);
