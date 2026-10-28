@@ -11776,6 +11776,43 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         if verification_fund_request
         else None
     )
+    fund_request_waiting_message = None
+    if verification_fund_request and fund_request_status == "รอการอนุมัติ":
+        expected_confirmer = _get_user_by_id(expected_confirmer_id)
+        fund_request_head = _fund_request_org_head(verification_fund_request)
+        if expected_confirmer_id and _staff_accounts_match(
+            expected_confirmer,
+            fund_request_head,
+        ):
+            fund_request_waiting_message = (
+                "อยู่ระหว่างรอผู้มีอำนาจพิจารณาอนุมัติ"
+            )
+        elif expected_confirmer_id == getattr(
+            verification_fund_request,
+            "requester_id",
+            None,
+        ):
+            fund_request_waiting_message = (
+                "อยู่ระหว่างรอผู้ยืมตรวจสอบและยืนยันข้อมูล"
+            )
+        elif expected_confirmer_id == _fund_request_custodian_id(
+            verification_fund_request
+        ):
+            fund_request_waiting_message = (
+                "อยู่ระหว่างรอผู้เก็บรักษาเงินสดย่อยตรวจสอบและยืนยันข้อมูล"
+            )
+        elif expected_confirmer_id:
+            fund_request_waiting_message = (
+                "อยู่ระหว่างรอผู้เกี่ยวข้องตรวจสอบและยืนยันข้อมูล"
+            )
+        elif not getattr(verification_fund_request, "approved_at", None):
+            fund_request_waiting_message = (
+                "อยู่ระหว่างรอผู้มีอำนาจพิจารณาอนุมัติ"
+            )
+    elif verification_fund_request and fund_request_status == "อนุมัติแล้ว":
+        fund_request_waiting_message = (
+            "อยู่ระหว่างรอผู้เก็บรักษาเงินสดย่อยบันทึกวันที่เบิกเงิน"
+        )
     can_confirm_fund_request = bool(
         verification_fund_request
         and fund_request_status == "รอการอนุมัติ"
@@ -11903,6 +11940,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         parcel_return_history=parcel_return_history,
         fund_request_total_info=fund_request_total_info,
         fund_request_status=fund_request_status,
+        fund_request_waiting_message=fund_request_waiting_message,
         can_approve_fund_request=can_approve_fund_request,
         can_confirm_fund_request=can_confirm_fund_request,
         can_reject_fund_request=can_reject_fund_request,
