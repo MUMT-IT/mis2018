@@ -10671,11 +10671,6 @@ def autosave_petty_cash_claim_draft():
         item_category_types.append(
             int(category_type) if category_type.isdigit() else 1
         )
-    if (
-        cash_return.get("receipt_date")
-        and cash_return.get("amount") not in (None, "")
-    ):
-        item_category_types.append(6)
     if _petty_cash_category_groups_are_mixed(item_category_types):
         return _validation_error_response(
             "รายการเดียวกันต้องเป็นเงินโอนคืนประเภท 6 ทั้งชุด หรือเป็นค่าใช้จ่ายที่ไม่ใช่ประเภท 6 ทั้งชุด"
@@ -10732,6 +10727,21 @@ def autosave_petty_cash_claim_draft():
     if normalized_fund_request_id:
         query = query.filter(PettyCashClaimDetail.fund_request_id == normalized_fund_request_id)
 
+    cash_return_present = bool(
+        cash_return.get("receipt_date") and cash_return.get("amount") not in (None, "")
+    )
+    has_expense_items = bool(items and item_category_types and item_category_types[0] != 6)
+    if items:
+        is_category_six = item_category_types[0] == 6
+        query = query.filter(
+            PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6)
+            if is_category_six else
+            ~PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6)
+        )
+    elif cash_return_present:
+        query = query.filter(
+            PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6)
+        )
     claim_detail = query.order_by(PettyCashClaimDetail.id.desc()).first()
 
     # 3. หากยังไม่มี Draft ให้สร้างขึ้นใหม่
@@ -10783,7 +10793,7 @@ def autosave_petty_cash_claim_draft():
         cash_return_amount = float(cash_return.get("amount") or 0)
     except (TypeError, ValueError):
         cash_return_amount = 0.0
-    if cash_return_date is not None and cash_return.get("amount") not in (None, ""):
+    if cash_return_date is not None and cash_return.get("amount") not in (None, "") and not has_expense_items:
         desired_items.append((
             cash_return_date, "เงินโอนคงเหลือจากการยืมเงินสดย่อย", 6,
             cash_return_amount,
@@ -10803,7 +10813,8 @@ def autosave_petty_cash_claim_draft():
     for old_item in existing_items[len(desired_items):]:
         db.session.delete(old_item)
 
-    claim_detail.total_amount = total_amount
+    claim_detail.amount = sum(amount for _, _, _, amount in desired_items)
+    claim_detail.total_amount = claim_detail.amount
     claim_detail.note = note
     if reference_number and reference_date_raw:
         try:
@@ -10817,6 +10828,35 @@ def autosave_petty_cash_claim_draft():
 
     # 5. บันทึกเอกสารประกาศประกอบ (Documents)
     _replace_claim_detail_documents(claim_detail, announcements)
+
+    if cash_return_present and has_expense_items:
+        return_query = db.session.query(PettyCashClaimDetail).filter(
+            PettyCashClaimDetail.user_id == user_id,
+            PettyCashClaimDetail.status == "ฉบับร่าง",
+            PettyCashClaimDetail.fund_request_id == normalized_fund_request_id,
+            PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+            PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6),
+        )
+        return_draft = return_query.order_by(PettyCashClaimDetail.id.desc()).first()
+        if return_draft is None:
+            return_draft = PettyCashClaimDetail(
+                user_id=user_id, petty_cash_setting_id=setting.id,
+                fund_request_id=normalized_fund_request_id, status="ฉบับร่าง",
+                created_at=datetime.now(),
+            )
+            db.session.add(return_draft)
+            db.session.flush()
+        return_draft.amount = cash_return_amount
+        return_draft.total_amount = cash_return_amount
+        return_draft.note = note
+        return_item = next(iter(return_draft.items), None)
+        if return_item is None:
+            return_item = PettyCashClaimItem(claim_id=return_draft.id)
+            db.session.add(return_item)
+        return_item.receipt_date = cash_return_date
+        return_item.description = "เงินโอนคงเหลือจากการยืมเงินสดย่อย"
+        return_item.category_type = 6
+        return_item.amount = cash_return_amount
 
     db.session.commit()
 
@@ -11421,8 +11461,6 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         submitted_category_types = [
             item["category_type"] for item in parsed_items
         ]
-        if has_cash_return_data and cash_return_date is not None:
-            submitted_category_types.append(6)
         if _petty_cash_category_groups_are_mixed(submitted_category_types):
             return _validation_redirect_response(
                 "รายการเดียวกันต้องเป็นเงินโอนคืนประเภท 6 ทั้งชุด หรือเป็นค่าใช้จ่ายที่ไม่ใช่ประเภท 6 ทั้งชุด",
@@ -11457,14 +11495,14 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 existing_draft_query = existing_draft_query.filter(
                     PettyCashClaimDetail.fund_request_id == fund_request_id
                 )
-            if not cash_mng_finance_open:
+            if parsed_items and parsed_items[0]["category_type"] != 6:
                 existing_draft_query = existing_draft_query.filter(
-                    PettyCashClaimDetail.items.any(
-                        PettyCashClaimItem.category_type == 6
-                    ),
-                    ~PettyCashClaimDetail.items.any(
-                        PettyCashClaimItem.category_type != 6
-                    )
+                    ~PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6)
+                )
+            elif has_cash_return_data:
+                existing_draft_query = existing_draft_query.filter(
+                    PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6),
+                    ~PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type != 6),
                 )
             if not setting or not setting.id:
                 return _validation_error_response("ไม่พบการตั้งค่าเงินสดย่อยสำหรับหน่วยงาน")
@@ -11527,7 +11565,8 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         legacy_existing_file_names = request.form.getlist("existing_proof_filenames[]")
 
         submitted_items = list(parsed_items)
-        if has_cash_return_data and cash_return_date is not None:
+        separate_cash_return = bool(parsed_items and parsed_items[0]["category_type"] != 6 and has_cash_return_data and cash_return_date is not None)
+        if has_cash_return_data and cash_return_date is not None and not separate_cash_return:
             submitted_items.append({
                 "category_type": 6,
                 "amount": cash_return_amount or 0,
@@ -11620,8 +11659,42 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     db.session.add(proof_file_record)
 
         if has_cash_return_data and cash_return_date is not None:
+            cash_claim_detail = claim_detail
+            if separate_cash_return:
+                cash_draft_query = db.session.query(PettyCashClaimDetail).filter(
+                    PettyCashClaimDetail.user_id == user_id,
+                    PettyCashClaimDetail.status == "ฉบับร่าง",
+                    PettyCashClaimDetail.fund_request_id == fund_request_id,
+                    PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+                    PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6),
+                    ~PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type != 6),
+                )
+                cash_claim_detail = cash_draft_query.order_by(PettyCashClaimDetail.id.desc()).first()
+                if cash_claim_detail is None:
+                    cash_claim_detail = PettyCashClaimDetail(
+                        user_id=user_id, petty_cash_setting_id=setting.id,
+                        fund_request_id=fund_request_id,
+                    )
+                    db.session.add(cash_claim_detail)
+                else:
+                    for old_item in list(cash_claim_detail.items):
+                        db.session.query(PettyCashClaimProofFile).filter_by(claim_item_id=old_item.id).delete()
+                        db.session.delete(old_item)
+                    db.session.flush()
+                cash_claim_detail.status = "ฉบับร่าง" if is_draft else "โอนคืนเงินสดย่อย"
+                cash_claim_detail.amount = cash_return_amount or 0
+                cash_claim_detail.total_amount = cash_return_amount or 0
+                cash_claim_detail.created_at = submitted_at.replace(tzinfo=None)
+                cash_claim_detail.note = note
+                cash_claim_detail.reference_number = reference_number or None
+                cash_claim_detail.reference_date = reference_date
+                if not is_draft:
+                    cash_claim_detail.approved_at = datetime.now()
+                    cash_claim_detail.settled_at = submitted_at
+                    cash_claim_detail.transferred_at = cash_return_date
+                db.session.flush()
             cash_item = PettyCashClaimItem(
-                claim_id=claim_detail.id,
+                claim_id=cash_claim_detail.id,
                 receipt_date=cash_return_date,
                 description="เงินโอนคงเหลือจากการยืมเงินสดย่อย",
                 category_type=6,
@@ -11634,7 +11707,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 original_filename = os.path.basename(cash_return_file.filename)
                 proof_path = _store_uploaded_file(cash_return_file, f"petty_cash/{user_id}")
                 db.session.add(PettyCashClaimProofFile(
-                    claim_id=claim_detail.id,
+                    claim_id=cash_claim_detail.id,
                     claim_item_id=cash_item.id,
                     proof_reference=proof_path,
                     filename=original_filename,
@@ -11647,7 +11720,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             ):
                 if existing_path:
                     db.session.add(PettyCashClaimProofFile(
-                        claim_id=claim_detail.id,
+                        claim_id=cash_claim_detail.id,
                         claim_item_id=cash_item.id,
                         proof_reference=existing_path,
                         filename=existing_name or "cash-return-proof",
@@ -11682,7 +11755,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             ))
 
         # บันทึกยอดรวมของรายการ Claim รวมหมวด 6 ด้วย
-        claim_amount = total_claim_amount + (cash_return_amount or 0)
+        claim_amount = total_claim_amount + (0 if separate_cash_return else (cash_return_amount or 0))
         claim_detail.amount = claim_amount
         if hasattr(claim_detail, 'total_amount'):
             claim_detail.total_amount = claim_amount
@@ -11717,8 +11790,6 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 amount=circular_amount,
                 items_description=circular_items_description,
                 sent_date=circular_sent_date,
-    elif _selected_system() == FINANCE_SYSTEM:
-        claim_detail = None
                 parcel_type=circular_type,
                 status="ฉบับร่าง" if is_draft else "รอตรวจสอบ",
                 reuse_draft=not is_draft,
@@ -11749,25 +11820,16 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             return submit_petty_cash_claim(
                 _render_after_post=True,
                 _forced_fund_request_id=fund_request_id,
-    parcel_draft = None
-    circular_draft = None
-    if history_fund_request and _selected_system() == PETTY_CASH_SYSTEM:
-        parcel_drafts = (
-            db.session.query(ParcelReturnDetail)
-            .filter_by(fund_request_id=history_fund_request.id, status="ฉบับร่าง")
-            .order_by(ParcelReturnDetail.id.desc())
-            .all()
-        )
-        parcel_draft = next((item for item in parcel_drafts if item.type is None), None)
-        circular_draft = next((item for item in parcel_drafts if item.type is not None), None)
-
             )
 
         flash("ส่งใบเบิกเงินสดย่อยเรียบร้อยแล้ว", "success")
         return petty_cash_claim_detail(claim_detail.id)
 
+    cash_return_draft = None
     if edit_claim_detail is not None:
         claim_detail = edit_claim_detail
+    elif _selected_system() == FINANCE_SYSTEM:
+        claim_detail = None
     else:
         claim_query = db.session.query(PettyCashClaimDetail).filter_by(
             user_id=user_id,
@@ -11782,21 +11844,37 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             )
         if selected_fund_request:
             claim_query = claim_query.filter(PettyCashClaimDetail.fund_request_id == selected_fund_request.id)
-        if not cash_mng_finance_open:
-            claim_query = claim_query.filter(
-                PettyCashClaimDetail.items.any(
-                    PettyCashClaimItem.category_type == 6
-                ),
-                ~PettyCashClaimDetail.items.any(
-                    PettyCashClaimItem.category_type != 6
-                )
-            )
-        claim_detail = claim_query.first()
+        cash_return_draft = claim_query.filter(
+            PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6),
+            ~PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type != 6),
+        ).order_by(PettyCashClaimDetail.id.desc()).first()
+        expense_draft = claim_query.filter(
+            PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type != 6),
+            ~PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6),
+        ).order_by(PettyCashClaimDetail.id.desc()).first()
+        claim_detail = (
+            cash_return_draft if not cash_mng_finance_open
+            else expense_draft or cash_return_draft or claim_query.order_by(PettyCashClaimDetail.id.desc()).first()
+        )
     _attach_petty_cash_claim_context(claim_detail)
+    if cash_return_draft is not claim_detail:
+        _attach_petty_cash_claim_context(cash_return_draft)
 
     history_fund_request = selected_fund_request
     if history_fund_request is None and claim_detail and getattr(claim_detail, "fund_request", None):
         history_fund_request = claim_detail.fund_request
+
+    parcel_draft = None
+    circular_draft = None
+    if history_fund_request and _selected_system() == PETTY_CASH_SYSTEM:
+        parcel_drafts = (
+            db.session.query(ParcelReturnDetail)
+            .filter_by(fund_request_id=history_fund_request.id, status="ฉบับร่าง")
+            .order_by(ParcelReturnDetail.id.desc())
+            .all()
+        )
+        parcel_draft = next((item for item in parcel_drafts if item.type is None), None)
+        circular_draft = next((item for item in parcel_drafts if item.type is not None), None)
 
     claim_history = []
     parcel_return_history = []
@@ -11988,8 +12066,6 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     verification_purpose = getattr(verification_fund_request, "purpose", None) or "-"
     verification_created_at = (
         claim_detail.created_at
-        parcel_draft=parcel_draft,
-        circular_draft=circular_draft,
         if claim_detail and claim_detail.created_at
         else (
             getattr(verification_fund_request, "created_at", None)
@@ -12020,6 +12096,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         "submit_petty_cash_claim.html",
         setting=setting,
         claim_detail=claim_detail,
+        cash_return_draft=cash_return_draft,
         claim_edit_mode=edit_claim_detail is not None,
         approved_fund_requests=approved_fund_requests,
         selected_fund_request=selected_fund_request,
@@ -12027,6 +12104,8 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         history_fund_request=history_fund_request,
         claim_history=claim_history,
         parcel_return_history=parcel_return_history,
+        parcel_draft=parcel_draft,
+        circular_draft=circular_draft,
         fund_request_total_info=fund_request_total_info,
         fund_request_status=fund_request_status,
         fund_request_waiting_message=fund_request_waiting_message,

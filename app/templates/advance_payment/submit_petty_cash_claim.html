@@ -694,8 +694,9 @@
       {% endif %}
 
       {% set cash_return_ns = namespace(item=none) %}
-      {% if claim_detail and claim_detail.items %}
-        {% for item in claim_detail.items %}
+      {% set cash_return_source = claim_detail if claim_edit_mode|default(false) else (cash_return_draft or claim_detail) %}
+      {% if cash_return_source and cash_return_source.items %}
+        {% for item in cash_return_source.items %}
           {% if item.category_type|string == '6' and cash_return_ns.item is none %}
             {% set cash_return_ns.item = item %}
           {% endif %}
@@ -1382,6 +1383,7 @@ async function autoSavePettyCashDraft() {
     const description = row.querySelector('input[name="description[]"]')?.value || '';
     const amountVal = row.querySelector('.claim-amount')?.value.replace(/,/g, '') || '0';
 
+    if (!receiptDate && !description.trim() && !(parseFloat(amountVal) || 0)) return;
     items.push({
       receipt_date: receiptDate,
       category_type: categoryType,
