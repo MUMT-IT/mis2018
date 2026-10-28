@@ -16,6 +16,9 @@
     <a href="{{ url_for('advance_payment.petty_cash_fiscal_year_carryover') }}" class="btn btn-outline-primary fw-bold">
       <i class="bi bi-arrow-left-right me-2"></i>ยกยอดเงินสดย่อยระหว่างปีงบประมาณ
     </a>
+<!--    <a href="{{ url_for('advance_payment.petty_cash_fiscal_year_top_up_transfers') }}" class="btn btn-primary fw-bold">-->
+<!--      <i class="bi bi-cash-coin me-2"></i>บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณ-->
+<!--    </a>-->
   </div>
 </header>
 
@@ -239,9 +242,9 @@
                   <td class="text-end text-success fw-bold">{{ '{:,.2f}'.format(summary.get('remaining_budget', setting.budget)) }}</td>
                   <td class="text-center">
                     {% if setting.valid %}
-                    <span class="badge bg-success-subtle text-success border rounded-pill">ยืนยันแล้ว</span>
+                    <span class="badge bg-success-subtle text-success border rounded-pill">มีการใช้งาน</span>
                     {% else %}
-                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">ยังไม่ยืนยัน</span>
+                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">ไม่ได้ใช้งาน</span>
                     {% endif %}
                   </td>
                 </tr>

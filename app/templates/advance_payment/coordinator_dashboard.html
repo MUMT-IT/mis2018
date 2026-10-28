@@ -176,7 +176,7 @@
                     {% endfor %}
                   </div>
                   <div class="col-md-6">
-                    <label for="aip_ref_date" class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
+                    <label for="aip_ref_date" class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ (หากมีมากกว่าหนึ่ง ให้เลือกวันที่เก่าที่สุด)</label>
                     <input id="aip_ref_date" name="aip_ref_date" type="text" value="{{ borrowing_ticket_form.aip_ref_date.data or '' }}" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                     {% for error in borrowing_ticket_form.aip_ref_date.errors %}
                       <div class="text-danger small mt-1">{{ error }}</div>
@@ -258,7 +258,7 @@
             {% endif %}
             {% set return_ticket_script_state = namespace(rendered=false) %}
             {% set return_is_borrower_page = false %}
-            {% set return_autosave_endpoint_prefix = '/coordinator/tickets/' %}
+            {% set return_autosave_endpoint_prefix = url_for('advance_payment.coordinator_autosave_draft', ticket_id=0)|replace('/0/autosave-draft', '/') %}
             {% for borrowing_ticket in actionable_tickets %}
               {% set return_form_summary = return_form_totals_by_ticket.get(borrowing_ticket.id, {}) %}
               {% set return_form_action = url_for('advance_payment.coordinator_ticket_returns') %}
@@ -450,7 +450,9 @@
                   <td class="text-center pe-3">
                     <div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">
                       <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_detail.id) }}" class="btn btn-sm btn-outline-primary px-2" target="_blank">ตรวจสอบหลักฐาน</a>
-                      {% if advance_payment_role != 'finance' and return_detail.status|lower == 'ผ่านการตรวจสอบ' %}
+                      {% if advance_payment_role != 'finance'
+                            and return_detail.status|lower == 'ผ่านการตรวจสอบ'
+                            and not return_detail_is_cash(return_detail) %}
                         <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal{{ return_detail.id }}">ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย</button>
                         {% with document=return_detail, pdf_export_url=url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id), pdf_reference_modal_id='pdfReferenceModal' ~ return_detail.id %}{% include 'advance_payment/_pdf_reference_modal.html' %}{% endwith %}
                       {% endif %}

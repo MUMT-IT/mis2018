@@ -137,6 +137,8 @@
                   <span class="badge bg-opacity-10 bg-info text-info border border-info-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกดอกเบี้ย</span>
                 {% elif request.form_type == 'borrowing' %}
                   <span class="badge bg-opacity-10 bg-warning text-warning border border-warning-subtle px-2.5 py-1.5 fw-bold">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</span>
+                {% elif request.form_type == 'reduction' %}
+                  <span class="badge bg-opacity-10 bg-danger text-danger border border-danger-subtle px-2.5 py-1.5 fw-bold">เบิกลดวงเงิน</span>
                 {% else %}
                   <span class="badge bg-opacity-10 bg-secondary text-secondary px-2.5 py-1.5 fw-bold">{{ request.form_type }}</span>
                 {% endif %}
@@ -280,6 +282,13 @@
                       {% endif %}
                     </div>
                   {% endif %}
+                {% elif request.form_type == 'reduction' %}
+                  <div class="d-inline-flex flex-column align-items-center gap-1">
+                    <span class="badge {{ status_badge_class(request.status) }} fw-bold px-3 py-2">{{ request.status }}</span>
+                    {% if request.has_rejected_followup %}
+                    <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
+                    {% endif %}
+                  </div>
                 {% endif %}
                 {% if request.status == 'ใบเบิกถูกปฏิเสธ' and request.rejection_comment %}
                   <div class="small text-danger mt-1" style="white-space: pre-line;">{{ request.rejection_comment }}</div>

@@ -2093,6 +2093,7 @@ from app.advance_payment.models import (
     PettyCashClaimItem,
     PettyCashClaimProofFile,
     PettyCashFiscalYearCarryover,
+    PettyCashFiscalYearTopUpTransfer,
     PettyCashSetting,
     ReturnDetail,
     ReturnProofFile,
@@ -2140,6 +2141,7 @@ admin.add_view(ModelView(ClosingDocument, db.session, category='Advance Payment'
 admin.add_view(ModelView(ClosingDocumentLink, db.session, category='Advance Payment'))
 admin.add_view(ModelView(PettyCashSetting, db.session, category='Advance Payment'))
 admin.add_view(ModelView(PettyCashFiscalYearCarryover, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashFiscalYearTopUpTransfer, db.session, category='Advance Payment'))
 admin.add_view(ModelView(BankAccountInfo, db.session, category='Advance Payment'))
 admin.add_view(FundRequestAdminModelView(FundRequest, db.session, category='Advance Payment'))
 admin.add_view(ModelView(FundRequestItem, db.session, category='Advance Payment'))
