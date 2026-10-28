@@ -4064,6 +4064,24 @@ def hr_login_records():
     )
 
 
+@staff.route('/for-hr/login-report/calendar')
+@hr_permission.require()
+@login_required
+def hr_login_calendar():
+    staff_id = request.args.get('staff_id', type=int)
+    if not staff_id:
+        abort(400, description='A staff_id is required.')
+    selected_staff = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        selected_staff.retired
+        or selected_staff.retirement_date
+        or selected_staff.resignation_date
+        or selected_staff.staff_account is None
+    ):
+        abort(404)
+    return render_template('staff/hr_login_calendar.html', selected_staff=selected_staff)
+
+
 @staff.route('/api/for-hr/login-report/records')
 @hr_permission.require()
 @login_required
@@ -4727,8 +4745,15 @@ def approved_for_clockin_clockout(request_id):
         if not can_approve:
             abort(403)
         # Serialize decisions so two approvers cannot create duplicate attendance records.
-        clock_request = StaffRequestWorkLogin.query.filter_by(id=request_id).with_for_update().one()
-        if clock_request.approved_at or clock_request.cancelled_at:
+        clock_request = (
+            StaffRequestWorkLogin.query.filter_by(id=request_id)
+            .populate_existing().with_for_update().one()
+        )
+        if (
+            clock_request.approved_at
+            or clock_request.cancelled_at
+            or StaffWorkLogin.query.filter_by(request_id=request_id).first() is not None
+        ):
             flash('คำขอนี้ได้รับการดำเนินการแล้ว', 'warning')
             return redirect(url_for('staff.approved_for_clockin_clockout', request_id=request_id))
         clock_request.approver = current_user

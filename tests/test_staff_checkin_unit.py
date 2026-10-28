@@ -1093,20 +1093,38 @@ def test_each_active_approver_can_open_emailed_request(staff_views, monkeypatch,
         }]
 
 
-@pytest.mark.parametrize("closed_field", ["approved_at", "cancelled_at"])
-def test_closed_clock_request_cannot_be_processed_again(staff_views, monkeypatch, closed_field):
+@pytest.mark.parametrize("closed_field", ["approved_at", "cancelled_at", "existing_login"])
+@pytest.mark.parametrize("decision", ["yes", "no"])
+def test_closed_clock_request_cannot_be_processed_again(staff_views, monkeypatch, closed_field, decision):
     clock_request = SimpleNamespace(
         id=5051, staff_account_id=42, approver_id=29,
         approved_at=None, cancelled_at=None,
     )
-    setattr(clock_request, closed_field, datetime(2026, 10, 28))
     query = _FakeQuery()
     query.get_or_404 = lambda request_id: clock_request
-    query.with_for_update = lambda: query
-    query.one = lambda: clock_request
+    query_steps = []
+    def populate_existing():
+        query_steps.append('refresh')
+        return query
+    def with_for_update():
+        query_steps.append('lock')
+        return query
+    def locked_request():
+        # Another transaction completed after the initial request was loaded.
+        assert query_steps == ['refresh', 'lock']
+        if closed_field != 'existing_login':
+            setattr(clock_request, closed_field, datetime(2026, 10, 28))
+        return clock_request
+    query.populate_existing = populate_existing
+    query.with_for_update = with_for_update
+    query.one = locked_request
+    login_query = _FakeQuery()
+    if closed_field == 'existing_login':
+        login_query.rows = [SimpleNamespace(id=370010, request_id=5051)]
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", SimpleNamespace(query=login_query))
     monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(query=query))
     monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=29))
-    monkeypatch.setattr(staff_views, "request", SimpleNamespace(method="POST", form={"approved": "yes"}))
+    monkeypatch.setattr(staff_views, "request", SimpleNamespace(method="POST", form={"approved": decision}))
     monkeypatch.setattr(staff_views, "flash", lambda *args: None)
     monkeypatch.setattr(staff_views, "url_for", lambda *args, **kwargs: "/request/5051")
     monkeypatch.setattr(staff_views, "redirect", lambda target: target)
@@ -1116,3 +1134,5 @@ def test_closed_clock_request_cannot_be_processed_again(staff_views, monkeypatch
     assert staff_views.approved_for_clockin_clockout.__wrapped__(5051) == "/request/5051"
     assert session.added == []
     assert session.commits == 0
+    if closed_field == 'existing_login':
+        assert login_query.filters == [{"request_id": 5051}]

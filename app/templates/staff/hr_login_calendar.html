@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block title %}ปฏิทินลงเวลา{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<style>
+    .staff-calendar-shell { padding: 1.5rem 1rem 3rem; }
+    .staff-calendar-card { background: white; border-radius: 20px; padding: 1.5rem; box-shadow: 0 12px 35px rgba(18,39,84,.08); }
+    .staff-calendar-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
+    #staffCalendar .fc-title { white-space: pre-line; }
+    #staffCalendar .fc-event { padding: .25rem; }
+    #staffCalendarStatus { min-height: 1.5rem; margin-bottom: .75rem; }
+    @media (max-width: 600px) {
+        .staff-calendar-card { padding: .75rem; }
+        #staffCalendar .fc-toolbar .fc-left, #staffCalendar .fc-toolbar .fc-right { float: none; margin-bottom: .75rem; }
+        #staffCalendar .fc-toolbar h2 { font-size: 1.2rem; }
+    }
+</style>
+{% endblock %}
+{% block page_content %}
+<section class="section staff-calendar-shell">
+    <div class="container staff-calendar-card">
+        <h1 class="title is-4">ปฏิทินลงเวลา</h1>
+        <p class="subtitle is-5">{{ selected_staff.fullname }}</p>
+        <div class="staff-calendar-actions">
+            <a class="button is-light" href="{{ url_for('staff.hr_login_summary_report') }}">กลับรายงานลงเวลา</a>
+            <a class="button is-info is-light" href="{{ url_for('staff.hr_login_records', staff_id=selected_staff.id) }}">ดูรายการลงเวลาทั้งหมด</a>
+        </div>
+        <p class="help">แสดงเวลาเข้า–ออกและชั่วโมงทำงานตามเวลาไทย · สีแดง: สายหรือชั่วโมงไม่ครบ · สีส้ม: วันหยุด</p>
+        <p id="staffCalendarStatus" role="status" aria-live="polite"></p>
+        <div id="staffCalendar"></div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/locale-all.js"></script>
+<script>
+$(function () {
+    const calendar = $('#staffCalendar');
+    calendar.fullCalendar({
+        locale: 'th',
+        timezone: 'Asia/Bangkok',
+        defaultView: 'month',
+        height: 'auto',
+        fixedWeekCount: false,
+        showNonCurrentDates: false,
+        header: {left: 'prev,next today', center: '', right: 'title'},
+        displayEventTime: false,
+        events: function (start, end, timezone, callback) {
+            const month = moment(start).add(Math.floor(moment(end).diff(moment(start), 'days') / 2), 'days').format('YYYY-MM');
+            $.getJSON({{ url_for('staff.hr_manual_checkin_calendar_data')|tojson }}, {
+                staff_id: {{ selected_staff.id|tojson }}, month: month
+            }).done(function (data) {
+                const events = (data.events || []).map(function (event) {
+                    if (event.type === 'login') {
+                        event.title = event.note + (event.worked_hours_display ? '\n' + event.worked_hours_display : '\nยังไม่ลงเวลาออก');
+                        if (event.has_approved_correction) event.title += '\nมีการแก้ไขเวลา';
+                        event.start = event.start.slice(0, 10);
+                        delete event.end;
+                        event.allDay = true;
+                    }
+                    return event;
+                });
+                callback(events);
+                $('#staffCalendarStatus').text(events.length ? '' : 'ไม่มีรายการลงเวลาในเดือนนี้');
+            }).fail(function () {
+                callback([]);
+                $('#staffCalendarStatus').text('ไม่สามารถโหลดข้อมูลได้ กรุณาลองเปลี่ยนเดือนหรือโหลดหน้าใหม่');
+            });
+        },
+        loading: function (loading) {
+            calendar.attr('aria-busy', loading ? 'true' : 'false');
+            if (loading) $('#staffCalendarStatus').text('กำลังโหลดปฏิทิน...');
+        }
+    });
+});
+</script>
+{% endblock %}
