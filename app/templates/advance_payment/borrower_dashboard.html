@@ -387,7 +387,7 @@
         {% endif %}
         {% set return_ticket_script_state = namespace(rendered=false) %}
         {% set return_is_borrower_page = true %}
-        {% set return_autosave_endpoint_prefix = '/borrower/tickets/' %}
+        {% set return_autosave_endpoint_prefix = url_for('advance_payment.borrower_autosave_draft', ticket_id=0)|replace('/0/autosave-draft', '/') %}
         {% set return_panel_hidden = dashboard_scope == 'department' %}
         {% for borrowing_ticket in actionable_tickets %}
           {% set ns.has_actionable_tickets = true %}

@@ -258,7 +258,7 @@
             {% endif %}
             {% set return_ticket_script_state = namespace(rendered=false) %}
             {% set return_is_borrower_page = false %}
-            {% set return_autosave_endpoint_prefix = '/coordinator/tickets/' %}
+            {% set return_autosave_endpoint_prefix = url_for('advance_payment.coordinator_autosave_draft', ticket_id=0)|replace('/0/autosave-draft', '/') %}
             {% for borrowing_ticket in actionable_tickets %}
               {% set return_form_summary = return_form_totals_by_ticket.get(borrowing_ticket.id, {}) %}
               {% set return_form_action = url_for('advance_payment.coordinator_ticket_returns') %}

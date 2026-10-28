@@ -583,9 +583,9 @@
       {% if not claim_edit_mode|default(false) %}
       <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
         <h3 class="h5 mb-0" id="claimCircularHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed{% if not cash_mng_finance_open %} disabled{% endif %}"
+           <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not circular_draft %} collapsed{% endif %}{% if not cash_mng_finance_open %} disabled{% endif %}"
                   type="button"{% if cash_mng_finance_open %} data-bs-toggle="collapse" data-bs-target="#claimCircularCollapse"{% else %} disabled aria-disabled="true"{% endif %}
-                  aria-expanded="false" aria-controls="claimCircularCollapse">
+                   aria-expanded="{{ 'true' if circular_draft else 'false' }}" aria-controls="claimCircularCollapse">
             <i class="bi bi-file-earmark-text me-2 text-primary"></i>
             รายการส่งการเงิน ว-119 / ว-5763
             {% if not cash_mng_finance_open %}
@@ -594,7 +594,7 @@
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
         </h3>
-        <div id="claimCircularCollapse" class="collapse" aria-labelledby="claimCircularHeading">
+         <div id="claimCircularCollapse" class="collapse{% if circular_draft %} show{% endif %}" aria-labelledby="claimCircularHeading">
         <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
         <div class="pt-3">
         {% if parcel_return_fund_request_id %}
@@ -610,6 +610,7 @@
             name="circular_type"
             value="1"
             id="circular_type_1"
+             {% if circular_draft and circular_draft.type == 1 %}checked{% endif %}
           >
           <label class="form-check-label fw-bold text-primary" for="circular_type_1">
             ว-119
@@ -623,6 +624,7 @@
             name="circular_type"
             value="5"
             id="circular_type_5"
+             {% if circular_draft and circular_draft.type == 5 %}checked{% endif %}
           >
           <label class="form-check-label fw-bold text-primary" for="circular_type_5">
             ว-5763
@@ -632,15 +634,15 @@
         <div class="row g-3">
           <div class="col-md-4 mt-2">
             <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
-            <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" placeholder="dd/mm/yyyy">
+             <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" value="{{ circular_draft.sent_date.strftime('%Y-%m-%d') if circular_draft else '' }}" placeholder="dd/mm/yyyy">
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
-            <input type="text" name="circular_items_description" class="form-control circular-return-input" placeholder="รายละเอียดรายการ...">
+             <input type="text" name="circular_items_description" class="form-control circular-return-input" value="{{ circular_draft.items_description if circular_draft else '' }}" placeholder="รายละเอียดรายการ...">
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงิน</label>
-            <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" placeholder="0.00">
+             <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" value="{{ circular_draft.amount_spent if circular_draft else '' }}" placeholder="0.00">
           </div>
         </div>
         {% else %}
@@ -653,9 +655,9 @@
 
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
         <h3 class="h5 mb-0" id="claimParcelHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed{% if not cash_mng_finance_open %} disabled{% endif %}"
+           <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not parcel_draft %} collapsed{% endif %}{% if not cash_mng_finance_open %} disabled{% endif %}"
                   type="button"{% if cash_mng_finance_open %} data-bs-toggle="collapse" data-bs-target="#claimParcelCollapse"{% else %} disabled aria-disabled="true"{% endif %}
-                  aria-expanded="false" aria-controls="claimParcelCollapse">
+                   aria-expanded="{{ 'true' if parcel_draft else 'false' }}" aria-controls="claimParcelCollapse">
             <i class="bi bi-box-seam me-2 text-primary"></i>
             รายการที่ส่งไปฝ่ายพัสดุ
             {% if not cash_mng_finance_open %}
@@ -664,22 +666,22 @@
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
         </h3>
-        <div id="claimParcelCollapse" class="collapse" aria-labelledby="claimParcelHeading">
+         <div id="claimParcelCollapse" class="collapse{% if parcel_draft %} show{% endif %}" aria-labelledby="claimParcelHeading">
         <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
         <div class="pt-3">
         {% if parcel_return_fund_request_id %}
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-            <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" placeholder="dd/mm/yyyy" required>
+             <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" value="{{ parcel_draft.sent_date.strftime('%Y-%m-%d') if parcel_draft else '' }}" placeholder="dd/mm/yyyy" required>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
-            <input name="items_description" class="form-control parcel-return-input" placeholder="รายละเอียดรายการ..." required>
+             <input name="items_description" class="form-control parcel-return-input" value="{{ parcel_draft.items_description if parcel_draft else '' }}" placeholder="รายละเอียดรายการ..." required>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงิน</label>
-            <input type="text" name="parcel_amount" id="parcel_amount" class="form-control parcel-amount-input parcel-return-input" required placeholder="0.00">
+             <input type="text" name="parcel_amount" id="parcel_amount" class="form-control parcel-amount-input parcel-return-input" value="{{ parcel_draft.amount_spent if parcel_draft else '' }}" required placeholder="0.00">
           </div>
         </div>
         {% else %}
@@ -806,8 +808,10 @@ function togglePettyCashClaimForm() {
 {% endif %}
 
 {% set history_target = history_fund_request if history_fund_request is defined else (selected_fund_request if selected_fund_request else (claim_detail.fund_request if claim_detail and claim_detail.fund_request else none)) %}
+{% set visible_claim_history = claim_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
+{% set visible_parcel_return_history = parcel_return_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
 
-{% set has_history = (claim_history|length > 0) or (parcel_return_history|length > 0) %}
+{% set has_history = visible_claim_history or visible_parcel_return_history %}
 {% if history_target and has_history %}
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -815,7 +819,7 @@ function togglePettyCashClaimForm() {
       <h3 class="h4 fw-bold mb-0 py-3">ประวัติการส่งเบิกเงินสดย่อย</h3>
     </div>
   </div>
-  {% if claim_history %}
+  {% if visible_claim_history %}
   <h5 class="fw-bold text-primary mb-2"><i class="bi bi-receipt me-2"></i>รายการส่งเบิกเงินสดย่อย</h5>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
@@ -830,7 +834,7 @@ function togglePettyCashClaimForm() {
           </tr>
         </thead>
         <tbody>
-          {% for claim in claim_history %}
+          {% for claim in visible_claim_history %}
           <tr class="align-top">
             <td>{{ claim.created_at|thai_date }}</td>
             <td style="width: 20%;">
@@ -876,7 +880,7 @@ function togglePettyCashClaimForm() {
     </div>
   {% endif %}
   {% set parcel_history_groups = namespace(standard=[], circular=[]) %}
-  {% for pr in parcel_return_history %}
+  {% for pr in visible_parcel_return_history %}
     {% if pr.type is not none %}
       {% set _ = parcel_history_groups.circular.append(pr) %}
     {% else %}
@@ -990,8 +994,8 @@ function togglePettyCashClaimForm() {
     </div>
   {% endif %}
   {% endfor %}
-  {% if parcel_return_history %}
-    {% for pr in parcel_return_history %}
+  {% if visible_parcel_return_history %}
+    {% for pr in visible_parcel_return_history %}
       {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
       {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}
         <div class="modal fade text-start" id="parcelTransferModal{{ pr.id }}" tabindex="-1" aria-labelledby="parcelTransferModalLabel{{ pr.id }}" aria-hidden="true">
@@ -1227,12 +1231,14 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       cashInputs.forEach(input => {
-        input.required = hasCashReturnData;
+        input.required = hasCashReturnData && (input.type !== 'file' || !hasExistingCashProof);
         input.classList.remove('is-invalid');
       });
       if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file'
-        ? input.files.length > 0 || claimForm.querySelector('input[name="cash_return_existing_proof"]')
+        ? input.files.length > 0 || hasExistingCashProof
         : input.value.trim())) {
+      const hasExistingCashProof = Array.from(claimForm.querySelectorAll('input[name="cash_return_existing_proof"]'))
+        .some(input => input.value.trim());
         isValid = false;
         cashInputs.forEach(input => {
           if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');

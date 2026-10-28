@@ -198,18 +198,20 @@
         </div>
         {% endif %}
 
+        {% set circular_draft = borrowing_ticket.circular_draft|default(none) %}
+        {% set parcel_draft = borrowing_ticket.parcel_draft|default(none) %}
         {% if not return_edit_detail|default(none) %}
         <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
           <h3 class="h5 mb-0" id="returnCircularHeading_{{ borrowing_ticket.id }}">
-            <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
+            <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not circular_draft %} collapsed{% endif %}"
                     type="button" data-bs-toggle="collapse" data-bs-target="#returnCircularCollapse_{{ borrowing_ticket.id }}"
-                    aria-expanded="false" aria-controls="returnCircularCollapse_{{ borrowing_ticket.id }}">
+                    aria-expanded="{{ 'true' if circular_draft else 'false' }}" aria-controls="returnCircularCollapse_{{ borrowing_ticket.id }}">
               <i class="bi bi-file-earmark-text me-2 text-primary"></i>
               รายการส่งการเงิน ว-119 / ว-5763
               <i class="bi bi-chevron-down ms-auto text-muted"></i>
             </button>
           </h3>
-          <div id="returnCircularCollapse_{{ borrowing_ticket.id }}" class="collapse" aria-labelledby="returnCircularHeading_{{ borrowing_ticket.id }}">
+          <div id="returnCircularCollapse_{{ borrowing_ticket.id }}" class="collapse{% if circular_draft %} show{% endif %}" aria-labelledby="returnCircularHeading_{{ borrowing_ticket.id }}">
           <div class="pt-3">
           <div class="d-flex align-items-start gap-2 mb-2">
             <span class="text-danger text-sm-left flex-grow-1">คณบดี/รองคณบดี อนุมัติภายใน 5 วันทำการนับถัดจากวันที่ลงในใบเสร็จ (วงเงินไม่เกิน 10,000 บาทต่อใบเสร็จ และอยู่ในหมวดที่ได้รับการยกเว้น)</span>
@@ -223,6 +225,7 @@
                 name="circular_type"
                 value="1"
                 id="circular_type_1_{{ borrowing_ticket.id }}"
+                {% if circular_draft and circular_draft.type == 1 %}checked{% endif %}
               >
               <label
                 class="form-check-label fw-bold"
@@ -239,6 +242,7 @@
                 name="circular_type"
                 value="5"
                 id="circular_type_5_{{ borrowing_ticket.id }}"
+                {% if circular_draft and circular_draft.type == 5 %}checked{% endif %}
               >
               <label
                 class="form-check-label fw-bold"
@@ -251,15 +255,15 @@
           <div class="row g-3">
             <div class="col-md-4 mt-2">
               <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
-              <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" placeholder="dd/mm/yyyy">
+              <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" value="{{ circular_draft.sent_date.strftime('%Y-%m-%d') if circular_draft else '' }}" placeholder="dd/mm/yyyy">
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">รายการ</label>
-              <input type="text" name="circular_items_description" class="form-control circular-return-input" placeholder="รายละเอียดรายการ...">
+              <input type="text" name="circular_items_description" class="form-control circular-return-input" value="{{ circular_draft.items_description if circular_draft else '' }}" placeholder="รายละเอียดรายการ...">
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงิน</label>
-              <input type="text" name="circular_amount" id="circular_amount_{{ borrowing_ticket.id }}" data-ticket-id="{{ borrowing_ticket.id }}" class="form-control circular-amount-input circular-return-input" placeholder="0.00">
+              <input type="text" name="circular_amount" id="circular_amount_{{ borrowing_ticket.id }}" data-ticket-id="{{ borrowing_ticket.id }}" class="form-control circular-amount-input circular-return-input" value="{{ circular_draft.amount_spent if circular_draft else '' }}" placeholder="0.00">
             </div>
           </div>
           </div>
@@ -268,28 +272,28 @@
 
         <div class="card p-3 mb-4 border rounded-4 shadow-sm">
           <h3 class="h5 mb-0" id="returnParcelHeading_{{ borrowing_ticket.id }}">
-            <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
+            <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not parcel_draft %} collapsed{% endif %}"
                     type="button" data-bs-toggle="collapse" data-bs-target="#returnParcelCollapse_{{ borrowing_ticket.id }}"
-                    aria-expanded="false" aria-controls="returnParcelCollapse_{{ borrowing_ticket.id }}">
+                    aria-expanded="{{ 'true' if parcel_draft else 'false' }}" aria-controls="returnParcelCollapse_{{ borrowing_ticket.id }}">
               <i class="bi bi-box-seam me-2 text-primary"></i>
               รายการที่ส่งไปฝ่ายพัสดุ
               <i class="bi bi-chevron-down ms-auto text-muted"></i>
             </button>
           </h3>
-          <div id="returnParcelCollapse_{{ borrowing_ticket.id }}" class="collapse" aria-labelledby="returnParcelHeading_{{ borrowing_ticket.id }}">
+          <div id="returnParcelCollapse_{{ borrowing_ticket.id }}" class="collapse{% if parcel_draft %} show{% endif %}" aria-labelledby="returnParcelHeading_{{ borrowing_ticket.id }}">
           <div class="pt-3">
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-              <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" placeholder="dd/mm/yyyy" required>
+              <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" value="{{ parcel_draft.sent_date.strftime('%Y-%m-%d') if parcel_draft else '' }}" placeholder="dd/mm/yyyy" required>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">รายการ</label>
-              <input type="text" name="items_description" class="form-control parcel-return-input" placeholder="รายละเอียดรายการ..." required>
+              <input type="text" name="items_description" class="form-control parcel-return-input" value="{{ parcel_draft.items_description if parcel_draft else '' }}" placeholder="รายละเอียดรายการ..." required>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงิน</label>
-              <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input parcel-return-input" required placeholder="0.00">
+              <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input parcel-return-input" value="{{ parcel_draft.amount_spent if parcel_draft else '' }}" required placeholder="0.00">
             </div>
           </div>
           </div>
@@ -524,9 +528,26 @@
 
     function submitFormWithAction(ticketId, type) {
       const form = document.getElementById(`returnForm_${ticketId}`);
+      clearTimeout(autoSaveTimer);
       document.getElementById(`action_${ticketId}`).value = type;
 
       if (type === 'draft') {
+        const parcelFields = Array.from(form.querySelectorAll('.parcel-return-input'));
+        const circularFields = Array.from(form.querySelectorAll('.circular-return-input'));
+        const parcelStarted = parcelFields.some(input => input.value.trim());
+        const circularStarted = circularFields.some(input => input.type === 'radio' ? input.checked : input.value.trim());
+        const circularTypes = circularFields.filter(input => input.type === 'radio' && input.checked);
+        if ((parcelStarted && !parcelFields.every(input => input.value.trim())) ||
+            (circularStarted && (circularTypes.length !== 1 || circularFields.some(input => input.type !== 'radio' && !input.value.trim())))) {
+          window.openAppPopup({
+            title: 'กรุณาตรวจสอบข้อมูล',
+            message: 'กรุณากรอกวันที่ รายการ จำนวนเงิน และประเภท ว-119 / ว-5763 (ถ้าเลือก) ให้ครบก่อนบันทึกร่าง',
+            confirmText: 'ตกลง',
+            confirmClass: 'btn-danger',
+            alertOnly: true,
+          });
+          return;
+        }
         form.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
         form.querySelectorAll(".item-amount-input").forEach(input => {
           input.value = input.value.replace(/,/g, "");
@@ -609,11 +630,13 @@
         });
       }
 
+      const hasExistingCashProof = Array.from(form.querySelectorAll('input[name="cash_return_existing_proof"]'))
+        .some(input => input.value.trim());
       cashInputs.forEach(input => {
-        input.required = hasCashReturnData;
+        input.required = hasCashReturnData && (input.type !== 'file' || !hasExistingCashProof);
         input.classList.remove('is-invalid');
       });
-      if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file' ? input.files.length > 0 || form.querySelector('input[name="cash_return_existing_proof"]') : input.value.trim())) {
+      if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file' ? input.files.length > 0 || hasExistingCashProof : input.value.trim())) {
         isValid = false;
         cashInputs.forEach(input => {
           if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
@@ -901,16 +924,24 @@
 
       showAutoSaveStatus(ticketId, 'saving');
       const note = form.querySelector('[name="note"]')?.value.trim() || '';
+      const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || '';
       fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        credentials: 'same-origin',
         body: JSON.stringify({ items: items, cash_return: { receipt_date: cashDate, amount: cashAmount }, announcements: announcements, note: note })
       })
-        .then(res => res.json())
+        .then(async res => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || `Auto-save failed (HTTP ${res.status})`);
+          }
+          return data;
+        })
         .then(data => showAutoSaveStatus(ticketId, data.success ? 'saved' : 'error', data.saved_at))
         .catch(err => {
           console.error('Auto-save error:', err);
-          showAutoSaveStatus(ticketId, 'error');
+          showAutoSaveStatus(ticketId, 'error', '', err.message);
         });
     }
 
@@ -920,7 +951,7 @@
       autoSaveTimer = setTimeout(() => autoSaveDraft(ticketId), 1500);
     }
 
-    function showAutoSaveStatus(ticketId, state, timeStr = '') {
+    function showAutoSaveStatus(ticketId, state, timeStr = '', errorMessage = '') {
       const statusEl = document.getElementById(`autoSaveStatus_${ticketId}`);
       if (!statusEl) return;
       if (state === 'typing') {
@@ -930,7 +961,8 @@
       } else if (state === 'saved') {
         statusEl.innerHTML = `<span class="text-success small"><i class="bi bi-cloud-check me-1"></i>บันทึกร่างแล้วเมื่อ ${timeStr}</span>`;
       } else if (state === 'error') {
-        statusEl.innerHTML = `<span class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>บันทึกร่างอัตโนมัติไม่สำเร็จ</span>`;
+        statusEl.textContent = errorMessage || 'บันทึกร่างอัตโนมัติไม่สำเร็จ';
+        statusEl.className = 'text-danger small';
       }
     }
 
@@ -938,10 +970,10 @@
       const form = document.getElementById(`returnForm_${ticketId}`);
       if (!form) return;
       form.addEventListener('input', e => {
-        if (e.target.type !== 'file') triggerAutoSave(ticketId);
+        if (e.target.type !== 'file' && !e.target.matches('.parcel-return-input, .circular-return-input')) triggerAutoSave(ticketId);
       });
       form.addEventListener('change', e => {
-        if (e.target.type !== 'file') triggerAutoSave(ticketId);
+        if (e.target.type !== 'file' && !e.target.matches('.parcel-return-input, .circular-return-input')) triggerAutoSave(ticketId);
       });
     }
 
