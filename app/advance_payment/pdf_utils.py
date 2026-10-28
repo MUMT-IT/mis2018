@@ -1,5 +1,6 @@
 import base64
 import html
+import logging
 import os
 import re
 from calendar import monthrange
@@ -8,10 +9,9 @@ from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 from bahttext import bahttext
-from numpy.distutils.fcompiler import none
 
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
@@ -1208,18 +1208,392 @@ def _render_fnar02_with_chromium(fnar02_context):
     return _render_html_with_chromium(_build_fnar02_html(fnar02_context))
 
 
+_pdf_log = logging.getLogger(__name__)
+
+
+def _render_with_reportlab_fallback(chromium_render, reportlab_render, document_name):
+    """Only rendering failures trigger the fallback; data collection stays upstream."""
+    try:
+        pdf = chromium_render()
+        if not pdf or not pdf.startswith(b"%PDF-"):
+            raise ValueError("Chromium returned an invalid PDF")
+        _pdf_log.warning(
+            "PDF generated: document=%s renderer=Chromium mode=primary bytes=%d",
+            document_name, len(pdf),
+        )
+        return pdf
+    except Exception:
+        _pdf_log.exception("Chromium failed to render %s; trying ReportLab", document_name)
+        pdf = reportlab_render()
+        _pdf_log.warning(
+            "PDF generated: document=%s renderer=ReportLab mode=fallback bytes=%d",
+            document_name, len(pdf),
+        )
+        return pdf
+
+
+def _rl_paragraph(value, style=None):
+    return Paragraph(html.escape(str(value)), style or styles["ThaiNormal"])
+
+
+def _rl_doc(output, title, *, left=55, right=55, top=25, bottom=25):
+    return SimpleDocTemplate(
+        output, pagesize=A4, leftMargin=left, rightMargin=right,
+        topMargin=top, bottomMargin=bottom, title=title,
+    )
+
+
+def _rl_letterhead(department, telephone):
+    # Match the five-column letterhead in the original ReportLab forms.
+    logo = Image(str(PDF_LOGO_PATH), width=73, height=73)
+    logo.hAlign = "CENTER"
+    right = Paragraph(
+        f"<br/><br/>{html.escape(str(department))}<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล"
+        f"<br/>โทร.{html.escape(str(telephone))}", styles["ThaiRight"],
+    )
+    column_widths = [100, 92, 66, 212, 1]
+    table = Table([["", "", logo, right, ""]], colWidths=column_widths, hAlign="LEFT")
+    table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (2, 0), (2, 0), "CENTER"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    return table
+
+
+def _rl_fnar02_letterhead(department, telephone, width):
+    """Center the FNAR02 seal on the page, independent of the right-hand text."""
+    logo_size = 73
+    side_width = (width - logo_size) / 2
+    logo = Image(str(PDF_LOGO_PATH), width=logo_size, height=logo_size)
+    organization = Paragraph(
+        f"<br/><br/>{html.escape(str(department))}<br/>"
+        "คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
+        f"โทร.{html.escape(str(telephone))}",
+        styles["ThaiRight"],
+    )
+    table = Table(
+        [["", logo, organization]],
+        colWidths=[side_width, logo_size, side_width],
+        hAlign="CENTER",
+    )
+    table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    return table
+
+
+def _rl_document_info(subject, width):
+    rows = [[_rl_paragraph(label), _rl_paragraph(value)] for label, value in (
+        ("ที่", PDF_BLANK), ("วันที่", PDF_BLANK), ("เรื่อง", subject),
+        ("เรียน", "คณบดีคณะเทคนิคการแพทย์"),
+    )]
+    table = Table(rows, colWidths=[48, width - 48])
+    table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+    ]))
+    return table
+
+
+def _render_reimbursement_with_reportlab(context):
+    """The one-page letter layout shared by claims and ticket returns."""
+    output = BytesIO()
+    doc = _rl_doc(output, context["title"], top=22, bottom=22)
+    width = doc.width
+    # ReportLab distributes Thai word spaces very unevenly with TA_JUSTIFY.
+    # Keep the official first-line indent, but use natural spacing throughout.
+    body_style = ParagraphStyle(
+        "ThaiReimbursementBody", parent=styles["ThaiNormal"],
+        alignment=TA_LEFT, firstLineIndent=70,
+    )
+    story = [
+        _rl_letterhead(context["department_name"], context["telephone_number"]),
+        Spacer(1, 30 if context.get("extra_header_space") else 10),
+        _rl_document_info(context["subject"], width), Spacer(1, 18),
+    ]
+    for paragraph in context["body_paragraphs"]:
+        story.extend([_rl_paragraph(paragraph, body_style), Spacer(1, 8)])
+    if context["items"]:
+        rows = [[
+            _rl_paragraph(f"{index}.", styles["ThaiCenter"]),
+            _rl_paragraph(description),
+            _rl_paragraph(f"{amount} บาท", styles["ThaiRight"]),
+        ] for index, description, amount in context["items"]]
+        items = Table(rows, colWidths=[35, 270, 80], hAlign="CENTER")
+        items.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ]))
+        story.extend([items, Spacer(1, 4)])
+    total = Table([[
+        Paragraph("<u>รวมทั้งสิ้น</u>", styles["ThaiRight"]),
+        _rl_paragraph(context["amount_text"]),
+        _rl_paragraph(f"{context['amount_numeric']} บาท", styles["ThaiRight"]),
+    ]], colWidths=[55, 250, 80], hAlign="CENTER")
+    total.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ("LEFTPADDING", (1, 0), (1, 0), 8),
+    ]))
+    story.extend([
+        total, Spacer(1, 10),
+        _rl_paragraph(
+            context["reference_text"],
+            body_style if context["title"] == "Ticket Return Request" or context.get("extra_header_space")
+            else styles["ThaiNormal"],
+        ),
+        Spacer(1, 12),
+        _rl_paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", styles["ThaiCenter"]),
+        Spacer(1, 30),
+    ])
+    head = Table([["", Paragraph(
+        f"({html.escape(str(context['head_name']))})<br/>"
+        f"{html.escape(str(context['head_position']))}", styles["ThaiCenter"])]],
+        colWidths=[width * .36, width * .64])
+    approval = Table([[Paragraph(
+        "อนุมัติ<br/><br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)"
+        "<br/>คณบดีคณะเทคนิคการแพทย์", styles["ThaiCenter"]), ""]],
+        colWidths=[width * .64, width * .36])
+    story.extend([head, Spacer(1, 35), approval])
+    doc.build(story)
+    return output.getvalue()
+
+
+def _rl_signature_box(signature):
+    label, line, name, position, date = signature
+    return Paragraph(
+        f"{html.escape(str(label))}<br/><br/>{html.escape(str(line))}<br/>"
+        f"({html.escape(str(name))})<br/>ตำแหน่ง {html.escape(str(position))}"
+        f"<br/>วันที่ {html.escape(str(date))}",
+        styles["ThaiCenter"],
+    )
+
+
+def _render_fund_request_with_reportlab(context):
+    output = BytesIO()
+    doc = _rl_doc(output, context["title"], left=45, right=45, top=16, bottom=16)
+    width = doc.width
+    logo = Image(str(PDF_LOGO_PATH), width=64, height=64)
+    heading = Table([[logo, Paragraph(
+        "ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย<br/>" + html.escape(str(context["department"])),
+        styles["ThaiCenterBold"]), _rl_paragraph("MT-Petty Cash-02", styles["ThaiSmallRight"])]],
+        colWidths=[75, width - 190, 115])
+    heading.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
+    story = [heading, draw_dotted_line(),
+             _rl_paragraph("ส่วนที่ 1 ใบยืมเงินสดย่อย", styles["ThaiBold"]),
+             _rl_paragraph(f"เลขที่ใบเบิกเงิน {context['ticket_number']}  วันที่ {context['date_thai']}", styles["ThaiRight"]),
+             _rl_paragraph(f"ข้าพเจ้า {context['requester']} ตำแหน่ง {context['requester_position']} "
+                           f"มีความประสงค์ขอยืมเงินสดย่อย เพื่อ{context['purpose']} มีรายละเอียดดังนี้"),
+             Spacer(1, 5)]
+    rows = [[_rl_paragraph("ลำดับ", styles["ThaiCenterBold"]),
+             _rl_paragraph("รายการ", styles["ThaiCenterBold"]),
+             _rl_paragraph("จำนวนเงิน (บาท)", styles["ThaiCenterBold"])]]
+    rows.extend([_rl_paragraph(index, styles["ThaiCenter"]), _rl_paragraph(description),
+                 _rl_paragraph(amount, styles["ThaiRight"])] for index, description, amount in context["items"])
+    rows.append(["", _rl_paragraph("รวมเป็นเงินทั้งสิ้น", styles["ThaiRightBold"]),
+                 _rl_paragraph(context["total_amount"], styles["ThaiRightBold"])])
+    items = Table(rows, colWidths=[45, width - 165, 120], repeatRows=1)
+    items.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), .5, colors.black),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(items)
+    signatures = Table([[_rl_signature_box(sig) for sig in context["section_one_signatures"]]],
+                       colWidths=[width / 3] * 3)
+    signatures.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), .5, colors.black),
+                                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                    ("TOPPADDING", (0, 0), (-1, -1), 7),
+                                    ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
+    story.extend([Spacer(1, 10), signatures, draw_dotted_line(),
+                  _rl_paragraph("ส่วนที่ 2 ใบเบิกเงิน", styles["ThaiBold"]),
+                  _rl_paragraph(f"เลขที่ใบเบิกเงิน {context['ticket_number']}  วันที่ {context['date_thai']}", styles["ThaiRight"]),
+                  _rl_paragraph(f"เรียน  {context['head_position']}"), Spacer(1, 4)])
+    def option(mark, content):
+        mark_font = "DejaVuSans" if os.path.exists(DEJAVU_PATH) else "Sarabun"
+        return Paragraph(f'<font name="{mark_font}">{html.escape(str(mark))}</font> '
+                         + html.escape(str(content)), styles["ThaiOfficial"])
+    story.extend([option(context["petty_checkbox"], context["petty_text"]), Spacer(1, 5)])
+    mark_font = "DejaVuSans" if os.path.exists(DEJAVU_PATH) else "Sarabun"
+    interest = (
+        f'<font name="{mark_font}">{html.escape(str(context["interest_checkbox"]))}</font> '
+        f'{html.escape(str(context["interest_text_before"]))} '
+        f'<font name="{mark_font}">{html.escape(str(context["june_checkbox"]))}</font> '
+        f'งวดเดือน มิถุนายน พ.ศ. {html.escape(str(context["period_year"]))} '
+        f'<font name="{mark_font}">{html.escape(str(context["december_checkbox"]))}</font> '
+        f'งวดเดือน ธันวาคม พ.ศ. {html.escape(str(context["period_year"]))} '
+        f'{html.escape(str(context["interest_text_after"]))}'
+    )
+    story.extend([Paragraph(interest, styles["ThaiOfficial"]), Spacer(1, 10)])
+    sig2 = Table([[_rl_signature_box(sig) for sig in context["section_two_signatures"]]],
+                 colWidths=[width * .43] * 2, hAlign="CENTER")
+    sig2.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), .5, colors.black),
+                              ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                              ("TOPPADDING", (0, 0), (-1, -1), 7),
+                              ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
+    story.extend([sig2, Spacer(1, 4), _rl_paragraph(
+        "หมายเหตุ: ใบเสร็จแต่ละใบจะต้องมียอดไม่เกิน -20,000- บาท", styles["ThaiFooter"])])
+    doc.build(story)
+    return output.getvalue()
+
+
+def _render_fnar02_with_reportlab(context):
+    """Memo and boxed loan contract, following the attached FNAR02 layout."""
+    output = BytesIO()
+    doc = _rl_doc(output, "บันทึกข้อความ - ขออนุมัติยืมเงินทดรองจ่าย",
+                  left=45, right=45, top=35, bottom=20)
+    width = doc.width
+    memo_style = ParagraphStyle(
+        "ThaiFnar02Memo", parent=styles["ThaiNormal"], firstLineIndent=70,
+    )
+    agreement_style = ParagraphStyle(
+        "ThaiFnar02Agreement", parent=styles["ThaiNormal"], firstLineIndent=45,
+    )
+    story = [_rl_fnar02_letterhead(context["header_department_name"], context["telephone_number"], width),
+             Spacer(1, 14), _rl_document_info("ขออนุมัติยืมเงินทดรองจ่าย", width), Spacer(1, 18)]
+    paragraphs = [
+        f"ด้วย{context['department_name']} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน "
+        f"{context['amount_numeric']} บาท ({context['amount_text']}) เพื่อทดรองจ่าย"
+        f"{context['borrowing_purpose']} ตั้งแต่วันที่ {context['start_date_str']} - {context['end_date_str']}",
+        f"ทั้งนี้โดยมอบหมายให้ {context['borrower_name']} เป็นผู้ยืมเงิน โดยโปรดโอนเงินเข้าบัญชี "
+        f"เลขที่ {context['account_number']} ชื่อบัญชี {context['account_name']} "
+        f"โดยมีระยะเวลาในการดำเนินภายในวันที่ {context['due_date_thai']}",
+        "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้ "
+        "ด้วยจักเป็นพระคุณยิ่ง",
+    ]
+    for paragraph in paragraphs:
+        story.extend([_rl_paragraph(paragraph, memo_style), Spacer(1, 12)])
+    for name, position in context["leave_approver_signatures"]:
+        sign = Table([["", Paragraph(f"({html.escape(str(name))})<br/>{html.escape(str(position))}",
+                                    styles["ThaiCenter"])]], colWidths=[width * .49, width * .51])
+        story.extend([Spacer(1, 38), sign])
+    story.append(PageBreak())
+    def cell(value, style=None):
+        return _rl_paragraph(value, style)
+    def signature(name, position="", label="ลงชื่อ", suffix=""):
+        """Keep the signature rule, signer, and date in distinct aligned fields."""
+        sign_rule = "." * 76
+        label_width = pdfmetrics.stringWidth(label, "Sarabun", DEFAULT_FONT_SIZE) + 2
+        rule_width = pdfmetrics.stringWidth(sign_rule, "Sarabun", DEFAULT_FONT_SIZE) + 2
+        suffix_width = (
+            pdfmetrics.stringWidth(suffix, "Sarabun", DEFAULT_FONT_SIZE) + 2
+            if suffix else 0
+        )
+        left = Table([
+            [cell(label), cell(sign_rule, styles["ThaiCenter"]), cell(suffix)],
+            ["", cell(f"( {name} )", styles["ThaiCenter"]), ""],
+            ["", cell(position, styles["ThaiCenter"]) if position else "", ""],
+        ], colWidths=[label_width, rule_width, suffix_width], hAlign="LEFT")
+        left.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        fields = Table([[
+            left,
+            cell("วันที่ .......................................................", styles["ThaiCenter"]),
+        ]], colWidths=[300, 175], hAlign="CENTER")
+        fields.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            # Reserve one handwriting line above every signature rule.
+            ("TOPPADDING", (0, 0), (-1, -1), DEFAULT_LEADING),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        return fields
+    contract_rows = [
+        [[cell("สัญญาการยืมเงิน", styles["ThaiCenterBold"]),
+          cell("ยื่นต่อ คณบดีคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล", styles["ThaiCenter"])],
+         [cell(f"เลขที่........................../{context['fiscal_year_label']}", styles["ThaiCenter"]),
+          cell("วันครบกำหนด", styles["ThaiCenterBold"]),
+          cell(context["due_date_thai"], styles["ThaiCenter"])]],
+        [[Paragraph(
+            f"ข้าพเจ้า {html.escape(str(context['borrower_name']))} "
+            f"ตำแหน่ง {html.escape(str(context['borrower_position']))}<br/>"
+            f"สังกัด {html.escape(str(context['department_name']))} มหาวิทยาลัยมหิดล<br/>"
+            "มีความประสงค์ขอยืมเงินจาก คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
+            f"เพื่อทดรองจ่าย {html.escape(str(context['borrowing_purpose']))}",
+            styles["ThaiNormal"],
+        )], ""],
+        [cell(f"(ตัวอักษร) ({context['amount_text']})", styles["ThaiCenter"]),
+         cell(f"(ตัวเลข) {context['amount_numeric']} บาท", styles["ThaiCenter"])],
+    ]
+    agreement = ("ข้าพเจ้าสัญญาว่าจะปฏิบัติตามระเบียบของมหาวิทยาลัยมหิดลทุกประการ "
+                 "และจะนำใบสำคัญคู่จ่ายที่ถูกต้อง พร้อมทั้งเงินเหลือจ่าย (ถ้ามี) ส่งใช้ภายในกำหนด "
+                 f"15 วัน หลังจากเสร็จสิ้นภารกิจ คือวันที่ {context['due_date_thai']} "
+                 "ถ้าข้าพเจ้าไม่ส่งตามกำหนด ข้าพเจ้ายินยอมให้หักเงินเดือน ค่าจ้าง "
+                 "หรือเงินอื่นใดที่ข้าพเจ้าพึงได้รับจากมหาวิทยาลัยมหิดลชดใช้จำนวนเงินที่ยืมไปจนครบถ้วน")
+    sections = [
+        [cell(agreement, agreement_style),
+         signature(context["borrower_name"], suffix="ผู้ยืม")],
+        [cell("เสนอ คณบดี", styles["ThaiBold"]),
+         cell(f"ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมตามใบยืมฉบับนี้ได้ จำนวนเงิน "
+              f"{context['amount_numeric']} บาท ({context['amount_text']})"),
+         signature("รองศาสตราจารย์ ดร.วิลาสินี จึงประสบสุข", "รองคณบดีฝ่ายการคลังและสินทรัพย์")],
+        [cell("คำอนุมัติ", styles["ThaiCenterBold"]),
+         cell(f"อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นจำนวนเงิน {context['amount_numeric']} บาท "
+              f"({context['amount_text']})"),
+         signature("ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง", "คณบดีคณะเทคนิคการแพทย์", "ลงชื่อผู้อนุมัติ")],
+        [cell("ใบรับเงิน", styles["ThaiCenterBold"]),
+         cell(f"ได้รับเงินยืมจำนวนเงิน {context['amount_numeric']} บาท "
+              f"({context['amount_text']}) ไว้เป็นการถูกต้องแล้ว"),
+         signature(context["borrower_name"], label="ลายมือชื่อ", suffix="ผู้รับเงิน")],
+    ]
+    contract_rows.extend([[section, ""] for section in sections])
+    contract = Table(contract_rows, colWidths=[width / 2] * 2)
+    contract.setStyle(TableStyle([
+        ("SPAN", (0, 1), (1, 1)), ("SPAN", (0, 3), (1, 3)),
+        ("SPAN", (0, 4), (1, 4)), ("SPAN", (0, 5), (1, 5)),
+        ("SPAN", (0, 6), (1, 6)),
+        ("GRID", (0, 0), (-1, -1), .75, colors.black),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.extend([contract, Spacer(1, 4), cell(
+        "หมายเหตุ: ใบเสร็จแต่ละใบจะต้องมียอดไม่เกิน -100,000- บาท", styles["ThaiFooter"])])
+    doc.build(story)
+    return output.getvalue()
+
+
 def generate_fnar02_pdf(ticket):
-    """Generate both FNAR02 pages with Playwright Chromium."""
+    """Generate both FNAR02 pages, with a ReportLab fallback."""
     from pypdf import PdfReader
 
     fnar02_context = _build_fnar02_context(ticket)
-    chromium_pdf = _render_fnar02_with_chromium(fnar02_context)
-    page_count = len(PdfReader(BytesIO(chromium_pdf)).pages)
-    if page_count != 2:
-        raise ValueError(
-            f"Chromium rendered {page_count} FNAR02 pages; expected exactly 2"
-        )
-    return chromium_pdf
+    def render_chromium():
+        pdf = _render_fnar02_with_chromium(fnar02_context)
+        page_count = len(PdfReader(BytesIO(pdf)).pages)
+        if page_count != 2:
+            raise ValueError(f"Chromium rendered {page_count} FNAR02 pages; expected exactly 2")
+        return pdf
+
+    return _render_with_reportlab_fallback(
+        render_chromium,
+        lambda: _render_fnar02_with_reportlab(fnar02_context),
+        "FNAR02",
+    )
 
 
 def _build_reimbursement_letter_html(context):
@@ -1557,8 +1931,10 @@ def generate_petty_claim(claim, claim_type="1"):
         "head_position": head_position,
         "extra_header_space": no_approval_letter,
     }
-    return _render_html_with_chromium(
-        _build_reimbursement_letter_html(document_context)
+    return _render_with_reportlab_fallback(
+        lambda: _render_html_with_chromium(_build_reimbursement_letter_html(document_context)),
+        lambda: _render_reimbursement_with_reportlab(document_context),
+        "petty claim",
     )
 
 
@@ -1635,8 +2011,10 @@ def generate_ticket_return(return_detail):
         "head_name": head_name,
         "head_position": head_position,
     }
-    return _render_html_with_chromium(
-        _build_reimbursement_letter_html(document_context)
+    return _render_with_reportlab_fallback(
+        lambda: _render_html_with_chromium(_build_reimbursement_letter_html(document_context)),
+        lambda: _render_reimbursement_with_reportlab(document_context),
+        "ticket return",
     )
 
 
@@ -2009,7 +2387,11 @@ def generate_fund_request_pdf(fund_request):
             ("ลงชื่อผู้อนุมัติ", head_signature_line, head_name, head_position, approver_signature_date),
         ],
     }
-    return _render_html_with_chromium(_build_fund_request_html(context))
+    return _render_with_reportlab_fallback(
+        lambda: _render_html_with_chromium(_build_fund_request_html(context)),
+        lambda: _render_fund_request_with_reportlab(context),
+        "fund request",
+    )
 
 
 def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
