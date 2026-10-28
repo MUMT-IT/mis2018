@@ -252,7 +252,12 @@
                                             {% endfor %}
                                             <tr>
                                                 <td><label class="label">เลขครุภัณฑ์</label></td>
-                                                <td>{{ procurement.procurement_no }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('procurement.view_procurement_for_mumt',
+                                                        procurement_no=procurement.procurement_no) }}">
+                                                        {{ procurement.procurement_no }}
+                                                    </a>
+                                                </td>
                                             </tr>
                                             <tr>
                                                 <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>

@@ -481,6 +481,9 @@ def test_clock_requester_cannot_submit_approval_decision(staff_views, monkeypatc
 
 
 def test_unrelated_staff_cannot_view_clock_request(staff_views, monkeypatch):
+    monkeypatch.setattr(staff_views, "StaffWorkFromHomeApprover", SimpleNamespace(
+        query=_FakeQuery(),
+    ), raising=False)
     clock_request = SimpleNamespace(
         id=5051,
         staff_account_id=42,
@@ -1005,3 +1008,131 @@ def test_handle_login_scan_request_posts_shared_flow(staff_views, monkeypatch, a
         "%d/%m/%Y %H:%M:%S"
     )
     assert pushed[0]["messages"].text == f"{message_prefix} {expected_local_time}"
+
+
+@pytest.mark.parametrize("clock", ["checkin", "checkout"])
+@pytest.mark.parametrize("debug", [False, True])
+def test_clock_request_emails_all_active_approvers(staff_views, monkeypatch, clock, debug):
+    from flask import Flask
+
+    app = Flask(__name__)
+    app.debug = debug
+    query = _FakeQuery()
+    query.rows = [
+        SimpleNamespace(
+            approver_account_id=account_id,
+            account=SimpleNamespace(id=account_id, email=email, line_id=None),
+            is_active=True,
+            notified_by_line=False,
+        )
+        for account_id, email in [(29, "first"), (30, "second"), (29, "first")]
+    ]
+    monkeypatch.setattr(staff_views, "StaffWorkFromHomeApprover", SimpleNamespace(
+        query=query, id=SimpleNamespace(asc=lambda: None),
+    ), raising=False)
+
+    class FakeRequest:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+            self.id = 5051
+
+        @staticmethod
+        def generate_date_id(value):
+            return value.strftime("%Y%m%d")
+
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", FakeRequest)
+    session = _FakeSession()
+    monkeypatch.setattr(staff_views, "db", SimpleNamespace(session=session))
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(
+        id=42, personal_info=SimpleNamespace(fullname="Requester"),
+    ))
+    links = []
+    def fake_url_for(endpoint, **kwargs):
+        links.append((endpoint, kwargs))
+        return "/clockin-clockout/approved/5051"
+    monkeypatch.setattr(staff_views, "url_for", fake_url_for)
+    monkeypatch.setattr(staff_views, "flash", lambda *args: None)
+    sent = []
+    monkeypatch.setattr(staff_views, "send_mail", lambda recipients, title, body: sent.append((recipients, body)))
+
+    with app.test_request_context("/", method="POST", data={
+        "clock": clock, "reason": "Missed scan", "workdatetime": "01/01/2020 08:30",
+    }):
+        staff_views.request_for_clockin_clockout.__wrapped__()
+
+    assert query.filters == [{"staff_account_id": 42, "is_active": True}]
+    assert [recipients for recipients, body in sent] == (
+        [] if debug else [["first@mahidol.ac.th"], ["second@mahidol.ac.th"]]
+    )
+    assert all("/clockin-clockout/approved/5051" in body for recipients, body in sent)
+    assert links[0][0] == "staff.approved_for_clockin_clockout"
+    assert links[0][1]["request_id"] == 5051
+    assert session.added[0].approver_id == 29
+    assert session.commits == 1
+
+
+@pytest.mark.parametrize("approver_id", [29, 30])
+def test_each_active_approver_can_open_emailed_request(staff_views, monkeypatch, approver_id):
+    clock_request = SimpleNamespace(id=5051, staff_account_id=42, approver_id=29)
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(
+        query=SimpleNamespace(get_or_404=lambda request_id: clock_request),
+    ))
+    query = _FakeQuery()
+    query.rows = [SimpleNamespace(approver_account_id=approver_id)]
+    monkeypatch.setattr(staff_views, "StaffWorkFromHomeApprover", SimpleNamespace(query=query), raising=False)
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=approver_id))
+    monkeypatch.setattr(staff_views, "request", SimpleNamespace(method="GET", args={}))
+    monkeypatch.setattr(staff_views, "render_template", lambda template, **context: context)
+
+    context = staff_views.approved_for_clockin_clockout.__wrapped__(5051)
+
+    assert context["can_approve"] is True
+    if approver_id != 29:
+        assert query.filters == [{
+            "staff_account_id": 42, "approver_account_id": approver_id, "is_active": True,
+        }]
+
+
+@pytest.mark.parametrize("closed_field", ["approved_at", "cancelled_at", "existing_login"])
+@pytest.mark.parametrize("decision", ["yes", "no"])
+def test_closed_clock_request_cannot_be_processed_again(staff_views, monkeypatch, closed_field, decision):
+    clock_request = SimpleNamespace(
+        id=5051, staff_account_id=42, approver_id=29,
+        approved_at=None, cancelled_at=None,
+    )
+    query = _FakeQuery()
+    query.get_or_404 = lambda request_id: clock_request
+    query_steps = []
+    def populate_existing():
+        query_steps.append('refresh')
+        return query
+    def with_for_update():
+        query_steps.append('lock')
+        return query
+    def locked_request():
+        # Another transaction completed after the initial request was loaded.
+        assert query_steps == ['refresh', 'lock']
+        if closed_field != 'existing_login':
+            setattr(clock_request, closed_field, datetime(2026, 10, 28))
+        return clock_request
+    query.populate_existing = populate_existing
+    query.with_for_update = with_for_update
+    query.one = locked_request
+    login_query = _FakeQuery()
+    if closed_field == 'existing_login':
+        login_query.rows = [SimpleNamespace(id=370010, request_id=5051)]
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", SimpleNamespace(query=login_query))
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(query=query))
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=29))
+    monkeypatch.setattr(staff_views, "request", SimpleNamespace(method="POST", form={"approved": decision}))
+    monkeypatch.setattr(staff_views, "flash", lambda *args: None)
+    monkeypatch.setattr(staff_views, "url_for", lambda *args, **kwargs: "/request/5051")
+    monkeypatch.setattr(staff_views, "redirect", lambda target: target)
+    session = _FakeSession()
+    monkeypatch.setattr(staff_views, "db", SimpleNamespace(session=session))
+
+    assert staff_views.approved_for_clockin_clockout.__wrapped__(5051) == "/request/5051"
+    assert session.added == []
+    assert session.commits == 0
+    if closed_field == 'existing_login':
+        assert login_query.filters == [{"request_id": 5051}]
