@@ -118,11 +118,6 @@
   {% if verification_fund_request %}
   <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top gap-2">
     <div class="text-start flex-grow-1">
-      {% if fund_request_waiting_message %}
-        <div class="text-warning fw-semibold mb-2">
-          <i class="bi bi-hourglass-split me-1"></i>{{ fund_request_waiting_message }}
-        </div>
-      {% endif %}
       {% if verification_fund_request.personal_note %}
         <span class="fw-bold">หมายเหตุส่วนตัว:</span>
         <span>{{ verification_fund_request.personal_note or '-' }}</span>
@@ -211,6 +206,11 @@
       </a>
     {% endif %}
   </div>
+  {% if fund_request_waiting_message %}
+    <div class="text-secondary fw-semibold text-end mt-3">
+      <i class="bi bi-hourglass-split me-1"></i>{{ fund_request_waiting_message }}
+    </div>
+  {% endif %}
   <template id="cancelFundRequestExtraFields">
     <div class="mt-3">
       <label class="form-label fw-bold" for="cancelTransferredAt">วันที่นำเงินกลับเข้าสู่ระบบ</label>
@@ -583,9 +583,9 @@
       {% if not claim_edit_mode|default(false) %}
       <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
         <h3 class="h5 mb-0" id="claimCircularHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed{% if not cash_mng_finance_open %} disabled{% endif %}"
+           <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not circular_draft %} collapsed{% endif %}{% if not cash_mng_finance_open %} disabled{% endif %}"
                   type="button"{% if cash_mng_finance_open %} data-bs-toggle="collapse" data-bs-target="#claimCircularCollapse"{% else %} disabled aria-disabled="true"{% endif %}
-                  aria-expanded="false" aria-controls="claimCircularCollapse">
+                   aria-expanded="{{ 'true' if circular_draft else 'false' }}" aria-controls="claimCircularCollapse">
             <i class="bi bi-file-earmark-text me-2 text-primary"></i>
             รายการส่งการเงิน ว-119 / ว-5763
             {% if not cash_mng_finance_open %}
@@ -594,7 +594,7 @@
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
         </h3>
-        <div id="claimCircularCollapse" class="collapse" aria-labelledby="claimCircularHeading">
+         <div id="claimCircularCollapse" class="collapse{% if circular_draft %} show{% endif %}" aria-labelledby="claimCircularHeading">
         <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
         <div class="pt-3">
         {% if parcel_return_fund_request_id %}
@@ -610,6 +610,7 @@
             name="circular_type"
             value="1"
             id="circular_type_1"
+             {% if circular_draft and circular_draft.type == 1 %}checked{% endif %}
           >
           <label class="form-check-label fw-bold text-primary" for="circular_type_1">
             ว-119
@@ -623,6 +624,7 @@
             name="circular_type"
             value="5"
             id="circular_type_5"
+             {% if circular_draft and circular_draft.type == 5 %}checked{% endif %}
           >
           <label class="form-check-label fw-bold text-primary" for="circular_type_5">
             ว-5763
@@ -632,15 +634,15 @@
         <div class="row g-3">
           <div class="col-md-4 mt-2">
             <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
-            <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" placeholder="dd/mm/yyyy">
+             <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" value="{{ circular_draft.sent_date.strftime('%Y-%m-%d') if circular_draft else '' }}" placeholder="dd/mm/yyyy">
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
-            <input type="text" name="circular_items_description" class="form-control circular-return-input" placeholder="รายละเอียดรายการ...">
+             <input type="text" name="circular_items_description" class="form-control circular-return-input" value="{{ circular_draft.items_description if circular_draft else '' }}" placeholder="รายละเอียดรายการ...">
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงิน</label>
-            <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" placeholder="0.00">
+             <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" value="{{ circular_draft.amount_spent if circular_draft else '' }}" placeholder="0.00">
           </div>
         </div>
         {% else %}
@@ -653,9 +655,9 @@
 
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
         <h3 class="h5 mb-0" id="claimParcelHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed{% if not cash_mng_finance_open %} disabled{% endif %}"
+           <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not parcel_draft %} collapsed{% endif %}{% if not cash_mng_finance_open %} disabled{% endif %}"
                   type="button"{% if cash_mng_finance_open %} data-bs-toggle="collapse" data-bs-target="#claimParcelCollapse"{% else %} disabled aria-disabled="true"{% endif %}
-                  aria-expanded="false" aria-controls="claimParcelCollapse">
+                   aria-expanded="{{ 'true' if parcel_draft else 'false' }}" aria-controls="claimParcelCollapse">
             <i class="bi bi-box-seam me-2 text-primary"></i>
             รายการที่ส่งไปฝ่ายพัสดุ
             {% if not cash_mng_finance_open %}
@@ -664,22 +666,22 @@
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
         </h3>
-        <div id="claimParcelCollapse" class="collapse" aria-labelledby="claimParcelHeading">
+         <div id="claimParcelCollapse" class="collapse{% if parcel_draft %} show{% endif %}" aria-labelledby="claimParcelHeading">
         <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
         <div class="pt-3">
         {% if parcel_return_fund_request_id %}
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-            <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" placeholder="dd/mm/yyyy" required>
+             <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" value="{{ parcel_draft.sent_date.strftime('%Y-%m-%d') if parcel_draft else '' }}" placeholder="dd/mm/yyyy" required>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
-            <input name="items_description" class="form-control parcel-return-input" placeholder="รายละเอียดรายการ..." required>
+             <input name="items_description" class="form-control parcel-return-input" value="{{ parcel_draft.items_description if parcel_draft else '' }}" placeholder="รายละเอียดรายการ..." required>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงิน</label>
-            <input type="text" name="parcel_amount" id="parcel_amount" class="form-control parcel-amount-input parcel-return-input" required placeholder="0.00">
+             <input type="text" name="parcel_amount" id="parcel_amount" class="form-control parcel-amount-input parcel-return-input" value="{{ parcel_draft.amount_spent if parcel_draft else '' }}" required placeholder="0.00">
           </div>
         </div>
         {% else %}
@@ -692,8 +694,9 @@
       {% endif %}
 
       {% set cash_return_ns = namespace(item=none) %}
-      {% if claim_detail and claim_detail.items %}
-        {% for item in claim_detail.items %}
+      {% set cash_return_source = claim_detail if claim_edit_mode|default(false) else (cash_return_draft or claim_detail) %}
+      {% if cash_return_source and cash_return_source.items %}
+        {% for item in cash_return_source.items %}
           {% if item.category_type|string == '6' and cash_return_ns.item is none %}
             {% set cash_return_ns.item = item %}
           {% endif %}
@@ -769,20 +772,13 @@
         </div>
       </div>
 
-      {% if is_over_request %}
-      <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <div>ยอดรวมเกินยอดที่ขอเบิกแล้ว ระบบได้ล็อกปุ่มส่งเบิกและส่งคืนชั่วคราวจนกว่ายอดรวมจะกลับมาอยู่ในเงื่อนไข</div>
-      </div>
-      {% endif %}
-
       <div class="d-flex gap-2 justify-content-end">
         {% if not claim_edit_mode|default(false) and cash_mng_finance_open %}
         <button type="submit" name="action" value="draft" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 8px;">
           บันทึกฉบับร่าง
         </button>
         {% endif %}
-        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if is_over_request or (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) %}disabled aria-disabled="true"{% endif %}>
+        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item %}disabled aria-disabled="true"{% endif %}>
           <i class="bi bi-send me-1"></i> {% if claim_edit_mode|default(false) %}บันทึกการแก้ไข{% elif not cash_mng_finance_open %}ยืนยันส่งคืนเงิน{% else %}ยืนยันส่งเบิกเงิน{% endif %}
         </button>
       </div>
@@ -806,8 +802,10 @@ function togglePettyCashClaimForm() {
 {% endif %}
 
 {% set history_target = history_fund_request if history_fund_request is defined else (selected_fund_request if selected_fund_request else (claim_detail.fund_request if claim_detail and claim_detail.fund_request else none)) %}
+{% set visible_claim_history = claim_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
+{% set visible_parcel_return_history = parcel_return_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
 
-{% set has_history = (claim_history|length > 0) or (parcel_return_history|length > 0) %}
+{% set has_history = visible_claim_history or visible_parcel_return_history %}
 {% if history_target and has_history %}
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -815,7 +813,7 @@ function togglePettyCashClaimForm() {
       <h3 class="h4 fw-bold mb-0 py-3">ประวัติการส่งเบิกเงินสดย่อย</h3>
     </div>
   </div>
-  {% if claim_history %}
+  {% if visible_claim_history %}
   <h5 class="fw-bold text-primary mb-2"><i class="bi bi-receipt me-2"></i>รายการส่งเบิกเงินสดย่อย</h5>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
@@ -830,7 +828,7 @@ function togglePettyCashClaimForm() {
           </tr>
         </thead>
         <tbody>
-          {% for claim in claim_history %}
+          {% for claim in visible_claim_history %}
           <tr class="align-top">
             <td>{{ claim.created_at|thai_date }}</td>
             <td style="width: 20%;">
@@ -876,7 +874,7 @@ function togglePettyCashClaimForm() {
     </div>
   {% endif %}
   {% set parcel_history_groups = namespace(standard=[], circular=[]) %}
-  {% for pr in parcel_return_history %}
+  {% for pr in visible_parcel_return_history %}
     {% if pr.type is not none %}
       {% set _ = parcel_history_groups.circular.append(pr) %}
     {% else %}
@@ -990,8 +988,8 @@ function togglePettyCashClaimForm() {
     </div>
   {% endif %}
   {% endfor %}
-  {% if parcel_return_history %}
-    {% for pr in parcel_return_history %}
+  {% if visible_parcel_return_history %}
+    {% for pr in visible_parcel_return_history %}
       {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
       {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}
         <div class="modal fade text-start" id="parcelTransferModal{{ pr.id }}" tabindex="-1" aria-labelledby="parcelTransferModalLabel{{ pr.id }}" aria-hidden="true">
@@ -1124,6 +1122,9 @@ document.addEventListener('DOMContentLoaded', function() {
     syncReferenceInfoVisibility();
 
     claimForm.addEventListener('submit', function(event) {
+      clearTimeout(autoSaveTimer);
+      const overRequestConfirmed = claimForm.dataset.popupConfirmed === 'true';
+      delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
         claimForm.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
@@ -1159,6 +1160,10 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         const cashAmountInput = claimForm.querySelector('.cash-return-amount-input');
+        if (!validateFundRequestTotal(overRequestConfirmed)) {
+          event.preventDefault();
+          return;
+        }
         if (cashAmountInput) cashAmountInput.value = cashAmountInput.value.replace(/,/g, '');
         return;
       }
@@ -1168,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const circularInputs = claimForm.querySelectorAll('.circular-return-input');
       const circularTypeInputs = claimForm.querySelectorAll('.circular-type-radio');
       const hasCircularData = Array.from(circularInputs).some(input =>
-        input.type === 'checkbox' ? input.checked : input.value.trim()
+        input.type === 'radio' || input.type === 'checkbox' ? input.checked : input.value.trim()
       );
       const claimInputs = claimForm.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]');
       const hasClaimData = Array.from(claimInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
@@ -1201,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         input.classList.remove('is-invalid');
       });
       const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
-      const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'checkbox')
+      const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'radio' && input.type !== 'checkbox')
         .every(input => input.value.trim());
       if (hasCircularData && (selectedCircularTypes.length !== 1 || !circularFieldsComplete)) {
         isValid = false;
@@ -1226,12 +1231,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (input.required && !input.value) isValid = false;
       });
 
+      const hasExistingCashProof = Array.from(claimForm.querySelectorAll('input[name="cash_return_existing_proof"]'))
+        .some(input => input.value.trim());
       cashInputs.forEach(input => {
-        input.required = hasCashReturnData;
+        input.required = hasCashReturnData && (input.type !== 'file' || !hasExistingCashProof);
         input.classList.remove('is-invalid');
       });
       if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file'
-        ? input.files.length > 0 || claimForm.querySelector('input[name="cash_return_existing_proof"]')
+        ? input.files.length > 0 || hasExistingCashProof
         : input.value.trim())) {
         isValid = false;
         cashInputs.forEach(input => {
@@ -1257,7 +1264,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       if (hasClaimData && !validateClaimAmountLimit()) isValid = false;
-      if (isValid && !validateFundRequestTotal()) isValid = false;
       if (isValid && !claimForm.checkValidity()) isValid = false;
 
       if (!isValid) {
@@ -1281,10 +1287,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
+      if (!validateFundRequestTotal(overRequestConfirmed)) {
+        event.preventDefault();
+        return;
+      }
+
       claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input').forEach(input => {
         input.value = input.value.replace(/,/g, '');
       });
-    });
+    }, true);
 
     // ผูก Event ติดตามการเปลี่ยนแปลงข้อมูลเพื่อทำ Auto Save Draft
     claimForm.addEventListener('input', triggerAutoSave);
@@ -1376,6 +1387,7 @@ async function autoSavePettyCashDraft() {
     const description = row.querySelector('input[name="description[]"]')?.value || '';
     const amountVal = row.querySelector('.claim-amount')?.value.replace(/,/g, '') || '0';
 
+    if (!receiptDate && !description.trim() && !(parseFloat(amountVal) || 0)) return;
     items.push({
       receipt_date: receiptDate,
       category_type: categoryType,
@@ -1441,7 +1453,7 @@ async function autoSavePettyCashDraft() {
     console.error('AutoSave Error:', err);
     if (statusEl) {
       statusEl.className = "badge bg-danger text-white px-3 py-2 border";
-      statusEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> บันทึกร่างล้มเหลว';
+      statusEl.textContent = err.message || 'บันทึกร่างล้มเหลว';
     }
   }
 }
@@ -1530,11 +1542,11 @@ function calculateTotal() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
-    updateSubmitAndReturnButtons(isOverRequest);
+    updateSubmitAndReturnButtons();
   }
 }
 
-function updateSubmitAndReturnButtons(isOverRequest) {
+function updateSubmitAndReturnButtons() {
   const finalSubmitBtn = document.getElementById('claimSubmitFinalBtn');
   const financeSubmissionBlocked = {{ 'true' if (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) else 'false' }};
 
@@ -1543,12 +1555,10 @@ function updateSubmitAndReturnButtons(isOverRequest) {
       return;
     }
 
-    const shouldDisable = isOverRequest || financeSubmissionBlocked;
+    const shouldDisable = financeSubmissionBlocked;
     btn.disabled = shouldDisable;
     btn.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
-    btn.title = isOverRequest
-      ? 'ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้'
-      : (financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ' : '');
+    btn.title = financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ' : '';
   });
 }
 
@@ -1584,7 +1594,7 @@ function validateClaimAmountLimit() {
   return true;
 }
 
-function validateFundRequestTotal(parcelInput = null) {
+function validateFundRequestTotal(overRequestConfirmed = false) {
   const display = document.getElementById('totalAmountDisplay');
   const requestAmount = parseFloat(display?.dataset.requestAmount || '0') || 0;
   if (!display || requestAmount <= 0) {
@@ -1597,17 +1607,18 @@ function validateFundRequestTotal(parcelInput = null) {
   });
   const existingClaimTotal = parseFloat(display.dataset.existingClaimTotal || '0') || 0;
   const parcelTotal = parseFloat(display.dataset.parcelTotal || '0') || 0;
-  const currentParcelAmount = parseFloat((parcelInput || document.querySelector('.parcel-amount-input'))?.value?.replace(/,/g, '') || '0') || 0;
+  const currentParcelAmount = parseFloat(document.querySelector('.parcel-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
   const currentCircularAmount = parseFloat(document.querySelector('.circular-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
-  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount;
+  const currentCashReturnAmount = parseFloat(document.querySelector('.cash-return-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
+  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount + currentCashReturnAmount;
 
-  if (projectedTotal > requestAmount) {
+  if (projectedTotal > requestAmount && !overRequestConfirmed) {
     window.openAppPopup({
       title: "ยอดเกินยอดขอเบิก",
-      message: `ยอดรวมจะเป็น ${projectedTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`,
-      confirmText: "ตกลง",
-      confirmClass: "btn-primary",
-      alertOnly: true,
+      message: `ยอดรวมจะเป็น ${projectedTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ต้องการส่งข้อมูลต่อหรือไม่`,
+      confirmText: "ยืนยันส่งข้อมูล",
+      confirmClass: "btn-warning",
+      targetFormId: "claimForm",
     });
     return false;
   }

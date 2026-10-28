@@ -35,9 +35,9 @@
             <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-ruled me-2 text-primary"></i>เลือกประเภทและข้อมูลแบบฟอร์ม</h5>
             <div class="mb-3">
               <label class="form-label fw-bold mb-2">ประเภทแบบฟอร์ม <span class="text-danger">*</span></label>
-              <div class="d-flex gap-4 p-2 border rounded-3 bg-light">
+              <div class="d-flex flex-wrap gap-4 p-2 border rounded-3 bg-light">
                 <div class="form-check form-check-inline m-0 ms-2 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_petty_cash" value="petty_cash" {% if selected_form_type not in ['interest', 'borrowing'] %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
+                  <input class="form-check-input" type="radio" name="form_type" id="form_type_petty_cash" value="petty_cash" {% if selected_form_type not in ['interest', 'borrowing', 'reduction'] %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
                   <label class="form-check-label fw-bold text-primary" for="form_type_petty_cash">ขออนุมัติเบิกเงินสดย่อย</label>
                 </div>
                 {% if is_custodian %}
@@ -49,6 +49,10 @@
                     <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
                     <label class="form-check-label fw-bold text-primary" for="form_type_borrowing">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</label>
                   </div>
+<!--                  <div class="form-check form-check-inline m-0 py-1">-->
+<!--                    <input class="form-check-input" type="radio" name="form_type" id="form_type_reduction" value="reduction" {% if selected_form_type == 'reduction' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>-->
+<!--                    <label class="form-check-label fw-bold text-primary" for="form_type_reduction">เบิกเงินลดงบประมาณ</label>-->
+<!--                  </div>-->
                 {% endif %}
               </div>
             </div>
@@ -61,14 +65,14 @@
                     {% if is_custodian %}
                       <select name="requester_id" id="requester_input" class="form-select bg-white" required onchange="onBorrowerChange()">
                         <option value="">พิมพ์เพื่อค้นหา หรือเลือกพนักงาน...</option>
-                        {% if selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id and not (department_employees | selectattr('id', 'equalto', setting.custodian_id) | list) %}
-                          <option value="{{ setting.custodian_id }}" data-position="{{ custodian_display_position }}"{% if selected_requester_id == setting.custodian_id or (not is_editing and selected_form_type in ['interest', 'petty_cash']) %} selected{% endif %}>{{ custodian_display_name }}</option>
+                        {% if selected_form_type in ['interest', 'petty_cash', 'reduction'] and setting and setting.custodian_id and not (department_employees | selectattr('id', 'equalto', setting.custodian_id) | list) %}
+                          <option value="{{ setting.custodian_id }}" data-position="{{ custodian_display_position }}"{% if selected_requester_id == setting.custodian_id or (not is_editing and selected_form_type in ['interest', 'petty_cash', 'reduction']) %} selected{% endif %}>{{ custodian_display_name }}</option>
                         {% endif %}
                         {% for emp in department_employees %}
-                        <option value="{{ emp.id }}" data-position="{{ emp.position or '' }}" {% if (is_editing and selected_requester_id == emp.id) or (not is_editing and selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id == emp.id) or (not is_editing and selected_form_type not in ['interest', 'borrowing'] and form.requester_name.data == emp.name) %}selected{% endif %}>{{ emp.name }}</option>
+                        <option value="{{ emp.id }}" data-position="{{ emp.position or '' }}" {% if (is_editing and selected_requester_id == emp.id) or (not is_editing and selected_form_type in ['interest', 'petty_cash', 'reduction'] and setting and setting.custodian_id == emp.id) or (not is_editing and selected_form_type not in ['interest', 'borrowing', 'reduction'] and form.requester_name.data == emp.name) %}selected{% endif %}>{{ emp.name }}</option>
                         {% endfor %}
                       </select>
-                      {% if not department_employees and not (selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id) %}
+                      {% if not department_employees and not (selected_form_type in ['interest', 'petty_cash', 'reduction'] and setting and setting.custodian_id) %}
                         <div class="form-text text-danger">ไม่พบรายชื่อบุคลากรในหน่วยงาน กรุณาตรวจสอบหน่วยงานที่ผูกกับการตั้งค่าเงินสดย่อย</div>
                       {% endif %}
                     {% else %}
@@ -94,7 +98,7 @@
 
             <!-- ช่องข้อมูลเฉพาะของ แบบฟอร์ม 30 --> 
             <div id="section_form_petty_cash" class="p-3 border rounded-3 mb-4 bg-light-subtle">
-              <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับขออนุมัติเบิกเงินสดย่อย</h6>
+              <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับการเบิก</h6>
               <div class="row g-3 mb-2">
                 <div class="col-md-12">
                   <label for="purpose" class="form-label fw-bold">วัตถุประสงค์ในการเบิก <span class="text-danger">*</span></label>
@@ -109,10 +113,6 @@
                         required
                       >
                   </div>
-                </div>
-                <div class="col-md-12">
-                  <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
-                  {{ form.personal_note(class="form-control", id="personal_note", style="border-radius: 12px;") }}
                 </div>
               </div>
             </div>
@@ -194,9 +194,16 @@
               {% endif %}
             </div>
 
+            <div id="personal_note_section" class="row g-3 mb-4">
+              <div class="col-md-12">
+                <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
+                {{ form.personal_note(class="form-control", id="personal_note", style="border-radius: 12px;") }}
+              </div>
+            </div>
+
             <!-- ตารางเพิ่มรายการและจำนวนเงิน -->
             <div id="receiptTableContainer" class="mb-4 border rounded-3 p-3 bg-white shadow-sm">
-              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-list-ol me-2 text-primary"></i>รายการที่ขอเบิกเงินสดย่อย</h6>
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-list-ol me-2 text-primary"></i>รายการที่ขอเบิก</h6>
               <div class="table-responsive">
                 <table class="table table-bordered align-middle mb-0" id="receiptTable">
                   <thead class="table-light small fw-bold">
@@ -299,7 +306,11 @@
                 <i class="bi bi-exclamation-circle-fill me-1"></i> จำนวนเงินไม่ตรงกับยอดรวมของรายการด้านบน กรุณาตรวจสอบอีกครั้ง
               </div>
               <!-- ปุ่มบันทึก -->
-              <div class="col-md-auto text-end">
+              <div class="d-flex flex-column align-items-end text-end">
+                <span class="d-block small text-warning-emphasis fw-semibold mt-3" style="width: max-content; white-space: nowrap;">
+                  <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                  เพื่อให้ข้อมูลสอดคล้องกับรายการเดินบัญชีธนาคาร ขอความกรุณาเบิกเงินตามยอดเงินรวมทั้งหมด
+                </span>
                 <button type="submit" class="btn btn-success btn-lg fw-bold mt-2 px-4" style="border-radius: 12px;" id="fundRequestSubmitBtn">
                   <i class="bi bi-file-earmark-check me-2"></i> {{ 'บันทึกการแก้ไข' if is_editing else 'บันทึก' }}
                 </button>
@@ -402,9 +413,12 @@
 
     function isAmountMismatch() {
       const pettyCashRadio = document.getElementById("form_type_petty_cash");
+      const reductionRadio = document.getElementById("form_type_reduction");
       const userTotalInput = document.getElementById("user_total_amount");
       const sumAmountDisplay = document.getElementById("sumAmountDisplay");
-      if (!pettyCashRadio || !pettyCashRadio.checked || !userTotalInput || !sumAmountDisplay) {
+      const isItemizedForm = (pettyCashRadio && pettyCashRadio.checked)
+        || (reductionRadio && reductionRadio.checked);
+      if (!isItemizedForm || !userTotalInput || !sumAmountDisplay) {
         return false;
       }
 
@@ -520,9 +534,11 @@
       const pettyCashRadio = document.getElementById("form_type_petty_cash");
       const interestRadio = document.getElementById("form_type_interest");
       const borrowingRadio = document.getElementById("form_type_borrowing");
+      const reductionRadio = document.getElementById("form_type_reduction");
       const pettyCashSection = document.getElementById("section_form_petty_cash");
       const interestSection = document.getElementById("section_form_interest");
       const borrowingSection = document.getElementById("section_form_borrowing");
+      const personalNoteSection = document.getElementById("personal_note_section");
       const borrowerSection = document.getElementById("section_borrower_info");
       const requesterIsEditable = requesterInput && requesterInput.tagName === "SELECT";
       const receiptContainer = document.getElementById("receiptTableContainer");
@@ -634,21 +650,25 @@
 
       function toggleFormFields() {
         const isBorrowingTicketForm = borrowingRadio && borrowingRadio.checked;
-        const isInterestForm = interestRadio.checked;
+        const isInterestForm = Boolean(interestRadio && interestRadio.checked);
+        const isReductionForm = reductionRadio && reductionRadio.checked;
+        if (personalNoteSection) {
+          personalNoteSection.style.display = isInterestForm ? "none" : "flex";
+        }
         if (requesterInput) {
-          requesterInput.disabled = isInterestForm || isBorrowingTicketForm;
+          requesterInput.disabled = isInterestForm || isBorrowingTicketForm || isReductionForm;
           if (requesterInput.tagName === "SELECT" && window.jQuery) {
             $(requesterInput).prop("disabled", requesterInput.disabled).trigger("change.select2");
           }
         }
-        if (isInterestForm) {
+        if (isInterestForm || isReductionForm) {
           setRequesterValue(custodianId, custodianName, custodianPosition);
         }
         if (manualAmountSection) manualAmountSection.classList.toggle("d-none", !isInterestForm);
         if (userTotalInput) userTotalInput.required = isInterestForm;
         if (!isBorrowingTicketForm) onBorrowerChange();
 
-        if (pettyCashRadio.checked) {
+        if (pettyCashRadio.checked || isReductionForm) {
           pettyCashSection.style.display = "block";
           interestSection.style.display = "none";
           if (borrowingSection) borrowingSection.style.display = "none";
@@ -659,6 +679,7 @@
           if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
           
           toggleTableRequired(true);
+          setReductionMode(isReductionForm);
           setBorrowingTicketMode(false);
           calculateTotalSpent();
         } else if (isBorrowingTicketForm) {
@@ -672,6 +693,7 @@
           if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
 
           toggleTableRequired(false);
+          setReductionMode(false);
           setBorrowingTicketMode(true);
           syncBorrowingTicketPreview();
           if (borrowingTicketSelect && !borrowingTicketSelect.value && borrowingTicketSelect.options.length > 1) {
@@ -679,7 +701,7 @@
             syncBorrowingTicketPreview();
           }
           calculateTotalSpent();
-        } else if (interestRadio.checked) {
+        } else if (isInterestForm) {
           pettyCashSection.style.display = "none";
           interestSection.style.display = "block";
           if (borrowingSection) borrowingSection.style.display = "none";
@@ -691,6 +713,7 @@
           if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
           
           toggleTableRequired(false);
+          setReductionMode(false);
           document.getElementById("amount_mismatch_alert").style.display = "none";
         }
         updateBudgetLimitState();
@@ -707,10 +730,27 @@
         });
       }
 
+      function setReductionMode(isActive) {
+        receiptContainer.querySelectorAll('select[name="item_category[]"]').forEach((select) => {
+          select.disabled = isActive;
+          if (isActive) select.value = "5";
+        });
+        if (receiptAddButton) receiptAddButton.disabled = isActive;
+        receiptContainer.querySelectorAll(".btn-outline-danger").forEach((button) => {
+          button.disabled = isActive;
+          button.classList.toggle("d-none", isActive);
+        });
+      }
+
       pettyCashRadio.addEventListener("change", toggleFormFields);
-      interestRadio.addEventListener("change", toggleFormFields);
+      if (interestRadio) {
+        interestRadio.addEventListener("change", toggleFormFields);
+      }
       if (borrowingRadio) {
         borrowingRadio.addEventListener("change", toggleFormFields);
+      }
+      if (reductionRadio) {
+        reductionRadio.addEventListener("change", toggleFormFields);
       }
       if (borrowingTicketSelect) {
         borrowingTicketSelect.addEventListener("change", function() {
@@ -723,7 +763,10 @@
         e.preventDefault();
 
         const budgetState = updateBudgetLimitState();
-        if (pettyCashRadio.checked && (budgetState.isOverBudget || (budgetState.availableBudget <= 0 && budgetState.requestedAmount > 0))) {
+        const isInterestForm = Boolean(interestRadio && interestRadio.checked);
+        const isReductionForm = reductionRadio && reductionRadio.checked;
+        const isItemizedForm = pettyCashRadio.checked || isReductionForm;
+        if (isItemizedForm && (budgetState.isOverBudget || (budgetState.availableBudget <= 0 && budgetState.requestedAmount > 0))) {
           alert("ยอดที่ขอเบิกเกินยอดคงเหลือ กรุณาปรับจำนวนเงินก่อนส่งแบบฟอร์ม");
           userTotalInput.focus();
           return false;
@@ -745,14 +788,14 @@
         }
         // 1. ตรวจสอบ Radio ประจำปี
         const selectedRadio = document.querySelector('input[name="period_year_radio"]:checked');
-        if (selectedRadio && interestRadio.checked) {
+        if (selectedRadio && isInterestForm) {
           document.getElementById("hidden_period_year").value = selectedRadio.value;
         } else {
           document.getElementById("hidden_period_year").value = "";
         }
 
         // 2. Validate ยอดเงิน (กรณีเลือกเบิกเงินสดย่อย)
-        if (pettyCashRadio.checked) {
+        if (isItemizedForm) {
           const autoAmount = parseFloat(document.getElementById("sumAmountDisplay").innerText.replace(/,/g, "")) || 0;
           const userAmount = parseFloat(userTotalInput.value.replace(/,/g, "")) || 0;
           
@@ -761,10 +804,6 @@
             userTotalInput.focus();
             return false;
           }
-
-          document.querySelectorAll(".item-amount-input").forEach(input => {
-            input.value = input.value.replace(/,/g, "");
-          });
         }
         if (borrowingRadio && borrowingRadio.checked) {
           if (!borrowingTicketSelect || !borrowingTicketSelect.value) {
@@ -773,6 +812,9 @@
           }
         }
 
+        mainForm.querySelectorAll(".item-amount-input").forEach(input => {
+          input.value = input.value.replace(/,/g, "");
+        });
         userTotalInput.value = userTotalInput.value.replace(/,/g, "");
         updateBudgetLimitState();
 
@@ -791,7 +833,7 @@
       });
       
       toggleFormFields();
-      if (!interestRadio.checked) {
+      if (!interestRadio || !interestRadio.checked) {
         calculateTotalSpent();
       } else if (userTotalInput) {
         formatInputNumberOnBlur(userTotalInput);
@@ -882,7 +924,10 @@
 
     function validateAmountMatch() {
       const pettyCashRadio = document.getElementById("form_type_petty_cash");
-      if (!pettyCashRadio || !pettyCashRadio.checked) return;
+      const reductionRadio = document.getElementById("form_type_reduction");
+      const isItemizedForm = (pettyCashRadio && pettyCashRadio.checked)
+        || (reductionRadio && reductionRadio.checked);
+      if (!isItemizedForm) return;
 
       const autoAmount = parseFloat(document.getElementById("sumAmountDisplay").innerText.replace(/,/g, "")) || 0;
       const userAmountInput = document.getElementById("user_total_amount");
