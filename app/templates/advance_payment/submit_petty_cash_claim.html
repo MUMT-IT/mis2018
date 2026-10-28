@@ -775,7 +775,7 @@
       {% if is_over_request %}
       <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <div>ยอดรวมเกินยอดที่ขอเบิกแล้ว ระบบได้ล็อกปุ่มส่งเบิกและส่งคืนชั่วคราวจนกว่ายอดรวมจะกลับมาอยู่ในเงื่อนไข</div>
+        <div>ยอดรวมเกินยอดที่ขอเบิก{% if not claim_edit_mode|default(false) and cash_mng_finance_open %} ยังสามารถบันทึกฉบับร่างได้{% endif %} และระบบจะให้ยืนยันก่อนส่งข้อมูล</div>
       </div>
       {% endif %}
 
@@ -785,7 +785,7 @@
           บันทึกฉบับร่าง
         </button>
         {% endif %}
-        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if is_over_request or (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) %}disabled aria-disabled="true"{% endif %}>
+        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item %}disabled aria-disabled="true"{% endif %}>
           <i class="bi bi-send me-1"></i> {% if claim_edit_mode|default(false) %}บันทึกการแก้ไข{% elif not cash_mng_finance_open %}ยืนยันส่งคืนเงิน{% else %}ยืนยันส่งเบิกเงิน{% endif %}
         </button>
       </div>
@@ -1129,6 +1129,8 @@ document.addEventListener('DOMContentLoaded', function() {
     syncReferenceInfoVisibility();
 
     claimForm.addEventListener('submit', function(event) {
+      const overRequestConfirmed = claimForm.dataset.popupConfirmed === 'true';
+      delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
         claimForm.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
@@ -1164,6 +1166,10 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         const cashAmountInput = claimForm.querySelector('.cash-return-amount-input');
+        if (!validateFundRequestTotal(overRequestConfirmed)) {
+          event.preventDefault();
+          return;
+        }
         if (cashAmountInput) cashAmountInput.value = cashAmountInput.value.replace(/,/g, '');
         return;
       }
@@ -1264,7 +1270,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       if (hasClaimData && !validateClaimAmountLimit()) isValid = false;
-      if (isValid && !validateFundRequestTotal()) isValid = false;
       if (isValid && !claimForm.checkValidity()) isValid = false;
 
       if (!isValid) {
@@ -1288,10 +1293,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
+      if (!validateFundRequestTotal(overRequestConfirmed)) {
+        event.preventDefault();
+        return;
+      }
+
       claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input').forEach(input => {
         input.value = input.value.replace(/,/g, '');
       });
-    });
+    }, true);
 
     // ผูก Event ติดตามการเปลี่ยนแปลงข้อมูลเพื่อทำ Auto Save Draft
     claimForm.addEventListener('input', triggerAutoSave);
@@ -1538,11 +1548,11 @@ function calculateTotal() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
-    updateSubmitAndReturnButtons(isOverRequest);
+    updateSubmitAndReturnButtons();
   }
 }
 
-function updateSubmitAndReturnButtons(isOverRequest) {
+function updateSubmitAndReturnButtons() {
   const finalSubmitBtn = document.getElementById('claimSubmitFinalBtn');
   const financeSubmissionBlocked = {{ 'true' if (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) else 'false' }};
 
@@ -1551,12 +1561,10 @@ function updateSubmitAndReturnButtons(isOverRequest) {
       return;
     }
 
-    const shouldDisable = isOverRequest || financeSubmissionBlocked;
+    const shouldDisable = financeSubmissionBlocked;
     btn.disabled = shouldDisable;
     btn.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
-    btn.title = isOverRequest
-      ? 'ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้'
-      : (financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ' : '');
+    btn.title = financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ' : '';
   });
 }
 
@@ -1592,7 +1600,7 @@ function validateClaimAmountLimit() {
   return true;
 }
 
-function validateFundRequestTotal(parcelInput = null) {
+function validateFundRequestTotal(overRequestConfirmed = false) {
   const display = document.getElementById('totalAmountDisplay');
   const requestAmount = parseFloat(display?.dataset.requestAmount || '0') || 0;
   if (!display || requestAmount <= 0) {
@@ -1605,17 +1613,18 @@ function validateFundRequestTotal(parcelInput = null) {
   });
   const existingClaimTotal = parseFloat(display.dataset.existingClaimTotal || '0') || 0;
   const parcelTotal = parseFloat(display.dataset.parcelTotal || '0') || 0;
-  const currentParcelAmount = parseFloat((parcelInput || document.querySelector('.parcel-amount-input'))?.value?.replace(/,/g, '') || '0') || 0;
+  const currentParcelAmount = parseFloat(document.querySelector('.parcel-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
   const currentCircularAmount = parseFloat(document.querySelector('.circular-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
-  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount;
+  const currentCashReturnAmount = parseFloat(document.querySelector('.cash-return-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
+  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount + currentCashReturnAmount;
 
-  if (projectedTotal > requestAmount) {
+  if (projectedTotal > requestAmount && !overRequestConfirmed) {
     window.openAppPopup({
       title: "ยอดเกินยอดขอเบิก",
-      message: `ยอดรวมจะเป็น ${projectedTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`,
-      confirmText: "ตกลง",
-      confirmClass: "btn-primary",
-      alertOnly: true,
+      message: `ยอดรวมจะเป็น ${projectedTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ต้องการส่งข้อมูลต่อหรือไม่`,
+      confirmText: "ยืนยันส่งข้อมูล",
+      confirmClass: "btn-warning",
+      targetFormId: "claimForm",
     });
     return false;
   }

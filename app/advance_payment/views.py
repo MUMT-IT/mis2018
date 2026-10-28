@@ -11364,21 +11364,6 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             and (parcel_amount is not None or circular_amount is not None)
             and not has_cash_return_data
         ):
-            fund_totals = _calculate_fund_request_totals(fund_request_id)
-            projected_total = (
-                fund_totals["cumulative_total"]
-                + (parcel_amount or 0)
-                + (circular_amount or 0)
-            )
-            if _is_over_limit(projected_total, fund_totals["request_amount"]):
-                return _redirect_with_limit_popup(
-                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
-                    (
-                        "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
-                        f"{_format_currency_amount(projected_total)} บาท ซึ่งเกินยอดขอเบิก "
-                        f"{_format_currency_amount(fund_totals['request_amount'])} บาท"
-                    ),
-                )
             if parcel_amount is not None:
                 _create_parcel_return_record(
                     ticket_id=None,
@@ -11507,28 +11492,6 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             if not setting or not setting.id:
                 return _validation_error_response("ไม่พบการตั้งค่าเงินสดย่อยสำหรับหน่วยงาน")
             existing_draft = existing_draft_query.first()
-
-        if not is_draft and fund_request_id:
-            fund_totals = _calculate_fund_request_totals(
-                fund_request_id,
-                exclude_claim_id=existing_draft.id if existing_draft else None,
-            )
-            projected_total = (
-                fund_totals["cumulative_total"]
-                + total_claim_amount
-                + (parcel_amount or 0)
-                + (circular_amount or 0)
-                + (cash_return_amount or 0)
-            )
-            if _is_over_limit(projected_total, fund_totals["request_amount"]):
-                return _redirect_with_limit_popup(
-                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
-                    (
-                        "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
-                        f"{_format_currency_amount(projected_total)} บาท "
-                        f"ซึ่งเกินยอดขอเบิก {_format_currency_amount(fund_totals['request_amount'])} บาท"
-                    ),
-                )
 
         if existing_draft:
             if fund_request_id is not None and existing_draft.fund_request_id != fund_request_id:

@@ -1470,6 +1470,9 @@
       document.addEventListener("DOMContentLoaded", function () {
         document.querySelectorAll("form[data-ajax-validation='true']").forEach(function (form) {
           form.addEventListener("submit", async function (event) {
+            if (form.id === "claimForm" && event.defaultPrevented) {
+              return;
+            }
             // The borrowing-ticket form has an existing acknowledgement popup.
             // Never bypass it when this async handler is installed first.
             const requiresBorrowingConfirmation = form.id === "createBorrowingTicketForm";
@@ -1484,7 +1487,9 @@
 
             event.preventDefault();
             form.dataset.ajaxSubmitting = "true";
-            const submitter = event.submitter || form.querySelector("button[type='submit']");
+            const submitter = event.submitter || (form.id === "claimForm"
+              ? form.querySelector("#claimSubmitFinalBtn")
+              : form.querySelector("button[type='submit']"));
             const originalSubmitterText = submitter ? submitter.innerHTML : "";
             if (submitter) {
               submitter.disabled = true;
