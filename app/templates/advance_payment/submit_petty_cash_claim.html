@@ -772,13 +772,6 @@
         </div>
       </div>
 
-      {% if is_over_request %}
-      <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <div>ยอดรวมเกินยอดที่ขอเบิก{% if not claim_edit_mode|default(false) and cash_mng_finance_open %} ยังสามารถบันทึกฉบับร่างได้{% endif %} และระบบจะให้ยืนยันก่อนส่งข้อมูล</div>
-      </div>
-      {% endif %}
-
       <div class="d-flex gap-2 justify-content-end">
         {% if not claim_edit_mode|default(false) and cash_mng_finance_open %}
         <button type="submit" name="action" value="draft" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 8px;">
@@ -1129,6 +1122,7 @@ document.addEventListener('DOMContentLoaded', function() {
     syncReferenceInfoVisibility();
 
     claimForm.addEventListener('submit', function(event) {
+      clearTimeout(autoSaveTimer);
       const overRequestConfirmed = claimForm.dataset.popupConfirmed === 'true';
       delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
@@ -1179,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const circularInputs = claimForm.querySelectorAll('.circular-return-input');
       const circularTypeInputs = claimForm.querySelectorAll('.circular-type-radio');
       const hasCircularData = Array.from(circularInputs).some(input =>
-        input.type === 'checkbox' ? input.checked : input.value.trim()
+        input.type === 'radio' || input.type === 'checkbox' ? input.checked : input.value.trim()
       );
       const claimInputs = claimForm.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]');
       const hasClaimData = Array.from(claimInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
@@ -1212,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         input.classList.remove('is-invalid');
       });
       const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
-      const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'checkbox')
+      const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'radio' && input.type !== 'checkbox')
         .every(input => input.value.trim());
       if (hasCircularData && (selectedCircularTypes.length !== 1 || !circularFieldsComplete)) {
         isValid = false;
@@ -1237,6 +1231,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (input.required && !input.value) isValid = false;
       });
 
+      const hasExistingCashProof = Array.from(claimForm.querySelectorAll('input[name="cash_return_existing_proof"]'))
+        .some(input => input.value.trim());
       cashInputs.forEach(input => {
         input.required = hasCashReturnData && (input.type !== 'file' || !hasExistingCashProof);
         input.classList.remove('is-invalid');
@@ -1244,8 +1240,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file'
         ? input.files.length > 0 || hasExistingCashProof
         : input.value.trim())) {
-      const hasExistingCashProof = Array.from(claimForm.querySelectorAll('input[name="cash_return_existing_proof"]'))
-        .some(input => input.value.trim());
         isValid = false;
         cashInputs.forEach(input => {
           if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
@@ -1459,7 +1453,7 @@ async function autoSavePettyCashDraft() {
     console.error('AutoSave Error:', err);
     if (statusEl) {
       statusEl.className = "badge bg-danger text-white px-3 py-2 border";
-      statusEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> บันทึกร่างล้มเหลว';
+      statusEl.textContent = err.message || 'บันทึกร่างล้มเหลว';
     }
   }
 }

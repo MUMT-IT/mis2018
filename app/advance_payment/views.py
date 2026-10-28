@@ -11489,8 +11489,6 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6),
                     ~PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type != 6),
                 )
-            if not setting or not setting.id:
-                return _validation_error_response("ไม่พบการตั้งค่าเงินสดย่อยสำหรับหน่วยงาน")
             existing_draft = existing_draft_query.first()
 
         if existing_draft:
@@ -11506,6 +11504,8 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             ).delete()
             claim_detail = existing_draft
         else:
+            if not setting or not setting.id:
+                return _validation_error_response("ไม่พบการตั้งค่าเงินสดย่อยสำหรับหน่วยงาน")
             claim_detail = PettyCashClaimDetail(
                 user_id=user_id,
                 petty_cash_setting_id=setting.id if setting and setting.id else None,
