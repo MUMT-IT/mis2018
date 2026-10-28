@@ -4063,6 +4063,24 @@ def hr_login_records():
     )
 
 
+@staff.route('/for-hr/login-report/calendar')
+@hr_permission.require()
+@login_required
+def hr_login_calendar():
+    staff_id = request.args.get('staff_id', type=int)
+    if not staff_id:
+        abort(400, description='A staff_id is required.')
+    selected_staff = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        selected_staff.retired
+        or selected_staff.retirement_date
+        or selected_staff.resignation_date
+        or selected_staff.staff_account is None
+    ):
+        abort(404)
+    return render_template('staff/hr_login_calendar.html', selected_staff=selected_staff)
+
+
 @staff.route('/api/for-hr/login-report/records')
 @hr_permission.require()
 @login_required
@@ -4573,10 +4591,11 @@ def request_for_clockin_clockout():
                 is_checkin=True if request.form.get('clock') == 'checkin' else False
             )
 
-            wfh_approver = StaffWorkFromHomeApprover.query.filter_by(
+            wfh_approvers = StaffWorkFromHomeApprover.query.filter_by(
                 staff_account_id=current_user.id,
                 is_active=True,
-            ).order_by(StaffWorkFromHomeApprover.id.asc()).first()
+            ).order_by(StaffWorkFromHomeApprover.id.asc()).all()
+            wfh_approver = wfh_approvers[0] if wfh_approvers else None
             if wfh_approver is None:
                 print('no approver found, assign head of the organization')
                 org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
@@ -4590,14 +4609,16 @@ def request_for_clockin_clockout():
                 )
                 db.session.add(wfh_approver)
                 db.session.flush()
+                wfh_approvers = [wfh_approver]
             checkin_request.approver_id = wfh_approver.approver_account_id
             db.session.add(checkin_request)
             db.session.commit()
 
             login_summary_url = (
-                external_url('staff.login_summary')
+                external_url('staff.approved_for_clockin_clockout', request_id=checkin_request.id)
                 if current_app.config.get('PUBLIC_BASE_URL')
-                else url_for('staff.login_summary', _external=True, _scheme='https')
+                else url_for('staff.approved_for_clockin_clockout', request_id=checkin_request.id,
+                             _external=True, _scheme='https')
             )
 
             if request.form.get('clock') == 'checkin':
@@ -4618,7 +4639,12 @@ def request_for_clockin_clockout():
             if wfh_approver:
                 if wfh_approver.is_active:
                     if not current_app.debug:
-                        send_mail([wfh_approver.account.email + "@mahidol.ac.th"], req_title, req_msg)
+                        approver_emails = list(dict.fromkeys(
+                            approver.account.email + "@mahidol.ac.th"
+                            for approver in wfh_approvers
+                        ))
+                        for approver_email in approver_emails:
+                            send_mail([approver_email], req_title, req_msg)
                         if wfh_approver.notified_by_line and wfh_approver.account.line_id:
                             try:
                                 line_bot_api.push_message(to=wfh_approver.account.line_id,
@@ -4699,8 +4725,15 @@ def list_for_clockin_clockout():
 def approved_for_clockin_clockout(request_id):
     clock_request = StaffRequestWorkLogin.query.get_or_404(request_id)
     can_approve = (
-        clock_request.approver_id == current_user.id
-        and clock_request.staff_account_id != current_user.id
+        clock_request.staff_account_id != current_user.id
+        and (
+            clock_request.approver_id == current_user.id
+            or StaffWorkFromHomeApprover.query.filter_by(
+                staff_account_id=clock_request.staff_account_id,
+                approver_account_id=current_user.id,
+                is_active=True,
+            ).first() is not None
+        )
     )
     is_requester = clock_request.staff_account_id == current_user.id
     if not can_approve and not is_requester:
@@ -4710,6 +4743,19 @@ def approved_for_clockin_clockout(request_id):
     if approved:
         if not can_approve:
             abort(403)
+        # Serialize decisions so two approvers cannot create duplicate attendance records.
+        clock_request = (
+            StaffRequestWorkLogin.query.filter_by(id=request_id)
+            .populate_existing().with_for_update().one()
+        )
+        if (
+            clock_request.approved_at
+            or clock_request.cancelled_at
+            or StaffWorkLogin.query.filter_by(request_id=request_id).first() is not None
+        ):
+            flash('คำขอนี้ได้รับการดำเนินการแล้ว', 'warning')
+            return redirect(url_for('staff.approved_for_clockin_clockout', request_id=request_id))
+        clock_request.approver = current_user
         if approved == 'yes':
             clock_request.approved_at = datetime.now(pytz.utc)
 
