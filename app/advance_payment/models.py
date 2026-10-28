@@ -117,6 +117,31 @@ def _stamp_finance_edits(session, flush_context, instances):
             record.last_edited_by_id = actor_id
 
 
+class AdvancePaymentStatus(db.Model):
+    """Status catalog for the advance-payment workflows.
+
+    Existing status columns remain unchanged for now. Later migrations can
+    reference this catalog through ``status_id`` one workflow at a time.
+    """
+
+    __tablename__ = "advance_payment_statuses"
+    __table_args__ = (
+        UniqueConstraint(
+            "status_group",
+            "code",
+            name="uq_advance_payment_statuses_group_code",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    status_group = Column(String(64), nullable=False, index=True)
+    code = Column(Integer, nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+
+    def __str__(self):
+        return self.name
+
+
 class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
     __table_args__ = (
@@ -134,6 +159,8 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     borrower_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     status = Column(String(64), nullable=False, default="กำลังส่งคำขอ")
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=True, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id])
     borrowing_ticket_purpose = Column(String(255), nullable=False)
     required_budget = Column(Numeric(12, 2, asdecimal=True), nullable=False)
     account_number = Column(String(100), nullable=False)
@@ -361,6 +388,8 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     amount_spent = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     proof_reference = Column(String(255), nullable=False, default="")
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=True, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id])
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
@@ -602,6 +631,8 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     sent_date = Column(Date, nullable=False)
     type = Column(Integer, nullable=True)
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=True, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id])
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
@@ -959,6 +990,8 @@ class FundRequest(FinanceEditMixin, db.Model):
     ticket_number = Column(String(64), nullable=True)
     request_date = Column(Date, nullable=True)
     status = Column(String(64), nullable=False, default="รอการอนุมัติ")
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=True, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id])
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     is_legacy_import = Column(Boolean, nullable=False, default=False, server_default=text("false"), index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
@@ -1107,6 +1140,8 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     user_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     claim_number = Column("Claim_number", String(255), nullable=True)
     status = Column(String(32), nullable=False, default="ฉบับร่าง")
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=True, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id])
     petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=False)
     fund_request_id = Column(
         Integer,

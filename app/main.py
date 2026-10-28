@@ -7,7 +7,7 @@ import click
 import pandas
 import pandas as pd
 import requests
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import configure_mappers, joinedload
 from flask_principal import Principal, PermissionDenied, Identity
@@ -2081,6 +2081,7 @@ app.register_blueprint(academic_service_payment_blueprint)
 from app.advance_payment import advance_payment as advance_payment_blueprint
 from app.advance_payment.models import (
     BankAccountInfo,
+    AdvancePaymentStatus,
     CashAdvanceBorrowingTicket,
     CashManagementNotifications,
     ClosingDocument,
@@ -2128,6 +2129,45 @@ class FundRequestAdminModelView(ModelView):
         'withdrawal_proof_reference',
         'withdrawal_proof_filename',
     )
+
+
+class AdvancePaymentStatusAdminModelView(ModelView):
+    form_excluded_columns = ("id", "code")
+    column_list = ("id", "status_group", "code", "name")
+
+    SYSTEM_DIGITS = {
+        "borrowing_ticket": 1,
+        "return_detail": 2,
+        "parcel_return": 3,
+        "fund_request": 4,
+        "petty_cash_claim": 5,
+    }
+
+    def on_model_change(self, form, model, is_created):
+        if not is_created:
+            return
+
+        system_digit = self.SYSTEM_DIGITS.get(model.status_group)
+        if system_digit is None:
+            raise ValueError("ไม่พบระบบสำหรับ status_group นี้")
+
+        last_code = (
+            self.session.query(func.max(AdvancePaymentStatus.code))
+            .filter(AdvancePaymentStatus.status_group == model.status_group)
+            .scalar()
+        )
+        next_sequence = (last_code % 100 + 1) if last_code else 1
+        if next_sequence > 99:
+            raise ValueError("จำนวน status ในระบบนี้เกิน 99 รายการแล้ว")
+
+        model.code = system_digit * 100 + next_sequence
+
+
+admin.add_view(AdvancePaymentStatusAdminModelView(
+    AdvancePaymentStatus,
+    db.session,
+    category='Advance Payment',
+))
 
 
 admin.add_view(ModelView(CashAdvanceBorrowingTicket, db.session, category='Advance Payment'))
