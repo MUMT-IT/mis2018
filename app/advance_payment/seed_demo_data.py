@@ -23,10 +23,15 @@ from .models import (
 )
 from app.models import Org
 from .views import FUND_REQUEST_FORM_INTEREST, FUND_REQUEST_FORM_PETTY_CASH
+from .status_codes import resolve_status_id_for_connection
 
 
 def _money(value):
     return Decimal(str(value)).quantize(Decimal("0.01"))
+
+
+def _status_id(session, group, code=None):
+    return resolve_status_id_for_connection(session.connection(), group, code)
 
 
 def _first(session, model, **filters):
@@ -111,7 +116,7 @@ def _ensure_borrowing_ticket(
     account_number,
     start_date,
     end_date,
-    status,
+    status_code,
     aip_ref_no,
     aip_ref_date,
     due_date,
@@ -137,7 +142,7 @@ def _ensure_borrowing_ticket(
         account_number=account_number,
         borrowing_ticket_start_date=start_date,
         borrowing_ticket_end_date=end_date,
-        status=status,
+        status_id=_status_id(session, "borrowing_ticket", status_code),
         finance_verified=finance_verified,
         due_date=due_date,
         approved_at=approved_at,
@@ -156,7 +161,7 @@ def _ensure_return_detail(
     ticket,
     amount_spent,
     proof_reference,
-    status,
+    status_code,
     closing_document=None,
     rejection_comment=None,
 ):
@@ -172,7 +177,7 @@ def _ensure_return_detail(
         ticket_id=ticket.id,
         amount_spent=_money(amount_spent),
         proof_reference=proof_reference,
-        status=status,
+        status_id=_status_id(session, "return_detail", status_code),
         rejection_comment=rejection_comment,
     )
     if closing_document:
@@ -268,7 +273,7 @@ def _ensure_bank_account_info(session, *, record_type, thai_name, created_at, ac
     return record
 
 
-def _ensure_parcel_return(session, *, ticket, amount_spent, items_description, sent_date, status, closing_document=None):
+def _ensure_parcel_return(session, *, ticket, amount_spent, items_description, sent_date, status_code, closing_document=None):
     parcel = (
         session.query(ParcelReturnDetail)
         .filter_by(ticket_id=ticket.id, items_description=items_description)
@@ -282,7 +287,7 @@ def _ensure_parcel_return(session, *, ticket, amount_spent, items_description, s
         amount_spent=_money(amount_spent),
         items_description=items_description,
         sent_date=sent_date,
-        status=status,
+        status_id=_status_id(session, "parcel_return", status_code),
     )
     if closing_document:
         parcel.closing_document = closing_document
@@ -306,7 +311,7 @@ def _ensure_fund_request(
     amount,
     purpose=None,
     period_year=None,
-    status="กำลังดำเนินการ",
+    status_code=None,
     withdrawal_proof_reference=None,
 ):
     fund_request = (
@@ -327,7 +332,7 @@ def _ensure_fund_request(
         period_year=period_year,
         withdrawal_proof_reference=withdrawal_proof_reference,
         created_at=datetime.now(),
-        status=status,
+        status_id=_status_id(session, "fund_request", status_code),
     )
     session.add(fund_request)
     session.flush()
@@ -355,7 +360,7 @@ def _ensure_fund_request_item(session, *, fund_request, description, amount, cat
     return item
 
 
-def _ensure_claim(session, *, user, setting, fund_request, status, total_amount=0, rejection_comment=None, transferred_at=None, closing_document=None):
+def _ensure_claim(session, *, user, setting, fund_request, status_code, total_amount=0, rejection_comment=None, transferred_at=None, closing_document=None):
     claim = session.query(PettyCashClaimDetail).filter_by(fund_request_id=fund_request.id if fund_request else None).first()
     if claim:
         return claim
@@ -365,7 +370,7 @@ def _ensure_claim(session, *, user, setting, fund_request, status, total_amount=
         petty_cash_setting_id=setting.id if setting else None,
         fund_request_id=fund_request.id if fund_request else None,
         total_amount=_money(total_amount),
-        status=status,
+        status_id=_status_id(session, "petty_cash_claim", status_code),
         rejection_comment=rejection_comment,
         transferred_at=transferred_at,
     )
@@ -493,7 +498,7 @@ def seed_demo_data(session):
         account_number="016-300-325-6",
         start_date=today - timedelta(days=25),
         end_date=today - timedelta(days=21),
-        status="อนุมัติจ่ายเงิน",
+        status_code="APPROVED",
         aip_ref_no="001/69",
         aip_ref_date=today - timedelta(days=5),
         due_date=today - timedelta(days=6),
@@ -511,7 +516,7 @@ def seed_demo_data(session):
         account_number="016-300-325-6",
         start_date=today - timedelta(days=20),
         end_date=today - timedelta(days=1),
-        status="มียอดคงค้าง",
+        status_code="PARTIAL_RETURN",
         aip_ref_no="002/69",
         aip_ref_date=today - timedelta(days=21),
         due_date=today - timedelta(days=6),
@@ -529,7 +534,7 @@ def seed_demo_data(session):
         account_number="123-4-56789-1",
         start_date=today - timedelta(days=35),
         end_date=today - timedelta(days=20),
-        status="เคลียร์ยอดแล้ว",
+        status_code="CLOSED",
         aip_ref_no="003/69",
         aip_ref_date=today - timedelta(days=36),
         due_date=today - timedelta(days=5),
@@ -543,7 +548,7 @@ def seed_demo_data(session):
         ticket=ticket_partial,
         amount_spent="4200.00",
         proof_reference="001/69",
-        status="ผ่านการตรวจสอบ",
+        status_code="APPROVED",
         closing_document=closing_doc_1,
     )
     partial_item_1 = _ensure_return_receipt_item(
@@ -583,7 +588,7 @@ def seed_demo_data(session):
         ticket=ticket_returned,
         amount_spent="8000.00",
         proof_reference="002/69",
-        status="เอกสารตั้งฎีกา",
+        status_code="CLOSING",
         closing_document=closing_doc_2,
     )
     full_item_1 = _ensure_return_receipt_item(
@@ -624,7 +629,7 @@ def seed_demo_data(session):
         amount_spent="750.00",
         items_description="Parcel return sample for finance review",
         sent_date=today - timedelta(days=3),
-        status="ได้รับเอกสารแล้ว",
+        status_code="DOCUMENT_RECEIVED",
         closing_document=closing_doc_1,
     )
 
@@ -642,7 +647,7 @@ def seed_demo_data(session):
         account_number="222-3-45678-9",
         start_date=today - timedelta(days=12),
         end_date=today + timedelta(days=3),
-        status="อนุมัติจ่ายเงิน",
+        status_code="APPROVED",
         aip_ref_no="B-001/2569",
         aip_ref_date=today - timedelta(days=2),
         due_date=today + timedelta(days=18),
@@ -661,7 +666,7 @@ def seed_demo_data(session):
         account_number="222-3-45678-9",
         start_date=today - timedelta(days=60),
         end_date=today - timedelta(days=40),
-        status="เอกสารตั้งฎีกา",
+        status_code="CLOSED",
         aip_ref_no="B-002/2569",
         aip_ref_date=today - timedelta(days=61),
         due_date=today - timedelta(days=25),
@@ -675,7 +680,7 @@ def seed_demo_data(session):
         ticket=borrower_self_closed,
         amount_spent="6200.00",
         proof_reference="B-002/69",
-        status="เคลียร์ยอดแล้ว",
+        status_code="SETTLED",
         closing_document=closing_doc_2,
     )
     borrower_closed_item = _ensure_return_receipt_item(
@@ -706,7 +711,7 @@ def seed_demo_data(session):
         account_number="222-3-45678-9",
         start_date=today - timedelta(days=2),
         end_date=today + timedelta(days=10),
-        status="กำลังส่งคำขอ",
+        status_code="PENDING",
         aip_ref_no="B-003/2569",
         aip_ref_date=today - timedelta(days=1),
         due_date=today + timedelta(days=25),
@@ -723,7 +728,7 @@ def seed_demo_data(session):
         account_number="555-9-87654-3",
         start_date=today - timedelta(days=18),
         end_date=today - timedelta(days=4),
-        status="มียอดคงค้าง",
+        status_code="PARTIAL_RETURN",
         aip_ref_no="C-001/2569",
         aip_ref_date=today - timedelta(days=19),
         due_date=today - timedelta(days=0),
@@ -736,7 +741,7 @@ def seed_demo_data(session):
         ticket=coordinator_review_ticket,
         amount_spent="5600.00",
         proof_reference="C-001/69",
-        status="ปฏิเสธ",
+        status_code="REJECTED",
         rejection_comment="รายการนี้ยังขาดใบเสร็จ 1 ใบและยอดเงินรวมไม่ตรงตามเอกสารแนบ",
     )
     coordinator_reject_item = _ensure_return_receipt_item(
@@ -762,7 +767,7 @@ def seed_demo_data(session):
         amount_spent="1250.00",
         items_description="Parcel return waiting finance check",
         sent_date=today - timedelta(days=2),
-        status="รอตรวจสอบ",
+        status_code="PENDING",
     )
     _ensure_parcel_return(
         session,
@@ -770,7 +775,7 @@ def seed_demo_data(session):
         amount_spent="980.00",
         items_description="Parcel return already verified by finance",
         sent_date=today - timedelta(days=5),
-        status="ได้รับเอกสารแล้ว",
+        status_code="DOCUMENT_RECEIVED",
         closing_document=closing_doc_1,
     )
     rejected_parcel = _ensure_parcel_return(
@@ -779,7 +784,7 @@ def seed_demo_data(session):
         amount_spent="640.00",
         items_description="Parcel return rejected due to missing signature",
         sent_date=today - timedelta(days=6),
-        status="ปฏิเสธ",
+        status_code="REJECTED",
     )
     rejected_parcel.rejection_comment = "กรุณาแนบลายเซ็นผู้รับพัสดุให้ครบ"
 
@@ -796,7 +801,7 @@ def seed_demo_data(session):
         amount="11000.00",
         purpose="เดินทางประชุมชี้แจงโครงการ",
         period_year=f"06/{current_year_be}",
-        status="กำลังดำเนินการ",
+        status_code="PENDING",
     )
 
     regular_request = _ensure_fund_request(
@@ -811,7 +816,7 @@ def seed_demo_data(session):
         request_date=today - timedelta(days=9),
         amount="4200.00",
         purpose="Office supplies for demo workflow",
-        status="เบิกเงินแล้ว",
+        status_code="WITHDRAWN",
     )
     _ensure_fund_request_item(
         session,
@@ -847,7 +852,7 @@ def seed_demo_data(session):
         request_date=today - timedelta(days=12),
         amount="3600.00",
         purpose="Claim-linked demo request",
-        status="โอนเงินสดย่อยสำเร็จ",
+        status_code="SETTLED",
     )
     _ensure_fund_request_item(
         session,
@@ -876,7 +881,7 @@ def seed_demo_data(session):
         request_date=today - timedelta(days=2),
         amount="1800.00",
         purpose="Draft request for testing",
-        status="กำลังดำเนินการ",
+        status_code="PENDING",
     )
     _ensure_fund_request_item(
         session,
@@ -891,7 +896,7 @@ def seed_demo_data(session):
         user=custodian,
         setting=setting,
         fund_request=regular_request,
-        status="ฉบับร่าง",
+        status_code="DRAFT",
         total_amount="0.00",
     )
     _ensure_claim_item(
@@ -909,7 +914,7 @@ def seed_demo_data(session):
         user=custodian,
         setting=setting,
         fund_request=transferred_request,
-        status="เอกสารตั้งฎีกา",
+        status_code="CASH_TRANSFER_COMPLETED",
         total_amount="3600.00",
         transferred_at=today - timedelta(days=4),
         closing_document=closing_doc_1,

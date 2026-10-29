@@ -2132,35 +2132,20 @@ class FundRequestAdminModelView(ModelView):
 
 
 class AdvancePaymentStatusAdminModelView(ModelView):
-    form_excluded_columns = ("id", "code")
+    form_excluded_columns = ("id",)
     column_list = ("id", "status_group", "code", "name")
 
-    SYSTEM_DIGITS = {
-        "borrowing_ticket": 1,
-        "return_detail": 2,
-        "parcel_return": 3,
-        "fund_request": 4,
-        "petty_cash_claim": 5,
-    }
-
     def on_model_change(self, form, model, is_created):
-        if not is_created:
-            return
-
-        system_digit = self.SYSTEM_DIGITS.get(model.status_group)
-        if system_digit is None:
-            raise ValueError("ไม่พบระบบสำหรับ status_group นี้")
-
-        last_code = (
-            self.session.query(func.max(AdvancePaymentStatus.code))
-            .filter(AdvancePaymentStatus.status_group == model.status_group)
-            .scalar()
-        )
-        next_sequence = (last_code % 100 + 1) if last_code else 1
-        if next_sequence > 99:
-            raise ValueError("จำนวน status ในระบบนี้เกิน 99 รายการแล้ว")
-
-        model.code = system_digit * 100 + next_sequence
+        code = (model.code or "").strip()
+        if (
+            not code
+            or not code.isascii()
+            or not code[0].isalpha()
+            or not code.replace("_", "").isalnum()
+            or code.upper() != code
+        ):
+            raise ValueError("Code ต้องเป็นภาษาอังกฤษตัวใหญ่และ underscore เท่านั้น")
+        model.code = code
 
 
 def _advance_payment_status_choices(status_group):

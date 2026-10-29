@@ -3,7 +3,7 @@ import uuid
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
-from sqlalchemy import extract
+from sqlalchemy import extract, text
 from sqlalchemy.exc import IntegrityError
 from functools import wraps
 import re
@@ -36,6 +36,8 @@ from werkzeug.utils import secure_filename
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
+from .models import status_name_for_record
+from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
     generate_finance_notification_email_content,
     generate_notification_email_content,
@@ -187,36 +189,85 @@ FUND_REQUEST_FORM_INTEREST = "interest"
 FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
 FUND_REQUEST_FORM_REDUCTION = "reduction"
 MAX_RETURN_LINKED_TICKETS = 2
-FUND_REQUEST_NUMBERED_STATUSES = {
-    "รอการอนุมัติ",
-    "อนุมัติแล้ว",
-    "เบิกเงินแล้ว",
-    "ส่งเบิกครบแล้ว",
-    "เคลียร์ยอดสำเร็จ",
+
+
+def _status_entry(status_group, code=None):
+    cache = g.setdefault("advance_payment_status_entries", {})
+    if status_group not in cache:
+        rows = db.session.connection().execute(
+            text("SELECT id, code, name FROM advance_payment_statuses WHERE status_group = :status_group"),
+            {"status_group": status_group},
+        ).all()
+        cache[status_group] = {
+            status_code: (status_id, status_name)
+            for status_id, status_code, status_name in rows
+        }
+    codes = cache[status_group]
+    code = code if code is not None else DEFAULT_STATUS_CODES[status_group]
+    if code not in codes:
+        raise LookupError(f"Status code {code!r} is missing for status_group {status_group}")
+    return codes[code]
+
+
+def _status_id(status_group, *, code=None):
+    return _status_entry(status_group, code)[0]
+
+
+def _status_name(status_group, code):
+    return _status_entry(status_group, code)[1]
+
+
+_STATUS_GROUP_BY_MODEL = {
+    BorrowingTicket: "borrowing_ticket",
+    ReturnDetail: "return_detail",
+    ParcelReturnDetail: "parcel_return",
+    FundRequest: "fund_request",
+    PettyCashClaimDetail: "petty_cash_claim",
 }
-FUND_REQUEST_STATUS_STEPS = ["รอการอนุมัติ", "อนุมัติแล้ว", "เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"]
-RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
-CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
-PARCEL_RETURN_CONFIRMED_STATUS = "ยืนยันการตรวจสอบ"
+
+
+def _status_group_for_record(record):
+    for model, group in _STATUS_GROUP_BY_MODEL.items():
+        if isinstance(record, model):
+            return group
+    raise TypeError(f"Unsupported status record: {type(record).__name__}")
+
+
+def _status_id_for_record(record, code):
+    return _status_id(_status_group_for_record(record), code=code)
+
+
+def _status_ids(status_group, codes):
+    return [_status_id(status_group, code=code) for code in codes]
+
+
+def _status_ids_for_record(record, codes):
+    return _status_ids(_status_group_for_record(record), codes)
+
+
+FUND_REQUEST_STATUS_STEPS = ("PENDING", "APPROVED", "WITHDRAWN", "CLAIMS_SUBMITTED", "SETTLED")
+RETURN_DETAIL_BOUNCED_CODE = "CLOSING_REJECTED"
+CASH_TRANSFER_CODE = "CASH_TRANSFER_COMPLETED"
+PARCEL_RETURN_CONFIRMED_CODE = "APPROVED"
 ADVANCE_PAYMENT_EMAIL_RECIPIENT_ROLE = "advance_payment_email_recipient"
 DIRECT_LEGACY_CLAIM_NOTE = "รายการย้อนหลังที่ฝ่ายการเงินบันทึกโดยตรง"
-RETURN_DETAIL_EDITABLE_STATUSES = {
-    "รอตรวจสอบ",
-    "ปฏิเสธ",
-    "รอยืนยันการแก้ไข",
-    RETURN_DETAIL_BOUNCED_STATUS,
+RETURN_DETAIL_EDITABLE_CODES = {
+    "PENDING",
+    "REJECTED",
+    "EDIT_CONFIRMATION_REQUIRED",
+    RETURN_DETAIL_BOUNCED_CODE,
 }
-PETTY_CASH_CLAIM_EDITABLE_STATUSES = {
-    "รอตรวจสอบ",
-    "ปฏิเสธ",
-    "ฉบับร่าง",
-    "รอยืนยันการแก้ไข",
+PETTY_CASH_CLAIM_EDITABLE_CODES = {
+    "PENDING",
+    "REJECTED",
+    "DRAFT",
+    "EDIT_CONFIRMATION_REQUIRED",
 }
 def _closed_fund_request_status(fund_request):
     return (
-        "ยกเลิกใบเบิก"
+        "CLAIM_CANCELLED"
         if getattr(fund_request, "approved_at", None)
-        else "ใบเบิกถูกปฏิเสธ"
+        else "REJECTED"
     )
 
 
@@ -805,7 +856,7 @@ def _fund_request_can_be_edited(user, fund_request):
     if (
         not user_id
         or getattr(fund_request, "is_legacy_import", False)
-        or (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ"
+        or fund_request.status_id != _status_id("fund_request", code="PENDING")
     ):
         return False
 
@@ -873,11 +924,11 @@ def _fund_request_is_fully_approved(fund_request):
 
 def _sync_fund_request_approval_status(fund_request):
     if (
-        (getattr(fund_request, "status", None) or "").strip() == "รอการอนุมัติ"
+        fund_request.status_id == _status_id("fund_request", code="PENDING")
         and _fund_request_is_fully_approved(fund_request)
     ):
-        fund_request.status = "อนุมัติแล้ว"
-    return fund_request.status
+        fund_request.status_id = _status_id_for_record(fund_request, "APPROVED")
+    return fund_request.status_id
 
 
 def _serialize_org_department(org, *, include_child_orgs=False):
@@ -1307,7 +1358,7 @@ def _can_edit_borrowing_ticket(user_id, borrowing_ticket):
         }
         and borrowing_ticket.approved_at is None
         and borrowing_ticket.rejection_comment is None
-        and borrowing_ticket.status != "กำลังดำเนินการ"
+        and borrowing_ticket.status_id != _status_id_for_record(borrowing_ticket, "IN_PROGRESS")
     )
 
 
@@ -1316,7 +1367,7 @@ def _can_delete_borrowing_ticket(user_id, borrowing_ticket):
     return bool(
         borrowing_ticket
         and user_id == borrowing_ticket.creator_id
-        and (borrowing_ticket.status or "").strip() == "กำลังส่งคำขอ"
+        and borrowing_ticket.status_id == _status_id_for_record(borrowing_ticket, "PENDING")
     )
 
 
@@ -1330,8 +1381,7 @@ def _can_edit_parcel_return(user_id, parcel_return, borrowing_ticket=None):
     return bool(
         ticket
         and ticket.creator_id == user_id
-        and (getattr(parcel_return, "status", None) or "").strip()
-        in {"รอตรวจสอบ", "ปฏิเสธ"}
+        and parcel_return.status_id in _status_ids("parcel_return", {"PENDING", "REJECTED"})
     )
 
 
@@ -1339,14 +1389,14 @@ def _can_edit_return_detail(user_id, return_detail, borrowing_ticket=None):
     """Use one authorization/status rule for inline and full-form edits."""
     if not _can_access_return_detail(user_id, return_detail, borrowing_ticket):
         return False
-    return (getattr(return_detail, "status", None) or "").strip() in RETURN_DETAIL_EDITABLE_STATUSES
+    return return_detail.status_id in _status_ids("return_detail", RETURN_DETAIL_EDITABLE_CODES)
 
 
 def _can_edit_petty_cash_claim(user, claim, setting):
     """Use one authorization/status rule for inline and full-form edits."""
     if not _can_manage_petty_cash_claim(user, claim, setting):
         return False
-    return (getattr(claim, "status", None) or "").strip() in PETTY_CASH_CLAIM_EDITABLE_STATUSES
+    return claim.status_id in _status_ids("petty_cash_claim", PETTY_CASH_CLAIM_EDITABLE_CODES)
 
 
 def _get_fund_request_by_id(fund_request_id):
@@ -1370,7 +1420,7 @@ def _attach_return_draft_data(ticket, creator_id=None):
 
     parcel_drafts = (
         db.session.query(ParcelReturnDetail)
-        .filter_by(ticket_id=ticket.id, status="ฉบับร่าง")
+        .filter_by(ticket_id=ticket.id, status_id=_status_id("parcel_return", code="DRAFT"))
         .order_by(ParcelReturnDetail.id.desc())
         .all()
     )
@@ -1379,7 +1429,7 @@ def _attach_return_draft_data(ticket, creator_id=None):
 
     draft_query = db.session.query(ReturnDetail).filter_by(
         ticket_id=ticket.id,
-        status="ฉบับร่าง",
+        status_id=_status_id("return_detail", code="DRAFT"),
     )
     if creator_id is not None:
         draft_query = draft_query.filter(ReturnDetail.creator_id == creator_id)
@@ -1554,46 +1604,46 @@ def _parcel_return_uses_confirmation_status(parcel_return):
 def _parcel_return_status_after_review(parcel_return):
     """Return the first finance-approved status for the parcel-return type."""
     return (
-        PARCEL_RETURN_CONFIRMED_STATUS
+        PARCEL_RETURN_CONFIRMED_CODE
         if _parcel_return_uses_confirmation_status(parcel_return)
-        else "พัสดุกำลังดำเนินการ"
+        else "IN_PROCESS"
     )
 
 
 def _parcel_return_status_before_cash_transfer(parcel_return):
     """Return the status required before recording a petty-cash transfer."""
     return (
-        PARCEL_RETURN_CONFIRMED_STATUS
+        PARCEL_RETURN_CONFIRMED_CODE
         if _parcel_return_uses_confirmation_status(parcel_return)
-        else "ได้รับเอกสารแล้ว"
+        else "DOCUMENT_RECEIVED"
     )
 
 
 def _parcel_return_ready_for_closing(parcel_return):
     """Return whether a parcel return is at the correct pre-closing status."""
     if _parcel_return_is_cash_transfer(parcel_return):
-        expected_status = CASH_TRANSFER_STATUS
+        expected_status = CASH_TRANSFER_CODE
     elif _parcel_return_uses_confirmation_status(parcel_return):
-        expected_status = PARCEL_RETURN_CONFIRMED_STATUS
+        expected_status = PARCEL_RETURN_CONFIRMED_CODE
     else:
-        expected_status = "ได้รับเอกสารแล้ว"
-    return (getattr(parcel_return, "status", None) or "").strip() == expected_status
+        expected_status = "DOCUMENT_RECEIVED"
+    return parcel_return.status_id == _status_id("parcel_return", code=expected_status)
 
 
 def _parcel_return_status_after_closing_cancel(parcel_return):
     """Restore the status that preceded closing-document creation."""
     if _parcel_return_uses_confirmation_status(parcel_return):
         return (
-            CASH_TRANSFER_STATUS
+            CASH_TRANSFER_CODE
             if _parcel_return_is_cash_transfer(parcel_return)
-            else PARCEL_RETURN_CONFIRMED_STATUS
+            else PARCEL_RETURN_CONFIRMED_CODE
         )
     if (
         _parcel_return_is_cash_transfer(parcel_return)
         and getattr(parcel_return, "transferred_at", None)
     ):
-        return CASH_TRANSFER_STATUS
-    return "ได้รับเอกสารแล้ว"
+        return CASH_TRANSFER_CODE
+    return "DOCUMENT_RECEIVED"
 
 
 def _attach_petty_cash_claim_context(claim):
@@ -1629,21 +1679,21 @@ def _petty_cash_category_groups_are_mixed(category_types):
 def _get_finance_visible_claim(claim_id):
     """Load a claim that finance is allowed to process."""
     claim = db.session.query(PettyCashClaimDetail).get(claim_id)
-    if not claim or claim.status == "ฉบับร่าง" or _claim_has_only_category_six(claim):
+    if not claim or claim.status_id == _status_id_for_record(claim, "DRAFT") or _claim_has_only_category_six(claim):
         abort(404)
     return claim
 
 
 def _get_finance_visible_return(return_id):
     detail = db.session.query(ReturnDetail).get(return_id)
-    if not detail or detail.status == "ฉบับร่าง":
+    if not detail or detail.status_id == _status_id_for_record(detail, "DRAFT"):
         abort(404)
     return detail
 
 
 def _get_finance_visible_parcel_return(parcel_return_id):
     detail = db.session.query(ParcelReturnDetail).get(parcel_return_id)
-    if not detail or detail.status == "ฉบับร่าง":
+    if not detail or detail.status_id == _status_id_for_record(detail, "DRAFT"):
         abort(404)
     return detail
 
@@ -1942,14 +1992,12 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
             fund_request
             for fund_request in approved_fund_requests
             if not getattr(fund_request, "is_legacy_import", False)
-            if (fund_request.status or "").strip() != "ฉบับร่าง"
-            if (fund_request.status or "").strip() not in {
-                "รอการอนุมัติ",
-                "อนุมัติแล้ว",
-                "ยกเลิก",
-                "ยกเลิกใบเบิก",
-                "ใบเบิกถูกปฏิเสธ",
-            }
+            if fund_request.status_id not in _status_ids_for_record(fund_request, {
+                "PENDING",
+                "APPROVED",
+                "CLAIM_CANCELLED",
+                "REJECTED",
+            })
             and getattr(fund_request, "form_type", None) == FUND_REQUEST_FORM_PETTY_CASH
             and getattr(fund_request, "request_date", None)
             and convert_to_fiscal_year(fund_request.request_date) == current_fiscal_year
@@ -1974,18 +2022,18 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
     approved_claims = [
         claim
         for claim in approved_claims
-        if (claim.status or "").strip() not in {"ฉบับร่าง", "ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"}
+        if claim.status_id not in _status_ids_for_record(claim, {"DRAFT", "REJECTED"})
         and getattr(claim, "created_at", None)
         and convert_to_fiscal_year(claim.created_at.date()) == current_fiscal_year
     ]
 
     total_claim_incomes = 0.0
     for claim in approved_claims:
-        claim_status = (claim.status or "").strip()
+        claim_status_id = claim.status_id
         # Replenish expenses only after transfer, retaining the credit when
         # a transferred claim is subsequently marked complete.
-        is_transferred = claim_status in {"โอนคืนเงินสดย่อย", "โอนเงินสดย่อยสำเร็จ"} or (
-            claim_status == "เสร็จสิ้นกระบวนการ"
+        is_transferred = claim_status_id in _status_ids("petty_cash_claim", {"CASH_RETURNED", "CASH_TRANSFER_COMPLETED"}) or (
+            claim_status_id == _status_id("petty_cash_claim", code="SETTLED")
             and bool(getattr(claim, "transferred_at", None))
         )
         for item in claim.items:
@@ -2079,11 +2127,10 @@ def _assign_fund_request_ticket_number(fund_request, reference_date=None):
                 FundRequest.created_at < created_end,
             ),
         ),
-        FundRequest.status.notin_([
-            "ยกเลิก",
-            "ยกเลิกใบเบิก",
-            "ใบเบิกถูกปฏิเสธ",
-        ]),
+        FundRequest.status_id.notin_(_status_ids("fund_request", [
+            "CLAIM_CANCELLED",
+            "REJECTED",
+        ])),
         func.trim(func.coalesce(FundRequest.ticket_number, "")) != "",
     )
     if getattr(fund_request, "id", None):
@@ -2114,10 +2161,10 @@ def recheck_overdue_and_upcoming_statuses():
     today = datetime.now().date()
 
     query = db.session.query(BorrowingTicket).filter(
-        BorrowingTicket.status != "ปฏิเสธ",
-        BorrowingTicket.status != "กำลังส่งคำขอ",
-        BorrowingTicket.status != "กำลังดำเนินการ",
-        BorrowingTicket.status != "เคลียร์ยอดแล้ว"
+        BorrowingTicket.status_id != _status_id("borrowing_ticket", code="REJECTED"),
+        BorrowingTicket.status_id != _status_id("borrowing_ticket", code="PENDING"),
+        BorrowingTicket.status_id != _status_id("borrowing_ticket", code="IN_PROGRESS"),
+        BorrowingTicket.status_id != _status_id("borrowing_ticket", code="CLOSED")
     )
 
     if _current_module_role() == COORDINATOR_ROLE:
@@ -2624,14 +2671,14 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
     if extra_ctx is None:
         extra_ctx = {}
 
-    status = getattr(target_object, "status", None)
+    status_id = target_object.status_id
     skip_status_email = {
-        "return": {"กำลังตรวจสอบ"},
-        "petty_claim": {"กำลังตรวจสอบ", "เสร็จสิ้นกระบวนการ"},
+        "return": {"IN_PROGRESS"},
+        "petty_claim": {"IN_PROCESS", "SETTLED"},
     }
-    if status in skip_status_email.get(object_type, set()):
+    if status_id in _status_ids_for_record(target_object, skip_status_email.get(object_type, set())):
         current_app.logger.info(
-            f"ยกเลิกการส่งอีเมลแจ้งเตือน object_type={object_type}, status={status}"
+            f"ยกเลิกการส่งอีเมลแจ้งเตือน object_type={object_type}, status_id={status_id}"
         )
         return False
 
@@ -2639,7 +2686,7 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
     # อีเมลทวงถามกำหนดส่งคืน/เกินกำหนดได้ตามรอบแจ้งเตือน
     if (
         object_type == "ticket"
-        and status == "มียอดคงค้าง"
+        and status_id == _status_id_for_record(target_object, "PARTIAL_RETURN")
         and not (extra_ctx.get("is_overdue") or extra_ctx.get("is_upcoming"))
     ):
         current_app.logger.info(
@@ -2775,7 +2822,7 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
 
 
 def _notify_next_fund_request_actor(fund_request):
-    if (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ":
+    if fund_request.status_id != _status_id("fund_request", code="PENDING"):
         return False
 
     expected_confirmer_id = _fund_request_expected_confirmer_id(fund_request)
@@ -2841,7 +2888,7 @@ def _notify_next_fund_request_actor(fund_request):
 def _send_fund_request_approved_notification(fund_request):
     """Notify the requester, custodian, and actual approver once approved."""
     if (
-        (getattr(fund_request, "status", None) or "").strip() != "อนุมัติแล้ว"
+        fund_request.status_id != _status_id("fund_request", code="APPROVED")
         or not _fund_request_is_fully_approved(fund_request)
     ):
         return False
@@ -2887,7 +2934,7 @@ def _send_fund_request_approved_notification(fund_request):
 def _send_fund_request_flow_notification(fund_request):
     """Send exactly one notification for the request's current flow state."""
     if (
-        (getattr(fund_request, "status", None) or "").strip() == "อนุมัติแล้ว"
+        fund_request.status_id == _status_id("fund_request", code="APPROVED")
         and _fund_request_is_fully_approved(fund_request)
     ):
         return _send_fund_request_approved_notification(fund_request)
@@ -2944,7 +2991,7 @@ def mark_return_checking(return_id):
             "กรุณายืนยันว่าได้รับทราบใบเสร็จยอดเกิน 100,000 บาทแล้ว"
         )
 
-    return_detail.status = "กำลังตรวจสอบ"
+    return_detail.status_id = _status_id_for_record(return_detail, "IN_PROGRESS")
     db.session.commit()
 
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
@@ -2961,7 +3008,7 @@ def mark_return_received(return_id):
     if not closing_document or not closing_document.is_settled:
         return _validation_error_response("ต้องล้างลูกหนี้ผ่านฎีกาที่ปิดบัญชีแล้วก่อน")
 
-    return_detail.status = "ล้างลูกหนี้เงินยืม"
+    return_detail.status_id = _status_id_for_record(return_detail, "SETTLED")
     return_detail.settled_at = closing_document.settled_at
     for ticket_id in _return_ticket_ids(return_detail):
         _recalculate_borrowing_ticket_status(
@@ -2998,12 +3045,12 @@ def mark_return_bounced(return_id):
         user_name,
     )
     return_detail.reject_approved_at = datetime.now()
-    return_detail.status = RETURN_DETAIL_BOUNCED_STATUS
+    return_detail.status_id = _status_id_for_record(return_detail, RETURN_DETAIL_BOUNCED_CODE)
     return_detail.settled_at = None
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
     if borrowing_ticket:
         borrowing_ticket.reject_approved_at = datetime.now()
-        borrowing_ticket.status = RETURN_DETAIL_BOUNCED_STATUS
+        borrowing_ticket.status_id = _status_id_for_record(borrowing_ticket, RETURN_DETAIL_BOUNCED_CODE)
         borrowing_ticket.closed_date = None
 
     for ticket_id in _return_ticket_ids(return_detail):
@@ -3019,12 +3066,7 @@ def mark_return_bounced(return_id):
     return view_return_proof_detail(return_id)
 
 def _closing_record_has_settled_status(record):
-    expected_status = (
-        "เสร็จสิ้นกระบวนการ"
-        if isinstance(record, PettyCashClaimDetail)
-        else "ล้างลูกหนี้เงินยืม"
-    )
-    return record.status == expected_status and record.settled_at is not None
+    return record.status_id == _status_id_for_record(record, "SETTLED") and record.settled_at is not None
 
 
 def _sync_closing_document_settled_at(closing_document, event_time):
@@ -3096,15 +3138,15 @@ def cancel_closing_doc(closing_doc_id):
         link.is_active = False
         record.settled_at = None
         if link.ticket_return_id is not None:
-            record.status = "ผ่านการตรวจสอบ"
+            record.status_id = _status_id_for_record(record, "APPROVED")
             updated_tickets.update(_return_ticket_ids(record))
         elif link.parcel_return_id is not None:
-            record.status = _parcel_return_status_after_closing_cancel(record)
+            record.status_id = _status_id_for_record(record, _parcel_return_status_after_closing_cancel(record))
             updated_tickets.update(_parcel_return_ticket_ids(record))
             if record.fund_request_id:
                 updated_fund_request_ids.add(record.fund_request_id)
         else:
-            record.status = CASH_TRANSFER_STATUS
+            record.status_id = _status_id_for_record(record, CASH_TRANSFER_CODE)
     if not any(link.is_active for link in closing_doc.links):
         closing_doc.is_active = False
     _sync_closing_document_settled_at(closing_doc, event_time)
@@ -3172,13 +3214,13 @@ def bulk_receive_closing_doc(closing_doc_id):
 
     returns_in_doc = [link.ticket_return for link in selected_links
                       if link.ticket_return is not None
-                      and link.ticket_return.status != "ล้างลูกหนี้เงินยืม"]
+                      and link.ticket_return.status_id != _status_id_for_record(link.ticket_return, "SETTLED")]
     parcel_in_doc = [link.parcel_return for link in selected_links
                     if link.parcel_return is not None
-                    and link.parcel_return.status != "ล้างลูกหนี้เงินยืม"]
+                    and link.parcel_return.status_id != _status_id_for_record(link.parcel_return, "SETTLED")]
     petty_in_doc = [link.claim for link in selected_links
                    if link.claim is not None
-                   and link.claim.status != "เสร็จสิ้นกระบวนการ"]
+                   and link.claim.status_id != _status_id_for_record(link.claim, "SETTLED")]
 
     if not returns_in_doc and not petty_in_doc and not parcel_in_doc:
         return _validation_error_response(
@@ -3188,17 +3230,17 @@ def bulk_receive_closing_doc(closing_doc_id):
     settlement_time = datetime.now(ZoneInfo("Asia/Bangkok"))
     updated_tickets = set()
     for ret in returns_in_doc:
-        ret.status = "ล้างลูกหนี้เงินยืม"
+        ret.status_id = _status_id_for_record(ret, "SETTLED")
         ret.settled_at = settlement_time
         updated_tickets.update(_return_ticket_ids(ret))
 
     for pr in parcel_in_doc:
-        pr.status = "ล้างลูกหนี้เงินยืม"
+        pr.status_id = _status_id_for_record(pr, "SETTLED")
         pr.settled_at = settlement_time
         updated_tickets.update(_parcel_return_ticket_ids(pr))
 
     for petty in petty_in_doc:
-        petty.status = "เสร็จสิ้นกระบวนการ"
+        petty.status_id = _status_id_for_record(petty, "SETTLED")
         petty.settled_at = settlement_time
 
     for pr in parcel_in_doc:
@@ -3751,7 +3793,7 @@ def _calculate_ticket_group_totals(ticket_ids):
     )
     remaining = {ticket.id: float(ticket.required_budget or 0) for ticket in ticket_order}
     allocated = {ticket.id: 0.0 for ticket in ticket_order}
-    excluded_return_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ฉบับร่าง", "ปฏิเสธ"}
+    excluded_return_statuses = {"PENDING", "IN_PROGRESS", "DRAFT", "REJECTED"}
 
     return_rows = db.session.query(ReturnDetail).filter(
         ReturnDetail.approved_at.isnot(None),
@@ -3759,7 +3801,7 @@ def _calculate_ticket_group_totals(ticket_ids):
             ReturnDetail.reject_approved_at.is_(None),
             ReturnDetail.approved_at > ReturnDetail.reject_approved_at,
         ),
-        ReturnDetail.status.notin_(excluded_return_statuses),
+        ReturnDetail.status_id.notin_(_status_ids("return_detail", excluded_return_statuses)),
         or_(
             ReturnDetail.ticket_id.in_(ticket_ids),
             ReturnDetail.id.in_(
@@ -3771,7 +3813,7 @@ def _calculate_ticket_group_totals(ticket_ids):
     ).all()
     parcel_rows = db.session.query(ParcelReturnDetail).filter(
         ParcelReturnDetail.approved_at.isnot(None),
-        ParcelReturnDetail.status.notin_(excluded_return_statuses),
+        ParcelReturnDetail.status_id.notin_(_status_ids("parcel_return", excluded_return_statuses)),
         or_(
             ParcelReturnDetail.ticket_id.in_(ticket_ids),
             ParcelReturnDetail.id.in_(
@@ -3843,10 +3885,10 @@ def _calculate_return_form_group_totals(
     )
     remaining = {ticket.id: float(ticket.required_budget or 0) for ticket in ticket_order}
     allocated = {ticket.id: 0.0 for ticket in ticket_order}
-    excluded_statuses = {"ฉบับร่าง", "ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"}
+    excluded_statuses = {"DRAFT", "REJECTED"}
 
     return_query = db.session.query(ReturnDetail).filter(
-        ReturnDetail.status.notin_(excluded_statuses),
+        ReturnDetail.status_id.notin_(_status_ids("return_detail", excluded_statuses)),
         or_(
             ReturnDetail.ticket_id.in_(ticket_ids),
             ReturnDetail.id.in_(
@@ -3861,7 +3903,7 @@ def _calculate_return_form_group_totals(
     return_rows = return_query.all()
 
     parcel_query = db.session.query(ParcelReturnDetail).filter(
-        ParcelReturnDetail.status.notin_(excluded_statuses),
+        ParcelReturnDetail.status_id.notin_(_status_ids("parcel_return", excluded_statuses)),
         or_(
             ParcelReturnDetail.ticket_id.in_(ticket_ids),
             ParcelReturnDetail.id.in_(
@@ -4070,22 +4112,22 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
         PettyCashClaimDetail.id == PettyCashClaimItem.claim_id,
     ).filter(
         PettyCashClaimDetail.fund_request_id == fund_request_id,
-        PettyCashClaimDetail.status != "ฉบับร่าง",
+        PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
     )
     if exclude_claim_id:
         claim_query = claim_query.filter(PettyCashClaimDetail.id != exclude_claim_id)
 
     parcel_query = db.session.query(func.coalesce(func.sum(ParcelReturnDetail.amount_spent), 0)).filter(
         ParcelReturnDetail.fund_request_id == fund_request_id,
-        ParcelReturnDetail.status.in_([
-            "รอตรวจสอบ",
-            "พัสดุกำลังดำเนินการ",
-            "ได้รับเอกสารแล้ว",
-            PARCEL_RETURN_CONFIRMED_STATUS,
-            CASH_TRANSFER_STATUS,
-            "เอกสารตั้งฎีกา",
-            "ล้างลูกหนี้เงินยืม",
-        ]),
+        ParcelReturnDetail.status_id.in_(_status_ids("parcel_return", [
+            "PENDING",
+            "IN_PROCESS",
+            "DOCUMENT_RECEIVED",
+            PARCEL_RETURN_CONFIRMED_CODE,
+            CASH_TRANSFER_CODE,
+            "CLOSING",
+            "SETTLED",
+        ])),
     )
     if exclude_parcel_return_id:
         parcel_query = parcel_query.filter(ParcelReturnDetail.id != exclude_parcel_return_id)
@@ -4120,10 +4162,10 @@ def _calculate_fund_request_display_summary(
         exclude_claim_id=exclude_claim_id,
         exclude_parcel_return_id=exclude_parcel_return_id,
     )
-    excluded_statuses = {"ฉบับร่าง", "ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"}
+    excluded_statuses = {"DRAFT", "REJECTED"}
     claim_query = db.session.query(PettyCashClaimDetail).filter(
         PettyCashClaimDetail.fund_request_id == fund_request_id,
-        PettyCashClaimDetail.status.notin_(excluded_statuses),
+        PettyCashClaimDetail.status_id.notin_(_status_ids("petty_cash_claim", excluded_statuses)),
     )
     if exclude_claim_id:
         claim_query = claim_query.filter(PettyCashClaimDetail.id != exclude_claim_id)
@@ -4144,7 +4186,7 @@ def _calculate_fund_request_display_summary(
 
     parcel_query = db.session.query(ParcelReturnDetail).filter(
         ParcelReturnDetail.fund_request_id == fund_request_id,
-        ParcelReturnDetail.status.notin_(excluded_statuses),
+        ParcelReturnDetail.status_id.notin_(_status_ids("parcel_return", excluded_statuses)),
     )
     if exclude_parcel_return_id:
         parcel_query = parcel_query.filter(
@@ -4227,7 +4269,7 @@ def _proof_file_validation_error(row_count, *, is_draft):
 def _ticket_has_bounced_return(ticket_id):
     return db.session.query(ReturnDetail.id).filter(
         ReturnDetail.ticket_id == ticket_id,
-        ReturnDetail.status == RETURN_DETAIL_BOUNCED_STATUS,
+        ReturnDetail.status_id == _status_id("return_detail", code=RETURN_DETAIL_BOUNCED_CODE),
     ).first() is not None
 
 def _recalculate_borrowing_ticket_status(
@@ -4244,7 +4286,7 @@ def _recalculate_borrowing_ticket_status(
         return None
 
     if _ticket_has_bounced_return(ticket_id):
-        borrowing_ticket.status = RETURN_DETAIL_BOUNCED_STATUS
+        borrowing_ticket.status_id = _status_id_for_record(borrowing_ticket, RETURN_DETAIL_BOUNCED_CODE)
         borrowing_ticket.closed_date = None
         if recalculate_settlement:
             _recalculate_borrowing_ticket_settlement({ticket_id})
@@ -4252,9 +4294,9 @@ def _recalculate_borrowing_ticket_status(
             db.session.commit()
         if notify:
             _send_notification_email(borrowing_ticket)
-        return borrowing_ticket.status
+        return borrowing_ticket.status_id
 
-    old_status = borrowing_ticket.status
+    old_status_id = borrowing_ticket.status_id
 
     # เรียกใช้ฟังก์ชันคำนวณยอดรวมที่รวมพัสดุแล้ว
     totals = _calculate_ticket_return_totals(ticket_id)
@@ -4263,20 +4305,20 @@ def _recalculate_borrowing_ticket_status(
 
     budget_covered = float(cumulative_total) >= float(budget) and float(budget) > 0
 
-    new_status = old_status
+    new_status_id = old_status_id
 
     if budget_covered:
-        new_status = "เคลียร์ยอดแล้ว"
+        new_status_id = _status_id("borrowing_ticket", code="CLOSED")
         borrowing_ticket.closed_date = datetime.now().date()
 
     elif float(cumulative_total) > 0:
-        new_status = "มียอดคงค้าง"
+        new_status_id = _status_id("borrowing_ticket", code="PARTIAL_RETURN")
 
     else:
-        if old_status in {"กำลังส่งคำขอ", "กำลังดำเนินการ", "อนุมัติจ่ายเงิน", "ปฏิเสธ"}:
-            new_status = old_status
+        if old_status_id in _status_ids("borrowing_ticket", {"PENDING", "IN_PROGRESS", "APPROVED", "REJECTED"}):
+            new_status_id = old_status_id
 
-    borrowing_ticket.status = new_status
+    borrowing_ticket.status_id = new_status_id
     if recalculate_settlement:
         _recalculate_borrowing_ticket_settlement({ticket_id})
     if commit:
@@ -4285,7 +4327,7 @@ def _recalculate_borrowing_ticket_status(
     if notify:
         _send_notification_email(borrowing_ticket)
 
-    return borrowing_ticket.status
+    return borrowing_ticket.status_id
 
 def _render_role_selection(selected_role=None, error_message=None):
     staff = _current_module_user()
@@ -4597,7 +4639,7 @@ def coordinator_dashboard():
                 .join(StaffPersonalInfo, StaffPersonalInfo.id == StaffAccount.personal_id)
                 .filter(
                     StaffPersonalInfo.org_id == current_org_id,
-                    BorrowingTicket.status.in_(["อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง"]),
+                    BorrowingTicket.status_id.in_(_status_ids("borrowing_ticket", ["APPROVED", "PARTIAL_RETURN"])),
                 )
             )
             if selected_borrower_id is not None:
@@ -4661,7 +4703,7 @@ def coordinator_dashboard():
                         )
                     ),
                 ),
-                ReturnDetail.status != "ฉบับร่าง"
+                ReturnDetail.status_id != _status_id("return_detail", code="DRAFT")
             )
             .order_by(ReturnDetail.id.desc())
             .all()
@@ -4674,7 +4716,7 @@ def coordinator_dashboard():
         db.session.query(ReturnDetail)
         .filter(
             ReturnDetail.creator_id == current_user.id,
-            ReturnDetail.status != "ฉบับร่าง",
+            ReturnDetail.status_id != _status_id("return_detail", code="DRAFT"),
         )
         .order_by(ReturnDetail.id.desc())
         .all()
@@ -4701,14 +4743,14 @@ def coordinator_dashboard():
         else:
             return_detail.description = return_detail.proof_reference or "-"
 
-    rejected_followup_ticket_ids = {item.ticket_id for item in return_details if (item.status or "").strip() == "ปฏิเสธ"}
+    rejected_followup_ticket_ids = {item.ticket_id for item in return_details if item.status_id == _status_id_for_record(item, "REJECTED")}
     if ticket_ids:
         rejected_followup_ticket_ids.update(
             ticket_id
             for (ticket_id,) in db.session.query(ParcelReturnDetail.ticket_id)
             .filter(
                 ParcelReturnDetail.ticket_id.in_(ticket_ids),
-                ParcelReturnDetail.status == "ปฏิเสธ",
+                ParcelReturnDetail.status_id == _status_id("parcel_return", code="REJECTED"),
             )
             .all()
             if ticket_id is not None
@@ -4719,7 +4761,7 @@ def coordinator_dashboard():
             .join(PettyCashClaimDetail, PettyCashClaimDetail.fund_request_id == FundRequest.id)
             .filter(
                 FundRequest.borrowing_ticket_id.in_(ticket_ids),
-                PettyCashClaimDetail.status == "ปฏิเสธ",
+                PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code="REJECTED"),
             )
             .all()
             if ticket_id is not None
@@ -4755,7 +4797,7 @@ def coordinator_dashboard():
         }
         ticket.has_rejected_followup = ticket.id in rejected_followup_ticket_ids
 
-        if ticket.status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "กำลังดำเนินการ"]:
+        if ticket.status_id not in _status_ids_for_record(ticket, ["CLOSED", "REJECTED", "PENDING", "IN_PROGRESS"]):
             shadow_sum_debt += float(ticket_remaining if ticket_remaining > 0 else 0.0)
 
             if ticket.due_date:
@@ -4950,7 +4992,7 @@ def coordinator_dashboard():
                         due_date=_calculate_due_date(form.borrowing_ticket_end_date.data),
                         aip_ref_no=form.aip_ref_no.data,
                         aip_ref_date=form.aip_ref_date.data,
-                        status="กำลังส่งคำขอ",
+                        status_id=_status_id("borrowing_ticket"),
                         created_at=datetime.utcnow()
                     )
                     saved_ticket.creator_user = current_user
@@ -5059,13 +5101,13 @@ def finance_dashboard():
     borrowing_tickets = db.session.query(BorrowingTicket).order_by(BorrowingTicket.id.desc()).all()
     return_details = (
         db.session.query(ReturnDetail)
-        .filter(ReturnDetail.status != "ฉบับร่าง")
+        .filter(ReturnDetail.status_id != _status_id("return_detail", code="DRAFT"))
         .order_by(ReturnDetail.id.desc())
         .all()
     )
     parcel_returns = (
         db.session.query(ParcelReturnDetail)
-        .filter(ParcelReturnDetail.status != "ฉบับร่าง")
+        .filter(ParcelReturnDetail.status_id != _status_id("parcel_return", code="DRAFT"))
         .order_by(ParcelReturnDetail.id.desc())
         .all()
     )
@@ -5075,7 +5117,7 @@ def finance_dashboard():
     # -------------------------------------------------------------
     petty_cash_claims = (
         db.session.query(PettyCashClaimDetail)
-        .filter(PettyCashClaimDetail.status != "ฉบับร่าง")
+        .filter(PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"))
         .order_by(PettyCashClaimDetail.id.desc())
         .all()
     )
@@ -5537,7 +5579,7 @@ def tickets_view():
             for (ticket_id,) in db.session.query(ReturnDetail.ticket_id)
             .filter(
                 ReturnDetail.ticket_id.in_(ticket_ids),
-                ReturnDetail.status == "ปฏิเสธ",
+                ReturnDetail.status_id == _status_id("return_detail", code="REJECTED"),
             )
             .all()
             if ticket_id is not None
@@ -5547,7 +5589,7 @@ def tickets_view():
             for (ticket_id,) in db.session.query(ParcelReturnDetail.ticket_id)
             .filter(
                 ParcelReturnDetail.ticket_id.in_(ticket_ids),
-                ParcelReturnDetail.status == "ปฏิเสธ",
+                ParcelReturnDetail.status_id == _status_id("parcel_return", code="REJECTED"),
             )
             .all()
             if ticket_id is not None
@@ -5558,7 +5600,7 @@ def tickets_view():
             .join(PettyCashClaimDetail, PettyCashClaimDetail.fund_request_id == FundRequest.id)
             .filter(
                 FundRequest.borrowing_ticket_id.in_(ticket_ids),
-                PettyCashClaimDetail.status == "ปฏิเสธ",
+                PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code="REJECTED"),
             )
             .all()
             if ticket_id is not None
@@ -5568,13 +5610,10 @@ def tickets_view():
         ticket.has_rejected_followup = ticket.id in rejected_followup_ticket_ids
 
     ticket_summary_excluded_statuses = {
-        "เอกสารตั้งฎีกา",
-        "เคลียร์ยอดแล้ว",
-        "ปฏิเสธ",
-        "กำลังส่งคำขอ",
-        "กำลังดำเนินการ",
-        "รออนุมัติสัญญา",
-        "รอตรวจสอบ",
+        "CLOSED",
+        "REJECTED",
+        "PENDING",
+        "IN_PROGRESS",
     }
 
     near_due_count = 0
@@ -5594,28 +5633,28 @@ def tickets_view():
         )
         if not ticket.search_account_number:
             ticket.search_account_number = ticket.account_number or ""
-        raw_status = (ticket.status or "").strip()
+        raw_status_id = ticket.status_id
         if ticket.due_date:
             if today_date > ticket.due_date:
-                if raw_status not in ticket_summary_excluded_statuses:
+                if raw_status_id not in _status_ids("borrowing_ticket", ticket_summary_excluded_statuses):
                     overdue_count += 1
             else:
                 days_remaining = (ticket.due_date - today_date).days
-                if 0 <= days_remaining <= 15 and raw_status not in ticket_summary_excluded_statuses:
+                if 0 <= days_remaining <= 15 and raw_status_id not in _status_ids("borrowing_ticket", ticket_summary_excluded_statuses):
                     near_due_count += 1
 
     # กรองข้อมูลตาม filter ที่ส่งมาจาก Dashboard
     if filter_type == "near_due":
         tickets = [
             t for t in all_tickets
-            if t.status not in ticket_summary_excluded_statuses
+            if t.status_id not in _status_ids_for_record(t, ticket_summary_excluded_statuses)
             and t.due_date
             and 0 <= (t.due_date - today_date).days <= 15
         ]
     elif filter_type == "overdue":
         tickets = [
             t for t in all_tickets
-            if t.status not in ticket_summary_excluded_statuses
+            if t.status_id not in _status_ids_for_record(t, ticket_summary_excluded_statuses)
             and t.due_date
             and today_date > t.due_date
         ]
@@ -5702,7 +5741,7 @@ def verification_view(ticket_id):
         if not _can_edit_return_detail(
             _current_user_id(), edit_return_detail, edit_ticket
         ):
-            if (edit_return_detail.status or "").strip() not in RETURN_DETAIL_EDITABLE_STATUSES:
+            if edit_return_detail.status_id not in _status_ids_for_record(edit_return_detail, RETURN_DETAIL_EDITABLE_CODES):
                 return _validation_error_response(
                     "ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว"
                 )
@@ -5712,7 +5751,7 @@ def verification_view(ticket_id):
         edit_return_detail is not None
         or (
             _selected_system() == ADVANCE_PAYMENT_SYSTEM
-            and borrowing_ticket.status in {"อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง"}
+            and borrowing_ticket.status_id in _status_ids_for_record(borrowing_ticket, {"APPROVED", "PARTIAL_RETURN"})
             and _can_submit_return_detail(_current_user_id(), borrowing_ticket)
         )
     )
@@ -5735,7 +5774,7 @@ def verification_view(ticket_id):
     )
     return_details = (
         db.session.query(ReturnDetail)
-        .filter(ReturnDetail.id.in_(linked_return_ids), ReturnDetail.status != "ฉบับร่าง")
+        .filter(ReturnDetail.id.in_(linked_return_ids), ReturnDetail.status_id != _status_id("return_detail", code="DRAFT"))
         .order_by(ReturnDetail.id.desc())
         .all()
     )
@@ -5748,7 +5787,7 @@ def verification_view(ticket_id):
         db.session.query(ParcelReturnDetail)
         .filter(
             ParcelReturnDetail.ticket_id.in_(ticket_group_ids),
-            ParcelReturnDetail.status != "ฉบับร่าง",
+            ParcelReturnDetail.status_id != _status_id("parcel_return", code="DRAFT"),
         )
         .order_by(ParcelReturnDetail.id.desc())
         .all()
@@ -5871,7 +5910,7 @@ def verification_view(ticket_id):
             .join(StaffPersonalInfo, StaffPersonalInfo.id == StaffAccount.personal_id)
             .filter(
                 StaffPersonalInfo.org_id == borrowing_org_id,
-                BorrowingTicket.status.in_(["อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง"]),
+                BorrowingTicket.status_id.in_(_status_ids("borrowing_ticket", ["APPROVED", "PARTIAL_RETURN"])),
                 BorrowingTicket.id != ticket_id,
             )
             .order_by(BorrowingTicket.id.asc())
@@ -5889,7 +5928,7 @@ def _create_parcel_return_record(
     items_description,
     sent_date,
     parcel_type=None,
-    status="รอตรวจสอบ",
+    status_id=None,
     reuse_draft=False,
 ):
     if parcel_type not in (None, *PARCEL_RETURN_TYPE_LABELS):
@@ -5907,12 +5946,13 @@ def _create_parcel_return_record(
             raise ValueError("ไม่พบคำขอเบิกเงินสดย่อยที่เลือก")
         if _fund_request_is_borrowing_passthrough(fund_request):
             raise ValueError(_borrowing_passthrough_validation_message())
+    status_id = status_id if status_id is not None else _status_id("parcel_return")
     parcel_return = None
-    if (ticket_id is not None or fund_request_id is not None) and (status == "ฉบับร่าง" or reuse_draft):
+    if (ticket_id is not None or fund_request_id is not None) and (status_id == _status_id("parcel_return", code="DRAFT") or reuse_draft):
         draft_query = db.session.query(ParcelReturnDetail).filter_by(
             ticket_id=ticket_id,
             fund_request_id=fund_request_id,
-            status="ฉบับร่าง",
+            status_id=_status_id("parcel_return", code="DRAFT"),
         )
         draft_query = draft_query.filter(
             ParcelReturnDetail.type.is_(None)
@@ -5923,6 +5963,7 @@ def _create_parcel_return_record(
         parcel_return = ParcelReturnDetail(
             ticket_id=ticket_id,
             fund_request_id=fund_request_id,
+            status_id=status_id,
             created_at=datetime.now(),
         )
         db.session.add(parcel_return)
@@ -5930,7 +5971,7 @@ def _create_parcel_return_record(
     parcel_return.items_description = items_description
     parcel_return.sent_date = sent_date
     parcel_return.type = parcel_type
-    parcel_return.status = status
+    parcel_return.status_id = status_id
     db.session.flush()
     linked_ticket_ids = set(ticket_ids or [])
     if ticket_id is not None:
@@ -5945,7 +5986,7 @@ def _create_parcel_return_record(
             parcel_borrowing_ticket_association.insert(),
             [{"parcel_return_id": parcel_return.id, "ticket_id": linked_id} for linked_id in sorted(linked_ticket_ids)],
         )
-    if status == "ฉบับร่าง":
+    if status_id == _status_id("parcel_return", code="DRAFT"):
         return parcel_return
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
@@ -5961,19 +6002,18 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     if not fund_request:
         return None
 
-    fund_request_status = (fund_request.status or "").strip()
-    if fund_request_status not in {
-        "เบิกเงินแล้ว",
-        "ส่งเบิกครบแล้ว",
-        "เคลียร์ยอดสำเร็จ",
-    }:
-        return fund_request.status
+    if fund_request.status_id not in _status_ids("fund_request", {
+        "WITHDRAWN",
+        "CLAIMS_SUBMITTED",
+        "SETTLED",
+    }):
+        return fund_request.status_id
 
     claims = (
         db.session.query(PettyCashClaimDetail)
         .filter(
             PettyCashClaimDetail.fund_request_id == fund_request_id,
-            PettyCashClaimDetail.status != "ฉบับร่าง",
+            PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
         )
         .all()
     )
@@ -5984,7 +6024,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     claim_total = 0.0
     for claim in claims:
         claim_items = list(claim.items or [])
-        claim_status = (claim.status or "").strip()
+        claim_status_id = claim.status_id
         is_cash_return_only = (
             claim_items
             and all(int(item.category_type or 0) == 6 for item in claim_items)
@@ -5992,19 +6032,17 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         )
         if (
             is_cash_return_only
-            and claim_status not in {
-                "โอนคืนเงินสดย่อย",
-                CASH_TRANSFER_STATUS,
-                "เสร็จสิ้นกระบวนการ",
-                "ปฏิเสธ",
-                "ถูกปฏิเสธ",
-                "ยกเลิก",
-            }
+            and claim_status_id not in _status_ids("petty_cash_claim", {
+                "CASH_RETURNED",
+                CASH_TRANSFER_CODE,
+                "SETTLED",
+                "REJECTED",
+            })
         ):
             # Older cat_6 claims were saved as รอตรวจสอบ even though they do
             # not require a finance review. Normalize them when the linked
             # FundRequest is recalculated.
-            claim.status = "โอนคืนเงินสดย่อย"
+            claim.status_id = _status_id_for_record(claim, "CASH_RETURNED")
             if not claim.transferred_at:
                 claim.transferred_at = max(
                     (
@@ -6016,7 +6054,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
                 )
         if (
             is_cash_return_only
-            and claim_status not in {"ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"}
+            and claim_status_id != _status_id("petty_cash_claim", code="REJECTED")
             and not claim.approved_at
         ):
             # Category 6 is an immediate cash return and has no finance-review
@@ -6036,8 +6074,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
             int(item.category_type or 0) != 6 and float(item.amount or 0) > 0
             for item in claim.items
         )
-        and (claim.status or "").strip()
-        not in {"โอนคืนเงินสดย่อย", CASH_TRANSFER_STATUS, "เสร็จสิ้นกระบวนการ"}
+        and claim.status_id not in _status_ids_for_record(claim, {"CASH_RETURNED", CASH_TRANSFER_CODE, "SETTLED"})
         for claim in claims
     )
 
@@ -6046,31 +6083,29 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         .filter(
             ParcelReturnDetail.fund_request_id == fund_request_id,
             ParcelReturnDetail.approved_at.isnot(None),
-            ParcelReturnDetail.status.not_in(["ปฏิเสธ", "ถูกปฏิเสธ"]),
+            ParcelReturnDetail.status_id != _status_id("parcel_return", code="REJECTED"),
         )
         .all()
     )
     parcel_total = sum(
         float(parcel.amount_spent or 0)
         for parcel in parcel_returns
-        if (parcel.status or "").strip()
-        in {
-            "รอตรวจสอบ",
-            "พัสดุกำลังดำเนินการ",
-            "ได้รับเอกสารแล้ว",
-            PARCEL_RETURN_CONFIRMED_STATUS,
-            CASH_TRANSFER_STATUS,
-            "เอกสารตั้งฎีกา",
-            "ล้างลูกหนี้เงินยืม",
-        }
+        if parcel.status_id in _status_ids_for_record(parcel, {
+            "PENDING",
+            "IN_PROCESS",
+            "DOCUMENT_RECEIVED",
+            PARCEL_RETURN_CONFIRMED_CODE,
+            CASH_TRANSFER_CODE,
+            "CLOSING",
+            "SETTLED",
+        })
     )
     parcel_pending_transfer = any(
-        (parcel.status or "").strip()
-        not in {
-            CASH_TRANSFER_STATUS,
-            "เอกสารตั้งฎีกา",
-            "ล้างลูกหนี้เงินยืม",
-        }
+        parcel.status_id not in _status_ids_for_record(parcel, {
+            CASH_TRANSFER_CODE,
+            "CLOSING",
+            "SETTLED",
+        })
         for parcel in parcel_returns
     )
 
@@ -6081,16 +6116,17 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         # A petty-cash parcel return is not complete until finance records the
         # transfer. While it is only received, keep the fund request at the
         # submission-complete stage, just like a petty-cash claim awaiting transfer.
-        fund_request.status = (
-            "ส่งเบิกครบแล้ว"
+        next_status = (
+            "CLAIMS_SUBMITTED"
             if pending_claim_transfer or parcel_pending_transfer
-            else "เคลียร์ยอดสำเร็จ"
+            else "SETTLED"
         )
+        fund_request.status_id = _status_id_for_record(fund_request, next_status)
     else:
-        fund_request.status = "เบิกเงินแล้ว"
+        fund_request.status_id = _status_id_for_record(fund_request, "WITHDRAWN")
 
     db.session.commit()
-    return fund_request.status
+    return fund_request.status_id
 
 
 @bp.route("/borrower/tickets/<int:ticket_id>/parcel-return", methods=["POST"])
@@ -6149,7 +6185,7 @@ def submit_parcel_return(ticket_id):
             amount=parsed_amount,
             items_description=items_description,
             sent_date=sent_date,
-            status="รอตรวจสอบ",
+            status_id=_status_id("parcel_return", code="PENDING"),
         )
     except ValueError as error:
         db.session.rollback()
@@ -6191,7 +6227,7 @@ def submit_fund_request_parcel_return(fund_request_id):
     if accessible_request is None:
         abort(403)
     if (
-        (fund_request.status or "").strip() != "เบิกเงินแล้ว"
+        fund_request.status_id != _status_id_for_record(fund_request, "WITHDRAWN")
         or not fund_request.request_date
     ):
         return _validation_error_response(
@@ -6249,7 +6285,7 @@ def submit_fund_request_parcel_return(fund_request_id):
         amount=parsed_amount,
         items_description=items_description,
         sent_date=sent_date,
-        status="รอตรวจสอบ",
+        status_id=_status_id("parcel_return", code="PENDING"),
     )
 
     flash("บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว")
@@ -6270,11 +6306,11 @@ def update_parcel_return(parcel_return_id):
     if not borrowing_ticket:
         abort(404)
 
-    current_status = (parcel_return.status or "").strip()
+    current_status_id = parcel_return.status_id
     if not _can_edit_parcel_return(
         _current_user_id(), parcel_return, borrowing_ticket
     ):
-        if current_status not in {"รอตรวจสอบ", "ปฏิเสธ"}:
+        if current_status_id not in _status_ids("parcel_return", {"PENDING", "REJECTED"}):
             return _validation_error_response(
                 "สามารถแก้ไขรายการส่งคืนพัสดุได้เฉพาะก่อนฝ่ายการเงินตรวจสอบ หรือหลังถูกปฏิเสธเท่านั้น"
             )
@@ -6323,7 +6359,7 @@ def update_parcel_return(parcel_return_id):
     parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
     parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
-    parcel_return.status = "รอตรวจสอบ"
+    parcel_return.status_id = _status_id_for_record(parcel_return, "PENDING")
     parcel_return.approved_at = None
     parcel_return.settled_at = None
     db.session.commit()
@@ -6341,20 +6377,20 @@ def update_parcel_return(parcel_return_id):
 def mark_parcel_proofed(parcel_return_id):
     parcel_return = _get_finance_visible_parcel_return(parcel_return_id)
 
-    current_status = (parcel_return.status or "").strip()
-    if current_status in {
-        PARCEL_RETURN_CONFIRMED_STATUS,
-        "ได้รับเอกสารแล้ว",
-        CASH_TRANSFER_STATUS,
-        "เอกสารตั้งฎีกา",
-        "ล้างลูกหนี้เงินยืม",
-    }:
+    current_status_id = parcel_return.status_id
+    if current_status_id in _status_ids("parcel_return", {
+        PARCEL_RETURN_CONFIRMED_CODE,
+        "DOCUMENT_RECEIVED",
+        CASH_TRANSFER_CODE,
+        "CLOSING",
+        "SETTLED",
+    }):
         return _validation_error_response("รายการนี้ผ่านขั้นตอนตรวจสอบแล้ว")
 
-    if current_status not in {"รอตรวจสอบ", "กำลังตรวจสอบ"}:
+    if current_status_id not in _status_ids("parcel_return", {"PENDING", "IN_PROGRESS"}):
         return _validation_error_response("ต้องอยู่ในสถานะรอตรวจสอบก่อนจึงจะยืนยันการมีอยู่ของเอกสารพัสดุได้")
 
-    parcel_return.status = _parcel_return_status_after_review(parcel_return)
+    parcel_return.status_id = _status_id_for_record(parcel_return, _parcel_return_status_after_review(parcel_return))
     parcel_return.approved_at = datetime.now()
     parcel_return.settled_at = None
     db.session.commit()
@@ -6387,11 +6423,11 @@ def mark_parcel_received(parcel_return_id):
             "รายการ ว-119/ว-5763 ใช้สถานะยืนยันการตรวจสอบและไม่มีขั้นตอนได้รับเอกสารแล้ว"
         )
 
-    current_status = (parcel_return.status or "").strip()
-    if current_status not in {"พัสดุกำลังดำเนินการ", "กำลังตรวจสอบ"}:
+    current_status_id = parcel_return.status_id
+    if current_status_id not in _status_ids("parcel_return", {"IN_PROCESS", "IN_PROGRESS"}):
         return _validation_error_response("ต้องยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุก่อนรับเอกสารจริง")
 
-    parcel_return.status = "ได้รับเอกสารแล้ว"
+    parcel_return.status_id = _status_id_for_record(parcel_return, "DOCUMENT_RECEIVED")
     if parcel_return.fund_request_id:
         _recalculate_fund_request_submission_status(parcel_return.fund_request_id)
 
@@ -6420,9 +6456,9 @@ def mark_parcel_return_transferred(parcel_return_id):
         )
 
     required_status = _parcel_return_status_before_cash_transfer(parcel_return)
-    if (parcel_return.status or "").strip() != required_status:
+    if parcel_return.status_id != _status_id_for_record(parcel_return, required_status):
         return _validation_error_response(
-            f"ต้องอยู่ในสถานะ{required_status}ก่อนจึงจะบันทึกการโอนเงินสดย่อยได้"
+            f"ต้องอยู่ในสถานะ{_status_name('parcel_return', required_status)}ก่อนจึงจะบันทึกการโอนเงินสดย่อยได้"
         )
 
     transferred_date_str = (request.form.get("transferred_at") or "").strip()
@@ -6434,7 +6470,7 @@ def mark_parcel_return_transferred(parcel_return_id):
     except (TypeError, ValueError):
         return _validation_error_response("กรุณาระบุวันที่โอนเงินสดย่อยให้ถูกต้อง")
 
-    parcel_return.status = CASH_TRANSFER_STATUS
+    parcel_return.status_id = _status_id_for_record(parcel_return, CASH_TRANSFER_CODE)
     parcel_return.transferred_at = transferred_at
     _recalculate_fund_request_submission_status(parcel_return.fund_request_id)
     db.session.commit()
@@ -6453,12 +6489,12 @@ def mark_parcel_return_transferred(parcel_return_id):
 def reject_parcel_return(parcel_return_id):
     parcel_return = _get_finance_visible_parcel_return(parcel_return_id)
 
-    current_status = (parcel_return.status or "").strip()
-    if current_status in {
-        "ได้รับเอกสารแล้ว",
-        CASH_TRANSFER_STATUS,
-        "เอกสารตั้งฎีกา",
-    }:
+    current_status_id = parcel_return.status_id
+    if current_status_id in _status_ids("parcel_return", {
+        "DOCUMENT_RECEIVED",
+        CASH_TRANSFER_CODE,
+        "CLOSING",
+    }):
         return _validation_error_response("ไม่สามารถปฏิเสธรายการที่รับเอกสารแล้วหรือปิดรายการแล้วได้")
 
     new_comment = request.form.get("rejection_comment", "").strip()
@@ -6474,7 +6510,7 @@ def reject_parcel_return(parcel_return_id):
         user_name,
     )
 
-    parcel_return.status = "ปฏิเสธ"
+    parcel_return.status_id = _status_id_for_record(parcel_return, "REJECTED")
     parcel_return.approved_at = None
     parcel_return.settled_at = None
     db.session.commit()
@@ -6554,7 +6590,7 @@ def submit_return_details():
         if not _can_edit_return_detail(
             _current_user_id(), edit_return_detail, edit_ticket
         ):
-            if (edit_return_detail.status or "").strip() not in RETURN_DETAIL_EDITABLE_STATUSES:
+            if edit_return_detail.status_id not in _status_ids_for_record(edit_return_detail, RETURN_DETAIL_EDITABLE_CODES):
                 return _validation_error_response(
                     "ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว"
                 )
@@ -6581,17 +6617,17 @@ def submit_return_details():
     }
     if not borrowing_org_id or selected_org_ids != {borrowing_org_id}:
         return _validation_error_response("สามารถรวมได้เฉพาะสัญญาเงินยืมของบุคลากรในหน่วยงานเดียวกัน")
-    allowed_statuses = {"อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง"}
-    if not edit_return_detail and any(ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"} for ticket in selected_tickets):
+    allowed_statuses = {"APPROVED", "PARTIAL_RETURN"}
+    if not edit_return_detail and any(ticket.status_id in _status_ids_for_record(ticket, {"CLOSED", "REJECTED"}) for ticket in selected_tickets):
         return _validation_error_response("ไม่สามารถเชื่อมกับสัญญาเงินยืมที่ปิดยอดหรือถูกปฏิเสธได้")
-    if not edit_return_detail and any(ticket.id != ticket_id and ticket.status not in allowed_statuses for ticket in selected_tickets):
+    if not edit_return_detail and any(ticket.id != ticket_id and ticket.status_id not in _status_ids_for_record(ticket, allowed_statuses) for ticket in selected_tickets):
         return _validation_error_response("สัญญาเงินยืมที่เชื่อมโยงต้องอยู่ในสถานะที่พร้อมส่งคืน")
 
     current_user_id = _current_user_id()
     if not _can_submit_return_detail(current_user_id, borrowing_ticket):
         abort(403)
 
-    if not edit_return_detail and borrowing_ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"}:
+    if not edit_return_detail and borrowing_ticket.status_id in _status_ids_for_record(borrowing_ticket, {"CLOSED", "REJECTED"}):
         return _validation_error_response("ไม่สามารถดำเนินการสำหรับสัญญาเงินยืมที่มีสถานะนี้ได้")
 
     action = request.form.get("action", "submit")
@@ -6744,7 +6780,7 @@ def submit_return_details():
                     amount=parcel_amount,
                     items_description=parcel_items_description,
                     sent_date=parcel_sent_date,
-                    status="รอตรวจสอบ",
+                    status_id=_status_id("parcel_return", code="PENDING"),
                     reuse_draft=True,
                 )
             if circular_amount is not None:
@@ -6756,7 +6792,7 @@ def submit_return_details():
                     items_description=circular_items_description,
                     sent_date=circular_sent_date,
                     parcel_type=circular_type,
-                    status="รอตรวจสอบ",
+                    status_id=_status_id("parcel_return", code="PENDING"),
                     reuse_draft=True,
                 )
         except IntegrityError:
@@ -6781,7 +6817,7 @@ def submit_return_details():
     else:
         draft_details = (
             db.session.query(ReturnDetail)
-            .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status="ฉบับร่าง")
+            .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status_id=_status_id("return_detail", code="DRAFT"))
             .order_by(ReturnDetail.id.asc())
             .all()
         )
@@ -6871,6 +6907,7 @@ def submit_return_details():
             ticket_id=ticket_id,
             creator_id=current_user_id,
             proof_reference="Itemized Details Stored",
+            status_id=_status_id("return_detail"),
             created_at=datetime.now(),
         )
         db.session.add(return_detail)
@@ -6879,11 +6916,12 @@ def submit_return_details():
     if return_detail.creator_id is None:
         return_detail.creator_id = current_user_id
 
-    return_detail.status = (
-        "รอยืนยันการแก้ไข"
+    next_status = (
+        "EDIT_CONFIRMATION_REQUIRED"
         if edit_return_detail is not None
-        else ("ฉบับร่าง" if is_draft else "รอตรวจสอบ")
+        else ("DRAFT" if is_draft else "PENDING")
     )
+    return_detail.status_id = _status_id_for_record(return_detail, next_status)
     return_detail.note = note
     db.session.flush()
 
@@ -6982,7 +7020,7 @@ def submit_return_details():
             amount=parcel_amount,
             items_description=parcel_items_description,
             sent_date=parcel_sent_date,
-            status="ฉบับร่าง" if is_draft else "รอตรวจสอบ",
+            status_id=_status_id("parcel_return", code="DRAFT" if is_draft else "PENDING"),
             reuse_draft=not is_draft,
         )
 
@@ -6995,7 +7033,7 @@ def submit_return_details():
             items_description=circular_items_description,
             sent_date=circular_sent_date,
             parcel_type=circular_type,
-            status="ฉบับร่าง" if is_draft else "รอตรวจสอบ",
+            status_id=_status_id("parcel_return", code="DRAFT" if is_draft else "PENDING"),
             reuse_draft=not is_draft,
         )
 
@@ -7005,6 +7043,7 @@ def submit_return_details():
             ticket_id=ticket_id,
             creator_id=current_user_id,
             proof_reference="Cash return stored",
+            status_id=_status_id("return_detail"),
             created_at=datetime.now(),
         )
         if existing_cash_draft:
@@ -7023,11 +7062,7 @@ def submit_return_details():
             return_borrowing_ticket_association.insert(),
             [{"return_id": cash_detail.id, "ticket_id": linked_id} for linked_id in sorted(selected_ticket_ids)],
         )
-        cash_detail.status = (
-            "รอยืนยันการแก้ไข"
-            if edit_return_detail is not None
-            else ("ฉบับร่าง" if is_draft else "รอตรวจสอบ")
-        )
+        cash_detail.status_id = _status_id_for_record(cash_detail, next_status)
         cash_item = ReturnReceiptItem(
             return_detail_id=cash_detail.id,
             receipt_date=cash_return_date,
@@ -7082,7 +7117,7 @@ def submit_return_details():
         return redirect(url_for("advance_payment.verification_view", ticket_id=ticket_id))
     else:
         for selected_ticket in selected_tickets:
-            selected_ticket.status = _recalculate_borrowing_ticket_status(selected_ticket.id)
+            selected_ticket.status_id = _recalculate_borrowing_ticket_status(selected_ticket.id)
         if return_detail:
             _send_notification_email(return_detail, object_type="return")
         if cash_detail:
@@ -7094,11 +7129,11 @@ def submit_return_details():
 
 @bp.app_template_filter('filter_actionable_tickets')
 def filter_actionable_tickets(tickets):
-    actionable_statuses = {"อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง",}
+    actionable_statuses = {"APPROVED", "PARTIAL_RETURN"}
     return [
         t
         for t in tickets
-        if (t.status or "").strip().lower() in actionable_statuses or (t.status or "").strip() in actionable_statuses
+        if t.status_id in _status_ids_for_record(t, actionable_statuses)
     ]
 
 @bp.route("/proof-file/<int:file_id>/edit-inline", methods=["POST"])
@@ -7193,11 +7228,11 @@ def edit_receipt_item_inline(file_id):
         if _selected_system() == PETTY_CASH_SYSTEM and not _can_edit_petty_cash_claim(
             current_user, claim_detail, claim_setting
         ):
-            if (claim_detail.status or "").strip() not in PETTY_CASH_CLAIM_EDITABLE_STATUSES:
+            if claim_detail.status_id not in _status_ids_for_record(claim_detail, PETTY_CASH_CLAIM_EDITABLE_CODES):
                 return _validation_error_response("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
             abort(403)
 
-        if (claim_detail.status or "").strip() not in PETTY_CASH_CLAIM_EDITABLE_STATUSES:
+        if claim_detail.status_id not in _status_ids_for_record(claim_detail, PETTY_CASH_CLAIM_EDITABLE_CODES):
             return _validation_error_response("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
 
         if not receipt_item and proof_file:
@@ -7216,11 +7251,11 @@ def edit_receipt_item_inline(file_id):
         if _selected_system() == ADVANCE_PAYMENT_SYSTEM and not _can_edit_return_detail(
             _current_user_id(), return_detail, borrowing_ticket
         ):
-            if (return_detail.status or "").strip() not in RETURN_DETAIL_EDITABLE_STATUSES:
+            if return_detail.status_id not in _status_ids_for_record(return_detail, RETURN_DETAIL_EDITABLE_CODES):
                 return _validation_error_response("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
             abort(403)
 
-        if (return_detail.status or "").strip() not in RETURN_DETAIL_EDITABLE_STATUSES:
+        if return_detail.status_id not in _status_ids_for_record(return_detail, RETURN_DETAIL_EDITABLE_CODES):
             return _validation_error_response("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
 
         if not receipt_item and proof_file:
@@ -7348,7 +7383,7 @@ def edit_receipt_item_inline(file_id):
     receipt_item.created_at = datetime.now()
 
     if is_claim:
-        claim_detail.status = "รอยืนยันการแก้ไข"
+        claim_detail.status_id = _status_id_for_record(claim_detail, "EDIT_CONFIRMATION_REQUIRED")
         claim_detail.approved_at = None
         claim_detail.settled_at = None
         claim_detail.total_amount = total_spent_for_claim
@@ -7364,7 +7399,7 @@ def edit_receipt_item_inline(file_id):
         flash("แก้ไขข้อมูลแล้ว กรุณาตรวจสอบและกดยืนยันการแก้ไขเพื่อส่งกลับไปตรวจสอบ", "success")
         return petty_cash_claim_detail(claim_detail.id)
     else:
-        return_detail.status = "รอยืนยันการแก้ไข"
+        return_detail.status_id = _status_id_for_record(return_detail, "EDIT_CONFIRMATION_REQUIRED")
         return_detail.approved_at = None
         return_detail.settled_at = None
         return_detail.amount_spent = total_spent_for_return
@@ -7404,10 +7439,10 @@ def confirm_return_edit(return_id):
         )
     ):
         abort(403)
-    if (return_detail.status or "").strip().lower() != "รอยืนยันการแก้ไข":
+    if return_detail.status_id != _status_id_for_record(return_detail, "EDIT_CONFIRMATION_REQUIRED"):
         return _validation_error_response("รายการนี้ไม่มีการแก้ไขที่รอการยืนยัน")
 
-    return_detail.status = "รอตรวจสอบ"
+    return_detail.status_id = _status_id_for_record(return_detail, "PENDING")
     db.session.commit()
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
     _send_notification_email(return_detail, object_type="return")
@@ -7419,7 +7454,7 @@ def confirm_return_edit(return_id):
 @module_system_required(ADVANCE_PAYMENT_SYSTEM)
 def autosave_return_draft(ticket_id):
     ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
-    if not ticket or ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"}:
+    if not ticket or ticket.status_id in _status_ids_for_record(ticket, {"CLOSED", "REJECTED"}):
         return jsonify({"success": False, "message": "ไม่สามารถบันทึกร่างได้"}), 400
 
     # ใช้สิทธิ์ชุดเดียวกับการส่ง return เพื่อให้ผู้สร้าง/ผู้ยืม
@@ -7437,7 +7472,7 @@ def autosave_return_draft(ticket_id):
     current_user_id = _current_user_id()
     draft_details = (
         db.session.query(ReturnDetail)
-        .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status="ฉบับร่าง")
+        .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status_id=_status_id("return_detail", code="DRAFT"))
         .order_by(ReturnDetail.id.asc())
         .all()
     )
@@ -7455,7 +7490,7 @@ def autosave_return_draft(ticket_id):
             ticket_id=ticket_id,
             creator_id=current_user_id,
             proof_reference="Itemized Details Stored",
-            status="ฉบับร่าง",
+            status_id=_status_id("return_detail", code="DRAFT"),
         )
         db.session.add(return_detail)
         db.session.flush()
@@ -7501,7 +7536,7 @@ def autosave_return_draft(ticket_id):
             ticket_id=ticket_id,
             creator_id=current_user_id,
             proof_reference="Cash return stored",
-            status="ฉบับร่าง",
+            status_id=_status_id("return_detail", code="DRAFT"),
         )
         if existing_cash_draft:
             db.session.query(ReturnReceiptItem).filter_by(return_detail_id=cash_detail.id).delete()
@@ -7532,10 +7567,10 @@ def autosave_return_draft(ticket_id):
 def mark_return_proofed(return_id):
     return_detail = _get_finance_visible_return(return_id)
 
-    if return_detail.status == "เอกสารตั้งฎีกา":
+    if return_detail.status_id == _status_id_for_record(return_detail, "CLOSING"):
         return _validation_error_response("ไม่สามารถย้อนกลับรายการหลักฐานเอกสารส่งใช้เงินยืมที่ปิดรายการไปแล้วได้")
 
-    if return_detail.status == "ผ่านการตรวจสอบ":
+    if return_detail.status_id == _status_id_for_record(return_detail, "APPROVED"):
         return _validation_error_response("รายการหลักฐานเอกสารส่งใช้เงินยืมนี้ได้รับการตรวจสอบและยืนยันแล้ว")
 
     if (
@@ -7547,7 +7582,7 @@ def mark_return_proofed(return_id):
         )
 
     approved_at = datetime.now()
-    return_detail.status = "ผ่านการตรวจสอบ"
+    return_detail.status_id = _status_id_for_record(return_detail, "APPROVED")
     return_detail.approved_at = approved_at
     return_detail.settled_at = (
         approved_at if _return_detail_is_cash(return_detail) else None
@@ -7567,7 +7602,7 @@ def mark_return_proofed(return_id):
 def reject_return_detail(return_id):
     return_detail = _get_finance_visible_return(return_id)
 
-    if return_detail.status == "เอกสารตั้งฎีกา":
+    if return_detail.status_id == _status_id_for_record(return_detail, "CLOSING"):
         return _validation_error_response("ไม่สามารถแก้ไขรายการหลักฐานเอกสารส่งใช้เงินยืมที่ปิดรายการไปแล้วได้")
 
     new_comment = request.form.get("rejection_comment", "").strip()
@@ -7583,7 +7618,7 @@ def reject_return_detail(return_id):
         user_name,
     )
 
-    return_detail.status = "ปฏิเสธ"
+    return_detail.status_id = _status_id_for_record(return_detail, "REJECTED")
     return_detail.approved_at = None
     return_detail.settled_at = None
     db.session.commit()
@@ -7603,7 +7638,7 @@ def approve_borrowing_ticket(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if borrowing_ticket.status != "กำลังดำเนินการ":
+    if borrowing_ticket.status_id != _status_id_for_record(borrowing_ticket, "IN_PROGRESS"):
         return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังดำเนินการ เท่านั้นที่สามารถอนุมัติได้")
 
     raw_number = (request.form.get("number") or "").strip()
@@ -7626,7 +7661,7 @@ def approve_borrowing_ticket(ticket_id):
 
     # Contract numbers may contain prefixes, separators, or leading zeroes.
     number = raw_number
-    borrowing_ticket.status = "อนุมัติจ่ายเงิน"
+    borrowing_ticket.status_id = _status_id_for_record(borrowing_ticket, "APPROVED")
     borrowing_ticket.number = number
     borrowing_ticket.borrowing_approval_ref_no = approval_ref_no
     borrowing_ticket.borrowing_approval_date = approval_date
@@ -7650,10 +7685,10 @@ def start_processing_borrowing_ticket(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if borrowing_ticket.status != "กำลังส่งคำขอ":
+    if borrowing_ticket.status_id != _status_id_for_record(borrowing_ticket, "PENDING"):
         return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถเริ่มดำเนินการได้")
 
-    borrowing_ticket.status = "กำลังดำเนินการ"
+    borrowing_ticket.status_id = _status_id_for_record(borrowing_ticket, "IN_PROGRESS")
     db.session.commit()
     flash("เปลี่ยนสถานะสัญญาเงินยืมเป็นกำลังดำเนินการเรียบร้อยแล้ว")
     return verification_view(ticket_id)
@@ -7668,7 +7703,7 @@ def delete_borrowing_ticket(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if (borrowing_ticket.status or "").strip() != "กำลังส่งคำขอ":
+    if borrowing_ticket.status_id != _status_id_for_record(borrowing_ticket, "PENDING"):
         return _validation_error_response(
             "ลบได้เฉพาะสัญญาเงินยืมที่อยู่ในสถานะ กำลังส่งคำขอ เท่านั้น"
         )
@@ -7749,7 +7784,7 @@ def reject_borrowing_ticket(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if borrowing_ticket.status not in {"กำลังส่งคำขอ", "กำลังดำเนินการ"}:
+    if borrowing_ticket.status_id not in _status_ids_for_record(borrowing_ticket, {"PENDING", "IN_PROGRESS"}):
         return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ หรือ กำลังดำเนินการ เท่านั้นที่สามารถปฏิเสธได้")
 
     new_comment = request.form.get(
@@ -7767,7 +7802,7 @@ def reject_borrowing_ticket(ticket_id):
         user_name,
     )
     borrowing_ticket.finance_verified = False
-    borrowing_ticket.status = "ปฏิเสธ"
+    borrowing_ticket.status_id = _status_id_for_record(borrowing_ticket, "REJECTED")
     db.session.commit()
     _send_notification_email(borrowing_ticket)
     flash("ปฏิเสธสัญญาเงินยืมทดรองจ่ายเรียบร้อยแล้ว")
@@ -7778,7 +7813,7 @@ def reject_borrowing_ticket(ticket_id):
 def return_records_history():
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
     # 1. ดึงข้อมูลประวัติหลักฐานเอกสารส่งใช้เงินยืม (ReturnDetail)
-    return_records = db.session.query(ReturnDetail).filter(ReturnDetail.status != "ฉบับร่าง").all()
+    return_records = db.session.query(ReturnDetail).filter(ReturnDetail.status_id != _status_id("return_detail", code="DRAFT")).all()
 
     processed_records = []
     for record in return_records:
@@ -7801,7 +7836,7 @@ def return_records_history():
             "account_number": account_number or (ticket.account_number if ticket else ""),
             "amount_spent": float(record.amount_spent or 0),
             "total_amount": float(record.amount_spent or 0),
-            "status": record.status,
+            "status": status_name_for_record(record),
             "created_at": record.created_at,
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
@@ -7815,7 +7850,7 @@ def return_records_history():
         db.session.query(ParcelReturnDetail)
         .filter(
             ParcelReturnDetail.fund_request_id.is_(None),
-            ParcelReturnDetail.status != "ฉบับร่าง",
+            ParcelReturnDetail.status_id != _status_id("parcel_return", code="DRAFT"),
         )
         .order_by(ParcelReturnDetail.id.desc())
         .all()
@@ -7849,7 +7884,7 @@ def return_records_history():
             "amount_spent": float(record.amount_spent or 0),
             "total_amount": float(record.amount_spent or 0),
             "type_label": record.type_label,
-            "status": record.status,
+            "status": status_name_for_record(record),
             "created_at": record.created_at if hasattr(record, 'created_at') else None,
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
@@ -7858,15 +7893,18 @@ def return_records_history():
         })
 
     pending_review_count = sum(
-        1
-        for record in processed_records
-        if (record.get("status") or "").strip() in {"รอตรวจสอบ", "กำลังตรวจสอบ"}
+        record.status_id in _status_ids("return_detail", {"PENDING", "IN_PROGRESS"})
+        for record in return_records
+    ) + sum(
+        record.status_id in _status_ids("parcel_return", {"PENDING", "IN_PROGRESS"})
+        for record in parcel_records
     )
     proofed_count = sum(
-        1
-        for record in processed_records
-        if (record.get("status") or "").strip()
-        in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว", PARCEL_RETURN_CONFIRMED_STATUS}
+        record.status_id == _status_id("return_detail", code="APPROVED")
+        for record in return_records
+    ) + sum(
+        record.status_id in _status_ids("parcel_return", {"DOCUMENT_RECEIVED", PARCEL_RETURN_CONFIRMED_CODE})
+        for record in parcel_records
     )
 
     return render_template(
@@ -7923,7 +7961,7 @@ def _get_interest_tracker_data():
 
     approved_interest_requests = db.session.query(FundRequest).filter(
         FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
-        FundRequest.status == "เบิกเงินแล้ว",
+        FundRequest.status_id == _status_id("fund_request", code="WITHDRAWN"),
     ).all()
     submitted_requests_by_org = {}
     for request in approved_interest_requests:
@@ -8008,7 +8046,7 @@ def petty_cash_claim_history():
     # 1. ดึงข้อมูลรายการขอเบิกเงินสดย่อย (PettyCashClaimDetail)
     claim_details = (
         db.session.query(PettyCashClaimDetail)
-        .filter(PettyCashClaimDetail.status != "ฉบับร่าง")
+        .filter(PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"))
         .order_by(PettyCashClaimDetail.created_at.desc())
         .all()
     )
@@ -8056,7 +8094,7 @@ def petty_cash_claim_history():
             "account_number": account_number or (claim.setting.account_number if claim.setting else ""),
             "amount_spent": float(claim.total_amount),
             "total_amount": float(claim.total_amount),
-            "status": claim.status,
+            "status": status_name_for_record(claim),
             "created_at": claim.created_at,
             "transferred_at": claim.transferred_at,
             "is_direct_legacy": is_direct_legacy,
@@ -8075,7 +8113,7 @@ def petty_cash_claim_history():
         db.session.query(ParcelReturnDetail)
         .filter(
             ParcelReturnDetail.fund_request_id.isnot(None),
-            ParcelReturnDetail.status != "ฉบับร่าง",
+            ParcelReturnDetail.status_id != _status_id("parcel_return", code="DRAFT"),
         )
         .order_by(ParcelReturnDetail.id.desc())
         .all()
@@ -8110,7 +8148,7 @@ def petty_cash_claim_history():
             "amount_spent": float(record.amount_spent or 0),
             "total_amount": float(record.amount_spent or 0),
             "type_label": record.type_label,
-            "status": record.status,
+            "status": status_name_for_record(record),
             "created_at": record.created_at if hasattr(record, 'created_at') else None,
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
@@ -8119,30 +8157,20 @@ def petty_cash_claim_history():
         })
 
     claim_proofed_count = sum(
-        1
-        for record in processed_claims
-        if (
-            record["record_type"] == "petty_cash"
-            and (record["status"] or "").strip() == "ผ่านการตรวจสอบ"
-        )
-        or (
-            record["record_type"] == "parcel_return"
-            and record.get("fund_request_id")
-            and (record["status"] or "").strip()
-            in {"ได้รับเอกสารแล้ว", PARCEL_RETURN_CONFIRMED_STATUS}
-        )
+        claim.status_id == _status_id("petty_cash_claim", code="APPROVED")
+        for claim in claim_details
+    ) + sum(
+        record.status_id in _status_ids("parcel_return", {"DOCUMENT_RECEIVED", PARCEL_RETURN_CONFIRMED_CODE})
+        for record in parcel_records
     )
     pending_review_count = sum(
-        1
-        for record in processed_claims
-        if (record.get("status") or "").strip() in {"รอตรวจสอบ", "กำลังตรวจสอบ"}
+        claim.status_id in _status_ids("petty_cash_claim", {"PENDING", "IN_PROCESS"})
+        for claim in claim_details
+    ) + sum(
+        record.status_id in _status_ids("parcel_return", {"PENDING", "IN_PROGRESS"})
+        for record in parcel_records
     )
-    proofed_count = sum(
-        1
-        for record in processed_claims
-        if (record.get("status") or "").strip()
-        in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว", PARCEL_RETURN_CONFIRMED_STATUS}
-    )
+    proofed_count = claim_proofed_count
 
     pending_interest_departments, pending_interest_count, current_interest_period = _get_interest_tracker_data()
 
@@ -8251,7 +8279,7 @@ def create_legacy_petty_cash_claim():
             petty_cash_setting_id=setting.id,
             fund_request_id=None,
             claim_number=claim_number,
-            status=CASH_TRANSFER_STATUS,
+            status_id=_status_id("petty_cash_claim", code="CASH_TRANSFER_COMPLETED"),
             total_amount=amount,
             approved_at=created_at,
             settled_at=None,
@@ -8472,12 +8500,11 @@ def petty_cash_settings(_render_after_post=False):
             FundRequest.form_type == FUND_REQUEST_FORM_PETTY_CASH,
             FundRequest.is_legacy_import.is_(False),
             FundRequest.petty_cash_setting_id.isnot(None),
-            FundRequest.status.notin_([
-                "รอการอนุมัติ",
-                "ยกเลิก",
-                "ยกเลิกใบเบิก",
-                "ใบเบิกถูกปฏิเสธ",
-            ]),
+            FundRequest.status_id.notin_(_status_ids("fund_request", [
+                "PENDING",
+                "CLAIM_CANCELLED",
+                "REJECTED",
+            ])),
             FundRequest.request_date.isnot(None),
         )
         .all()
@@ -8512,7 +8539,7 @@ def petty_cash_settings(_render_after_post=False):
 
     claim_details = (
         db.session.query(PettyCashClaimDetail)
-        .filter(PettyCashClaimDetail.status == "ผ่านการตรวจสอบ")
+        .filter(PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code="APPROVED"))
         .order_by(PettyCashClaimDetail.created_at.desc())
         .all()
     )
@@ -8531,11 +8558,11 @@ def petty_cash_settings(_render_after_post=False):
             or_(
                 and_(
                     ParcelReturnDetail.type.is_(None),
-                    ParcelReturnDetail.status == "ได้รับเอกสารแล้ว",
+                    ParcelReturnDetail.status_id == _status_id("parcel_return", code="DOCUMENT_RECEIVED"),
                 ),
                 and_(
                     ParcelReturnDetail.type.in_(tuple(PARCEL_RETURN_TYPE_LABELS)),
-                    ParcelReturnDetail.status == PARCEL_RETURN_CONFIRMED_STATUS,
+                    ParcelReturnDetail.status_id == _status_id("parcel_return", code=PARCEL_RETURN_CONFIRMED_CODE),
                 ),
             ),
             ~ParcelReturnDetail.closing_links.any(is_active=True),
@@ -8979,15 +9006,15 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
         for searched_doc in searched_docs:
             doc_returns = [
                 link.ticket_return for link in searched_doc.links
-                if link.ticket_return is not None and link.ticket_return.status != "ฉบับร่าง"
+                if link.ticket_return is not None and link.ticket_return.status_id != _status_id_for_record(link.ticket_return, "DRAFT")
             ]
             doc_parcel_returns = [
                 link.parcel_return for link in searched_doc.links
-                if link.parcel_return is not None and link.parcel_return.status != "ฉบับร่าง"
+                if link.parcel_return is not None and link.parcel_return.status_id != _status_id_for_record(link.parcel_return, "DRAFT")
             ]
             doc_petty_cash = [
                 link.claim for link in searched_doc.links
-                if link.claim is not None and link.claim.status != "ฉบับร่าง"
+                if link.claim is not None and link.claim.status_id != _status_id_for_record(link.claim, "DRAFT")
             ]
 
             for petty in doc_petty_cash:
@@ -9057,11 +9084,11 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
                 (
                     not _parcel_return_ready_for_closing(record)
                     if isinstance(record, ParcelReturnDetail)
-                    else (record.status or "").strip()
-                    != (
-                        CASH_TRANSFER_STATUS
+                    else record.status_id != _status_id_for_record(
+                        record,
+                        CASH_TRANSFER_CODE
                         if isinstance(record, PettyCashClaimDetail)
-                        else "ผ่านการตรวจสอบ"
+                        else "APPROVED",
                     )
                 )
                 for record in records
@@ -9083,7 +9110,8 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
         db.session.add(new_closing_doc)
         updated_ticket_ids = set()
         for record in selected_records:
-            record.status = "เอกสารตั้งฎีกา"
+            if not isinstance(record, PettyCashClaimDetail):
+                record.status_id = _status_id_for_record(record, "CLOSING")
             record.settled_at = None
             record.closing_document = new_closing_doc
             if isinstance(record, ReturnDetail):
@@ -9106,7 +9134,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
     proofed_records = (
         db.session.query(ReturnDetail)
         .filter(
-            ReturnDetail.status == "ผ่านการตรวจสอบ",
+            ReturnDetail.status_id == _status_id("return_detail", code="APPROVED"),
             ~ReturnDetail.closing_links.any(is_active=True),
             db.session.query(ReturnReceiptItem.id)
             .filter(
@@ -9143,7 +9171,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
                     and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
                 )
             )),
-            "status": record.status,
+            "status": status_name_for_record(record),
             "created_at": record.created_at,
         })
 
@@ -9155,16 +9183,16 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
                 and_(
                     ParcelReturnDetail.fund_request_id.is_(None),
                     ParcelReturnDetail.type.is_(None),
-                    ParcelReturnDetail.status == "ได้รับเอกสารแล้ว",
+                    ParcelReturnDetail.status_id == _status_id("parcel_return", code="DOCUMENT_RECEIVED"),
                 ),
                 and_(
                     ParcelReturnDetail.fund_request_id.is_(None),
                     ParcelReturnDetail.type.in_(tuple(PARCEL_RETURN_TYPE_LABELS)),
-                    ParcelReturnDetail.status == PARCEL_RETURN_CONFIRMED_STATUS,
+                    ParcelReturnDetail.status_id == _status_id("parcel_return", code=PARCEL_RETURN_CONFIRMED_CODE),
                 ),
                 and_(
                     ParcelReturnDetail.fund_request_id.isnot(None),
-                    ParcelReturnDetail.status == CASH_TRANSFER_STATUS,
+                    ParcelReturnDetail.status_id == _status_id("parcel_return", code=CASH_TRANSFER_CODE),
                 ),
             ),
         )
@@ -9204,13 +9232,13 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             "amount_spent": float(pr.amount_spent or 0),
             "items_description": pr.items_description,
             "type_label": pr.type_label,
-            "status": pr.status,
+            "status": status_name_for_record(pr),
             "created_at": pr.created_at,
         })
 
     # ดึงรายการเงินสดย่อยที่มีสถานะเป็น transferred เพื่อนำไปแสดงในตารางที่ 3
     transferred_petty_claims = db.session.query(PettyCashClaimDetail).filter(
-        PettyCashClaimDetail.status == CASH_TRANSFER_STATUS,
+        PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code=CASH_TRANSFER_CODE),
         ~PettyCashClaimDetail.closing_links.any(is_active=True),
     ).all()
     for petty in transferred_petty_claims:
@@ -9237,7 +9265,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
 def update_return_closing_doc(return_id):
     """ แก้ไขเลขฎีกาของใบคืนเงินชิ้นนี้ พร้อมบันทึกประวัติเดิม """
     return_detail = db.session.query(ReturnDetail).filter_by(id=return_id).with_for_update().first()
-    if not return_detail or return_detail.status == "ฉบับร่าง":
+    if not return_detail or return_detail.status_id == _status_id_for_record(return_detail, "DRAFT"):
         abort(404)
 
     new_doc_number = request.form.get("new_document_number", "").strip()
@@ -9268,7 +9296,7 @@ def update_return_closing_doc(return_id):
         current_doc.total_amount = max(0, current_doc.total_amount - return_detail.closing_amount)
     target_doc.total_amount += return_detail.closing_amount
     return_detail.closing_document = target_doc
-    return_detail.status = "เอกสารตั้งฎีกา"
+    return_detail.status_id = _status_id_for_record(return_detail, "CLOSING")
 
     db.session.commit()
     flash(f"อัปเดตเลขฎีกาเป็น {new_doc_number} เรียบร้อยแล้ว", "success")
@@ -9281,7 +9309,7 @@ def view_return_proof_detail(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
         abort(404)
-    if _selected_system() == FINANCE_SYSTEM and return_detail.status == "ฉบับร่าง":
+    if _selected_system() == FINANCE_SYSTEM and return_detail.status_id == _status_id_for_record(return_detail, "DRAFT"):
         abort(404)
 
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
@@ -9727,7 +9755,7 @@ def staff_fund_request():
                     period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == FUND_REQUEST_FORM_INTEREST else "",
                     borrowing_ticket_id=selected_borrowing_ticket.id if selected_borrowing_ticket else None,
                     created_at=created_at,
-                    status="รอการอนุมัติ",
+                    status_id=_status_id("fund_request"),
                 )
 
                 # Creating the request signs every requester/custodian role held by
@@ -9876,7 +9904,7 @@ def confirm_fund_request(request_id):
     if expected_confirmer_id != getattr(staff, "id", None):
         abort(403)
 
-    if (fund_req.status or "").strip() != "รอการอนุมัติ":
+    if fund_req.status_id != _status_id_for_record(fund_req, "PENDING"):
         flash("สามารถยืนยันได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
         return redirect(
             url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_req.id)
@@ -9918,7 +9946,7 @@ def approve_fund_request(request_id):
     if expected_confirmer_id not in {None, getattr(staff, "id", None)}:
         abort(403)
 
-    if (fund_req.status or "").strip() != "รอการอนุมัติ":
+    if fund_req.status_id != _status_id_for_record(fund_req, "PENDING"):
         flash("สามารถอนุมัติได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
     elif fund_req.approved_at:
         flash("รายการนี้มีผู้อนุมัติแล้ว", "warning")
@@ -9938,7 +9966,7 @@ def approve_fund_request(request_id):
         _send_fund_request_flow_notification(fund_req)
         flash(
             "อนุมัติใบยืม/ใบเบิกเรียบร้อยแล้ว"
-            if fund_req.status == "อนุมัติแล้ว"
+            if fund_req.status_id == _status_id_for_record(fund_req, "APPROVED")
             else "บันทึกการอนุมัติแล้ว และกำลังรอผู้เกี่ยวข้องยืนยัน",
             "success",
         )
@@ -9965,14 +9993,14 @@ def record_fund_request_withdrawal(request_id):
     if not staff.is_authenticated or not _is_petty_cash_custodian(staff, setting):
         abort(403)
 
-    status = (fund_req.status or "").strip()
+    status_id = fund_req.status_id
     is_editing_withdrawal_date = (
         fund_req.form_type == FUND_REQUEST_FORM_PETTY_CASH
-        and status in {"เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}
+        and status_id in _status_ids("fund_request", {"WITHDRAWN", "CLAIMS_SUBMITTED", "SETTLED"})
         and fund_req.request_date is not None
     )
     if (
-        status != "อนุมัติแล้ว" and not is_editing_withdrawal_date
+        status_id != _status_id("fund_request", code="APPROVED") and not is_editing_withdrawal_date
     ) or not _fund_request_is_fully_approved(fund_req):
         return _validation_error_response(
             "ไม่สามารถบันทึกหรือแก้ไขวันที่เบิกเงินในสถานะนี้ได้"
@@ -9999,7 +10027,7 @@ def record_fund_request_withdrawal(request_id):
 
     fund_req.request_date = request_date
     if not is_editing_withdrawal_date:
-        fund_req.status = "เบิกเงินแล้ว"
+        fund_req.status_id = _status_id_for_record(fund_req, "WITHDRAWN")
     db.session.commit()
     flash(
         "แก้ไขวันที่เบิกเงินเรียบร้อยแล้ว"
@@ -10035,7 +10063,7 @@ def reject_fund_request(request_id):
     if not same_setting:
         abort(403)
 
-    if (fund_req.status or "").strip() != "รอการอนุมัติ":
+    if fund_req.status_id != _status_id_for_record(fund_req, "PENDING"):
         flash("สามารถปฏิเสธได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
         return redirect(
             url_for(
@@ -10049,7 +10077,7 @@ def reject_fund_request(request_id):
         return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธใบยืม/ใบเบิก")
 
     original_ticket_number = (fund_req.ticket_number or "").strip()
-    fund_req.status = "ใบเบิกถูกปฏิเสธ"
+    fund_req.status_id = _status_id_for_record(fund_req, "REJECTED")
     fund_req.cancel_at = datetime.now()
     fund_req.rejection_comment = rejection_comment
     if original_ticket_number and not original_ticket_number.endswith("(ยกเลิก)"):
@@ -10083,20 +10111,19 @@ def cancel_fund_request(request_id):
     ).first():
         abort(403)
 
-    if fund_req.status in {
-        "ยกเลิก",
-        "ยกเลิกใบเบิก",
-        "ใบเบิกถูกปฏิเสธ",
-        "ส่งเบิกครบแล้ว",
-        "เคลียร์ยอดสำเร็จ",
-    }:
+    if fund_req.status_id in _status_ids_for_record(fund_req, {
+        "CLAIM_CANCELLED",
+        "REJECTED",
+        "CLAIMS_SUBMITTED",
+        "SETTLED",
+    }):
         return _validation_error_response("ไม่สามารถยกเลิกรายการที่สิ้นสุดกระบวนการแล้วได้")
-    if fund_req.status not in {"อนุมัติแล้ว", "เบิกเงินแล้ว"}:
+    if fund_req.status_id not in _status_ids_for_record(fund_req, {"APPROVED", "WITHDRAWN"}):
         return _validation_error_response("สามารถยกเลิกได้เฉพาะใบยืม/ใบเบิกที่ยังไม่ได้เริ่มส่งเบิก")
 
     submitted_claim_exists = db.session.query(PettyCashClaimDetail.id).filter(
         PettyCashClaimDetail.fund_request_id == fund_req.id,
-        PettyCashClaimDetail.status != "ฉบับร่าง",
+        PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
     ).first() is not None
     parcel_return_exists = db.session.query(ParcelReturnDetail.id).filter(
         ParcelReturnDetail.fund_request_id == fund_req.id,
@@ -10113,7 +10140,7 @@ def cancel_fund_request(request_id):
     cancellation_reason = request.form.get("cancellation_reason", "").strip()
 
     original_ticket_number = (fund_req.ticket_number or "").strip()
-    fund_req.status = _closed_fund_request_status(fund_req)
+    fund_req.status_id = _status_id_for_record(fund_req, _closed_fund_request_status(fund_req))
     fund_req.cancel_at = datetime.now()
     fund_req.cancel_transferred_at = cancel_transferred_at
     if original_ticket_number and not original_ticket_number.endswith("(ยกเลิก)"):
@@ -10151,7 +10178,7 @@ def staff_fund_request_history():
 
     history_items_query = _exclude_legacy_fund_request_claims(
         db.session.query(PettyCashClaimDetail).filter(
-            PettyCashClaimDetail.status != "ฉบับร่าง",
+            PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
         )
     )
     if setting and setting.id:
@@ -10202,7 +10229,7 @@ def staff_fund_request_history():
             or (fund_request.ticket_number if fund_request and fund_request.ticket_number else None)
             or f"PC-{claim.id}"
         )
-        claim.has_rejected_followup = (claim.status or "").strip() == "ปฏิเสธ"
+        claim.has_rejected_followup = claim.status_id == _status_id_for_record(claim, "REJECTED")
 
     # Include parcel-return records belonging to the same fund requests as the
     # petty-cash claim history shown on this page.
@@ -10229,7 +10256,7 @@ def staff_fund_request_history():
             for (fund_request_id,) in db.session.query(PettyCashClaimDetail.fund_request_id)
             .filter(
                 PettyCashClaimDetail.fund_request_id.in_([fr.id for fr in fund_requests if getattr(fr, "id", None)]),
-                PettyCashClaimDetail.status == "ปฏิเสธ",
+                PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code="REJECTED"),
             )
             .all()
             if fund_request_id is not None
@@ -10239,7 +10266,7 @@ def staff_fund_request_history():
             for (fund_request_id,) in db.session.query(ParcelReturnDetail.fund_request_id)
             .filter(
                 ParcelReturnDetail.fund_request_id.in_([fr.id for fr in fund_requests if getattr(fr, "id", None)]),
-                ParcelReturnDetail.status == "ปฏิเสธ",
+                ParcelReturnDetail.status_id == _status_id("parcel_return", code="REJECTED"),
             )
             .all()
             if fund_request_id is not None
@@ -10283,7 +10310,7 @@ def petty_cash_pending_approvals():
         _fund_request_org_filter(db.session.query(FundRequest), org)
         .filter(
             FundRequest.is_legacy_import.is_(False),
-            FundRequest.status == "รอการอนุมัติ",
+            FundRequest.status_id == _status_id("fund_request", code="PENDING"),
             FundRequest.confirmed_at.isnot(None),
             FundRequest.approved_at.is_(None),
         )
@@ -10373,11 +10400,10 @@ def staff_legacy_fund_request():
                 .filter(
                     FundRequest.org_id == setting.org_id,
                     FundRequest.is_legacy_import.is_(True),
-                    FundRequest.status.notin_([
-                        "ยกเลิก",
-                        "ยกเลิกใบเบิก",
-                        "ใบเบิกถูกปฏิเสธ",
-                    ]),
+                    FundRequest.status_id.notin_(_status_ids("fund_request", [
+                        "CLAIM_CANCELLED",
+                        "REJECTED",
+                    ])),
                     func.lower(func.trim(FundRequest.ticket_number)) == normalized_ticket,
                 )
                 .first()
@@ -10395,7 +10421,7 @@ def staff_legacy_fund_request():
                 form_type=FUND_REQUEST_FORM_PETTY_CASH,
                 ticket_number=form_values["ticket_number"],
                 request_date=request_date,
-                status="เบิกเงินแล้ว",
+                status_id=_status_id("fund_request", code="WITHDRAWN"),
                 amount=amount,
                 is_legacy_import=True,
                 approved_at=imported_at,
@@ -10596,7 +10622,7 @@ def export_ticket_return_pdf(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
         abort(404)
-    if _selected_system() == FINANCE_SYSTEM and return_detail.status == "ฉบับร่าง":
+    if _selected_system() == FINANCE_SYSTEM and return_detail.status_id == _status_id_for_record(return_detail, "DRAFT"):
         abort(404)
 
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
@@ -10708,7 +10734,7 @@ def autosave_petty_cash_claim_draft():
             _borrowing_passthrough_validation_message()
         )
     if fund_request and (
-        (fund_request.status or "").strip() != "เบิกเงินแล้ว"
+        fund_request.status_id != _status_id_for_record(fund_request, "WITHDRAWN")
         or not fund_request.request_date
     ):
         return _validation_error_response(
@@ -10725,7 +10751,7 @@ def autosave_petty_cash_claim_draft():
 
     query = db.session.query(PettyCashClaimDetail).filter(
         PettyCashClaimDetail.user_id == user_id,
-        PettyCashClaimDetail.status == "ฉบับร่าง"
+        PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code="DRAFT")
     )
     if setting and setting.id:
         query = query.filter(
@@ -10761,7 +10787,7 @@ def autosave_petty_cash_claim_draft():
             user_id=user_id,
             petty_cash_setting_id=setting.id if setting and setting.id else None,
             fund_request_id=normalized_fund_request_id,
-            status="ฉบับร่าง",
+            status_id=_status_id("petty_cash_claim"),
             total_amount=0.0,
             created_at=datetime.now()
         )
@@ -10843,7 +10869,7 @@ def autosave_petty_cash_claim_draft():
     if cash_return_present and has_expense_items:
         return_query = db.session.query(PettyCashClaimDetail).filter(
             PettyCashClaimDetail.user_id == user_id,
-            PettyCashClaimDetail.status == "ฉบับร่าง",
+            PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code="DRAFT"),
             PettyCashClaimDetail.fund_request_id == normalized_fund_request_id,
             PettyCashClaimDetail.petty_cash_setting_id == setting.id,
             PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6),
@@ -10852,7 +10878,8 @@ def autosave_petty_cash_claim_draft():
         if return_draft is None:
             return_draft = PettyCashClaimDetail(
                 user_id=user_id, petty_cash_setting_id=setting.id,
-                fund_request_id=normalized_fund_request_id, status="ฉบับร่าง",
+                fund_request_id=normalized_fund_request_id,
+                status_id=_status_id("petty_cash_claim"),
                 created_at=datetime.now(),
             )
             db.session.add(return_draft)
@@ -10919,8 +10946,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         _fund_request_is_borrowing_passthrough(selected_fund_request_context)
         and not (
             request.method == "GET"
-            and (selected_fund_request_context.status or "").strip()
-            in {"รอการอนุมัติ", "อนุมัติแล้ว"}
+            and selected_fund_request_context.status_id in _status_ids_for_record(selected_fund_request_context, {"PENDING", "APPROVED"})
         )
     ):
         if request.method == "GET" or _render_after_post:
@@ -10936,7 +10962,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     if edit_claim_detail and not _can_edit_petty_cash_claim(
         current_user, edit_claim_detail, setting
     ):
-        if (edit_claim_detail.status or "").strip() not in PETTY_CASH_CLAIM_EDITABLE_STATUSES:
+        if edit_claim_detail.status_id not in _status_ids_for_record(edit_claim_detail, PETTY_CASH_CLAIM_EDITABLE_CODES):
             return _validation_error_response(
                 "ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว"
             )
@@ -10960,7 +10986,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             fund_request_query = fund_request_query.filter(FundRequest.requester_id == user_id)
         approved_fund_requests = [
             fund_request for fund_request in fund_request_query.order_by(FundRequest.id.desc()).all()
-            if (fund_request.status or "").strip() == "เบิกเงินแล้ว"
+            if fund_request.status_id == _status_id_for_record(fund_request, "WITHDRAWN")
             and not _fund_request_is_borrowing_passthrough(fund_request)
         ]
     elif setting and setting.id and not is_finance_user:
@@ -10968,7 +10994,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         fund_request_query = _fund_request_setting_filter(fund_request_query, setting)
         approved_fund_requests = [
             fund_request for fund_request in fund_request_query.order_by(FundRequest.id.desc()).all()
-            if (fund_request.status or "").strip() == "เบิกเงินแล้ว"
+            if fund_request.status_id == _status_id_for_record(fund_request, "WITHDRAWN")
             and not _fund_request_is_borrowing_passthrough(fund_request)
         ]
     else:
@@ -10977,7 +11003,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             for fund_request in db.session.query(FundRequest).filter(
                 FundRequest.requester_id == user_id,
             ).order_by(FundRequest.id.desc()).all()
-            if (fund_request.status or "").strip() == "เบิกเงินแล้ว"
+            if fund_request.status_id == _status_id_for_record(fund_request, "WITHDRAWN")
             and not _fund_request_is_borrowing_passthrough(fund_request)
         ]
 
@@ -11052,21 +11078,19 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         if (can_submit_claim or not is_finance_user) and not can_work_org_requests:
             selected_request_query = selected_request_query.filter_by(requester_id=user_id)
         selected_fund_request = selected_request_query.first()
-        if selected_fund_request and (selected_fund_request.status or "").strip() == "ฉบับร่าง":
-            selected_fund_request = None
 
     # Recalculate when opening an existing request as well. Parcel returns or
     # cat_6-only claims may have been completed before the last status-changing
     # request reached this flow, leaving the FundRequest status stale.
     if request.method == "GET" and selected_fund_request:
         workflow_state_before = (
-            selected_fund_request.status,
+            selected_fund_request.status_id,
             selected_fund_request.confirmed_at,
             selected_fund_request.confirmed_by_id,
         )
         _sync_fund_request_approval_status(selected_fund_request)
         workflow_state_after = (
-            selected_fund_request.status,
+            selected_fund_request.status_id,
             selected_fund_request.confirmed_at,
             selected_fund_request.confirmed_by_id,
         )
@@ -11144,7 +11168,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             if selected_fund_request is None:
                 abort(403)
             if edit_claim_detail is None and (
-                (selected_fund_request.status or "").strip() != "เบิกเงินแล้ว"
+                selected_fund_request.status_id != _status_id_for_record(selected_fund_request, "WITHDRAWN")
                 or not selected_fund_request.request_date
             ):
                 return _validation_redirect_response(
@@ -11161,7 +11185,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             if edit_claim_detail is not None and not _can_edit_petty_cash_claim(
                 current_user, edit_claim_detail, setting
             ):
-                if (edit_claim_detail.status or "").strip() not in PETTY_CASH_CLAIM_EDITABLE_STATUSES:
+                if edit_claim_detail.status_id not in _status_ids_for_record(edit_claim_detail, PETTY_CASH_CLAIM_EDITABLE_CODES):
                     return _validation_error_response(
                         "ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว"
                     )
@@ -11382,7 +11406,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     amount=parcel_amount,
                     items_description=parcel_items_description,
                     sent_date=parcel_sent_date,
-                    status="ฉบับร่าง" if is_draft else "รอตรวจสอบ",
+                    status_id=_status_id("parcel_return", code="DRAFT" if is_draft else "PENDING"),
                     reuse_draft=not is_draft,
                 )
             if circular_amount is not None:
@@ -11393,7 +11417,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     items_description=circular_items_description,
                     sent_date=circular_sent_date,
                     parcel_type=circular_type,
-                    status="ฉบับร่าง" if is_draft else "รอตรวจสอบ",
+                    status_id=_status_id("parcel_return", code="DRAFT" if is_draft else "PENDING"),
                     reuse_draft=not is_draft,
                 )
             db.session.commit()
@@ -11478,7 +11502,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         else:
             existing_draft_query = db.session.query(PettyCashClaimDetail).filter_by(
                 user_id=user_id,
-                status="ฉบับร่าง",
+                status_id=_status_id("petty_cash_claim", code="DRAFT"),
             )
             if setting and setting.id:
                 existing_draft_query = existing_draft_query.filter(
@@ -11520,7 +11544,8 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             claim_detail = PettyCashClaimDetail(
                 user_id=user_id,
                 petty_cash_setting_id=setting.id if setting and setting.id else None,
-                fund_request_id=fund_request_id
+                fund_request_id=fund_request_id,
+                status_id=_status_id("petty_cash_claim"),
             )
             db.session.add(claim_detail)
 
@@ -11553,15 +11578,16 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             and sum(float(item.get("amount") or 0) for item in submitted_items) > 0
         )
 
-        claim_detail.status = (
-            "รอยืนยันการแก้ไข"
+        next_status = (
+            "EDIT_CONFIRMATION_REQUIRED"
             if edit_claim_detail is not None
             else (
-                "ฉบับร่าง"
+                "DRAFT"
                 if is_draft
-                else ("โอนคืนเงินสดย่อย" if is_cash_return_only else "รอตรวจสอบ")
+                else ("CASH_RETURNED" if is_cash_return_only else "PENDING")
             )
         )
+        claim_detail.status_id = _status_id_for_record(claim_detail, next_status)
         claim_detail.approved_at = None
         claim_detail.settled_at = None
         claim_detail.transferred_at = None
@@ -11637,7 +11663,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             if separate_cash_return:
                 cash_draft_query = db.session.query(PettyCashClaimDetail).filter(
                     PettyCashClaimDetail.user_id == user_id,
-                    PettyCashClaimDetail.status == "ฉบับร่าง",
+                    PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code="DRAFT"),
                     PettyCashClaimDetail.fund_request_id == fund_request_id,
                     PettyCashClaimDetail.petty_cash_setting_id == setting.id,
                     PettyCashClaimDetail.items.any(PettyCashClaimItem.category_type == 6),
@@ -11648,6 +11674,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     cash_claim_detail = PettyCashClaimDetail(
                         user_id=user_id, petty_cash_setting_id=setting.id,
                         fund_request_id=fund_request_id,
+                        status_id=_status_id("petty_cash_claim"),
                     )
                     db.session.add(cash_claim_detail)
                 else:
@@ -11655,7 +11682,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                         db.session.query(PettyCashClaimProofFile).filter_by(claim_item_id=old_item.id).delete()
                         db.session.delete(old_item)
                     db.session.flush()
-                cash_claim_detail.status = "ฉบับร่าง" if is_draft else "โอนคืนเงินสดย่อย"
+                cash_claim_detail.status_id = _status_id_for_record(cash_claim_detail, "DRAFT" if is_draft else "CASH_RETURNED")
                 cash_claim_detail.amount = cash_return_amount or 0
                 cash_claim_detail.total_amount = cash_return_amount or 0
                 cash_claim_detail.created_at = submitted_at.replace(tzinfo=None)
@@ -11753,7 +11780,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 amount=parcel_amount,
                 items_description=parcel_items_description,
                 sent_date=parcel_sent_date,
-                status="ฉบับร่าง" if is_draft else "รอตรวจสอบ",
+                status_id=_status_id("parcel_return", code="DRAFT" if is_draft else "PENDING"),
                 reuse_draft=not is_draft,
             )
 
@@ -11765,7 +11792,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 items_description=circular_items_description,
                 sent_date=circular_sent_date,
                 parcel_type=circular_type,
-                status="ฉบับร่าง" if is_draft else "รอตรวจสอบ",
+                status_id=_status_id("parcel_return", code="DRAFT" if is_draft else "PENDING"),
                 reuse_draft=not is_draft,
             )
 
@@ -11807,7 +11834,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     else:
         claim_query = db.session.query(PettyCashClaimDetail).filter_by(
             user_id=user_id,
-            status="ฉบับร่าง",
+            status_id=_status_id("petty_cash_claim", code="DRAFT"),
         )
         if setting and setting.id and selected_fund_request is None:
             claim_query = claim_query.filter(
@@ -11843,7 +11870,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     if history_fund_request and _selected_system() == PETTY_CASH_SYSTEM:
         parcel_drafts = (
             db.session.query(ParcelReturnDetail)
-            .filter_by(fund_request_id=history_fund_request.id, status="ฉบับร่าง")
+            .filter_by(fund_request_id=history_fund_request.id, status_id=_status_id("parcel_return", code="DRAFT"))
             .order_by(ParcelReturnDetail.id.desc())
             .all()
         )
@@ -11862,7 +11889,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             db.session.query(PettyCashClaimDetail)
             .filter(
                 PettyCashClaimDetail.fund_request_id == history_fund_request.id,
-                PettyCashClaimDetail.status != "ฉบับร่าง",
+                PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
             )
             .filter(
                 PettyCashClaimDetail.petty_cash_setting_id == setting.id
@@ -11882,7 +11909,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             db.session.query(ParcelReturnDetail)
             .filter(
                 ParcelReturnDetail.fund_request_id == history_fund_request.id,
-                ParcelReturnDetail.status != "ฉบับร่าง",
+                ParcelReturnDetail.status_id != _status_id("parcel_return", code="DRAFT"),
             )
             .order_by(ParcelReturnDetail.sent_date.desc(), ParcelReturnDetail.created_at.desc())
             .all()
@@ -11901,7 +11928,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     if verification_fund_request is None and claim_detail:
         verification_fund_request = getattr(claim_detail, "fund_request", None)
 
-    fund_request_status = getattr(verification_fund_request, "status", None)
+    fund_request_status_id = getattr(verification_fund_request, "status_id", None)
     current_is_head = bool(
         verification_fund_request
         and _is_fund_request_org_head(current_user, verification_fund_request)
@@ -11916,7 +11943,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         else None
     )
     fund_request_waiting_message = None
-    if verification_fund_request and fund_request_status == "รอการอนุมัติ":
+    if verification_fund_request and fund_request_status_id == _status_id("fund_request", code="PENDING"):
         expected_confirmer = _get_user_by_id(expected_confirmer_id)
         fund_request_head = _fund_request_org_head(verification_fund_request)
         if expected_confirmer_id and _staff_accounts_match(
@@ -11948,13 +11975,13 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             fund_request_waiting_message = (
                 "อยู่ระหว่างรอผู้มีอำนาจพิจารณาอนุมัติ"
             )
-    elif verification_fund_request and fund_request_status == "อนุมัติแล้ว":
+    elif verification_fund_request and fund_request_status_id == _status_id("fund_request", code="APPROVED"):
         fund_request_waiting_message = (
             "อยู่ระหว่างรอผู้เก็บรักษาเงินสดย่อยบันทึกวันที่เบิกเงิน"
         )
     can_confirm_fund_request = bool(
         verification_fund_request
-        and fund_request_status == "รอการอนุมัติ"
+        and fund_request_status_id == _status_id("fund_request", code="PENDING")
         and expected_confirmer_id == getattr(current_user, "id", None)
         # A head uses the approval action to satisfy an outstanding
         # requester/custodian confirmation in the same click.
@@ -11962,26 +11989,26 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     )
     can_approve_fund_request = bool(
         verification_fund_request
-        and fund_request_status == "รอการอนุมัติ"
+        and fund_request_status_id == _status_id("fund_request", code="PENDING")
         and not getattr(verification_fund_request, "approved_at", None)
         and current_is_head
         and expected_confirmer_id in {None, getattr(current_user, "id", None)}
     )
     can_reject_fund_request = bool(
         verification_fund_request
-        and fund_request_status == "รอการอนุมัติ"
+        and fund_request_status_id == _status_id("fund_request", code="PENDING")
         and (current_is_head or current_is_custodian)
     )
     can_record_fund_request_withdrawal = bool(
         verification_fund_request
-        and fund_request_status == "อนุมัติแล้ว"
+        and fund_request_status_id == _status_id("fund_request", code="APPROVED")
         and current_is_custodian
         and _fund_request_is_fully_approved(verification_fund_request)
     )
     can_edit_fund_request_withdrawal_date = bool(
         verification_fund_request
         and verification_fund_request.form_type == FUND_REQUEST_FORM_PETTY_CASH
-        and fund_request_status in {"เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}
+        and fund_request_status_id in _status_ids("fund_request", {"WITHDRAWN", "CLAIMS_SUBMITTED", "SETTLED"})
         and verification_fund_request.request_date is not None
         and current_is_custodian
         and _fund_request_is_fully_approved(verification_fund_request)
@@ -12003,7 +12030,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     can_cancel_fund_request = False
     if (
         verification_fund_request
-        and fund_request_status == "เบิกเงินแล้ว"
+        and fund_request_status_id == _status_id("fund_request", code="WITHDRAWN")
         and current_is_custodian
         and _fund_request_setting_filter(
             db.session.query(FundRequest).filter(
@@ -12014,7 +12041,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     ):
         has_submitted_claim = db.session.query(PettyCashClaimDetail.id).filter(
             PettyCashClaimDetail.fund_request_id == verification_fund_request.id,
-            PettyCashClaimDetail.status != "ฉบับร่าง",
+            PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
         ).first() is not None
         has_parcel_return = db.session.query(ParcelReturnDetail.id).filter(
             ParcelReturnDetail.fund_request_id == verification_fund_request.id,
@@ -12069,9 +12096,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         )
     )
     verification_status = (
-        getattr(claim_detail, "status", None)
-        if claim_detail and getattr(claim_detail, "status", None)
-        else (fund_request_status or "-")
+        status_name_for_record(claim_detail)
+        if claim_detail and claim_detail.status_id
+        else (status_name_for_record(verification_fund_request) if verification_fund_request else "-")
     )
 
     return render_template(
@@ -12089,7 +12116,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         parcel_draft=parcel_draft,
         circular_draft=circular_draft,
         fund_request_total_info=fund_request_total_info,
-        fund_request_status=fund_request_status,
+        fund_request_status=(status_name_for_record(verification_fund_request) if verification_fund_request else None),
         fund_request_waiting_message=fund_request_waiting_message,
         can_approve_fund_request=can_approve_fund_request,
         can_confirm_fund_request=can_confirm_fund_request,
@@ -12115,7 +12142,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_created_at=verification_created_at,
         verification_amount=verification_amount,
         verification_status=verification_status,
-        fund_request_status_steps=FUND_REQUEST_STATUS_STEPS,
+        fund_request_status_steps=[_status_name("fund_request", code) for code in FUND_REQUEST_STATUS_STEPS],
         circular_return_reference_document=_get_circular_return_reference_document(),
         cash_mng_finance_open=cash_mng_finance_open,
     )
@@ -12154,8 +12181,8 @@ def staff_parcel_return_edit(parcel_return_id):
     if not same_setting:
         abort(403)
 
-    current_status = (parcel_return.status or "").strip()
-    if current_status not in {"รอตรวจสอบ", "ปฏิเสธ"}:
+    current_status_id = parcel_return.status_id
+    if current_status_id not in _status_ids("parcel_return", {"PENDING", "REJECTED"}):
         return _validation_redirect_response(
             "สามารถแก้ไขรายการส่งคืนพัสดุได้เฉพาะก่อนฝ่ายการเงินตรวจสอบ หรือหลังถูกปฏิเสธเท่านั้น",
             url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id),
@@ -12211,7 +12238,7 @@ def staff_parcel_return_edit(parcel_return_id):
     parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
     parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
-    parcel_return.status = "รอตรวจสอบ"
+    parcel_return.status_id = _status_id_for_record(parcel_return, "PENDING")
     parcel_return.approved_at = None
     parcel_return.settled_at = None
     db.session.commit()
@@ -12230,7 +12257,7 @@ def petty_cash_claim_detail(claim_id):
     if not claim_detail:
         abort(404)
     if _selected_system() == FINANCE_SYSTEM and (
-        claim_detail.status == "ฉบับร่าง" or _claim_has_only_category_six(claim_detail)
+        claim_detail.status_id == _status_id_for_record(claim_detail, "DRAFT") or _claim_has_only_category_six(claim_detail)
     ):
         abort(404)
     _attach_petty_cash_claim_context(claim_detail)
@@ -12285,7 +12312,7 @@ def petty_cash_claim_detail(claim_id):
 def mark_petty_claim_checking(claim_id):
     claim = _get_finance_visible_claim(claim_id)
     
-    claim.status = "กำลังตรวจสอบ"
+    claim.status_id = _status_id_for_record(claim, "IN_PROCESS")
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("เปลี่ยนสถานะเป็น 'กำลังตรวจสอบ' เรียบร้อยแล้ว", "success")
@@ -12297,7 +12324,7 @@ def mark_petty_claim_checking(claim_id):
 def mark_petty_claim_proofed(claim_id):
     claim = _get_finance_visible_claim(claim_id)
 
-    claim.status = "ผ่านการตรวจสอบ"
+    claim.status_id = _status_id_for_record(claim, "APPROVED")
     claim.approved_at = datetime.now()
     db.session.commit()
     flash("ทำเครื่องหมายรายการเงินสดย่อยเป็น 'ผ่านการตรวจสอบ' เรียบร้อยแล้ว", "success")
@@ -12314,7 +12341,7 @@ def mark_petty_claim_transferred(claim_id):
     if not transferred_date_str:
         return _validation_error_response("กรุณาระบุวันที่หน่วยงานได้รับเงิน/วันที่โอนเงิน")
 
-    claim.status = "โอนเงินสดย่อยสำเร็จ"
+    claim.status_id = _status_id_for_record(claim, "CASH_TRANSFER_COMPLETED")
     claim.transferred_at = datetime.strptime(transferred_date_str, "%Y-%m-%d").date()
     fund_req = db.session.query(FundRequest).get(claim.fund_request_id)
     if fund_req:
@@ -12336,7 +12363,7 @@ def mark_petty_claim_received(claim_id):
     if not closing_document or not closing_document.is_settled:
         return _validation_error_response("ต้องล้างลูกหนี้ผ่านฎีกาที่ปิดบัญชีแล้วก่อน")
         
-    claim.status = "เสร็จสิ้นกระบวนการ"
+    claim.status_id = _status_id_for_record(claim, "SETTLED")
     claim.settled_at = closing_document.settled_at
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
@@ -12362,7 +12389,7 @@ def reject_petty_claim(claim_id):
         user_name,
     )
 
-    claim.status = "ปฏิเสธ"
+    claim.status_id = _status_id_for_record(claim, "REJECTED")
     claim.approved_at = None
     claim.settled_at = None
     db.session.commit()
@@ -12401,7 +12428,7 @@ def confirm_petty_claim_edit(claim_id):
             abort(403)
         if not _can_manage_petty_cash_claim(current_user, claim, setting):
             abort(403)
-    if (claim.status or "").strip().lower() != "รอยืนยันการแก้ไข":
+    if claim.status_id != _status_id_for_record(claim, "EDIT_CONFIRMATION_REQUIRED"):
         return _validation_error_response("รายการนี้ไม่มีการแก้ไขที่รอการยืนยัน")
 
     is_cash_return_only = _claim_has_only_category_six(claim)
@@ -12411,7 +12438,7 @@ def confirm_petty_claim_edit(claim_id):
         )
 
     if is_cash_return_only:
-        claim.status = "โอนคืนเงินสดย่อย"
+        claim.status_id = _status_id_for_record(claim, "CASH_RETURNED")
         claim.approved_at = datetime.now()
         claim.settled_at = datetime.now(ZoneInfo("Asia/Bangkok"))
         claim.transferred_at = next(
@@ -12423,7 +12450,7 @@ def confirm_petty_claim_edit(claim_id):
             None,
         )
     else:
-        claim.status = "รอตรวจสอบ"
+        claim.status_id = _status_id_for_record(claim, "PENDING")
         claim.approved_at = None
         claim.settled_at = None
     db.session.commit()
@@ -12539,11 +12566,10 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
     approved_fund_requests = fund_request_query.all()
 
     for fr in approved_fund_requests:
-        if (fr.status or "").strip() in {
-            "ฉบับร่าง",
-            "รอการอนุมัติ",
-            "ใบเบิกถูกปฏิเสธ",
-        }:
+        if fr.status_id in _status_ids_for_record(fr, {
+            "PENDING",
+            "REJECTED",
+        }):
             # ใบเบิกที่ยังไม่ผ่านการอนุมัติยังไม่ใช่รายการเงินออกใน ledger
             continue
         if getattr(fr, "is_legacy_import", False):
@@ -12654,7 +12680,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
     if current_setting and current_setting.id:
         cancelled_fund_requests = (
             _fund_request_setting_filter(db.session.query(FundRequest), current_setting)
-            .filter(FundRequest.status.in_(["ยกเลิก", "ยกเลิกใบเบิก"]))
+            .filter(FundRequest.status_id == _status_id("fund_request", code="CLAIM_CANCELLED"))
             .all()
         )
         for fr in cancelled_fund_requests:
@@ -12694,7 +12720,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
     # แยกรายการที่เป็นหมวด 6 (โอนคืนบัญชีหน่วย) ออกมาเป็น Row ใหม่
     for claim in all_claims:
         _attach_petty_cash_claim_context(claim)
-        if (claim.status or "").strip() == "ปฏิเสธ":
+        if claim.status_id == _status_id_for_record(claim, "REJECTED"):
             continue
         for item in claim.items:   
             if str(item.category_type) == "6":
@@ -12721,14 +12747,13 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             for claim in db.session.query(PettyCashClaimDetail)
             .filter(PettyCashClaimDetail.petty_cash_setting_id == current_setting.id)
             .all()
-            if (claim.status or "").strip() not in {
-                "ฉบับร่าง",
-                "รอตรวจสอบ",
-                "กำลังดำเนินการ",
-                "ปฏิเสธ",
-                "กำลังตรวจสอบ",
-                "ผ่านการตรวจสอบ",
-            }
+            if claim.status_id not in _status_ids_for_record(claim, {
+                "DRAFT",
+                "PENDING",
+                "REJECTED",
+                "IN_PROCESS",
+                "APPROVED",
+            })
         ]
     elif staff:
         transferred_claims = [
@@ -12736,14 +12761,13 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             for claim in db.session.query(PettyCashClaimDetail)
             .filter(PettyCashClaimDetail.user_id == staff.id)
             .all()
-            if (claim.status or "").strip() not in {
-                "ฉบับร่าง",
-                "รอตรวจสอบ",
-                "กำลังดำเนินการ",
-                "ปฏิเสธ",
-                "กำลังตรวจสอบ",
-                "ผ่านการตรวจสอบ",
-            }
+            if claim.status_id not in _status_ids_for_record(claim, {
+                "DRAFT",
+                "PENDING",
+                "REJECTED",
+                "IN_PROCESS",
+                "APPROVED",
+            })
         ]
 
     for claim in transferred_claims:
@@ -12938,12 +12962,11 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
                 db.session.query(FundRequest),
                 current_setting,
             )
-            .filter(~FundRequest.status.in_([
-                "รอการอนุมัติ",
-                "ยกเลิก",
-                "ยกเลิกใบเบิก",
-                "ใบเบิกถูกปฏิเสธ",
-            ]))
+            .filter(~FundRequest.status_id.in_(_status_ids("fund_request", [
+                "PENDING",
+                "CLAIM_CANCELLED",
+                "REJECTED",
+            ])))
             .all()
         )
         summary = summarize_petty_cash_month(selected_month_start, summary_fund_requests, all_claims)
