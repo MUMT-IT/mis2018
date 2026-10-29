@@ -10942,16 +10942,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         if selected_fr_id
         else None
     )
-    if (
-        _fund_request_is_borrowing_passthrough(selected_fund_request_context)
-        and not (
-            request.method == "GET"
-            and selected_fund_request_context.status_id in _status_ids_for_record(selected_fund_request_context, {"PENDING", "APPROVED"})
-        )
-    ):
-        if request.method == "GET" or _render_after_post:
-            flash(_borrowing_passthrough_validation_message(), "warning")
-            return redirect(url_for("advance_payment.staff_fund_request_history"))
+    if request.method == "POST" and _fund_request_is_borrowing_passthrough(selected_fund_request_context):
         return _validation_error_response(
             _borrowing_passthrough_validation_message()
         )
@@ -11141,6 +11132,10 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             if _fund_request_is_borrowing_passthrough(posted_request):
                 return _validation_error_response(
                     _borrowing_passthrough_validation_message()
+                )
+            if posted_request is not None and posted_request.form_type != FUND_REQUEST_FORM_PETTY_CASH:
+                return _validation_error_response(
+                    "ส่งเบิกเงินสดย่อยได้เฉพาะใบเบิกเงินสดย่อยเท่านั้น"
                 )
             if posted_request is not None:
                 setting = _resolve_petty_cash_setting_for_fund_request(
