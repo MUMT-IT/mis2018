@@ -23,7 +23,7 @@
           <div class="text-md-end">
             {% if verification_fund_request and verification_fund_request.form_type == 'interest' and verification_fund_request.withdrawal_proof_reference %}
               <a href="{{ verification_fund_request.withdrawal_proof_reference|advance_payment_file_url }}" class="btn btn-outline-primary btn-sm fw-bold" target="_blank">
-                <i class="bi bi-paperclip me-1"></i>{{ verification_fund_request.withdrawal_proof_filename or 'หลักฐานการเบิก' }}
+                <i class="bi bi-paperclip me-1"></i>ไฟล์หลักฐานการเบิก
               </a>
             {% endif %}
           </div>

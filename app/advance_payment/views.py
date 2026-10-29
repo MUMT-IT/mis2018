@@ -12002,7 +12002,6 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     )
     can_edit_fund_request_withdrawal_date = bool(
         verification_fund_request
-        and verification_fund_request.form_type == FUND_REQUEST_FORM_PETTY_CASH
         and fund_request_status_id in _status_ids("fund_request", {"WITHDRAWN", "CLAIMS_SUBMITTED", "SETTLED"})
         and verification_fund_request.request_date is not None
         and current_is_custodian
