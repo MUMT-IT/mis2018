@@ -9965,12 +9965,17 @@ def record_fund_request_withdrawal(request_id):
     if not staff.is_authenticated or not _is_petty_cash_custodian(staff, setting):
         abort(403)
 
+    status = (fund_req.status or "").strip()
+    is_editing_withdrawal_date = (
+        fund_req.form_type == FUND_REQUEST_FORM_PETTY_CASH
+        and status in {"เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}
+        and fund_req.request_date is not None
+    )
     if (
-        (fund_req.status or "").strip() != "อนุมัติแล้ว"
-        or not _fund_request_is_fully_approved(fund_req)
-    ):
+        status != "อนุมัติแล้ว" and not is_editing_withdrawal_date
+    ) or not _fund_request_is_fully_approved(fund_req):
         return _validation_error_response(
-            "ไม่สามารถบันทึกวันที่เบิกได้จนกว่าการยืนยันและอนุมัติจะครบถ้วน"
+            "ไม่สามารถบันทึกหรือแก้ไขวันที่เบิกเงินในสถานะนี้ได้"
         )
 
     request_date = _coerce_date(request.form.get("request_date"))
@@ -9993,9 +9998,15 @@ def record_fund_request_withdrawal(request_id):
         fund_req.withdrawal_proof_filename = original_filename
 
     fund_req.request_date = request_date
-    fund_req.status = "เบิกเงินแล้ว"
+    if not is_editing_withdrawal_date:
+        fund_req.status = "เบิกเงินแล้ว"
     db.session.commit()
-    flash("บันทึกวันที่เบิกเงินเรียบร้อยแล้ว", "success")
+    flash(
+        "แก้ไขวันที่เบิกเงินเรียบร้อยแล้ว"
+        if is_editing_withdrawal_date
+        else "บันทึกวันที่เบิกเงินเรียบร้อยแล้ว",
+        "success",
+    )
     return redirect(
         url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_req.id)
         if fund_req.form_type == FUND_REQUEST_FORM_PETTY_CASH
@@ -11967,6 +11978,14 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         and current_is_custodian
         and _fund_request_is_fully_approved(verification_fund_request)
     )
+    can_edit_fund_request_withdrawal_date = bool(
+        verification_fund_request
+        and verification_fund_request.form_type == FUND_REQUEST_FORM_PETTY_CASH
+        and fund_request_status in {"เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}
+        and verification_fund_request.request_date is not None
+        and current_is_custodian
+        and _fund_request_is_fully_approved(verification_fund_request)
+    )
     can_edit_fund_request = bool(
         verification_fund_request
         and _fund_request_can_be_edited(
@@ -12076,6 +12095,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         can_confirm_fund_request=can_confirm_fund_request,
         can_reject_fund_request=can_reject_fund_request,
         can_record_fund_request_withdrawal=can_record_fund_request_withdrawal,
+        can_edit_fund_request_withdrawal_date=can_edit_fund_request_withdrawal_date,
         can_edit_fund_request=can_edit_fund_request,
         can_download_fund_request_pdf=can_download_fund_request_pdf,
         current_is_custodian=current_is_custodian,

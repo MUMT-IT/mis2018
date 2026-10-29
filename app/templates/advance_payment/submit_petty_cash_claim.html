@@ -129,7 +129,7 @@
         </div>
       {% endif %}
     </div>
-    {% if can_edit_fund_request or can_confirm_fund_request or can_approve_fund_request or can_reject_fund_request or can_record_fund_request_withdrawal or can_cancel_fund_request %}
+    {% if can_edit_fund_request or can_confirm_fund_request or can_approve_fund_request or can_reject_fund_request or can_record_fund_request_withdrawal or can_edit_fund_request_withdrawal_date or can_cancel_fund_request %}
     <div class="d-flex flex-wrap justify-content-end align-items-end gap-2">
       {% if can_edit_fund_request %}
       <a href="{{ url_for('advance_payment.staff_fund_request', edit_request_id=verification_fund_request.id) }}"
@@ -172,12 +172,12 @@
         </button>
       </form>
       {% endif %}
-      {% if can_record_fund_request_withdrawal %}
+      {% if can_record_fund_request_withdrawal or can_edit_fund_request_withdrawal_date %}
       <button type="button"
               class="btn btn-success btn-sm fw-bold px-3 py-2"
               data-bs-toggle="modal"
               data-bs-target="#fundRequestWithdrawalModal{{ verification_fund_request.id }}">
-        <i class="bi bi-cash-coin me-1"></i>บันทึกวันที่เบิกเงิน
+        <i class="bi bi-cash-coin me-1"></i>{{ 'แก้ไขวันที่เบิกเงิน' if can_edit_fund_request_withdrawal_date else 'บันทึกวันที่เบิกเงิน' }}
       </button>
       {% endif %}
       {% if can_cancel_fund_request %}
@@ -218,7 +218,7 @@
     </div>
   </template>
 
-  {% if can_record_fund_request_withdrawal %}
+  {% if can_record_fund_request_withdrawal or can_edit_fund_request_withdrawal_date %}
   <div class="modal fade text-start"
        id="fundRequestWithdrawalModal{{ verification_fund_request.id }}"
        tabindex="-1"
@@ -234,7 +234,7 @@
           <div class="modal-header">
             <h5 class="modal-title fw-bold text-dark"
                 id="fundRequestWithdrawalModalLabel{{ verification_fund_request.id }}">
-              <i class="bi bi-calendar-check text-success me-2"></i>บันทึกวันที่เบิกเงิน
+              <i class="bi bi-calendar-check text-success me-2"></i>{{ 'แก้ไขวันที่เบิกเงิน' if can_edit_fund_request_withdrawal_date else 'บันทึกวันที่เบิกเงิน' }}
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
           </div>
@@ -252,6 +252,7 @@
                      name="request_date"
                      id="fundRequestWithdrawalDate{{ verification_fund_request.id }}"
                      class="form-control app-date-picker"
+                     value="{{ verification_request_date.isoformat() if verification_request_date else '' }}"
                      placeholder="dd/mm/yyyy"
                      required>
             </div>
@@ -273,7 +274,7 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
             <button type="submit" class="btn btn-success fw-bold">
-              <i class="bi bi-cash-coin me-1"></i>ยืนยันบันทึกวันที่เบิกเงิน
+              <i class="bi bi-cash-coin me-1"></i>{{ 'ยืนยันแก้ไขวันที่เบิกเงิน' if can_edit_fund_request_withdrawal_date else 'ยืนยันบันทึกวันที่เบิกเงิน' }}
             </button>
           </div>
         </form>
