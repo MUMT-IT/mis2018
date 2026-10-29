@@ -257,17 +257,21 @@
                      required>
             </div>
             {% if verification_fund_request.form_type == 'interest' %}
+            {% set withdrawal_proof_required = not (can_edit_fund_request_withdrawal_date and verification_fund_request.withdrawal_proof_reference) %}
             <div class="mb-3">
               <label class="form-label fw-bold text-dark small"
                      for="fundRequestWithdrawalProof{{ verification_fund_request.id }}">
-                หลักฐานการเบิก <span class="text-danger">*</span>
+                หลักฐานการเบิก {% if withdrawal_proof_required %}<span class="text-danger">*</span>{% endif %}
               </label>
               <input type="file"
                      name="withdrawal_proof_file"
                      id="fundRequestWithdrawalProof{{ verification_fund_request.id }}"
                      class="form-control"
                      accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
-                     required>
+                     {% if withdrawal_proof_required %}required{% endif %}>
+              {% if not withdrawal_proof_required %}
+              <div class="form-text">หากมีหลักฐานการเบิกเดิม สามารถเว้นว่างไว้ได้</div>
+              {% endif %}
             </div>
             {% endif %}
           </div>

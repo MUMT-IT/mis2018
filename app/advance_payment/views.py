@@ -9995,8 +9995,7 @@ def record_fund_request_withdrawal(request_id):
 
     status_id = fund_req.status_id
     is_editing_withdrawal_date = (
-        fund_req.form_type == FUND_REQUEST_FORM_PETTY_CASH
-        and status_id in _status_ids("fund_request", {"WITHDRAWN", "CLAIMS_SUBMITTED", "SETTLED"})
+        status_id in _status_ids("fund_request", {"WITHDRAWN", "CLAIMS_SUBMITTED", "SETTLED"})
         and fund_req.request_date is not None
     )
     if (
@@ -10012,18 +10011,21 @@ def record_fund_request_withdrawal(request_id):
 
     proof_file = request.files.get("withdrawal_proof_file")
     if fund_req.form_type == FUND_REQUEST_FORM_INTEREST:
-        if not proof_file or not proof_file.filename:
+        if (not proof_file or not proof_file.filename) and not (
+            is_editing_withdrawal_date and fund_req.withdrawal_proof_reference
+        ):
             return _validation_error_response(
                 "กรุณาแนบหลักฐานการเบิกดอกเบี้ย"
             )
-        original_filename = os.path.basename(proof_file.filename)
-        if not original_filename:
-            return _validation_error_response("ชื่อไฟล์หลักฐานไม่ถูกต้อง")
-        fund_req.withdrawal_proof_reference = _store_uploaded_file(
-            proof_file,
-            f"fund_requests/{staff.id}",
-        )
-        fund_req.withdrawal_proof_filename = original_filename
+        if proof_file and proof_file.filename:
+            original_filename = os.path.basename(proof_file.filename)
+            if not original_filename:
+                return _validation_error_response("ชื่อไฟล์หลักฐานไม่ถูกต้อง")
+            fund_req.withdrawal_proof_reference = _store_uploaded_file(
+                proof_file,
+                f"fund_requests/{staff.id}",
+            )
+            fund_req.withdrawal_proof_filename = original_filename
 
     fund_req.request_date = request_date
     if not is_editing_withdrawal_date:
