@@ -51,7 +51,7 @@
                   </div>
 <!--                  <div class="form-check form-check-inline m-0 py-1">-->
 <!--                    <input class="form-check-input" type="radio" name="form_type" id="form_type_reduction" value="reduction" {% if selected_form_type == 'reduction' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>-->
-<!--                    <label class="form-check-label fw-bold text-primary" for="form_type_reduction">เบิกเงินลดงบประมาณ</label>-->
+<!--                    <label class="form-check-label fw-bold text-primary" for="form_type_reduction">คืนเงินส่วนต่างจากการปรับลดวงเงินงบประมาณ</label>-->
 <!--                  </div>-->
                 {% endif %}
               </div>
@@ -311,10 +311,6 @@
               </div>
               <!-- ปุ่มบันทึก -->
               <div class="d-flex flex-column align-items-end text-end">
-                <span class="d-block small text-warning-emphasis fw-semibold mt-3" style="width: max-content; white-space: nowrap;">
-                  <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                  เพื่อให้ข้อมูลสอดคล้องกับรายการเดินบัญชีธนาคาร ขอความกรุณาเบิกเงินตามยอดเงินรวมทั้งหมด
-                </span>
                 <button type="submit" class="btn btn-success btn-lg fw-bold mt-2 px-4" style="border-radius: 12px;" id="fundRequestSubmitBtn">
                   <i class="bi bi-file-earmark-check me-2"></i> {{ 'บันทึกการแก้ไข' if is_editing else 'บันทึก' }}
                 </button>
