@@ -173,12 +173,20 @@
       </form>
       {% endif %}
       {% if can_record_fund_request_withdrawal or can_edit_fund_request_withdrawal_date %}
-      <button type="button"
-              class="btn btn-success btn-sm fw-bold px-3 py-2"
-              data-bs-toggle="modal"
-              data-bs-target="#fundRequestWithdrawalModal{{ verification_fund_request.id }}">
-        <i class="bi bi-cash-coin me-1"></i>{{ 'แก้ไขวันที่เบิกเงิน' if can_edit_fund_request_withdrawal_date else 'บันทึกวันที่เบิกเงิน' }}
-      </button>
+      <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+        {% if can_record_fund_request_withdrawal %}
+        <div class="d-flex align-items-start gap-2 bg-warning-subtle border border-warning-subtle rounded-3 px-3 py-2 small text-warning-emphasis fw-semibold" style="max-width: 28rem; min-width: 0;" role="note">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
+          <span>กรุณาบันทึกรายการเบิกเงินแยกตามรายการที่ปรากฎใน Statement</span>
+        </div>
+        {% endif %}
+        <button type="button"
+                class="btn btn-success btn-sm fw-bold px-3 py-2"
+                data-bs-toggle="modal"
+                data-bs-target="#fundRequestWithdrawalModal{{ verification_fund_request.id }}">
+          <i class="bi bi-cash-coin me-1"></i>{{ 'แก้ไขวันที่เบิกเงิน' if can_edit_fund_request_withdrawal_date else 'บันทึกวันที่เบิกเงิน' }}
+        </button>
+      </div>
       {% endif %}
       {% if can_cancel_fund_request %}
       <button type="button"
