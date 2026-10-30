@@ -24,6 +24,7 @@ class PettyCashOrganizationScopeTests(unittest.TestCase):
                     "_is_petty_cash_custodian",
                     "_can_access_petty_cash_setting",
                     "_can_manage_petty_cash_claim",
+                    "_can_download_petty_cash_claim_pdf",
                 }
             ],
             type_ignores=[],
@@ -37,6 +38,7 @@ class PettyCashOrganizationScopeTests(unittest.TestCase):
         cls.is_custodian = staticmethod(cls.context["_is_petty_cash_custodian"])
         cls.can_access = staticmethod(cls.context["_can_access_petty_cash_setting"])
         cls.can_manage_claim = staticmethod(cls.context["_can_manage_petty_cash_claim"])
+        cls.can_download_claim_pdf = staticmethod(cls.context["_can_download_petty_cash_claim_pdf"])
 
     def setUp(self):
         self.org = SimpleNamespace(id=10)
@@ -120,6 +122,24 @@ class PettyCashOrganizationScopeTests(unittest.TestCase):
         claim = SimpleNamespace(user_id=9, fund_request=SimpleNamespace(creator_id=12))
 
         self.assertTrue(self.can_manage_claim(self.user, claim, self.setting))
+
+    def test_fund_request_requester_can_download_claim_pdf_without_edit_access(self):
+        claim = SimpleNamespace(
+            user_id=9,
+            petty_cash_setting_id=self.setting.id,
+            fund_request=SimpleNamespace(creator_id=12, requester_id=self.user.id),
+        )
+        self.setting.org_id = 11
+
+        self.assertFalse(self.can_manage_claim(self.user, claim, self.setting))
+        self.assertTrue(self.can_download_claim_pdf(self.user, claim, self.setting))
+
+        claim.fund_request.requester_id = 13
+        self.assertFalse(self.can_download_claim_pdf(self.user, claim, self.setting))
+
+        claim.fund_request.requester_id = self.user.id
+        claim.petty_cash_setting_id = 2
+        self.assertFalse(self.can_download_claim_pdf(self.user, claim, self.setting))
 
 
 class AdvancePaymentCoordinatorAccessTests(unittest.TestCase):

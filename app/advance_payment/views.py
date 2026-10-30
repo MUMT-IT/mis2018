@@ -1281,6 +1281,20 @@ def _can_manage_petty_cash_claim(user, claim, setting):
     )
 
 
+def _can_download_petty_cash_claim_pdf(user, claim, setting):
+    """Allow claim managers and the linked fund request's requester to export PDF."""
+    if not user or not claim or not setting or not getattr(setting, "id", None):
+        return False
+    if getattr(claim, "petty_cash_setting_id", None) != setting.id:
+        return False
+
+    user_id = getattr(user, "id", None)
+    fund_request = getattr(claim, "fund_request", None)
+    if user_id and user_id == getattr(fund_request, "requester_id", None):
+        return True
+    return _can_manage_petty_cash_claim(user, claim, setting)
+
+
 def _get_user_by_id(user_id):
     if not user_id:
         return None
@@ -10168,10 +10182,15 @@ def staff_fund_request_history():
     )
     if setting and setting.id:
         claim_history_query = claim_history_query.filter(
-            PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+            or_(
+                PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+                PettyCashClaimDetail.fund_request.has(FundRequest.requester_id == user.id),
+            ),
         )
     else:
-        claim_history_query = claim_history_query.filter(False)
+        claim_history_query = claim_history_query.filter(
+            PettyCashClaimDetail.fund_request.has(FundRequest.requester_id == user.id)
+        )
     claim_history = claim_history_query.order_by(PettyCashClaimDetail.id.desc()).all()
 
     for claim in claim_history:
@@ -10552,7 +10571,10 @@ def export_petty_cash_claim_pdf(claim_id):
         same_setting = bool(
             setting and setting.id and claim.petty_cash_setting_id == setting.id
         )
-        can_view = bool(same_setting and _can_manage_petty_cash_claim(staff, claim, setting))
+        requester_id = getattr(getattr(claim, "fund_request", None), "requester_id", None)
+        if staff.id == requester_id and not same_setting:
+            setting = db.session.query(PettyCashSetting).get(claim.petty_cash_setting_id)
+        can_view = _can_download_petty_cash_claim_pdf(staff, claim, setting)
         if not can_view:
             abort(403)
 
@@ -12230,26 +12252,34 @@ def petty_cash_claim_detail(claim_id):
                 current_user,
                 claim_detail.fund_request,
             )
-        if not _can_access_petty_cash_setting(current_user, setting):
-            abort(403)
         same_setting = bool(
             setting
             and setting.id
             and claim_detail.petty_cash_setting_id == setting.id
         )
-        if not same_setting:
+        requester_id = getattr(getattr(claim_detail, "fund_request", None), "requester_id", None)
+        is_requester = bool(current_user.id and current_user.id == requester_id)
+        if not same_setting or not (
+            _can_access_petty_cash_setting(current_user, setting) or is_requester
+        ):
             abort(403)
         can_manage_claim = _can_manage_petty_cash_claim(
             current_user,
             claim_detail,
             setting,
         )
+
+    can_download_claim_pdf = bool(
+        _selected_system() == PETTY_CASH_SYSTEM
+        and _can_download_petty_cash_claim_pdf(current_user, claim_detail, setting)
+    )
         
     return render_template(
         "petty_cash_claim_detail.html", # หรือชื่อไฟล์ HTML template ที่คุณใช้อยู่
         claim_detail=claim_detail,
         borrowing_ticket=borrowing_ticket,
         can_manage_claim=can_manage_claim,
+        can_download_claim_pdf=can_download_claim_pdf,
         can_edit_claim=(
             _selected_system() == PETTY_CASH_SYSTEM
             and _can_edit_petty_cash_claim(current_user, claim_detail, setting)
