@@ -2057,7 +2057,7 @@ def create_note(test_result_id):
     SoftwareRequestTestResultForm = create_test_result_form(
         detail_id=test_result.request_id,
         has_note=True,
-        current_issue_id=test_result.issue_id,
+        issue_id=test_result.issue_id,
     )
     form = SoftwareRequestTestResultForm(obj=test_result)
     if form.validate_on_submit():
