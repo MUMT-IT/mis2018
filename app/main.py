@@ -2082,6 +2082,7 @@ from app.advance_payment import advance_payment as advance_payment_blueprint
 from app.advance_payment.models import (
     BankAccountInfo,
     AdvancePaymentStatus,
+    CashAdvanceAccountManager,
     CashAdvanceBorrowingTicket,
     CashManagementNotifications,
     ClosingDocument,
@@ -2195,6 +2196,7 @@ admin.add_view(ModelView(PettyCashSetting, db.session, category='Advance Payment
 admin.add_view(ModelView(PettyCashFiscalYearCarryover, db.session, category='Advance Payment'))
 admin.add_view(ModelView(PettyCashFiscalYearTopUpTransfer, db.session, category='Advance Payment'))
 admin.add_view(ModelView(BankAccountInfo, db.session, category='Advance Payment'))
+admin.add_view(ModelView(CashAdvanceAccountManager, db.session, category='Advance Payment'))
 admin.add_view(FundRequestStatusFilteredAdminModelView(FundRequest, db.session, category='Advance Payment'))
 admin.add_view(ModelView(FundRequestItem, db.session, category='Advance Payment'))
 admin.add_view(PettyCashClaimDetailAdminModelView(PettyCashClaimDetail, db.session, category='Advance Payment'))
