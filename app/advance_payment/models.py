@@ -8,6 +8,7 @@ from sqlalchemy import event
 from sqlalchemy.orm import Session, declared_attr, object_session, relationship
 from app.main import db
 from app.staff.models import StaffAccount
+from app.docs_query.models import DocsQueryDocument
 
 
 MONEY_DEFAULT = Decimal("0.00")
@@ -277,12 +278,12 @@ Notifications = CashManagementNotifications
 
 
 document_return_association = Table(
-    "cash_mng_document_return_association",
+    "cash_mng_docs_query_return_association",
     db.metadata,
     Column(
         "document_id",
         Integer,
-        ForeignKey("cash_mng_documents.id", ondelete="CASCADE"),
+        ForeignKey("docs_query_documents.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
@@ -320,16 +321,6 @@ parcel_borrowing_ticket_association = Table(
     ),
     Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
 )
-
-
-class Document(FinanceEditMixin, db.Model):
-    __tablename__ = "cash_mng_documents"
-
-    id = Column(Integer, primary_key=True)
-    title = Column(String(255), nullable=False)
-    file_path = Column(String(500), nullable=False, default="#")
-    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
-
 
 class ClosingDocumentRecordMixin(FinanceEditMixin):
     """Current association and history come from links, never copied document names."""
@@ -450,10 +441,10 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
         order_by="ReturnProofFile.id",
     )
     documents = relationship(
-        "Document",
+        "DocsQueryDocument",
         secondary=document_return_association,
         passive_deletes=True,
-        order_by="Document.id",
+        order_by="DocsQueryDocument.id",
     )
 
     @property
@@ -1134,12 +1125,12 @@ class FundRequestItem(FinanceEditMixin, db.Model):
 
 
 document_petty_claim_association = Table(
-    "cash_mng_document_petty_claim_association",
+    "cash_mng_docs_query_petty_claim_association",
     db.metadata,
     Column(
         "document_id",
         Integer,
-        ForeignKey("cash_mng_documents.id", ondelete="CASCADE"),
+        ForeignKey("docs_query_documents.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
@@ -1217,10 +1208,10 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
         order_by="PettyCashClaimProofFile.id",
     )
     documents = relationship(
-        "Document",
+        "DocsQueryDocument",
         secondary=document_petty_claim_association,
         passive_deletes=True,
-        order_by="Document.id",
+        order_by="DocsQueryDocument.id",
     )
 
     @property

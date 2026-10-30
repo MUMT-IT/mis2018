@@ -35,7 +35,7 @@ from werkzeug.utils import secure_filename
 
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
 from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
@@ -2291,13 +2291,9 @@ def _calculate_due_date(end_date):
 def _docs_query_view_url(file_id):
     if not file_id:
         return None
+    if file_id.startswith("/"):
+        return file_id
     return f"https://drive.google.com/file/d/{file_id}/view"
-
-
-def _docs_query_download_url(file_id):
-    if not file_id:
-        return None
-    return f"https://drive.google.com/uc?export=download&id={file_id}"
 
 
 def _docs_query_document_tag_names(document):
@@ -2386,25 +2382,14 @@ def _attach_document_source_context(document):
     if not document:
         return None
 
-    source_document = _resolve_docs_query_document(
-        getattr(document, "file_path", None),
-        getattr(document, "title", None),
-    )
-    if source_document is None:
-        return document
-
-    document.file_id = source_document.drive_file_id
-    document.download_url = _docs_query_download_url(source_document.drive_file_id)
-    document.view_url = _docs_query_view_url(source_document.drive_file_id)
+    document.title = document.document_title or document.filename or document.drive_file_id
+    document.file_id = document.drive_file_id
+    document.download_url = _docs_query_view_url(document.drive_file_id)
+    document.view_url = _docs_query_view_url(document.drive_file_id)
     document.url = document.view_url
-    document.document_type = source_document.document_type or getattr(document, "document_type", None)
-    document.note = source_document.note or getattr(document, "note", None)
-    document.summary = source_document.summary or getattr(document, "summary", None)
-    document.tags = _docs_query_document_tag_names(source_document)
-    document.status = source_document.status
-    document.status_label = _docs_query_document_status_label(source_document)
-    document.status_class = _docs_query_document_status_class(source_document)
-    document.is_expired = bool(source_document.is_expired)
+    document.file_path = document.view_url
+    document.status_label = _docs_query_document_status_label(document)
+    document.status_class = _docs_query_document_status_class(document)
     return document
 
 
@@ -2413,35 +2398,6 @@ def _prepare_document_display_list(documents):
     for document in documents or []:
         prepared_documents.append(_attach_document_source_context(document))
     return prepared_documents
-
-
-def _get_document(title=None, source_document=None):
-    cleaned_title = (title or "").strip()
-    if source_document is None:
-        source_document = _resolve_docs_query_document(title=cleaned_title)
-
-    if source_document is not None:
-        canonical_title = (
-            source_document.document_title
-            or source_document.filename
-            or source_document.drive_file_id
-        )
-        view_url = _docs_query_view_url(source_document.drive_file_id)
-        return (
-            db.session.query(Document)
-            .filter(
-                or_(
-                    Document.file_path == view_url,
-                    Document.title == canonical_title,
-                )
-            )
-            .first()
-        )
-
-    if not cleaned_title:
-        return None
-
-    return db.session.query(Document).filter_by(title=cleaned_title).first()
 
 
 def _resolve_document_reference(reference=None, title=None):
@@ -2472,8 +2428,8 @@ def _replace_documents_from_references(association_table, association_key, targe
 
     seen_document_ids = set()
     for reference in references or []:
-        source_document, resolved_title = _resolve_document_reference(reference)
-        document = _get_document(resolved_title, source_document=source_document)
+        source_document, _ = _resolve_document_reference(reference)
+        document = source_document
         if document is None or document.id in seen_document_ids:
             continue
         seen_document_ids.add(document.id)
@@ -2545,8 +2501,8 @@ def _list_cash_mng_documents(search_query=None, limit=None):
             "status_label": _docs_query_document_status_label(source_document),
             "status_class": _docs_query_document_status_class(source_document),
             "is_expired": bool(source_document.is_expired),
-            "file_path": _docs_query_download_url(source_document.drive_file_id),
-            "download_url": _docs_query_download_url(source_document.drive_file_id),
+            "file_path": _docs_query_view_url(source_document.drive_file_id),
+            "download_url": _docs_query_view_url(source_document.drive_file_id),
             "view_url": _docs_query_view_url(source_document.drive_file_id),
             "url": _docs_query_view_url(source_document.drive_file_id),
             "document_title": source_document.document_title or source_document.filename or source_document.drive_file_id,
@@ -2559,7 +2515,7 @@ def _download_cash_mng_document(file_id):
     source_document = _resolve_docs_query_document(file_id)
     if source_document is None:
         abort(404)
-    return redirect(_docs_query_download_url(source_document.drive_file_id))
+    return redirect(_docs_query_view_url(source_document.drive_file_id))
 
 
 def _advance_payment_email_enabled():

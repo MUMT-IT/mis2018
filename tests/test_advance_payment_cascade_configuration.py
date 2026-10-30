@@ -27,7 +27,7 @@ class AdvancePaymentCascadeConfigurationTests(unittest.TestCase):
             "petty_cash_claim_items.id",
             "cash_mng_parcel_return_details.id",
             "cash_mng_closing_documents.id",
-            "cash_mng_documents.id",
+            "docs_query_documents.id",
         )
 
         for target in expected_targets:

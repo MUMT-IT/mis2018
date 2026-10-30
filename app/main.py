@@ -2086,7 +2086,6 @@ from app.advance_payment.models import (
     CashManagementNotifications,
     ClosingDocument,
     ClosingDocumentLink,
-    Document,
     FundRequest,
     FundRequestItem,
     ParcelReturnDetail,
@@ -2186,7 +2185,6 @@ admin.add_view(AdvancePaymentStatusAdminModelView(
 
 admin.add_view(BorrowingTicketAdminModelView(CashAdvanceBorrowingTicket, db.session, category='Advance Payment'))
 admin.add_view(ModelView(CashManagementNotifications, db.session, category='Advance Payment'))
-admin.add_view(ModelView(Document, db.session, category='Advance Payment'))
 admin.add_view(ReturnDetailAdminModelView(ReturnDetail, db.session, category='Advance Payment'))
 admin.add_view(ModelView(ReturnReceiptItem, db.session, category='Advance Payment'))
 admin.add_view(ModelView(ReturnProofFile, db.session, category='Advance Payment'))

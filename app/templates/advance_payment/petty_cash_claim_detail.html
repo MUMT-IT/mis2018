@@ -459,8 +459,8 @@
       <i class="bi bi-file-earmark-text text-primary me-2"></i>ประกาศที่เกี่ยวข้อง
     </h3>
     {% if claim_detail.documents %}
-      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="downloadAllAnnouncements()">
-        <i class="bi bi-download me-1"></i> ดาวน์โหลดทั้งหมด
+      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="openAllAnnouncements()">
+        <i class="bi bi-box-arrow-up-right me-1"></i> เปิดเอกสารทั้งหมด
       </button>
     {% endif %}
   </div>
@@ -488,9 +488,8 @@
                     </div>
                   </div>
                   <div>
-                    {% if doc.download_url or doc.url or doc.file_path %}
-                      <a href="{{ doc.download_url or doc.url or doc.file_path }}"
-                         download="{{ doc.title }}.pdf"
+                    {% if doc.url or doc.view_url or doc.file_path %}
+                      <a href="{{ doc.url or doc.view_url or doc.file_path }}"
                          target="_blank" rel="noopener"
                          class="btn btn-sm btn-outline-primary fw-semibold px-3 announcement-download-btn">
                         <i class="bi bi-download me-1"></i> ดาวน์โหลด
@@ -508,21 +507,9 @@
     </div>
 
     <script>
-      function downloadAllAnnouncements() {
-        const downloadButtons = document.querySelectorAll('.announcement-download-btn');
-        if (downloadButtons.length === 0) return;
-
-        downloadButtons.forEach((btn, index) => {
-          setTimeout(() => {
-            const link = document.createElement('a');
-            link.href = btn.getAttribute('href');
-            link.download = btn.getAttribute('download') || 'announcement.pdf';
-            link.target = '_blank';
-            link.rel = 'noopener';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }, index * 400);
+      function openAllAnnouncements() {
+        document.querySelectorAll('.announcement-download-btn').forEach((link) => {
+          window.open(link.href, '_blank', 'noopener');
         });
       }
     </script>
