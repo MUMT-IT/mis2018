@@ -119,7 +119,7 @@
   <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top gap-2">
     <div class="text-start flex-grow-1">
       {% if verification_fund_request.personal_note %}
-        <span class="fw-bold">หมายเหตุส่วนตัว:</span>
+        <span class="fw-bold">หมายเหตุ:</span>
         <span>{{ verification_fund_request.personal_note or '-' }}</span>
       {% endif %}
       {% if not verification_fund_request.approved_at and verification_fund_request.rejection_comment %}
