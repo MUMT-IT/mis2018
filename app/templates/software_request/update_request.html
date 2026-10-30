@@ -506,9 +506,9 @@
                                                     <td>{{ timeline.task }}</td>
                                                     <td>{{ timeline.issue.issue }}</td>
                                                     <td>
-                                                            <span class="tag {{ timeline.status_color }}">
-                                                                {{ timeline.status }}
-                                                            </span>
+                                                        <span class="tag {{ timeline.status_color }}">
+                                                            {{ timeline.status }}
+                                                        </span>
                                                     </td>
                                                     <td>{{ timeline.start|localdate }}</td>
                                                     <td>{{ timeline.estimate|localdate }}</td>
@@ -603,7 +603,7 @@
                                                                     <div class="control">
                                                                         <a class="button is-small is-rounded"
                                                                            hx-swap="innerHTML"
-                                                                           hx-target="#timeline_form"
+                                                                           hx-target="#test_result_form"
                                                                            hx-get="{{ url_for('software_request.create_test_result',
                                                                                    test_result_id=test_result.id, tab=tab) }}"
                                                                         >
