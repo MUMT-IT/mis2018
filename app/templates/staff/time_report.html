@@ -822,6 +822,7 @@
                                 <div class="staff-login-pending-detail">
                                     <strong>{{ 'เวลาเข้า' if request_record.is_checkin else 'เวลากลับ' }}</strong>
                                     · {{ request_record.work_datetime|localdatetime }}
+                                    <small>ผู้อนุมัติ: {{ request_record.approver.fullname if request_record.approver else 'ยังไม่ระบุผู้อนุมัติ' }}</small>
                                     <small>เหตุผล: {{ request_record.reason }}</small>
                                 </div>
                                 <div class="staff-login-pending-actions">
