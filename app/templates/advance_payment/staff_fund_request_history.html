@@ -5,8 +5,10 @@
 {% block content %}
 <header class="mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between">
   <div>
-    <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ระบบเงินสดย่อย</p>
     {% if approval_queue_mode %}
+      <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
+        <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
+      </a>
       <h1 class="fw-bold display-6 mb-2">รายการรออนุมัติ</h1>
       <p class="text-muted mb-0">
         หน่วยงาน: {{ approval_org.name if approval_org else (setting.department_name if setting else '-') }}
@@ -296,15 +298,13 @@
               </td>
               <td class="text-center">
                 <div class="d-flex justify-content-center align-items-center gap-2">
-                  {% if request.status in ['รอการอนุมัติ', 'อนุมัติแล้ว'] or (request.form_type == 'petty_cash' and request.status not in ['ปฏิเสธ', 'ยกเลิก', 'ยกเลิกใบเบิก', 'กำลังดำเนินการ']) %}
                   <div class="d-flex justify-content-center align-items-center gap-1">
                     <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=request.id) }}" 
                       class="btn btn-sm btn-outline-primary">
                       <i class="bi bi-file-earmark-plus"></i>
-                      {% if approval_queue_mode %}ดูรายละเอียด/อนุมัติ{% elif request.status == 'อนุมัติแล้ว' %}บันทึกวันที่เบิก{% elif request.status in ['รอการอนุมัติ', 'ใบเบิกถูกปฏิเสธ'] %}ดูรายละเอียด{% else %}ดูประวัติ/ส่งเบิกเงินสดย่อย{% endif %}
+                      {% if approval_queue_mode %}ดูรายละเอียด/อนุมัติ{% elif request.status == 'อนุมัติแล้ว' %}บันทึกวันที่เบิก{% elif request.form_type == 'petty_cash' and request.status not in ['รอการอนุมัติ', 'ใบเบิกถูกปฏิเสธ'] %}ดูประวัติ/ส่งเบิกเงินสดย่อย{% else %}ดูรายละเอียด{% endif %}
                     </a>
                   </div>
-                  {% endif %}
                 </div>
               </td>
             </tr>

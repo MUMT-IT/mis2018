@@ -7,7 +7,7 @@ import click
 import pandas
 import pandas as pd
 import requests
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import configure_mappers, joinedload
 from flask_principal import Principal, PermissionDenied, Identity
@@ -2081,11 +2081,12 @@ app.register_blueprint(academic_service_payment_blueprint)
 from app.advance_payment import advance_payment as advance_payment_blueprint
 from app.advance_payment.models import (
     BankAccountInfo,
+    AdvancePaymentStatus,
+    CashAdvanceAccountManager,
     CashAdvanceBorrowingTicket,
     CashManagementNotifications,
     ClosingDocument,
     ClosingDocumentLink,
-    Document,
     FundRequest,
     FundRequestItem,
     ParcelReturnDetail,
@@ -2130,22 +2131,75 @@ class FundRequestAdminModelView(ModelView):
     )
 
 
-admin.add_view(ModelView(CashAdvanceBorrowingTicket, db.session, category='Advance Payment'))
+class AdvancePaymentStatusAdminModelView(ModelView):
+    form_excluded_columns = ("id",)
+    column_list = ("id", "status_group", "code", "name")
+
+    def on_model_change(self, form, model, is_created):
+        code = (model.code or "").strip()
+        if (
+            not code
+            or not code.isascii()
+            or not code[0].isalpha()
+            or not code.replace("_", "").isalnum()
+            or code.upper() != code
+        ):
+            raise ValueError("Code ต้องเป็นภาษาอังกฤษตัวใหญ่และ underscore เท่านั้น")
+        model.code = code
+
+
+def _advance_payment_status_choices(status_group):
+    return lambda: (
+        AdvancePaymentStatus.query
+        .filter_by(status_group=status_group)
+        .order_by(AdvancePaymentStatus.code.asc())
+        .all()
+    )
+
+
+class BorrowingTicketAdminModelView(ModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("borrowing_ticket")}}
+
+
+class ReturnDetailAdminModelView(ModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("return_detail")}}
+
+
+class ParcelReturnDetailAdminModelView(ModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("parcel_return")}}
+
+
+class FundRequestStatusFilteredAdminModelView(FundRequestAdminModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("fund_request")}}
+
+
+class PettyCashClaimDetailAdminModelView(ModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("petty_cash_claim")}}
+
+
+admin.add_view(AdvancePaymentStatusAdminModelView(
+    AdvancePaymentStatus,
+    db.session,
+    category='Advance Payment',
+))
+
+
+admin.add_view(BorrowingTicketAdminModelView(CashAdvanceBorrowingTicket, db.session, category='Advance Payment'))
 admin.add_view(ModelView(CashManagementNotifications, db.session, category='Advance Payment'))
-admin.add_view(ModelView(Document, db.session, category='Advance Payment'))
-admin.add_view(ModelView(ReturnDetail, db.session, category='Advance Payment'))
+admin.add_view(ReturnDetailAdminModelView(ReturnDetail, db.session, category='Advance Payment'))
 admin.add_view(ModelView(ReturnReceiptItem, db.session, category='Advance Payment'))
 admin.add_view(ModelView(ReturnProofFile, db.session, category='Advance Payment'))
-admin.add_view(ModelView(ParcelReturnDetail, db.session, category='Advance Payment'))
+admin.add_view(ParcelReturnDetailAdminModelView(ParcelReturnDetail, db.session, category='Advance Payment'))
 admin.add_view(ModelView(ClosingDocument, db.session, category='Advance Payment'))
 admin.add_view(ModelView(ClosingDocumentLink, db.session, category='Advance Payment'))
 admin.add_view(ModelView(PettyCashSetting, db.session, category='Advance Payment'))
 admin.add_view(ModelView(PettyCashFiscalYearCarryover, db.session, category='Advance Payment'))
 admin.add_view(ModelView(PettyCashFiscalYearTopUpTransfer, db.session, category='Advance Payment'))
 admin.add_view(ModelView(BankAccountInfo, db.session, category='Advance Payment'))
-admin.add_view(FundRequestAdminModelView(FundRequest, db.session, category='Advance Payment'))
+admin.add_view(ModelView(CashAdvanceAccountManager, db.session, category='Advance Payment'))
+admin.add_view(FundRequestStatusFilteredAdminModelView(FundRequest, db.session, category='Advance Payment'))
 admin.add_view(ModelView(FundRequestItem, db.session, category='Advance Payment'))
-admin.add_view(ModelView(PettyCashClaimDetail, db.session, category='Advance Payment'))
+admin.add_view(PettyCashClaimDetailAdminModelView(PettyCashClaimDetail, db.session, category='Advance Payment'))
 admin.add_view(ModelView(PettyCashClaimItem, db.session, category='Advance Payment'))
 admin.add_view(ModelView(PettyCashClaimProofFile, db.session, category='Advance Payment'))
 
