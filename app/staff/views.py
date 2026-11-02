@@ -6151,6 +6151,20 @@ def seminar_records():
         df.to_excel('attend_summary.xlsx', index=False, columns=columns)
         return send_from_directory(os.getcwd(), 'attend_summary.xlsx')
     else:
+        current_fiscal_year = convert_to_fiscal_year(date.today())
+        default_start_date = date(current_fiscal_year - 2, 10, 1)
+        default_end_date = date(current_fiscal_year, 9, 30)
+        try:
+            start_date = date.fromisoformat(request.args.get('start_date', ''))
+        except ValueError:
+            start_date = default_start_date
+        try:
+            end_date = date.fromisoformat(request.args.get('end_date', ''))
+        except ValueError:
+            end_date = default_end_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
         seminar_list = []
         seminar_query = db.session.query(StaffSeminar). \
             outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
@@ -6158,7 +6172,9 @@ def seminar_records():
                       staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
             outerjoin(StaffSeminarMission,
                       StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
-            filter(StaffSeminar.cancelled_at == None).all()
+            filter(StaffSeminar.cancelled_at == None,
+                   func.date(func.coalesce(StaffSeminar.end_datetime, StaffSeminar.start_datetime)) >= start_date,
+                   func.date(StaffSeminar.start_datetime) <= end_date).all()
         for seminar in seminar_query:
             record = {}
             record["id"] = seminar.id
@@ -6178,7 +6194,8 @@ def seminar_records():
 
             record["missions"] = missions
             seminar_list.append(record)
-        return render_template('staff/seminar_records.html', seminar_list=seminar_list)
+        return render_template('staff/seminar_records.html', seminar_list=seminar_list,
+                               start_date=start_date.isoformat(), end_date=end_date.isoformat())
 
 
 def _get_seminar_idp(staff_account_id, seminar):
@@ -6918,24 +6935,19 @@ def seminar_proposal():
 @login_required
 def seminar_add_attendee(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
-    staff_list = []
-    account_query = StaffAccount.query.all()
-    for account in account_query:
-        record = dict(staffid=account.id,
-                      fullname=account.personal_info.fullname,
-                      email=account.email)
-        organization = account.personal_info.org
-        record["org"] = organization.name if organization else ""
-        staff_list.append(record)
     if request.method == "POST":
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
         # objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
         # mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
-        for staff_id in form.getlist("participants"):
+        for personal_info_id in form.getlist("participants"):
+            personal_info = StaffPersonalInfo.query.get(personal_info_id)
+            account = personal_info.staff_account if personal_info else None
+            if not account:
+                continue
             attend = StaffSeminarAttend(
-                staff_account_id=staff_id,
+                staff_account_id=account.id,
                 seminar_id=seminar_id,
                 role=form.get('role'),
                 registration_fee=form.get('registration_fee') if form.get("registration_fee") else 0,
@@ -6958,7 +6970,7 @@ def seminar_add_attendee(seminar_id):
             db.session.commit()
         flash('เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar_id))
-    return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
+    return render_template('staff/seminar_add_attendee.html', seminar=seminar)
 
 
 @staff.route('/seminar/seminar-attend/<int:attend_id>')

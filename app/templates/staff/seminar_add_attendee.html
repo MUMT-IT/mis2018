@@ -3,7 +3,7 @@
 
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block page_content %}
@@ -30,13 +30,15 @@
                     <div class="field">
                         <b-field label="บทบาทในการประชุม/อบรม">
                             <b-select placeholder="เลือกประเภท" name="role" required>
-                                <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
                                 <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
+                                <option value="ศึกษาดูงาน">ศึกษาดูงาน</option>
+                                <option value="ปฏิบัติงานนอกสถานที่">ปฏิบัติงานนอกสถานที่</option>
+                                {#<option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
                                 <option value="ที่ปรึกษา">ที่ปรึกษา</option>
                                 <option value="วิทยากร">วิทยากร</option>
                                 <option value="กรรมการ">กรรมการ</option>
                                 <option value="นิเทศน์งาน">นิเทศน์งาน</option>
-                                <option value="ราชการ">ราชการ</option>
+                                <option value="ราชการ">ราชการ</option>#}
                             </b-select>
                         </b-field>
 {#                        <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">#}
@@ -102,13 +104,13 @@
                                 <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
                             </div>
                         </div>
-                        <b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
+                        {#<b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget_type"
                                      icon-pack="far"
                                      icon="comment">
                             </b-input>
-                        </b-field>
+                        </b-field>#}
                         <b-field label="ค่าลงทะเบียน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="registration_fee"
@@ -184,33 +186,9 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                    <label class="label">รายชื่อผู้เข้าร่วม</label>
-                    <table class="table is-striped" id="seminarTable">
-                        <thead>
-                        <th>เลือก</th>
-                        <th>อีเมล</th>
-                        <th>สังกัด</th>
-                        </thead>
-                        <tbody>
-                        {% for record in staff_list %}
-                        <tr>
-                            <td>
-                                <b-field>
-                                    <b-checkbox v-model="participants" native-value="{{ record['staffid'] }}" name="participants">
-                                        {{ record["fullname"] }}
-                                    </b-checkbox>
-                                </b-field>
-                            </td>
-                            <td>
-                                {{ record["email"] }}
-                            </td>
-                            <td>
-                                {{ record["org"] }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
+                    <label class="label" for="participants">รายชื่อผู้เข้าร่วม</label>
+                    <select class="js-staff-select" id="participants" name="participants" multiple="multiple"
+                            style="width:100%" required></select>
                 </div>
             </div>
             <div class="columns">
@@ -232,9 +210,17 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $(document).ready(function(){
-        $('#seminarTable').DataTable();
+    $(document).ready(function () {
+        $('.js-staff-select').select2({
+            width: '100%',
+            placeholder: 'พิมพ์ค้นหาชื่อบุคลากร',
+            ajax: {
+                url: "{{ url_for('staff.get_all_employees') }}",
+                dataType: 'json'
+            }
+        });
     });
 </script>
 <script>
