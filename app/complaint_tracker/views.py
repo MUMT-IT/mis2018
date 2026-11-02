@@ -3597,7 +3597,7 @@ def generate_repair_approval_pdf(repair_approval):
                         data.append(Paragraph(committee_name, style=content_style))
                         count = 2
                         for c in committee_members:
-                            if c.committee_position == "ประธาน":
+                            if c.committee_position == "ประธาน" or c.committee_position == "ประธานกรรมการ":
                                 para = f'<para leftIndent=35>1) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
                                 data.append(Paragraph(para, style=content_style))
                         for c in committee_members:
@@ -3610,7 +3610,7 @@ def generate_repair_approval_pdf(repair_approval):
                 data.append(Paragraph(committee_title, style=content_style))
                 count = 2
                 for c in repair_approval.committees:
-                    if c.committee_position == "ประธาน":
+                    if c.committee_position == "ประธาน" or c.committee_position == "ประธานกรรมการ":
                         committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
                                      .format(committee=c.staff.fullname, position=c.position,
                                              committee_position=c.committee_position))
@@ -3636,7 +3636,7 @@ def generate_repair_approval_pdf(repair_approval):
                     count += 1
                     data.append(Paragraph(committee, style=content_style))
     if (repair_approval.repair_type == 'เร่งด่วน' and repair_approval.remark) or repair_approval.principle_approval_type == 'ซื้อ' \
-            or repair_approval.principle_approval_type == 'จ้าง' or repair_approval.repair_type == 'จ้างซ่อม':
+            or repair_approval.principle_approval_type == 'จ้าง' or repair_approval.repair_type == 'จ้างซ่พม':
         data.append(Paragraph(remark, style=text_style))
     description_parts = [
         part + '</para>'
