@@ -162,7 +162,7 @@
                       <td>
                         <input type="file" name="proof_files_{{ row_index }}[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm" {% if row_index == 0 and not item.proof_files %}required{% endif %}>
                         {% for proof_file in item.proof_files %}
-                          <div class="small text-muted mt-1">
+                          <div class="small text-muted mt-1 receipt-proof-reference">
                             <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
                             <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
                             ไฟล์เดิม: <a href="{{ proof_file.proof_reference|advance_payment_file_url }}" target="_blank">{{ proof_file.filename }}</a>
@@ -381,7 +381,9 @@
             </button>
           </div>
           {% if not return_edit_detail|default(none) %}
-          <div class="col-12 text-end" id="autoSaveStatus_{{ borrowing_ticket.id }}" role="status" aria-live="polite"></div>
+          <div class="col-12 text-end text-danger small d-none" id="returnDraftDateError_{{ borrowing_ticket.id }}" role="alert">
+            กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่าง
+          </div>
           {% endif %}
         </div>
       </form>
@@ -533,6 +535,7 @@
       const form = document.getElementById(`returnForm_${ticketId}`);
       clearTimeout(autoSaveTimers.get(String(ticketId)));
       document.getElementById(`action_${ticketId}`).value = type;
+      form.noValidate = type === 'draft';
 
       if (type === 'draft') {
         const parcelFields = Array.from(form.querySelectorAll('.parcel-return-input'));
@@ -559,10 +562,10 @@
           await (autoSaveQueues.get(String(ticketId)) || Promise.resolve());
           await refreshReturnCsrf(ticketId);
         } catch (error) {
-          showAutoSaveStatus(ticketId, 'error', '', error.message);
+          showReturnSaveError(error.message);
           return;
         }
-        form.submit();
+        form.requestSubmit();
         return;
       }
 
@@ -662,13 +665,13 @@
           await (autoSaveQueues.get(String(ticketId)) || Promise.resolve());
           await refreshReturnCsrf(ticketId);
         } catch (error) {
-          showAutoSaveStatus(ticketId, 'error', '', error.message);
+          showReturnSaveError(error.message);
           return;
         }
         form.querySelectorAll(".item-amount-input, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input").forEach(input => {
           input.value = input.value.replace(/,/g, "");
         });
-        form.submit();
+        form.requestSubmit();
       } else {
         const firstInvalidField = form.querySelector('.is-invalid, :invalid');
         const collapsedSection = firstInvalidField?.closest('.collapse');
@@ -720,7 +723,7 @@
       calculateTotalSpent(ticketId);
       if (persist && !document.getElementById(`returnForm_${ticketId}`)?.querySelector('[name="edit_return_id"]')) {
         clearTimeout(autoSaveTimers.get(String(ticketId)));
-        autoSaveDraft(ticketId);
+        autoSaveDraft(ticketId, true);
       }
     }
 
@@ -922,6 +925,24 @@
     const autoSaveTimers = new Map();
     const autoSaveQueues = new Map();
 
+    function showReturnDraftDateError(ticketId, visible) {
+      document.getElementById(`returnDraftDateError_${ticketId}`)?.classList.toggle('d-none', !visible);
+    }
+
+    function showReturnSaveError(message) {
+      if (typeof window.openAppPopup === 'function') {
+        window.openAppPopup({
+          title: 'ไม่สามารถบันทึกข้อมูลได้',
+          message: message || 'กรุณาลองใหม่อีกครั้ง',
+          confirmText: 'ตกลง',
+          confirmClass: 'btn-danger',
+          alertOnly: true,
+        });
+      } else {
+        window.alert(message || 'ไม่สามารถบันทึกข้อมูลได้');
+      }
+    }
+
     async function refreshReturnCsrf(ticketId) {
       const response = await fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
         credentials: 'same-origin'
@@ -932,7 +953,7 @@
       return data.csrf_token;
     }
 
-    function autoSaveDraft(ticketId) {
+    function autoSaveDraft(ticketId, includeFiles = false) {
       const form = document.getElementById(`returnForm_${ticketId}`);
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
       if (!tbody || !form || form.querySelector('[name="edit_return_id"]')) return Promise.resolve();
@@ -940,8 +961,8 @@
       const key = String(ticketId);
       const save = async () => {
       const rows = Array.from(tbody.querySelectorAll('tr'));
-      const rowIsEmpty = row => !Array.from(row.querySelectorAll('input:not([type="hidden"]):not([type="file"]), textarea'))
-        .some(input => input.value.trim());
+      const rowIsEmpty = row => !Array.from(row.querySelectorAll('input:not([type="hidden"]), textarea'))
+        .some(input => input.type === 'file' ? includeFiles && input.files.length : input.value.trim());
       while (rows.length && rowIsEmpty(rows[rows.length - 1])) rows.pop();
 
       const items = rows.map(row => ({
@@ -951,9 +972,10 @@
         amount: row.querySelector('.item-amount-input')?.value.replace(/,/g, '') || '0'
       }));
       if (items.some(item => !item.receipt_date)) {
-        showAutoSaveStatus(ticketId, 'error', '', 'กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่างอัตโนมัติ');
+        showReturnDraftDateError(ticketId, true);
         return;
       }
+      showReturnDraftDateError(ticketId, false);
 
       const cashDate = window.appDateToISO(form.querySelector('input[name="cash_return_date"]')?.value || '');
       const cashAmount = form.querySelector('input[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
@@ -966,23 +988,62 @@
         if (title || docId) announcements.push({ id: docId, title: title });
       });
 
-      showAutoSaveStatus(ticketId, 'saving');
       const note = form.querySelector('[name="note"]')?.value.trim() || '';
       const payload = { items, cash_return: { receipt_date: cashDate, amount: cashAmount }, announcements, note };
+      const uploads = rows.map((row, index) => {
+        const input = row.querySelector(`input[name="proof_files_${index}[]"]`);
+        return { row, input, files: includeFiles ? Array.from(input?.files || []) : [] };
+      });
+      const hasFiles = uploads.some(upload => upload.files.length);
+      const body = hasFiles ? new FormData() : JSON.stringify(payload);
+      if (hasFiles) {
+        body.append('payload', JSON.stringify(payload));
+        uploads.forEach((upload, index) => upload.files.forEach(file => body.append(`proof_files_${index}[]`, file)));
+      }
       const csrfToken = await refreshReturnCsrf(ticketId);
       const res = await fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        headers: hasFiles ? { 'X-CSRFToken': csrfToken } : { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
         credentials: 'same-origin',
-        body: JSON.stringify(payload)
+        body
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.message || `Auto-save failed (HTTP ${res.status})`);
-      showAutoSaveStatus(ticketId, 'saved', data.saved_at);
+      uploads.forEach((upload, index) => {
+        if (!upload.files.length || !upload.row.isConnected) return;
+        const savedProofs = data.proof_files?.[index] || [];
+        if (!savedProofs.length) return;
+        const parent = upload.input.parentElement;
+        parent.querySelectorAll('.receipt-proof-reference').forEach(reference => reference.remove());
+        savedProofs.forEach(proof => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'small text-muted mt-1 receipt-proof-reference';
+          for (const [name, value] of [
+            [`existing_proof_files_${index}[]`, proof.proof_reference],
+            [`existing_proof_filenames_${index}[]`, proof.filename]
+          ]) {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = name;
+            hidden.value = value;
+            wrapper.appendChild(hidden);
+          }
+          wrapper.append('ไฟล์เดิม: ');
+          const link = document.createElement('a');
+          link.href = proof.url;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.textContent = proof.filename;
+          wrapper.appendChild(link);
+          parent.appendChild(wrapper);
+        });
+        if (upload.files.every((file, fileIndex) => upload.input.files[fileIndex] === file)) upload.input.value = '';
+      });
+      updateReceiptFileIndices(ticketId);
       };
       const queued = (autoSaveQueues.get(key) || Promise.resolve()).then(save, save).catch(err => {
         console.error('Auto-save error:', err);
-        showAutoSaveStatus(ticketId, 'error', '', err.message);
+        if (includeFiles) showReturnSaveError(err.message);
       });
       autoSaveQueues.set(key, queued);
       return queued;
@@ -990,26 +1051,9 @@
 
     function triggerAutoSave(ticketId) {
       if (document.getElementById(`returnForm_${ticketId}`)?.querySelector('[name="edit_return_id"]')) return;
-      showAutoSaveStatus(ticketId, 'typing');
       const key = String(ticketId);
       clearTimeout(autoSaveTimers.get(key));
       autoSaveTimers.set(key, setTimeout(() => autoSaveDraft(ticketId), 1500));
-    }
-
-    function showAutoSaveStatus(ticketId, state, timeStr = '', errorMessage = '') {
-      const statusEl = document.getElementById(`autoSaveStatus_${ticketId}`);
-      if (!statusEl) return;
-      statusEl.className = 'col-12 text-end';
-      if (state === 'typing') {
-        statusEl.innerHTML = `<span class="text-muted small"><i class="bi bi-pencil me-1"></i>กำลังพิมพ์...</span>`;
-      } else if (state === 'saving') {
-        statusEl.innerHTML = `<span class="text-warning small"><i class="bi bi-cloud-upload me-1"></i>กำลังบันทึกร่างอัตโนมัติ...</span>`;
-      } else if (state === 'saved') {
-        statusEl.innerHTML = `<span class="text-success small"><i class="bi bi-cloud-check me-1"></i>บันทึกร่างแล้วเมื่อ ${timeStr}</span>`;
-      } else if (state === 'error') {
-        statusEl.textContent = errorMessage || 'บันทึกร่างอัตโนมัติไม่สำเร็จ';
-        statusEl.className = 'text-danger small';
-      }
     }
 
     function bindAutoSaveEvents(ticketId) {

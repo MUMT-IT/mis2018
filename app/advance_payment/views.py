@@ -1,4 +1,5 @@
 import os
+import json
 import uuid
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -4216,12 +4217,12 @@ def _is_return_amount_limit_exempt(is_cash):
     return is_cash is True
 
 
-def _proof_file_validation_error(row_count, *, is_draft):
+def _proof_file_validation_error(row_count, *, is_draft, row_indices=None):
     """Validate the one-proof-file-per-row rule before saving receipt rows."""
     legacy_files = request.files.getlist("proof_file[]")
     legacy_existing_paths = request.form.getlist("existing_proof_files[]")
 
-    for index in range(row_count):
+    for position, index in enumerate(row_indices if row_indices is not None else range(row_count)):
         uploaded_files = request.files.getlist(f"proof_files_{index}[]")
         if not uploaded_files and index < len(legacy_files):
             uploaded_files = [legacy_files[index]]
@@ -4235,7 +4236,7 @@ def _proof_file_validation_error(row_count, *, is_draft):
             existing_paths = [legacy_existing_paths[index]] if legacy_existing_paths[index] else []
         existing_paths = [path for path in existing_paths if path]
 
-        if not is_draft and index == 0 and not uploaded_files and not existing_paths:
+        if not is_draft and position == 0 and not uploaded_files and not existing_paths:
             return "กรุณาแนบไฟล์หลักฐานในแถวแรกก่อนส่งข้อมูล"
 
     return None
@@ -6704,6 +6705,10 @@ def submit_return_details():
         for values in (receipt_dates, store_names, descriptions, amounts)
         for value in values
         if value
+    ) or any(
+        any(file and file.filename for file in request.files.getlist(f"proof_files_{index}[]"))
+        or any(request.form.getlist(f"existing_proof_files_{index}[]"))
+        for index in range(len(receipt_dates))
     )
     if edit_return_detail is not None:
         edit_is_cash = _return_detail_is_cash(edit_return_detail)
@@ -6809,12 +6814,22 @@ def submit_return_details():
 
     for i in range(len(receipt_dates)):
         r_date_raw = receipt_dates[i]
+        description = descriptions[i].strip() if i < len(descriptions) else ""
+        store_name = store_names[i].strip() if i < len(store_names) else ""
+        amount_raw = amounts[i].strip() if i < len(amounts) else ""
+        has_row_proof = any(
+            file and file.filename for file in request.files.getlist(f"proof_files_{i}[]")
+        ) or any(request.form.getlist(f"existing_proof_files_{i}[]"))
+        if is_draft and not any((r_date_raw.strip(), store_name, description, amount_raw, has_row_proof)):
+            continue
         r_date = _coerce_date(r_date_raw) if r_date_raw else None
+        if is_draft and not r_date:
+            return _validation_error_response(f"รายการที่ {i + 1} กรุณาระบุวันที่ใบเสร็จให้ถูกต้องก่อนบันทึกร่าง")
         if not is_draft and not r_date:
             return _validation_error_response("ทุกแถวของรายการใบเสร็จต้องระบุวันที่ที่ถูกต้อง")
 
         try:
-            amt = float((amounts[i] or "0").replace(",", "")) if i < len(amounts) else 0.0
+            amt = float((amount_raw or "0").replace(",", ""))
             if amt < 0:
                 raise ValueError
         except (TypeError, ValueError):
@@ -6822,8 +6837,6 @@ def submit_return_details():
                 return _validation_error_response("ทุกแถวของรายการใบเสร็จต้องระบุจำนวนเงินที่ถูกต้อง")
             amt = 0.0
 
-        description = descriptions[i].strip() if i < len(descriptions) else ""
-        store_name = store_names[i].strip() if i < len(store_names) else ""
         if not is_draft and (not store_name or not description):
             return _validation_error_response(
                 f"รายการที่ {i + 1} ต้องระบุชื่อร้านค้าและรายละเอียดรายการให้ครบถ้วน"
@@ -6837,6 +6850,7 @@ def submit_return_details():
         total_amount_spent += amt
         parsed_rows.append(
             {
+                "source_index": i,
                 "receipt_date": r_date,
                 "store_name": store_name,
                 "description": description,
@@ -6844,9 +6858,16 @@ def submit_return_details():
             }
         )
 
-    proof_file_error = _proof_file_validation_error(len(parsed_rows), is_draft=is_draft)
+    proof_file_error = _proof_file_validation_error(
+        len(parsed_rows),
+        is_draft=is_draft,
+        row_indices=[row["source_index"] for row in parsed_rows],
+    )
     if proof_file_error:
         return _validation_error_response(proof_file_error)
+
+    if is_draft and not parsed_rows and parcel_amount is None and circular_amount is None and cash_return_date is None:
+        return _validation_error_response("ยังไม่มีข้อมูลที่บันทึกเป็นฉบับร่างได้ กรุณากรอกรายการและวันที่ก่อน")
 
     if not is_draft:
         ticket_totals = _calculate_return_submission_totals(
@@ -6903,7 +6924,8 @@ def submit_return_details():
     legacy_existing_file_paths = request.form.getlist("existing_proof_files[]")
     legacy_existing_file_names = request.form.getlist("existing_proof_filenames[]")
 
-    for i, row in enumerate(parsed_rows):
+    for row in parsed_rows:
+        i = row["source_index"]
         receipt_obj = ReturnReceiptItem(
             return_detail_id=return_detail.id,
             receipt_date=row["receipt_date"],
@@ -6939,7 +6961,10 @@ def submit_return_details():
 
         existing_file_paths = request.form.getlist(f"existing_proof_files_{i}[]")
         existing_file_names = request.form.getlist(f"existing_proof_filenames_{i}[]")
-        if not existing_file_paths and i < len(legacy_existing_file_paths):
+        if any(file_storage and file_storage.filename for file_storage in uploaded_files):
+            existing_file_paths = []
+            existing_file_names = []
+        elif not existing_file_paths and i < len(legacy_existing_file_paths):
             existing_file_paths = [legacy_existing_file_paths[i]] if legacy_existing_file_paths[i] else []
             existing_file_names = [legacy_existing_file_names[i] if i < len(legacy_existing_file_names) else "receipt"]
         for file_index, existing_file_path in enumerate(existing_file_paths):
@@ -7087,6 +7112,8 @@ def submit_return_details():
     if edit_return_detail is not None:
         flash("แก้ไขข้อมูลแล้ว กรุณาตรวจสอบและกดยืนยันการแก้ไขเพื่อส่งกลับไปตรวจสอบ", "success")
     elif is_draft:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"ok": True, "success": True})
         flash("บันทึกฉบับร่างเรียบร้อยแล้ว", "success")
         return redirect(url_for("advance_payment.verification_view", ticket_id=ticket_id))
     else:
@@ -7439,12 +7466,21 @@ def autosave_return_draft(ticket_id):
     if request.method == "GET":
         return jsonify({"csrf_token": generate_csrf()})
 
-    data = request.get_json(silent=True) or {}
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+    else:
+        try:
+            data = json.loads(request.form.get("payload", "{}"))
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "ข้อมูลร่างไม่ถูกต้อง"}), 400
     if not isinstance(data, dict):
         return jsonify({"success": False, "message": "ข้อมูลร่างไม่ถูกต้อง"}), 400
     items = data.get("items", [])
     if not isinstance(items, list) or any(not isinstance(item, dict) or _coerce_date(item.get("receipt_date")) is None for item in items):
-        return jsonify({"success": False, "message": "กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่างอัตโนมัติ"}), 400
+        return jsonify({"success": False, "message": "กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่าง"}), 400
+    for index in range(len(items)):
+        if sum(bool(file and file.filename) for file in request.files.getlist(f"proof_files_{index}[]")) > 1:
+            return jsonify({"success": False, "message": f"แถวที่ {index + 1} แนบไฟล์หลักฐานได้ไม่เกิน 1 ไฟล์"}), 400
     cash_return = data.get("cash_return") or {}
     announcements = data.get("announcements", [])  # <--- 1. รับค่าประกาศเพิ่มจาก JSON
     note = (data.get("note") or "").strip() or None
@@ -7483,6 +7519,7 @@ def autosave_return_draft(ticket_id):
     # บันทึกรายการใบเสร็จใหม่
     existing_items = list(return_detail.receipt_items)
     total_amount_spent = 0.0
+    saved_proof_files = []
     for index, item in enumerate(items):
         r_date = _coerce_date(item.get("receipt_date"))
         try:
@@ -7500,6 +7537,31 @@ def autosave_return_draft(ticket_id):
         receipt_obj.amount = amt
         if index >= len(existing_items):
             db.session.add(receipt_obj)
+            db.session.flush()
+        uploaded_files = [
+            uploaded_file for uploaded_file in request.files.getlist(f"proof_files_{index}[]")
+            if uploaded_file and uploaded_file.filename
+        ]
+        row_proofs = []
+        for uploaded_file in uploaded_files:
+            filename = os.path.basename(uploaded_file.filename)
+            proof_reference = _store_uploaded_file(uploaded_file, str(ticket_id))
+            row_proofs.append({
+                "proof_reference": proof_reference,
+                "filename": filename,
+                "url": advance_payment_file_url(proof_reference),
+            })
+        if row_proofs:
+            db.session.query(ReturnProofFile).filter_by(return_receipt_item_id=receipt_obj.id).delete()
+            for proof in row_proofs:
+                db.session.add(ReturnProofFile(
+                    return_detail_id=return_detail.id,
+                    return_receipt_item_id=receipt_obj.id,
+                    proof_reference=proof["proof_reference"],
+                    filename=proof["filename"],
+                    created_at=datetime.now(),
+                ))
+        saved_proof_files.append(row_proofs)
     for old_item in existing_items[len(items):]:
         db.session.delete(old_item)
     return_detail.amount_spent = total_amount_spent
@@ -7541,7 +7603,7 @@ def autosave_return_draft(ticket_id):
     db.session.commit()
 
     saved_time = datetime.now().strftime("%H:%M:%S")
-    return jsonify({"success": True, "saved_at": saved_time})
+    return jsonify({"success": True, "saved_at": saved_time, "proof_files": saved_proof_files})
 
 @bp.route("/finance/returns/<int:return_id>/proofed", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -10732,15 +10794,33 @@ CATEGORY_CHOICES = {
 }
 
 
-@bp.route("/coordinator/petty-cash-claim/autosave-draft", methods=["POST"], endpoint="coordinator_petty_cash_claim_autosave_draft")
-@bp.route("/borrower/petty-cash-claim/autosave-draft", methods=["POST"], endpoint="borrower_petty_cash_claim_autosave_draft")
+@bp.route("/coordinator/petty-cash-claim/autosave-draft", methods=["GET", "POST"], endpoint="coordinator_petty_cash_claim_autosave_draft")
+@bp.route("/borrower/petty-cash-claim/autosave-draft", methods=["GET", "POST"], endpoint="borrower_petty_cash_claim_autosave_draft")
 @module_system_required({PETTY_CASH_SYSTEM, FINANCE_SYSTEM})
 def autosave_petty_cash_claim_draft():
     user_id = _current_user_id()
-    data = request.get_json() or {}
+    if request.method == "GET":
+        return jsonify({"csrf_token": generate_csrf()})
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+    else:
+        try:
+            data = json.loads(request.form.get("payload", "{}"))
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "ข้อมูลร่างไม่ถูกต้อง"}), 400
+    if not isinstance(data, dict):
+        return jsonify({"success": False, "message": "ข้อมูลร่างไม่ถูกต้อง"}), 400
     
     fund_request_id = data.get("fund_request_id")
     items = data.get("items", [])
+    if not isinstance(items, list) or any(
+        not isinstance(item, dict) or _coerce_date(item.get("receipt_date")) is None
+        for item in items
+    ):
+        return jsonify({"success": False, "message": "กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่าง"}), 400
+    for index in range(len(items)):
+        if sum(bool(file and file.filename) for file in request.files.getlist(f"proof_files_{index}[]")) > 1:
+            return jsonify({"success": False, "message": f"แถวที่ {index + 1} แนบไฟล์หลักฐานได้ไม่เกิน 1 ไฟล์"}), 400
     cash_return = data.get("cash_return") or {}
     announcements = data.get("announcements", [])
     reference_number = (data.get("reference_number") or "").strip()
@@ -10882,6 +10962,7 @@ def autosave_petty_cash_claim_draft():
         ))
 
     existing_items = list(claim_detail.items)
+    saved_proof_files = []
     for index, (r_date, description, category_type, amount) in enumerate(desired_items):
         claim_item = existing_items[index] if index < len(existing_items) else PettyCashClaimItem(
             claim_id=claim_detail.id
@@ -10892,6 +10973,29 @@ def autosave_petty_cash_claim_draft():
         claim_item.amount = amount
         if index >= len(existing_items):
             db.session.add(claim_item)
+            db.session.flush()
+        row_proofs = []
+        for uploaded_file in request.files.getlist(f"proof_files_{index}[]"):
+            if not uploaded_file or not uploaded_file.filename:
+                continue
+            filename = os.path.basename(uploaded_file.filename)
+            proof_reference = _store_uploaded_file(uploaded_file, f"petty_cash/{user_id}")
+            row_proofs.append({
+                "proof_reference": proof_reference,
+                "filename": filename,
+                "url": advance_payment_file_url(proof_reference),
+            })
+        if row_proofs:
+            db.session.query(PettyCashClaimProofFile).filter_by(claim_item_id=claim_item.id).delete()
+            for proof in row_proofs:
+                db.session.add(PettyCashClaimProofFile(
+                    claim_id=claim_detail.id,
+                    claim_item_id=claim_item.id,
+                    proof_reference=proof["proof_reference"],
+                    filename=proof["filename"],
+                    created_at=datetime.now(),
+                ))
+        saved_proof_files.append(row_proofs)
     for old_item in existing_items[len(desired_items):]:
         db.session.delete(old_item)
 
@@ -10947,7 +11051,8 @@ def autosave_petty_cash_claim_draft():
     return jsonify({
         "success": True, 
         "saved_at": saved_time, 
-        "claim_id": claim_detail.id
+        "claim_id": claim_detail.id,
+        "proof_files": saved_proof_files,
     })
 
 @bp.route("/staff/petty-cash/claim", methods=["GET", "POST"])
@@ -11373,6 +11478,8 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 )
         elif is_draft and has_cash_return_data:
             cash_return_date = _coerce_date(cash_return_date_raw) if cash_return_date_raw else None
+            if cash_return_date is None:
+                return _validation_error_response("กรุณาระบุวันที่โอนเงินก่อนบันทึกร่าง")
             try:
                 cash_return_amount = float(cash_return_amount_raw or 0)
             except (TypeError, ValueError):
@@ -11461,6 +11568,8 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     reuse_draft=not is_draft,
                 )
             db.session.commit()
+            if is_draft and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"ok": True, "success": True, "draft_saved": True})
             flash(
                 "บันทึกฉบับร่างเรียบร้อยแล้ว" if is_draft else "บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว",
                 "success",
@@ -11475,7 +11584,16 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         old_receipt_count = 0
 
         for i in range(len(receipt_dates)):
+            description_raw = (descriptions[i] or "").strip() if i < len(descriptions) else ""
+            amount_raw = (amounts[i] or "").strip() if i < len(amounts) else ""
+            has_row_proof = any(
+                file and file.filename for file in request.files.getlist(f"proof_files_{i}[]")
+            ) or any(request.form.getlist(f"existing_proof_files_{i}[]"))
+            if is_draft and not any((receipt_dates[i].strip(), description_raw, amount_raw, has_row_proof)):
+                continue
             r_date = _coerce_date(receipt_dates[i]) if i < len(receipt_dates) and receipt_dates[i] else None
+            if is_draft and not r_date:
+                return _validation_error_response(f"รายการที่ {i + 1} กรุณาระบุวันที่ใบเสร็จให้ถูกต้องก่อนบันทึกร่าง")
             cat_val_str = str(category_types[i]).strip() if i < len(category_types) and category_types[i] else "1"
             cat_val_int = int(cat_val_str) if cat_val_str.isdigit() else 1
 
@@ -11511,6 +11629,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
 
             parsed_items.append(
                 {
+                    "source_index": i,
                     "receipt_date": r_date,
                     "description": item_desc,
                     "category_type": cat_val_int,
@@ -11530,7 +11649,11 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 ),
             )
 
-        proof_file_error = _proof_file_validation_error(len(parsed_items), is_draft=is_draft)
+        proof_file_error = _proof_file_validation_error(
+            len(parsed_items),
+            is_draft=is_draft,
+            row_indices=[item["source_index"] for item in parsed_items],
+        )
         if proof_file_error:
             return _validation_redirect_response(
                 proof_file_error,
@@ -11649,7 +11772,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             claim_detail.created_at = submitted_at.replace(tzinfo=None)
         db.session.flush()
 
-        for i, item_data in enumerate(parsed_items):
+        saved_claim_items = []
+        for item_data in parsed_items:
+            i = item_data["source_index"]
             item = PettyCashClaimItem(
                 claim_id=claim_detail.id,
                 receipt_date=item_data["receipt_date"],
@@ -11659,6 +11784,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             )
             db.session.add(item)
             db.session.flush()
+            saved_claim_items.append((i, item.id))
 
             uploaded_files = request.files.getlist(f"proof_files_{i}[]")
             if not uploaded_files and i < len(legacy_uploaded_files):
@@ -11684,7 +11810,10 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
 
             existing_file_paths = request.form.getlist(f"existing_proof_files_{i}[]")
             existing_file_names = request.form.getlist(f"existing_proof_filenames_{i}[]")
-            if not existing_file_paths and i < len(legacy_existing_file_paths):
+            if any(file_storage and file_storage.filename for file_storage in uploaded_files):
+                existing_file_paths = []
+                existing_file_names = []
+            elif not existing_file_paths and i < len(legacy_existing_file_paths):
                 existing_file_paths = [legacy_existing_file_paths[i]] if legacy_existing_file_paths[i] else []
                 existing_file_names = [legacy_existing_file_names[i] if i < len(legacy_existing_file_names) else "receipt"]
             for file_index, existing_file_path in enumerate(existing_file_paths):
@@ -11698,6 +11827,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     )
                     db.session.add(proof_file_record)
 
+        cash_item = None
         if has_cash_return_data and cash_return_date is not None:
             cash_claim_detail = claim_detail
             if separate_cash_return:
@@ -11756,7 +11886,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 ))
 
             for existing_path, existing_name in zip(
-                cash_return_existing_proof,
+                [] if cash_return_file and cash_return_file.filename else cash_return_existing_proof,
                 request.form.getlist("cash_return_existing_filename"),
             ):
                 if existing_path:
@@ -11857,6 +11987,31 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             return petty_cash_claim_detail(claim_detail.id)
 
         if is_draft:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                def saved_proofs(claim_id, item_id):
+                    return [
+                        {
+                            "proof_reference": proof.proof_reference,
+                            "filename": proof.filename,
+                            "url": advance_payment_file_url(proof.proof_reference),
+                        }
+                        for proof in db.session.query(PettyCashClaimProofFile).filter_by(
+                            claim_id=claim_id, claim_item_id=item_id
+                        ).order_by(PettyCashClaimProofFile.id).all()
+                    ]
+
+                return jsonify({
+                    "ok": True,
+                    "success": True,
+                    "draft_saved": True,
+                    "claim_id": claim_detail.id,
+                    "receipt_proofs": {
+                        str(index): saved_proofs(claim_detail.id, item_id)
+                        for index, item_id in saved_claim_items
+                    },
+                    "cash_proofs": saved_proofs(cash_claim_detail.id, cash_item.id) if cash_item else None,
+                    "reference_proofs": saved_proofs(claim_detail.id, None),
+                })
             flash("บันทึกฉบับร่างเรียบร้อยแล้ว", "success")
             return submit_petty_cash_claim(
                 _render_after_post=True,
