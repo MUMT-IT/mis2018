@@ -2899,7 +2899,6 @@ def _set_committee_staff_choices(form, staff_accounts):
 
 
 def _committee_fragment_form(groups, counts, previous_counts=None):
-    """Build a FieldList form for an HTMX response and preserve current values."""
     form = ComplaintCommitteeGroupForm(formdata=None)
     total = sum(counts)
     group_index = 0
@@ -2931,13 +2930,13 @@ def _committee_fragment_form(groups, counts, previous_counts=None):
             ) or (
                 'ผู้ตรวจรับพัสดุ'
                 if groups[group_index][1] == 1
-                else ('ประธาน' if group_offset == 0 else 'กรรมการ')
+                else ('ประธานกรรมการ' if group_offset == 0 else 'กรรมการ')
             )
         else:
             c_form.form.committee_position.data = (
                 'ผู้ตรวจรับพัสดุ'
                 if groups[group_index][1] == 1
-                else ('ประธาน' if group_offset == 0 else 'กรรมการ')
+                else ('ประธานกรรมการ' if group_offset == 0 else 'กรรมการ')
             )
         group_offset += 1
 
@@ -3026,7 +3025,7 @@ def edit_committee(repair_approval_id):
                     c_form.form.committee_position.data = (
                         'ผู้ตรวจรับพัสดุ'
                         if groups[index][1] == 1
-                        else ('ประธาน' if offset == 0 else 'กรรมการ')
+                        else ('ประธานกรรมการ' if offset == 0 else 'กรรมการ')
                     )
         staff_accounts = [committee.staff for committee in committees if committee.staff]
         _set_committee_staff_choices(form, staff_accounts)
