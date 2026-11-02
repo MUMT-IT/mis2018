@@ -917,6 +917,19 @@ def _fund_request_expected_confirmer_id(fund_request):
     return None
 
 
+def _fund_request_requires_separate_head_requester_confirmation(fund_request):
+    """Require two head actions when the custodian creates for the head."""
+    creator_id = getattr(fund_request, "creator_id", None)
+    custodian_id = _fund_request_custodian_id(fund_request)
+    requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
+    head = _fund_request_org_head(fund_request)
+    return bool(
+        creator_id
+        and creator_id == custodian_id
+        and _staff_accounts_match(requester, head)
+    )
+
+
 def _fund_request_is_fully_approved(fund_request):
     signatures = _fund_request_signature_state(fund_request)
     return bool(
@@ -2802,11 +2815,15 @@ def _notify_next_fund_request_actor(fund_request):
 
     expected_confirmer_id = _fund_request_expected_confirmer_id(fund_request)
     head = _fund_request_org_head(fund_request)
+    requires_separate_head_confirmation = (
+        _fund_request_requires_separate_head_requester_confirmation(fund_request)
+    )
     if expected_confirmer_id:
         recipient = _get_user_by_id(expected_confirmer_id)
         if (
             _staff_accounts_match(recipient, head)
             and not getattr(fund_request, "approved_at", None)
+            and not requires_separate_head_confirmation
         ):
             action = "approve"
         elif expected_confirmer_id == getattr(fund_request, "requester_id", None):
@@ -9990,7 +10007,6 @@ def confirm_fund_request(request_id):
         abort(403)
 
     if fund_req.status_id != _status_id_for_record(fund_req, "PENDING"):
-        flash("สามารถยืนยันได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
         return redirect(
             url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_req.id)
         )
@@ -10002,10 +10018,6 @@ def confirm_fund_request(request_id):
     _sync_fund_request_approval_status(fund_req)
     db.session.commit()
     _send_fund_request_flow_notification(fund_req)
-    flash(
-        "ยืนยันใบยืม/ใบเบิกเรียบร้อยแล้ว",
-        "success",
-    )
     return redirect(
         url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_req.id)
     )
@@ -10023,19 +10035,23 @@ def approve_fund_request(request_id):
     if not staff.is_authenticated or not is_head:
         abort(403)
 
-    # A head may approve only after requester/custodian confirmation is
-    # complete. If the head also holds the one outstanding role, the same
-    # explicit approval action confirms that role without requiring a second
-    # click.
+    # Usually a head may approve and satisfy their own outstanding signature
+    # in one click. When the custodian created the request for the head, the
+    # head must first confirm as requester and approve in a separate action.
     expected_confirmer_id = _fund_request_expected_confirmer_id(fund_req)
-    if expected_confirmer_id not in {None, getattr(staff, "id", None)}:
+    requires_separate_head_confirmation = (
+        _fund_request_requires_separate_head_requester_confirmation(fund_req)
+    )
+    allowed_expected_confirmer_ids = {None}
+    if not requires_separate_head_confirmation:
+        allowed_expected_confirmer_ids.add(getattr(staff, "id", None))
+    if expected_confirmer_id not in allowed_expected_confirmer_ids:
         abort(403)
 
-    if fund_req.status_id != _status_id_for_record(fund_req, "PENDING"):
-        flash("สามารถอนุมัติได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
-    elif fund_req.approved_at:
-        flash("รายการนี้มีผู้อนุมัติแล้ว", "warning")
-    else:
+    if (
+        fund_req.status_id == _status_id_for_record(fund_req, "PENDING")
+        and not fund_req.approved_at
+    ):
         acted_at = datetime.now()
         fund_req.approved_at = acted_at
         fund_req.approved_by_id = staff.id
@@ -10049,12 +10065,6 @@ def approve_fund_request(request_id):
         _sync_fund_request_approval_status(fund_req)
         db.session.commit()
         _send_fund_request_flow_notification(fund_req)
-        flash(
-            "อนุมัติใบยืม/ใบเบิกเรียบร้อยแล้ว"
-            if fund_req.status_id == _status_id_for_record(fund_req, "APPROVED")
-            else "บันทึกการอนุมัติแล้ว และกำลังรอผู้เกี่ยวข้องยืนยัน",
-            "success",
-        )
 
     if request.form.get("source") == "claim" and fund_req.form_type == FUND_REQUEST_FORM_PETTY_CASH:
         return redirect(
@@ -12137,11 +12147,25 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         if verification_fund_request
         else None
     )
+    requires_separate_head_confirmation = bool(
+        verification_fund_request
+        and _fund_request_requires_separate_head_requester_confirmation(
+            verification_fund_request
+        )
+    )
     fund_request_waiting_message = None
     if verification_fund_request and fund_request_status_id == _status_id("fund_request", code="PENDING"):
         expected_confirmer = _get_user_by_id(expected_confirmer_id)
         fund_request_head = _fund_request_org_head(verification_fund_request)
-        if expected_confirmer_id and _staff_accounts_match(
+        if (
+            requires_separate_head_confirmation
+            and expected_confirmer_id
+            == getattr(verification_fund_request, "requester_id", None)
+        ):
+            fund_request_waiting_message = (
+                "อยู่ระหว่างรอผู้ยืมตรวจสอบและยืนยันข้อมูล"
+            )
+        elif expected_confirmer_id and _staff_accounts_match(
             expected_confirmer,
             fund_request_head,
         ):
@@ -12178,16 +12202,20 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_fund_request
         and fund_request_status_id == _status_id("fund_request", code="PENDING")
         and expected_confirmer_id == getattr(current_user, "id", None)
-        # A head uses the approval action to satisfy an outstanding
-        # requester/custodian confirmation in the same click.
-        and not current_is_head
+        and (not current_is_head or requires_separate_head_confirmation)
     )
     can_approve_fund_request = bool(
         verification_fund_request
         and fund_request_status_id == _status_id("fund_request", code="PENDING")
         and not getattr(verification_fund_request, "approved_at", None)
         and current_is_head
-        and expected_confirmer_id in {None, getattr(current_user, "id", None)}
+        and (
+            expected_confirmer_id is None
+            or (
+                expected_confirmer_id == getattr(current_user, "id", None)
+                and not requires_separate_head_confirmation
+            )
+        )
     )
     can_reject_fund_request = bool(
         verification_fund_request
