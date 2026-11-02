@@ -3559,7 +3559,7 @@ def generate_repair_approval_pdf(repair_approval):
                             para = f'<para leftIndent=35>{count}) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
                             data.append(Paragraph(para, style=content_style))
                             count += 1
-        elif repair_approval.price > 30000 and repair_approval.price <= 500000:
+        elif repair_approval.price >= 30000:
             committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ</font>'
             data.append(Paragraph(committee_title, style=content_style))
             count = 2
