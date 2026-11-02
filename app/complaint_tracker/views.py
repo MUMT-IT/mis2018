@@ -2827,6 +2827,128 @@ def edit_repair_approval(repair_approval_id):
                            tab=tab, menu=menu, repair_approval=repair_approval)
 
 
+def _committee_group_definitions(price):
+    """Return the committee groups and their minimum member counts."""
+    if price > 500000:
+        return [
+            ('คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ', 3),
+            ('คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์', 3),
+            ('คณะกรรมการตรวจรับพัสดุ', 3),
+        ]
+    if price > 30000:
+        return [('คณะกรรมการตรวจรับพัสดุ', 3)]
+    return [('ผู้ตรวจรับพัสดุ', 1)]
+
+
+def _committee_group_counts_from_request(groups):
+    counts = []
+    for index, (_, minimum) in enumerate(groups):
+        count = request.form.get(f'committee_group_count_{index}', type=int)
+        counts.append(count if count is not None else minimum)
+    return counts
+
+
+def _committee_groups(form, groups, counts):
+    committee_groups = []
+    start = 0
+    for index, ((name, minimum), count) in enumerate(zip(groups, counts)):
+        committee_groups.append({
+            'index': index,
+            'name': name,
+            'minimum': minimum,
+            'count': count,
+            'start': start,
+            'entries': form.committees[start:start + count],
+            'dynamic': True,
+        })
+        start += count
+    return committee_groups
+
+
+def _set_committee_staff_choices(form, staff_accounts):
+    staff_accounts = {account.id: account for account in staff_accounts}
+    for c_form in form.committees.entries:
+        selected_staff_id = int(c_form.form.staff.data) if str(c_form.form.staff.data).isdigit() else None
+        selected_staff = staff_accounts.get(selected_staff_id)
+        c_form.form.staff.choices = [('', 'กรุณาเลือกรายชื่อคณะกรรมการ')]
+        if selected_staff:
+            c_form.form.staff.choices.append((str(selected_staff.id), selected_staff.fullname))
+            c_form.form.staff.data = str(selected_staff.id)
+        else:
+            c_form.form.staff.data = ''
+
+
+def _committee_fragment_form(groups, counts, previous_counts=None):
+    """Build a FieldList form for an HTMX response and preserve current values."""
+    form = ComplaintCommitteeGroupForm(formdata=None)
+    total = sum(counts)
+    group_index = 0
+    group_offset = 0
+    group_end = counts[0]
+    previous_counts = previous_counts or counts
+    previous_starts = []
+    previous_start = 0
+    for count in previous_counts:
+        previous_starts.append(previous_start)
+        previous_start += count
+    for index in range(total):
+        if index >= group_end and group_index < len(groups) - 1:
+            group_index += 1
+            group_offset = 0
+            group_end += counts[group_index]
+        previous_index = (
+            previous_starts[group_index] + group_offset
+            if group_offset < previous_counts[group_index]
+            else None
+        )
+        c_form = form.committees.append_entry()
+        if previous_index is not None:
+            c_form.form.id.data = request.form.get(f'committees-{previous_index}-id', '')
+            c_form.form.staff.data = request.form.get(f'committees-{previous_index}-staff', '')
+            c_form.form.position.data = request.form.get(f'committees-{previous_index}-position', '')
+            c_form.form.committee_position.data = request.form.get(
+                f'committees-{previous_index}-committee_position'
+            ) or ('ประธาน' if group_offset == 0 else 'กรรมการ')
+        else:
+            c_form.form.committee_position.data = 'ประธาน' if group_offset == 0 else 'กรรมการ'
+        group_offset += 1
+
+    selected_staff_ids = {
+        int(c_form.form.staff.data)
+        for c_form in form.committees.entries
+        if c_form.form.staff.data and str(c_form.form.staff.data).isdigit()
+    }
+    staff_accounts = StaffAccount.query.filter(StaffAccount.id.in_(selected_staff_ids)).all() \
+        if selected_staff_ids else []
+    _set_committee_staff_choices(form, staff_accounts)
+    return form
+
+
+@complaint_tracker.route('/api/committee/members/<int:repair_approval_id>', methods=['POST', 'DELETE'])
+@login_required
+def update_committee_members(repair_approval_id):
+    rep_approval = ComplaintRepairApproval.query.get_or_404(repair_approval_id)
+    groups = _committee_group_definitions(rep_approval.price)
+    counts = _committee_group_counts_from_request(groups)
+    previous_counts = list(counts)
+    group_index = request.args.get('group_index', type=int)
+
+    if group_index is not None and 0 <= group_index < len(groups):
+        minimum = groups[group_index][1]
+        if request.method == 'POST':
+            counts[group_index] += 2
+        elif counts[group_index] > minimum:
+            counts[group_index] = max(minimum, counts[group_index] - 2)
+
+    form = _committee_fragment_form(groups, counts, previous_counts=previous_counts)
+    return render_template(
+        'complaint_tracker/committee_members.html',
+        form=form,
+        committee_groups=_committee_groups(form, groups, counts),
+        repair_approval_id=repair_approval_id,
+    )
+
+
 @complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
 @login_required
 def edit_committee(repair_approval_id):
@@ -2834,89 +2956,91 @@ def edit_committee(repair_approval_id):
     menu = request.args.get('menu')
     temp = request.args.get('temp')
     rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
-    committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).all()
-    if rep_approval.price > 500000:
-        min_entries = 9
-        default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ',
-                             'กรรมการ']
-    elif rep_approval.price > 30000 and rep_approval.price <= 500000:
-        min_entries = 3
-        default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ']
-    else:
-        min_entries = 1
-        default_positions = ['ผู้ตรวจรับพัสดุ']
+    committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).order_by(
+        ComplaintCommittee.id
+    ).all()
+    groups = _committee_group_definitions(rep_approval.price)
     form = ComplaintCommitteeGroupForm(obj=committees)
     if request.method == 'GET':
-        current_count = len(committees)
-        if committees:
-            for committee in committees:
-                c_form = form.committees.append_entry()
-                c_form.form.id.data = committee.id
-                if committee.staff:
-                    c_form.form.staff.choices = [
-                        ('', 'กรุณาเลือกรายชื่อคณะกรรมการ'),
-                        (str(committee.staff.id), committee.staff.fullname),
-                    ]
-                    c_form.form.staff.data = str(committee.staff.id)
-                c_form.form.position.data = committee.position
-                c_form.form.committee_position.data = committee.committee_position
-            for i in range(min_entries - current_count):
-                c_form = form.committees.append_entry()
-                if i < len(default_positions):
-                    c_form.form.committee_position.data = default_positions[i]
+        if rep_approval.price > 500000:
+            committees_by_group = {
+                name: [committee for committee in committees if committee.committee_name == name]
+                for name, _ in groups
+            }
+            if sum(map(len, committees_by_group.values())) != len(committees):
+                committees_by_group = {
+                    name: committees[index * 3:(index + 1) * 3]
+                    for index, (name, _) in enumerate(groups)
+                }
+            counts = [max(minimum, len(committees_by_group[name])) for name, minimum in groups]
         else:
-            for i in range(min_entries):
+            committees_by_group = {groups[0][0]: committees}
+            counts = [max(groups[0][1], len(committees))]
+
+        for index, (name, _) in enumerate(groups):
+            group_committees = committees_by_group[name]
+            for offset in range(counts[index]):
                 c_form = form.committees.append_entry()
-                if i < len(default_positions):
-                    c_form.form.committee_position.data = default_positions[i]
-        staff_accounts = {
-            committee.staff.id: committee.staff
-            for committee in committees if committee.staff
-        }
-        for c_form in form.committees.entries:
-            selected_staff_id = int(c_form.form.staff.data) if str(c_form.form.staff.data).isdigit() else None
-            selected_staff = staff_accounts.get(selected_staff_id)
-            c_form.form.staff.choices = [('', 'กรุณาเลือกรายชื่อคณะกรรมการ')]
-            if selected_staff:
-                c_form.form.staff.choices.append((str(selected_staff.id), selected_staff.fullname))
-                c_form.form.staff.data = str(selected_staff.id)
-            else:
-                c_form.form.staff.data = ''
+                if offset < len(group_committees):
+                    committee = group_committees[offset]
+                    c_form.form.id.data = committee.id
+                    if committee.staff:
+                        c_form.form.staff.choices = [
+                            ('', 'กรุณาเลือกรายชื่อคณะกรรมการ'),
+                            (str(committee.staff.id), committee.staff.fullname),
+                        ]
+                        c_form.form.staff.data = str(committee.staff.id)
+                    c_form.form.position.data = committee.position
+                    c_form.form.committee_position.data = committee.committee_position
+                else:
+                    c_form.form.committee_position.data = 'ประธาน' if offset == 0 else 'กรรมการ'
+        staff_accounts = [committee.staff for committee in committees if committee.staff]
+        _set_committee_staff_choices(form, staff_accounts)
     else:
+        counts = _committee_group_counts_from_request(groups)
         submitted_staff_ids = {
             int(c_form.form.staff.data)
             for c_form in form.committees.entries
             if c_form.form.staff.data and str(c_form.form.staff.data).isdigit()
         }
-        staff_accounts = {
-            account.id: account
-            for account in StaffAccount.query
-            .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
-            .filter(
-                StaffAccount.id.in_(submitted_staff_ids),
-                StaffPersonalInfo.retirement_date.is_(None),
-                StaffPersonalInfo.resignation_date.is_(None),
-                or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
-                ~StaffPersonalInfo.employment.has(StaffEmployment.title.ilike('%ลูกจ้างชั่วคราว%')),
-            )
-            .all()
-        } if submitted_staff_ids else {}
-        for c_form in form.committees.entries:
-            selected_staff_id = int(c_form.form.staff.data) if str(c_form.form.staff.data).isdigit() else None
-            selected_staff = staff_accounts.get(selected_staff_id)
-            c_form.form.staff.choices = [('', 'กรุณาเลือกรายชื่อคณะกรรมการ')]
-            if selected_staff:
-                c_form.form.staff.choices.append((str(selected_staff.id), selected_staff.fullname))
+        staff_accounts = []
+        if submitted_staff_ids:
+            staff_accounts = StaffAccount.query \
+                .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id) \
+                .filter(
+                    StaffAccount.id.in_(submitted_staff_ids),
+                    StaffPersonalInfo.retirement_date.is_(None),
+                    StaffPersonalInfo.resignation_date.is_(None),
+                    or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
+                    ~StaffPersonalInfo.employment.has(StaffEmployment.title.ilike('%ลูกจ้างชั่วคราว%')),
+                ) \
+                .all()
+        _set_committee_staff_choices(form, staff_accounts)
     if form.validate_on_submit():
+        invalid_counts = any(
+            count < minimum or count % 2 == 0
+            for count, (_, minimum) in zip(counts, groups)
+        ) or sum(counts) != len(form.committees.entries)
+        if invalid_counts:
+            flash('จำนวนคณะกรรมการต้องเป็นเลขคี่ และไม่น้อยกว่าจำนวนขั้นต่ำของแต่ละชุด', 'danger')
+            return render_template(
+                'complaint_tracker/committee_form.html', form=form, committee_groups=_committee_groups(form, groups, counts),
+                temp=temp, tab=tab, menu=menu, repair_approval_id=repair_approval_id, rep_approval=rep_approval,
+            )
         if rep_approval.price > 500000:
+            group_ranges = []
+            start = 0
+            for count in counts:
+                group_ranges.append((start, start + count))
+                start += count
             result_committee_staff_ids = {
                 str(c_form.form.staff.data)
-                for c_form in form.committees.entries[3:6]
+                for c_form in form.committees.entries[group_ranges[1][0]:group_ranges[1][1]]
                 if c_form.form.staff.data
             }
             receiving_committee_staff_ids = {
                 str(c_form.form.staff.data)
-                for c_form in form.committees.entries[6:9]
+                for c_form in form.committees.entries[group_ranges[2][0]:group_ranges[2][1]]
                 if c_form.form.staff.data
             }
 
@@ -2929,6 +3053,7 @@ def edit_committee(repair_approval_id):
                 return render_template(
                     'complaint_tracker/committee_form.html',
                     form=form,
+                    committee_groups=_committee_groups(form, groups, counts),
                     temp=temp,
                     tab=tab,
                     menu=menu,
@@ -2937,18 +3062,23 @@ def edit_committee(repair_approval_id):
                 )
 
         ComplaintCommittee.query.filter_by(repair_approval_id=rep_approval.id).delete()
+        group_index = 0
+        group_end = counts[0]
         for i, c_form in enumerate(form.committees.entries):
             if not c_form.form.staff.data:
                 continue
+            while i >= group_end and group_index < len(groups) - 1:
+                group_index += 1
+                group_end += counts[group_index]
             committee = ComplaintCommittee(
                 staff_id=int(c_form.form.staff.data),
                 position=c_form.form.position.data,
                 committee_position=c_form.form.committee_position.data,
                 repair_approval_id=rep_approval.id,
-                committee_name=request.form.get(f'committee_name_{i // 3}', 'ผู้ตรวจรับพัสดุ')
+                committee_name=groups[group_index][0]
             )
             db.session.add(committee)
-            db.session.commit()
+        db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         if temp == 'index':
             return redirect(url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu))
@@ -2957,7 +3087,8 @@ def edit_committee(repair_approval_id):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('complaint_tracker/committee_form.html', form=form, temp=temp,
+    return render_template('complaint_tracker/committee_form.html', form=form,
+                           committee_groups=_committee_groups(form, groups, counts), temp=temp,
                            tab=tab, menu=menu, repair_approval_id=repair_approval_id, rep_approval=rep_approval)
 
 
@@ -3208,7 +3339,7 @@ def generate_repair_approval_pdf(repair_approval):
         text_style = content_style
         if repair_approval.price <= 30000:
             mtpc = 'MTPC-002'
-        elif repair_approval.price > 30000 and repair_approval.price <= 500000:
+        elif repair_approval.price >  30000 and repair_approval.price <= 500000:
             mtpc = 'MTPC-003'
         else:
             mtpc = 'MTPC-004'
