@@ -249,7 +249,7 @@ class PettyCashFiscalYearTopUpTransferTests(unittest.TestCase):
         )
         self.assertIn("form_type = Column(String(10), nullable=False)", models_source)
 
-    def test_reduction_form_forces_other_category_type(self):
+    def test_reduction_form_uses_manual_amount_without_receipt_items(self):
         views_source = (ROOT / "app/advance_payment/views.py").read_text(
             encoding="utf-8-sig"
         )
@@ -259,12 +259,15 @@ class PettyCashFiscalYearTopUpTransferTests(unittest.TestCase):
 
         self.assertIn('value="reduction"', form_template)
         self.assertIn("เบิกลดวงเงิน", form_template)
-        self.assertIn('if (isActive) select.value = "5";', form_template)
-        self.assertIn(
-            "if form_type == FUND_REQUEST_FORM_REDUCTION",
-            views_source,
-        )
-        self.assertIn("category_type=(", views_source)
+        self.assertIn('id="section_form_reduction"', form_template)
+        self.assertIn('id="reductionSuggestedAmount"', form_template)
+        self.assertIn("reduction: previousFormType === 'reduction' ? userTotalInput.value : reductionSuggestedAmount", form_template)
+        self.assertIn("if selected_form_type == 'reduction' else ''", form_template)
+        self.assertIn('id="budgetSummary"', form_template)
+        self.assertIn('userTotalInput.required = isInterestForm || isReductionForm', form_template)
+        self.assertIn('if form_type == FUND_REQUEST_FORM_PETTY_CASH:', views_source)
+        self.assertIn('fund_request_purpose = FUND_REQUEST_REDUCTION_PURPOSE', views_source)
+        self.assertNotIn('if (isActive) select.value = "5";', form_template)
 
 
 if __name__ == "__main__":

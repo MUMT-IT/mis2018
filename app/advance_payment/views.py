@@ -190,6 +190,7 @@ FUND_REQUEST_FORM_PETTY_CASH = "petty_cash"
 FUND_REQUEST_FORM_INTEREST = "interest"
 FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
 FUND_REQUEST_FORM_REDUCTION = "reduction"
+FUND_REQUEST_REDUCTION_PURPOSE = "เบิกเงินยืมเพื่อลดวงเงินตามปีงบประมาณ"
 PETTY_CASH_TRANSFER_NONE = 0
 PETTY_CASH_TRANSFER_TOP_UP = 1
 PETTY_CASH_TRANSFER_REDUCTION = 2
@@ -9587,6 +9588,26 @@ def staff_fund_request():
         if setting
         else 0.0
     )
+    previous_carryover = (
+        db.session.query(PettyCashFiscalYearCarryover)
+        .filter_by(
+            org_id=setting.org_id,
+            source_fiscal_year=setting.fiscal_year - 1,
+            target_fiscal_year=setting.fiscal_year,
+        )
+        .first()
+        if setting is not None
+        else None
+    )
+    previous_budget = previous_carryover.finance_budget if previous_carryover else None
+    reduction_suggested_amount = (
+        max(
+            -_petty_cash_top_up_difference(setting.budget, previous_budget),
+            Decimal("0.00"),
+        )
+        if setting is not None
+        else Decimal("0.00")
+    )
     # Borrower choices must follow the organization configured for the petty-cash
     # setting, including every child organization, not the custodian's own profile
     # organization.
@@ -9806,22 +9827,21 @@ def staff_fund_request():
 
             is_editing = editing_request is not None
             created_at = datetime.now()
+            if form_type == FUND_REQUEST_FORM_REDUCTION:
+                fund_request_purpose = FUND_REQUEST_REDUCTION_PURPOSE
+            elif form_type == FUND_REQUEST_FORM_PETTY_CASH:
+                fund_request_purpose = form.purpose.data
+            elif form_type == FUND_REQUEST_FORM_INTEREST:
+                fund_request_purpose = "ขออนุมัติเบิกดอกเบี้ย"
+            else:
+                fund_request_purpose = ""
             if is_editing:
                 new_request = editing_request
                 new_request.requester_id = requester_id
                 new_request.amount = form.amount.data
-                new_request.purpose = (
-                    form.purpose.data
-                    if form_type in {
-                        FUND_REQUEST_FORM_PETTY_CASH,
-                        FUND_REQUEST_FORM_REDUCTION,
-                    }
-                    else (
-                        "ขออนุมัติเบิกดอกเบี้ย"
-                        if form_type == FUND_REQUEST_FORM_INTEREST
-                        else ""
-                    )
-                )
+                new_request.purpose = fund_request_purpose
+                if form_type == FUND_REQUEST_FORM_REDUCTION:
+                    new_request.period_year = ""
                 new_request.personal_note = (form.personal_note.data or "").strip() or None
                 new_request.borrowing_ticket_id = (
                     selected_borrowing_ticket.id if selected_borrowing_ticket else None
@@ -9839,18 +9859,7 @@ def staff_fund_request():
                     ticket_number=None,  # ระบบจะออกเลขที่ให้ทันทีหลังสร้างรายการ
                     request_date=None,
                     amount=form.amount.data,
-                    purpose=(
-                        form.purpose.data
-                        if form_type in {
-                            FUND_REQUEST_FORM_PETTY_CASH,
-                            FUND_REQUEST_FORM_REDUCTION,
-                        }
-                        else (
-                            "ขออนุมัติเบิกดอกเบี้ย"
-                            if form_type == FUND_REQUEST_FORM_INTEREST
-                            else ""
-                        )
-                    ),
+                    purpose=fund_request_purpose,
                     personal_note=(form.personal_note.data or "").strip() or None,
                     period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == FUND_REQUEST_FORM_INTEREST else "",
                     borrowing_ticket_id=selected_borrowing_ticket.id if selected_borrowing_ticket else None,
@@ -9868,10 +9877,7 @@ def staff_fund_request():
                 db.session.add(new_request)
                 db.session.flush()
 
-            if form_type in {
-                FUND_REQUEST_FORM_PETTY_CASH,
-                FUND_REQUEST_FORM_REDUCTION,
-            }:
+            if form_type == FUND_REQUEST_FORM_PETTY_CASH:
                 descriptions = request.form.getlist("item_description[]")
                 amounts = request.form.getlist("item_amount[]")
                 categories = request.form.getlist("item_category[]")
@@ -9891,11 +9897,7 @@ def staff_fund_request():
                             fund_request_id=new_request.id,
                             description=desc,
                             amount=amt,
-                            category_type=(
-                                5
-                                if form_type == FUND_REQUEST_FORM_REDUCTION
-                                else (int(category) if category.isdigit() else 1)
-                            ),
+                            category_type=int(category) if category.isdigit() else 1,
                             created_at=datetime.now()
                         )
                         db.session.add(item_obj)
@@ -9988,6 +9990,8 @@ def staff_fund_request():
         custodian_display_position=custodian_display_position,
         dept_summary=dept_summary,
         ledger_running_balance=ledger_running_balance,
+        reduction_suggested_amount=reduction_suggested_amount,
+        reduction_previous_budget=previous_budget,
     )
 
 
