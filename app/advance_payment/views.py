@@ -12775,6 +12775,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
                     receipt_date=receipt_date,
                     created_at=claim.created_at,
                     description=f"{item.description} (" + (claim.fund_request.ticket_number if claim.fund_request else "-") + ")",
+                    doc_number=claim.claim_number or "-",
                     bank_income=item_amt,  # แสดงยอดเงินโอนคืนเป็นรายรับ
                     cat_12=item_amt,
                     submitted_date=claim.created_at.date(),
@@ -12822,13 +12823,6 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
         if _legacy_transaction_before_fiscal_year(claim, claim_receipt_date):
             continue
 
-        # กำหนด doc_no ตามเลขที่อ้างอิงและวันที่อ้างอิงของ PettyCashClaimDetail
-        if claim.reference_number:
-            ref_date_str = thai_date(claim.reference_date) if claim.reference_date else "-"
-            doc_no = f"{claim.reference_number} ลงวันที่ {ref_date_str}"
-        else:
-            doc_no = "-"
-
         # ยอดรับเงินคืนเข้าบัญชีธนาคาร (คำนวณจากหมวด 1-5)
         claim_total = float(
             claim.total_amount or sum(float(i.amount or 0) for i in claim.items if str(i.category_type) != "6"))
@@ -12857,7 +12851,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             receipt_date=claim_receipt_date,
             created_at=claim.created_at,
             description=f"งานคลังคืนเงินสดย่อย ({claim_reference})",
-            doc_number=doc_no,
+            doc_number=claim.claim_number or "-",
             bank_income=claim_total,
             cat_7=cat_7,
             cat_8=cat_8,
