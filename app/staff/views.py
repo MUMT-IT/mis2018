@@ -13,7 +13,7 @@ from pandas import read_excel, isna, DataFrame
 from app.eduqa.models import EduQAInstructor
 from . import staffbp as staff
 from app.main import get_weekdays, mail, app, csrf
-from app.models import Holidays
+from app.models import Holidays, Org
 from flask import (abort, jsonify, render_template, render_template_string, request,
                    redirect, url_for, flash, session, send_from_directory,
                    make_response, current_app, send_file)
@@ -7297,6 +7297,49 @@ def seminar_attend_search_result():
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                            budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
                            distinct_org=distinct_org, distinct_objective=distinct_objective, selected_dates=selected_dates)
+
+
+@staff.route('/seminar/yearly-budgets', methods=['GET'])
+@login_required
+def seminar_yearly_budgets():
+    current_fiscal_year = convert_to_fiscal_year(date.today())
+    fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
+    selected_org_id = request.args.get('org', type=int)
+    selected_staff_id = request.args.get('staff', type=int)
+
+    available_budget_years = [row[0] for row in db.session.query(SeminarYearlyBudget.year)
+                              .distinct().order_by(SeminarYearlyBudget.year.desc()).all()]
+    fiscal_year_options = sorted(
+        {current_fiscal_year, *(budget_year + 1 for budget_year in available_budget_years)},
+        reverse=True,
+    )
+
+    query = SeminarYearlyBudget.query.join(SeminarYearlyBudget.staff) \
+        .join(StaffAccount.personal_info).outerjoin(StaffPersonalInfo.org) \
+        .filter(SeminarYearlyBudget.year == fiscal_year - 1)
+    orgs = Org.query.order_by(Org.name).all()
+    selected_staff = StaffPersonalInfo.query.get(selected_staff_id) if selected_staff_id else None
+    if selected_org_id:
+        selected_org = Org.query.get(selected_org_id)
+        if selected_org:
+            query = query.filter(StaffPersonalInfo.org_id.in_(get_org_and_children_ids(selected_org)))
+        else:
+            selected_org_id = None
+    if selected_staff_id:
+        query = query.filter(StaffPersonalInfo.id == selected_staff_id)
+
+    budget_records = query.order_by(Org.name, StaffPersonalInfo.th_firstname,
+                                   StaffPersonalInfo.en_firstname).all()
+    return render_template(
+        'staff/seminar_yearly_budgets.html',
+        budget_records=budget_records,
+        orgs=orgs,
+        selected_org_id=selected_org_id,
+        selected_staff_id=selected_staff_id,
+        selected_staff=selected_staff,
+        fiscal_year=fiscal_year,
+        fiscal_year_options=fiscal_year_options,
+    )
 
 
 @staff.route('/api/time-report')
