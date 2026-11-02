@@ -679,8 +679,47 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     }
 
 
+def _petty_cash_monthly_report_document_amounts(
+        summary, carryover=None, direct_legacy_transferred=0,
+        imported_legacy_request_amount=0):
+    """Move imported opening amounts out of carryover as they enter the report."""
+    submitted_values = (
+        summary.get("submitted_amount"),
+        summary.get("submitted_parcel_amount"),
+    )
+    submitted = (
+        sum(Decimal(str(value or 0)) for value in submitted_values)
+        if any(value is not None for value in submitted_values)
+        else None
+    )
+    pending = summary.get("pending_amount")
+    if carryover is None:
+        return submitted, pending
+
+    submitted_carryover = Decimal(str(carryover.finance_pending_transfer or 0))
+    pending_carryover = (
+        Decimal(str(carryover.custodian_cash_on_hand or 0))
+        + Decimal(str(carryover.custodian_pending_budget or 0))
+    )
+    transferred = max(Decimal(str(direct_legacy_transferred or 0)), Decimal("0.00"))
+    # Direct legacy transfers enter the bank balance. Consume the submitted
+    # carryover first, then only the excess from the pending carryover.
+    submitted_offset = min(submitted_carryover, transferred)
+    pending_offset = transferred - submitted_offset
+    pending_offset += Decimal(str(imported_legacy_request_amount or 0))
+
+    submitted = Decimal(str(submitted or 0)) + submitted_carryover - submitted_offset
+    pending = Decimal(str(pending or 0)) + max(
+        pending_carryover - pending_offset, Decimal("0.00")
+    )
+    return submitted, pending
+
+
 def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_budget,
-                                          summary, telephone_number=""):
+                                          summary, carryover=None,
+                                          direct_legacy_transferred=0,
+                                          imported_legacy_request_amount=0,
+                                          telephone_number=""):
     """Create the MT-Petty Cash-004 monthly status letter as PDF bytes."""
     from reportlab.platypus import Image
 
@@ -693,16 +732,11 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     last_day_label = get_thai_month_year(last_day)
     budget = setting.budget
     balance = Decimal(str(remaining_budget)).quantize(Decimal("0.01")) if remaining_budget is not None else None
-    submitted_values = (
-        summary.get("submitted_amount"),
-        summary.get("submitted_parcel_amount"),
+    submitted, pending = _petty_cash_monthly_report_document_amounts(
+        summary, carryover=carryover,
+        direct_legacy_transferred=direct_legacy_transferred,
+        imported_legacy_request_amount=imported_legacy_request_amount,
     )
-    submitted = (
-        sum(Decimal(str(value or 0)) for value in submitted_values)
-        if any(value is not None for value in submitted_values)
-        else None
-    )
-    pending = summary.get("pending_amount")
     total = (sum(Decimal(str(value)) for value in (balance, submitted, pending))
              if all(value is not None for value in (balance, submitted, pending)) else None)
     normal = ParagraphStyle("MonthlyNormal", parent=styles["ThaiNormal"], fontSize=14, leading=18, wordWrap="CJK")

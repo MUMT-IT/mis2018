@@ -13013,12 +13013,33 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             .all()
         )
         summary = summarize_petty_cash_month(selected_month_start, summary_fund_requests, all_claims)
+        imported_legacy_request_amount = sum(
+            (Decimal(str(fr.amount or 0)) for fr in summary_fund_requests if fr.is_legacy_import),
+            Decimal("0.00"),
+        )
+        direct_legacy_transferred = sum(
+            (
+                Decimal(str(claim.total_amount or 0))
+                for claim in all_claims
+                if claim.fund_request_id is None
+                and (claim.note or "").strip() == DIRECT_LEGACY_CLAIM_NOTE
+                and claim.status_id in _status_ids_for_record(claim, {
+                    "CASH_RETURNED", "CASH_TRANSFER_COMPLETED", "SETTLED",
+                })
+                and claim.transferred_at is not None
+                and fiscal_year_start <= claim.transferred_at < next_month_start
+            ),
+            Decimal("0.00"),
+        )
         department_data = get_department_data_service(department_name) or {}
         pdf_bytes = generate_petty_cash_monthly_report_pdf(
             setting=current_setting,
             month_start=selected_month_start,
             remaining_budget=running_balance,
             summary=summary,
+            carryover=carryover,
+            direct_legacy_transferred=direct_legacy_transferred,
+            imported_legacy_request_amount=imported_legacy_request_amount,
             telephone_number=department_data.get("telephone_number", ""),
         )
         # Use the same petty-cash setting scope as the ledger, including all
