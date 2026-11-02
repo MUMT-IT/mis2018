@@ -2801,8 +2801,10 @@ def edit_repair_approval(repair_approval_id):
     ComplaintRepairApprovalForm = create_repair_approval_form(is_used=True)
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
-        previous_price_band = _committee_price_band(repair_approval.price)
-        new_price_band = _committee_price_band(form.price.data)
+        previous_price_band = _committee_price_band(repair_approval.price,
+                                                    repair_approval.principle_approval_type)
+        new_price_band = _committee_price_band(form.price.data,
+                                               form.principle_approval_type.data)
         committee_structure_changed = previous_price_band != new_price_band
         form.populate_obj(repair_approval)
         if (form.cost_center.data and form.io_code.data and form.product_code.data):
@@ -2834,8 +2836,8 @@ def edit_repair_approval(repair_approval_id):
                            tab=tab, menu=menu, repair_approval=repair_approval)
 
 
-def _committee_group_definitions(price):
-    if price > 500000:
+def _committee_group_definitions(price, principle_approval_type=None):
+    if price > 500000 and principle_approval_type != 'จ้างซ่อม':
         return [
             ('คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ', 3),
             ('คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์', 3),
@@ -2846,9 +2848,11 @@ def _committee_group_definitions(price):
     return [('ผู้ตรวจรับพัสดุ', 1)]
 
 
-def _committee_price_band(price):
+def _committee_price_band(price, principle_approval_type=None):
     if price is None:
         return None
+    if principle_approval_type == 'จ้างซ่อม':
+        return 'repair_30000_plus' if price >= 30000 else 'repair_under_30000'
     if price > 500000:
         return 'over_500000'
     if price >= 30000:
@@ -2952,7 +2956,8 @@ def _committee_fragment_form(groups, counts, previous_counts=None):
 @login_required
 def update_committee_members(repair_approval_id):
     rep_approval = ComplaintRepairApproval.query.get_or_404(repair_approval_id)
-    groups = _committee_group_definitions(rep_approval.price)
+    groups = _committee_group_definitions(rep_approval.price,
+                                          rep_approval.principle_approval_type)
     counts = _committee_group_counts_from_request(groups)
     previous_counts = list(counts)
     group_index = request.args.get('group_index', type=int)
@@ -2983,10 +2988,11 @@ def edit_committee(repair_approval_id):
     committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).order_by(
         ComplaintCommittee.id
     ).all()
-    groups = _committee_group_definitions(rep_approval.price)
+    groups = _committee_group_definitions(rep_approval.price,
+                                          rep_approval.principle_approval_type)
     form = ComplaintCommitteeGroupForm(obj=committees)
     if request.method == 'GET':
-        if rep_approval.price > 500000:
+        if rep_approval.price > 500000 and rep_approval.principle_approval_type != 'จ้างซ่อม':
             committees_by_group = {
                 name: [committee for committee in committees if committee.committee_name == name]
                 for name, _ in groups
@@ -3055,7 +3061,7 @@ def edit_committee(repair_approval_id):
                 'complaint_tracker/committee_form.html', form=form, committee_groups=_committee_groups(form, groups, counts),
                 temp=temp, tab=tab, menu=menu, repair_approval_id=repair_approval_id, rep_approval=rep_approval,
             )
-        if rep_approval.price > 500000:
+        if rep_approval.price > 500000 and rep_approval.principle_approval_type != 'จ้างซ่อม':
             group_ranges = []
             start = 0
             for count in counts:
@@ -3562,7 +3568,7 @@ def generate_repair_approval_pdf(repair_approval):
     data.append(Paragraph(code_detail, style=content_style))
     if repair_approval.repair_type != 'เร่งด่วน':
         if repair_approval.price > 500000:
-            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ</font>'
+            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการเพื่อดำเนินงาน ดังนี้</font>'
             data.append(Paragraph(committee_title, style=content_style))
             ordered_committee_names = [
                 'คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ',
