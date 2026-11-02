@@ -5,18 +5,19 @@
 {% macro transfer_rows(section_rows, empty_message) -%}
   {% for row in section_rows %}
   <tr class="transfer-row"
-      data-initial-type="{{ row.transfer_type }}"
+      data-setting-id="{{ row.setting.id }}"
+      data-department-name="{{ row.setting.department_name or 'ไม่พบข้อมูลหน่วยงาน' }}"
+      data-transfer-type="{{ row.transfer_type }}"
+      data-transfer-amount="{{ row.transfer_amount or 0 }}"
+      data-transferred-at="{{ row.display_transferred_at.isoformat() if row.display_transferred_at else '' }}"
       data-reduction-request-id="{{ row.reduction_request.id if row.reduction_request else '' }}"
+      data-reduction-ticket="{{ row.reduction_request.ticket_number if row.reduction_request and row.reduction_request.ticket_number else '' }}"
       data-reduction-date="{{ row.reduction_request.request_date.isoformat() if row.reduction_request and row.reduction_request.request_date else '' }}">
     <td class="fw-semibold">
       {{ row.setting.department_name or 'ไม่พบข้อมูลหน่วยงาน' }}
       {% if not row.setting.valid %}
         <span class="badge bg-secondary ms-1">ปิดใช้งาน</span>
       {% endif %}
-      <form id="transfer-form-{{ row.setting.id }}" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="setting_id" value="{{ row.setting.id }}">
-      </form>
     </td>
     <td class="text-end fw-bold text-primary">
       {{ '{:,.2f}'.format(row.setting.budget or 0) }}
@@ -30,30 +31,14 @@
       {% endif %}
     </td>
     <td>
-      <span class="transfer-read-only d-block text-end fw-bold{% if row.transfer_type == 2 %} text-danger{% elif row.transfer_type == 1 %} text-success{% endif %}">
+      <span class="d-block text-end fw-bold{% if row.transfer_type == 2 %} text-danger{% elif row.transfer_type == 1 %} text-success{% endif %}">
         {{ '{:,.2f}'.format(row.transfer_amount or 0) }}
       </span>
-      <select name="transfer_type" form="transfer-form-{{ row.setting.id }}"
-              class="form-select transfer-edit-control transfer-type d-none mb-1" aria-label="ประเภทการปรับวงเงิน">
-        <option value="0" {% if row.transfer_type == 0 %}selected{% endif %}>ไม่มีการโอน</option>
-        <option value="1" {% if row.transfer_type == 1 %}selected{% endif %}>โอนเพิ่มวงเงิน</option>
-        <option value="2" {% if row.transfer_type == 2 %}selected{% endif %}>ลดวงเงิน</option>
-      </select>
-      <input type="text"
-             name="transfer_amount" form="transfer-form-{{ row.setting.id }}"
-             class="form-control text-end transfer-amount transfer-edit-control d-none"
-             value="{{ '{:,.2f}'.format(row.transfer_amount or 0) }}"
-             inputmode="decimal"
-             required>
     </td>
     <td>
-      <span class="transfer-read-only d-block text-center">
+      <span class="d-block text-center">
         {{ row.display_transferred_at|thai_date if row.display_transferred_at else '-' }}
       </span>
-      <input type="date"
-             name="transferred_at" form="transfer-form-{{ row.setting.id }}"
-             class="form-control text-center transfer-date transfer-edit-control d-none"
-             value="{{ row.display_transferred_at.isoformat() if row.display_transferred_at else '' }}">
       {% if row.transfer_type == 2 %}
         <div class="small text-muted text-center">
           {% if row.reduction_request %}
@@ -71,10 +56,6 @@
     </td>
     <td class="text-center">
       <button type="button" class="btn btn-outline-primary btn-sm transfer-edit-button">แก้ไข</button>
-      <div class="transfer-edit-actions d-none d-flex justify-content-end gap-1">
-        <button type="button" class="btn btn-light btn-sm transfer-cancel-button">ยกเลิก</button>
-        <button type="submit" form="transfer-form-{{ row.setting.id }}" class="btn btn-primary btn-sm">บันทึก</button>
-      </div>
     </td>
   </tr>
   {% else %}
@@ -128,7 +109,7 @@
             <th class="text-end">งบประมาณปีการศึกษา {{ current_fiscal_year + 543 }}</th>
             <th class="text-end">งบประมาณปีการศึกษา {{ previous_fiscal_year + 543 }}</th>
             <th class="text-end" style="min-width: 190px;">ส่วนต่าง (บาท)</th>
-            <th class="text-center" style="min-width: 190px;">วันที่เบิกเงิน</th>
+            <th class="text-center" style="min-width: 190px;">วันที่โอนเงินสำเร็จ</th>
             <th class="text-center">สถานะ</th>
             <th class="text-center">จัดการ</th>
           </tr>
@@ -164,7 +145,7 @@
             <th class="text-end">งบประมาณปีการศึกษา {{ current_fiscal_year + 543 }}</th>
             <th class="text-end">งบประมาณปีการศึกษา {{ previous_fiscal_year + 543 }}</th>
             <th class="text-end" style="min-width: 190px;">ส่วนต่าง (บาท)</th>
-            <th class="text-center" style="min-width: 190px;">วันที่โอนเงินสำเร็จ</th>
+            <th class="text-center" style="min-width: 190px;">วันที่เบิกเงิน</th>
             <th class="text-center">สถานะ</th>
             <th class="text-center">จัดการ</th>
           </tr>
@@ -176,96 +157,141 @@
     </div>
   </section>
 
+<div class="modal fade" id="transferEditModal" tabindex="-1" aria-labelledby="transferEditModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" id="transferEditForm" class="modal-content border-0 shadow">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="setting_id" id="transferSettingId">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title fw-bold" id="transferEditModalLabel">แก้ไขข้อมูลการปรับวงเงิน</h5>
+          <div class="small text-muted mt-1" id="transferDepartmentName"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="transferType" class="form-label fw-semibold">ประเภทการปรับวงเงิน</label>
+          <select name="transfer_type" id="transferType" class="form-select" required>
+            <option value="0">ไม่มีการโอน</option>
+            <option value="1">โอนเพิ่มวงเงิน</option>
+            <option value="2">ลดวงเงิน</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="transferAmount" class="form-label fw-semibold">ส่วนต่าง (บาท)</label>
+          <input type="text" name="transfer_amount" id="transferAmount" class="form-control text-end"
+                 inputmode="decimal" required>
+        </div>
+        <div class="mb-0">
+          <label for="transferDate" class="form-label fw-semibold" id="transferDateLabel">วันที่โอนเงินสำเร็จ</label>
+          <input type="date" name="transferred_at" id="transferDate" class="form-control">
+          <div class="form-text d-none" id="transferDateSource"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary px-4">บันทึกข้อมูล</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
-  (function () {
-    document.querySelectorAll('.transfer-row').forEach((row) => {
-      const form = row.querySelector('form');
-      const type = row.querySelector('.transfer-type');
-      const amount = row.querySelector('.transfer-amount');
-      const date = row.querySelector('.transfer-date');
-      const editButton = row.querySelector('.transfer-edit-button');
-      const cancelButton = row.querySelector('.transfer-cancel-button');
-      const actions = row.querySelector('.transfer-edit-actions');
-      const original = { type: type.value, amount: amount.value, date: date.value };
-      let previousType = original.type;
-      let manualDate = original.type === '1' ? original.date : '';
+  document.addEventListener('DOMContentLoaded', function () {
+    const modalElement = document.getElementById('transferEditModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const form = document.getElementById('transferEditForm');
+    const settingId = document.getElementById('transferSettingId');
+    const departmentName = document.getElementById('transferDepartmentName');
+    const type = document.getElementById('transferType');
+    const amount = document.getElementById('transferAmount');
+    const date = document.getElementById('transferDate');
+    const dateLabel = document.getElementById('transferDateLabel');
+    const dateSource = document.getElementById('transferDateSource');
+    let activeRow = null;
+    let previousType = '';
+    let manualDate = '';
 
-      function setEditing(editing) {
-        row.querySelectorAll('.transfer-read-only').forEach((element) => {
-          element.classList.toggle('d-none', editing);
-        });
-        row.querySelectorAll('.transfer-edit-control').forEach((element) => {
-          element.classList.toggle('d-none', !editing);
-        });
-        editButton.classList.toggle('d-none', editing);
-        actions.classList.toggle('d-none', !editing);
+    function syncType() {
+      const noTransfer = type.value === '0';
+      const reduction = type.value === '2';
+      if (noTransfer) {
+        amount.value = '0.00';
+        date.value = '';
+      } else if (reduction) {
+        date.value = activeRow.dataset.reductionDate || '';
+      } else {
+        date.value = manualDate;
       }
-
-      function syncType() {
-        const noTransfer = type.value === '0';
-        const reduction = type.value === '2';
-        if (noTransfer) {
-          amount.value = '0.00';
-          date.value = '';
-        } else if (reduction) {
-          date.value = row.dataset.reductionDate || '';
-        } else {
-          date.value = manualDate;
-        }
-        amount.readOnly = noTransfer;
-        date.disabled = noTransfer || reduction;
+      amount.readOnly = noTransfer;
+      date.disabled = noTransfer || reduction;
+      dateLabel.textContent = reduction ? 'วันที่เบิกเงิน' : 'วันที่โอนเงินสำเร็จ';
+      dateSource.classList.toggle('d-none', !reduction);
+      if (reduction) {
+        dateSource.textContent = activeRow.dataset.reductionRequestId
+          ? `วันที่จากใบเบิกลดวงเงิน ${activeRow.dataset.reductionTicket || ''}`
+          : 'ยังไม่พบใบเบิกลดวงเงินของหน่วยงานนี้';
       }
+    }
 
-      editButton.addEventListener('click', () => setEditing(true));
-      cancelButton.addEventListener('click', () => {
-        type.value = original.type;
-        amount.value = original.amount;
-        date.value = original.date;
-        manualDate = original.type === '1' ? original.date : '';
-        previousType = original.type;
-        type.setCustomValidity('');
-        syncType();
-        setEditing(false);
-      });
-      type.addEventListener('change', () => {
-        if (previousType === '1') manualDate = date.value;
+    document.querySelectorAll('.transfer-edit-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        activeRow = button.closest('.transfer-row');
+        settingId.value = activeRow.dataset.settingId;
+        departmentName.textContent = activeRow.dataset.departmentName;
+        type.value = activeRow.dataset.transferType;
+        amount.value = Number(activeRow.dataset.transferAmount || 0).toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+        date.value = activeRow.dataset.transferredAt || '';
+        manualDate = type.value === '1' ? date.value : '';
         previousType = type.value;
         type.setCustomValidity('');
-        syncType();
-      });
-      date.addEventListener('change', () => {
-        if (type.value === '1') manualDate = date.value;
-      });
-      amount.addEventListener('blur', () => {
-        const rawValue = amount.value.replace(/,/g, '').trim();
-        if (!rawValue) return;
-        const parsed = Number(rawValue);
-        if (Number.isFinite(parsed) && parsed >= 0) {
-          amount.value = parsed.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          });
-        }
-      });
-      form.addEventListener('submit', (event) => {
-        if (type.value === '2' && !row.dataset.reductionRequestId) {
-          event.preventDefault();
-          type.setCustomValidity('ต้องมีใบเบิกลดวงเงินของหน่วยงานนี้เพียงหนึ่งใบ');
-          type.reportValidity();
-          return;
-        }
-        if (type.value !== '0' && Number(amount.value.replace(/,/g, '')) <= 0) {
-          event.preventDefault();
-          amount.setCustomValidity('กรุณาระบุจำนวนเงินมากกว่า 0');
-          amount.reportValidity();
-          return;
-        }
         amount.setCustomValidity('');
-        amount.value = amount.value.replace(/,/g, '');
+        syncType();
+        modal.show();
       });
-      amount.addEventListener('input', () => amount.setCustomValidity(''));
+    });
+
+    type.addEventListener('change', () => {
+      if (previousType === '1') manualDate = date.value;
+      previousType = type.value;
+      type.setCustomValidity('');
       syncType();
     });
-  })();
+    date.addEventListener('change', () => {
+      if (type.value === '1') manualDate = date.value;
+    });
+    amount.addEventListener('input', () => amount.setCustomValidity(''));
+    amount.addEventListener('blur', () => {
+      const rawValue = amount.value.replace(/,/g, '').trim();
+      if (!rawValue) return;
+      const parsed = Number(rawValue);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        amount.value = parsed.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+    });
+    form.addEventListener('submit', (event) => {
+      if (type.value === '2' && !activeRow.dataset.reductionRequestId) {
+        event.preventDefault();
+        type.setCustomValidity('ต้องมีใบเบิกลดวงเงินของหน่วยงานนี้เพียงหนึ่งใบ');
+        type.reportValidity();
+        return;
+      }
+      const parsed = Number(amount.value.replace(/,/g, '').trim());
+      if (!Number.isFinite(parsed) || (type.value !== '0' && parsed <= 0)) {
+        event.preventDefault();
+        amount.setCustomValidity('กรุณาระบุจำนวนเงินมากกว่า 0');
+        amount.reportValidity();
+        return;
+      }
+      amount.value = amount.value.replace(/,/g, '');
+    });
+  });
 </script>
 {% endblock %}

@@ -49,13 +49,13 @@
                     <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
                     <label class="form-check-label fw-bold text-primary" for="form_type_borrowing">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</label>
                   </div>
-<!--                  <div class="form-check form-check-inline m-0 py-1">-->
-<!--                    <input class="form-check-input" type="radio" name="form_type" id="form_type_reduction" value="reduction" {% if selected_form_type == 'reduction' %}checked{% endif %}{% if is_editing or reduction_locked %} disabled{% endif %}>-->
-<!--                    <label class="form-check-label fw-bold {% if reduction_locked %}text-muted{% else %}text-primary{% endif %}" for="form_type_reduction">คืนเงินส่วนต่างจากการปรับลดวงเงินงบประมาณ</label>-->
-<!--                    {% if reduction_locked %}-->
-<!--                      <div class="small text-muted ms-4">หน่วยงานนี้มีใบเบิกลดวงเงินแล้ว{% if existing_reduction_request.ticket_number %} ({{ existing_reduction_request.ticket_number }}){% endif %}</div>-->
-<!--                    {% endif %}-->
-<!--                  </div>-->
+                  <div class="form-check form-check-inline m-0 py-1">
+                    <input class="form-check-input" type="radio" name="form_type" id="form_type_reduction" value="reduction" {% if selected_form_type == 'reduction' %}checked{% endif %}{% if is_editing or reduction_locked %} disabled{% endif %}>
+                    <label class="form-check-label fw-bold {% if reduction_locked %}text-muted{% else %}text-primary{% endif %}" for="form_type_reduction">คืนเงินส่วนต่างจากการปรับลดวงเงินงบประมาณ</label>
+                    {% if reduction_locked %}
+                      <div class="small text-muted ms-4">หน่วยงานนี้มีใบเบิกลดวงเงินแล้ว{% if existing_reduction_request.ticket_number %} ({{ existing_reduction_request.ticket_number }}){% endif %}</div>
+                    {% endif %}
+                  </div>
                 {% endif %}
               </div>
             </div>
