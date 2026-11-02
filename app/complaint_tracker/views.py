@@ -3567,61 +3567,74 @@ def generate_repair_approval_pdf(repair_approval):
     data.append(Paragraph(receipt, style=content_style))
     data.append(Paragraph(code_detail, style=content_style))
     if repair_approval.repair_type != 'เร่งด่วน':
-        if repair_approval.price > 500000:
-            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการเพื่อดำเนินงาน ดังนี้</font>'
+        if repair_approval.principle_approval_type and repair_approval.principle_approval_type == 'จ้างซ่อม':
+            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ / ผู้ตรวจรับพัสดุ</font>'
             data.append(Paragraph(committee_title, style=content_style))
-            ordered_committee_names = [
-                'คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ',
-                'คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์',
-                'คณะกรรมการตรวจรับพัสดุ'
-            ]
-
-            for committee_name in ordered_committee_names:
-                committee_members = [
-                    c for c in repair_approval.committees
-                    if c.committee_name.strip() == committee_name
-                ]
-
-                if committee_members:
-                    data.append(Paragraph(committee_name, style=content_style))
-                    count = 2
-                    for c in committee_members:
-                        if c.committee_position == "ประธาน":
-                            para = f'<para leftIndent=35>1) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
-                            data.append(Paragraph(para, style=content_style))
-                    for c in committee_members:
-                        if c.committee_position == "กรรมการ":
-                            para = f'<para leftIndent=35>{count}) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
-                            data.append(Paragraph(para, style=content_style))
-                            count += 1
-        elif repair_approval.price >= 30000:
-            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ</font>'
-            data.append(Paragraph(committee_title, style=content_style))
-            count = 2
+            count = 1
             for c in repair_approval.committees:
-                if c.committee_position == "ประธาน":
-                    committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
-                                 .format(committee=c.staff.fullname, position=c.position,
-                                         committee_position=c.committee_position))
-                elif c.committee_position == "กรรมการ":
-                    committee = (
-                        '<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
-                        .format(num=count, committee=c.staff.fullname, position=c.position,
-                                committee_position=c.committee_position))
-                    count += 1
-                else:
-                    committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
-                                 .format(committee=c.staff.fullname, position=c.position,
-                                         committee_position=c.committee_position))
+                committee = ('<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
+                             .format(num=count, committee=c.staff.fullname, position=c.position,
+                                     committee_position=c.committee_position))
+                count += 1
                 data.append(Paragraph(committee, style=content_style))
         else:
-            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ</font>'
-            data.append(Paragraph(committee_title, style=content_style))
-            for c in repair_approval.committees:
-                committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
-                             .format(committee=c.staff.fullname, position=c.position,
-                                     committee_position=c.committee_position))
-                data.append(Paragraph(committee, style=content_style))
+            if repair_approval.price > 500000:
+                committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการเพื่อดำเนินงาน ดังนี้</font>'
+                data.append(Paragraph(committee_title, style=content_style))
+                ordered_committee_names = [
+                    'คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ',
+                    'คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์',
+                    'คณะกรรมการตรวจรับพัสดุ'
+                ]
+
+                for committee_name in ordered_committee_names:
+                    committee_members = [
+                        c for c in repair_approval.committees
+                        if c.committee_name.strip() == committee_name
+                    ]
+
+                    if committee_members:
+                        data.append(Paragraph(committee_name, style=content_style))
+                        count = 2
+                        for c in committee_members:
+                            if c.committee_position == "ประธาน":
+                                para = f'<para leftIndent=35>1) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
+                                data.append(Paragraph(para, style=content_style))
+                        for c in committee_members:
+                            if c.committee_position == "กรรมการ":
+                                para = f'<para leftIndent=35>{count}) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
+                                data.append(Paragraph(para, style=content_style))
+                                count += 1
+            elif repair_approval.price >= 30000:
+                committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ</font>'
+                data.append(Paragraph(committee_title, style=content_style))
+                count = 2
+                for c in repair_approval.committees:
+                    if c.committee_position == "ประธาน":
+                        committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
+                                     .format(committee=c.staff.fullname, position=c.position,
+                                             committee_position=c.committee_position))
+                    elif c.committee_position == "กรรมการ":
+                        committee = (
+                            '<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
+                            .format(num=count, committee=c.staff.fullname, position=c.position,
+                                    committee_position=c.committee_position))
+                        count += 1
+                    else:
+                        committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
+                                     .format(committee=c.staff.fullname, position=c.position,
+                                             committee_position=c.committee_position))
+                    data.append(Paragraph(committee, style=content_style))
+            else:
+                committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ</font>'
+                data.append(Paragraph(committee_title, style=content_style))
+                count = 1
+                for c in repair_approval.committees:
+                    committee = ('<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
+                                 .format(num=count, committee=c.staff.fullname, position=c.position,
+                                         committee_position=c.committee_position))
+                    count += 1
+                    data.append(Paragraph(committee, style=content_style))
     if (repair_approval.repair_type == 'เร่งด่วน' and repair_approval.remark) or repair_approval.principle_approval_type == 'ซื้อ' \
             or repair_approval.principle_approval_type == 'จ้าง' or repair_approval.repair_type == 'จ้างซ่อม':
         data.append(Paragraph(remark, style=text_style))
