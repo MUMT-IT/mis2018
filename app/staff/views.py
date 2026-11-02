@@ -7240,10 +7240,10 @@ def seminar_attend_search_result():
         END_FISCAL_DATE.strftime('%d/%m/%Y')
     )
 
-    if request.method == 'POST':
-        form = request.form
-        selected_dates = request.form.get('dates', None)
-        start_d, end_d = form.get('dates').split(' - ')
+    if request.method == 'POST' or request.args.get('staff') or request.args.get('dates'):
+        form = request.values
+        selected_dates = form.get('dates') or selected_dates
+        start_d, end_d = selected_dates.split(' - ')
         start = datetime.strptime(start_d, '%d/%m/%Y')
         end = datetime.strptime(end_d, '%d/%m/%Y')
         personal_info_id = form.get('staff')
@@ -7290,6 +7290,7 @@ def seminar_attend_search_result():
         return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                                budget=budget, selected_dates=selected_dates,
                                personal_info_id=personal_info_id,
+                               selected_staff_id=personal_info_id,
                                selected_staff_name=selected_staff.fullname if selected_staff else "",
                                selected_topic_type=topic_type, selected_role=role,
                                distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
@@ -7330,6 +7331,10 @@ def seminar_yearly_budgets():
 
     budget_records = query.order_by(Org.name, StaffPersonalInfo.th_firstname,
                                    StaffPersonalInfo.en_firstname).all()
+    seminar_search_dates = '{} - {}'.format(
+        datetime(fiscal_year - 1, 10, 1).strftime('%d/%m/%Y'),
+        datetime(fiscal_year, 9, 30).strftime('%d/%m/%Y'),
+    )
     return render_template(
         'staff/seminar_yearly_budgets.html',
         budget_records=budget_records,
@@ -7339,6 +7344,7 @@ def seminar_yearly_budgets():
         selected_staff=selected_staff,
         fiscal_year=fiscal_year,
         fiscal_year_options=fiscal_year_options,
+        seminar_search_dates=seminar_search_dates,
     )
 
 
