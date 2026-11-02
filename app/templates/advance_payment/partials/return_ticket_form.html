@@ -380,6 +380,9 @@
               {% if return_edit_detail|default(none) %}บันทึกการแก้ไข{% else %}ส่งหลักฐานเอกสารส่งใช้เงินยืม{% endif %}
             </button>
           </div>
+          {% if not return_edit_detail|default(none) %}
+          <div class="col-12 text-end" id="autoSaveStatus_{{ borrowing_ticket.id }}" role="status" aria-live="polite"></div>
+          {% endif %}
         </div>
       </form>
     </div>
@@ -526,9 +529,9 @@
       calculateTotalSpent(ticketId);
     }
 
-    function submitFormWithAction(ticketId, type) {
+    async function submitFormWithAction(ticketId, type) {
       const form = document.getElementById(`returnForm_${ticketId}`);
-      clearTimeout(autoSaveTimer);
+      clearTimeout(autoSaveTimers.get(String(ticketId)));
       document.getElementById(`action_${ticketId}`).value = type;
 
       if (type === 'draft') {
@@ -552,6 +555,13 @@
         form.querySelectorAll(".item-amount-input").forEach(input => {
           input.value = input.value.replace(/,/g, "");
         });
+        try {
+          await (autoSaveQueues.get(String(ticketId)) || Promise.resolve());
+          await refreshReturnCsrf(ticketId);
+        } catch (error) {
+          showAutoSaveStatus(ticketId, 'error', '', error.message);
+          return;
+        }
         form.submit();
         return;
       }
@@ -648,6 +658,13 @@
       }
 
       if (isValid) {
+        try {
+          await (autoSaveQueues.get(String(ticketId)) || Promise.resolve());
+          await refreshReturnCsrf(ticketId);
+        } catch (error) {
+          showAutoSaveStatus(ticketId, 'error', '', error.message);
+          return;
+        }
         form.querySelectorAll(".item-amount-input, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input").forEach(input => {
           input.value = input.value.replace(/,/g, "");
         });
@@ -672,7 +689,7 @@
       }
     }
 
-    function addReceiptRow(ticketId) {
+    function addReceiptRow(ticketId, persist = true) {
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
       if (!tbody) return;
 
@@ -701,6 +718,10 @@
       bindReceiptAgeWarnings(tr);
       bindAmountInputEvents(tr.querySelector(".item-amount-input"), ticketId);
       calculateTotalSpent(ticketId);
+      if (persist && !document.getElementById(`returnForm_${ticketId}`)?.querySelector('[name="edit_return_id"]')) {
+        clearTimeout(autoSaveTimers.get(String(ticketId)));
+        autoSaveDraft(ticketId);
+      }
     }
 
     function removeReceiptRow(button, ticketId) {
@@ -708,6 +729,7 @@
         button.closest('tr').remove();
         updateReceiptFileIndices(ticketId);
         calculateTotalSpent(ticketId);
+        triggerAutoSave(ticketId);
     }
 
     function updateReceiptFileIndices(ticketId) {
@@ -897,19 +919,41 @@
       }
     });
 
-    let autoSaveTimer = null;
+    const autoSaveTimers = new Map();
+    const autoSaveQueues = new Map();
+
+    async function refreshReturnCsrf(ticketId) {
+      const response = await fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
+        credentials: 'same-origin'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.csrf_token) throw new Error('ไม่สามารถต่ออายุ token ได้ กรุณาเข้าสู่ระบบใหม่หรือโหลดหน้าอีกครั้ง');
+      document.getElementById(`returnForm_${ticketId}`).querySelector('[name="csrf_token"]').value = data.csrf_token;
+      return data.csrf_token;
+    }
 
     function autoSaveDraft(ticketId) {
       const form = document.getElementById(`returnForm_${ticketId}`);
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (!tbody || !form) return;
+      if (!tbody || !form || form.querySelector('[name="edit_return_id"]')) return Promise.resolve();
 
-      const items = Array.from(tbody.querySelectorAll('tr')).map(row => ({
+      const key = String(ticketId);
+      const save = async () => {
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const rowIsEmpty = row => !Array.from(row.querySelectorAll('input:not([type="hidden"]):not([type="file"]), textarea'))
+        .some(input => input.value.trim());
+      while (rows.length && rowIsEmpty(rows[rows.length - 1])) rows.pop();
+
+      const items = rows.map(row => ({
         receipt_date: window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || ''),
         store_name: row.querySelector('textarea[name="store_name[]"]')?.value || '',
         description: row.querySelector('textarea[name="description[]"]')?.value || '',
         amount: row.querySelector('.item-amount-input')?.value.replace(/,/g, '') || '0'
       }));
+      if (items.some(item => !item.receipt_date)) {
+        showAutoSaveStatus(ticketId, 'error', '', 'กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่างอัตโนมัติ');
+        return;
+      }
 
       const cashDate = window.appDateToISO(form.querySelector('input[name="cash_return_date"]')?.value || '');
       const cashAmount = form.querySelector('input[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
@@ -924,36 +968,38 @@
 
       showAutoSaveStatus(ticketId, 'saving');
       const note = form.querySelector('[name="note"]')?.value.trim() || '';
-      const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || '';
-      fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
+      const payload = { items, cash_return: { receipt_date: cashDate, amount: cashAmount }, announcements, note };
+      const csrfToken = await refreshReturnCsrf(ticketId);
+      const res = await fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
         credentials: 'same-origin',
-        body: JSON.stringify({ items: items, cash_return: { receipt_date: cashDate, amount: cashAmount }, announcements: announcements, note: note })
-      })
-        .then(async res => {
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data.success) {
-            throw new Error(data.message || `Auto-save failed (HTTP ${res.status})`);
-          }
-          return data;
-        })
-        .then(data => showAutoSaveStatus(ticketId, data.success ? 'saved' : 'error', data.saved_at))
-        .catch(err => {
-          console.error('Auto-save error:', err);
-          showAutoSaveStatus(ticketId, 'error', '', err.message);
-        });
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.message || `Auto-save failed (HTTP ${res.status})`);
+      showAutoSaveStatus(ticketId, 'saved', data.saved_at);
+      };
+      const queued = (autoSaveQueues.get(key) || Promise.resolve()).then(save, save).catch(err => {
+        console.error('Auto-save error:', err);
+        showAutoSaveStatus(ticketId, 'error', '', err.message);
+      });
+      autoSaveQueues.set(key, queued);
+      return queued;
     }
 
     function triggerAutoSave(ticketId) {
+      if (document.getElementById(`returnForm_${ticketId}`)?.querySelector('[name="edit_return_id"]')) return;
       showAutoSaveStatus(ticketId, 'typing');
-      clearTimeout(autoSaveTimer);
-      autoSaveTimer = setTimeout(() => autoSaveDraft(ticketId), 1500);
+      const key = String(ticketId);
+      clearTimeout(autoSaveTimers.get(key));
+      autoSaveTimers.set(key, setTimeout(() => autoSaveDraft(ticketId), 1500));
     }
 
     function showAutoSaveStatus(ticketId, state, timeStr = '', errorMessage = '') {
       const statusEl = document.getElementById(`autoSaveStatus_${ticketId}`);
       if (!statusEl) return;
+      statusEl.className = 'col-12 text-end';
       if (state === 'typing') {
         statusEl.innerHTML = `<span class="text-muted small"><i class="bi bi-pencil me-1"></i>กำลังพิมพ์...</span>`;
       } else if (state === 'saving') {
@@ -1010,7 +1056,7 @@
       {% for borrowing_ticket in actionable_tickets %}
         {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'เคลียร์ยอดแล้ว', 'เอกสารตั้งฎีกา', 'ปฏิเสธ'] %}
           {% if not borrowing_ticket.draft_items %}
-            addReceiptRow({{ borrowing_ticket.id }});
+            addReceiptRow({{ borrowing_ticket.id }}, false);
           {% else %}
             calculateTotalSpent({{ borrowing_ticket.id }});
           {% endif %}
