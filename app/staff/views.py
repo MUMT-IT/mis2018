@@ -2547,27 +2547,32 @@ def leave_request_result_by_date():
              methods=['GET', 'POST'])
 @login_required
 def leave_request_result_by_person():
-    org_id = request.args.get('deptid')
-    fiscal_year = request.args.get('fiscal_year')
-    years = set()
+    org_id = request.args.get('deptid', type=int)
+    _, current_end_fiscal_date = get_fiscal_date(datetime.today())
+    current_fiscal_year = current_end_fiscal_date.year
+    fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
+    years = {row[0] for row in db.session.query(StaffLeaveUsedQuota.fiscal_year).distinct().all()
+             if row[0] is not None}
+    years.add(current_fiscal_year)
     leaves_list = []
     departments = Org.query.order_by(Org.id.asc()).all()
     leave_types = [t.type_ for t in StaffLeaveType.query.all()]
     leave_types_r = [t.type_ + u'คงเหลือ' for t in StaffLeaveType.query.all()]
-    if org_id is None:
-        account_query = StaffAccount.query.all()
-    else:
+    account_query = StaffAccount.query.join(StaffAccount.personal_info).filter(
+        or_(StaffPersonalInfo.retired.is_(False), StaffPersonalInfo.retired.is_(None))
+    )
+    if org_id is not None:
         selected_org = Org.query.get(org_id)
         org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(StaffPersonalInfo.org_id.in_(org_ids))) \
-            .filter(or_(StaffAccount.personal_info.has(retired=False),
-                        StaffAccount.personal_info.has(retired=None)))
+        account_query = account_query.filter(StaffPersonalInfo.org_id.in_(org_ids))
     for account in account_query:
         record = {}
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
-        record["total"] = 0
-        record["pending"] = 0
+        used_quotas = StaffLeaveUsedQuota.query.filter_by(staff=account, fiscal_year=fiscal_year).all()
+        used_by_type = {quota.leave_type_id: quota for quota in used_quotas}
+        record["total"] = sum(quota.used_days or 0 for quota in used_quotas)
+        record["pending"] = sum(quota.pending_days or 0 for quota in used_quotas)
         if account.personal_info.org:
             record["org"] = account.personal_info.org.name
         else:
@@ -2576,50 +2581,17 @@ def leave_request_result_by_person():
             record[leave_type] = 0
         for leave_remain in leave_types_r:
             record[leave_remain] = 0
-        if fiscal_year:
-            used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account, fiscal_year=fiscal_year).all()
-        else:
-            used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account).all()
-        if used_quota:
-            for quota in used_quota:
-                record["total"] += quota.used_days
-                record["pending"] += quota.pending_days
-
-        quota = StaffLeaveQuota.query.filter_by(employment_id=account.personal_info.employment_id).all()
-        for quota in quota:
+        quotas = StaffLeaveQuota.query.filter_by(employment_id=account.personal_info.employment_id).all()
+        for quota in quotas:
             leave_type = quota.leave_type.type_
-            leave_remain = quota.leave_type.type_
-            if fiscal_year:
-                used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account, leave_type_id=quota.leave_type_id,
-                                                                 fiscal_year=fiscal_year).first()
-                if used_quota:
-                    record[leave_remain] = used_quota.quota_days - used_quota.used_days
-                    record[leave_type] = used_quota.used_days
-                else:
-                    record[leave_type] = 0
-                    record[leave_remain] = 0
-            else:
-                _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-                used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account,
-                                                                 leave_type_id=quota.leave_type_id,
-                                                                 fiscal_year=END_FISCAL_DATE.year).first()
-                if used_quota:
-                    record["total"] += used_quota.used_days
-                    record["pending"] += used_quota.pending_days
-                    record[leave_type] = used_quota.used_days
-                    record[leave_remain] = used_quota.quota_days - used_quota.used_days
-                else:
-                    record["total"] = 0
-                    record["pending"] = 0
-                    record[leave_type] = 0
-                    record[leave_remain] = 0
-        for req in account.leave_requests:
-            years.add(req.start_datetime.year)
+            leave_remain = leave_type + u'คงเหลือ'
+            used_quota = used_by_type.get(quota.leave_type_id)
+            if used_quota:
+                used_days = used_quota.used_days or 0
+                record[leave_type] = used_days
+                record[leave_remain] = (used_quota.quota_days or 0) - used_days
         leaves_list.append(record)
     years = sorted(years)
-    if len(years) > 0:
-        years.append(years[-1] + 1)
-        years.insert(0, years[0] - 1)
     return render_template('staff/leave_request_by_person.html', leave_types=leave_types, leave_types_r=leave_types_r,
                            sel_dept=org_id, year=fiscal_year,
                            leaves_list=leaves_list, departments=[{'id': d.id, 'name': d.name}
