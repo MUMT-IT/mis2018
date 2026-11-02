@@ -1444,7 +1444,7 @@ def request_for_leave(quota_id=None):
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
                     if quota.max_per_leave:
-                        if req_duration >= quota.max_per_leave and upload_file_id is None:
+                        if req_duration > quota.max_per_leave and upload_file_id is None:
                             flash('ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ', 'danger')
                             resp = make_response()
                             resp.headers['HX-Redirect'] = request.referrer
