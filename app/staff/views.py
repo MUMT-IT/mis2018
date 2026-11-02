@@ -2559,7 +2559,9 @@ def leave_request_result_by_person():
     leave_types = [t.type_ for t in StaffLeaveType.query.all()]
     leave_types_r = [t.type_ + u'คงเหลือ' for t in StaffLeaveType.query.all()]
     account_query = StaffAccount.query.join(StaffAccount.personal_info).filter(
-        or_(StaffPersonalInfo.retired.is_(False), StaffPersonalInfo.retired.is_(None))
+        StaffPersonalInfo.retirement_date.is_(None),
+        StaffPersonalInfo.resignation_date.is_(None),
+        or_(StaffPersonalInfo.retired.is_(False), StaffPersonalInfo.retired.is_(None)),
     )
     if org_id is not None:
         selected_org = Org.query.get(org_id)
