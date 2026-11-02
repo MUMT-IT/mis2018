@@ -114,6 +114,7 @@
                         <b-field label="ค่าลงทะเบียน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="registration_fee"
+                                     v-model="registrationFee"
                                      icon-pack="far"
                                      icon="dollar-sign"
                                      required>
@@ -122,6 +123,7 @@
                         <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="accommodation_cost"
+                                     v-model="accommodationCost"
                                      icon-pack="far"
                                      icon="house">
                             </b-input>
@@ -146,6 +148,7 @@
                         <b-field label="ค่าน้ำมัน (บาท)" v-if="transportation === 'fuel_cost'">
                             <b-input type="text"
                                      name="fuel_cost"
+                                     v-model="fuelCost"
                                      icon-pack="far"
                                      icon="gas-pump">
                             </b-input>
@@ -153,6 +156,7 @@
                         <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="taxi_cost"
+                                     v-model="taxiCost"
                                      icon-pack="far"
                                      icon="taxi">
                             </b-input>
@@ -161,6 +165,7 @@
                                  v-if="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="train_ticket_cost"
+                                     v-model="trainTicketCost"
                                      icon-pack="far"
                                      icon="train">
                             </b-input>
@@ -169,6 +174,7 @@
                                  v-if="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="flight_ticket_cost"
+                                     v-model="flightTicketCost"
                                      icon-pack="far"
                                      icon="plane">
                             </b-input>
@@ -176,6 +182,7 @@
                         <b-field label="ค่าใช้จ่ายรวมต่อคน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget"
+                                     :value="totalBudget"
                                      icon-pack="far"
                                      icon="dollar-sign"
                                      required>
@@ -237,6 +244,12 @@
                 data: [],
                 participants: [],
                 transportation: "no_cost",
+                registrationFee: '',
+                accommodationCost: '',
+                fuelCost: '',
+                taxiCost: '',
+                trainTicketCost: '',
+                flightTicketCost: '',
                 timepicker: {
                 incrementMinutes: 30
             }
@@ -254,6 +267,26 @@
                     return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
                 }
                 return null
+            },
+            totalBudget: function () {
+                const toAmount = value => {
+                    const amount = parseFloat(String(value || '').replace(/,/g, '').trim());
+                    return Number.isFinite(amount) ? amount : 0;
+                };
+                let travelTotal = 0;
+                if (this.transportation === 'fuel_cost') {
+                    travelTotal = toAmount(this.fuelCost);
+                } else if (this.transportation === 'train_ticket_cost') {
+                    travelTotal = toAmount(this.trainTicketCost);
+                } else if (this.transportation === 'taxi_cost') {
+                    travelTotal = toAmount(this.taxiCost)
+                        + toAmount(this.trainTicketCost)
+                        + toAmount(this.flightTicketCost);
+                } else if (this.transportation === 'flight_ticket_cost') {
+                    travelTotal = toAmount(this.flightTicketCost);
+                }
+                const total = toAmount(this.registrationFee) + toAmount(this.accommodationCost) + travelTotal;
+                return total.toFixed(2);
             }
         }
     });

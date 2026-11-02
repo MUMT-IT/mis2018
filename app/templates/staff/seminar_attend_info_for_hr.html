@@ -154,7 +154,7 @@
                                 {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
                             </td>
                             <td>
-                                <a class="button "href="{{ url_for('staff.show_seminar_info_each_person',
+                                <a class="button "href="{{ url_for('staff.show_seminar_info_each_person_for_hr',
                                     record_id=attend.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-info-circle"></i>

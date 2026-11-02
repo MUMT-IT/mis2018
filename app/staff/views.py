@@ -6093,6 +6093,13 @@ def seminar_attend_info_for_hr(seminar_id):
                            upload_file_url=upload_file_url)
 
 
+@staff.route('/seminar/info/<int:record_id>/for-hr')
+@login_required
+def show_seminar_info_each_person_for_hr(record_id):
+    attend = StaffSeminarAttend.query.get(record_id)
+    return render_template('staff/seminar_each_record_for_hr.html', attend=attend)
+
+
 @staff.route('/seminar/add-attend/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
 def seminar_attend_info(seminar_id):
@@ -6968,6 +6975,8 @@ def seminar_add_attendee(seminar_id):
             #         objective.objective_attends.append(attend)
             #         mission.mission_attends.append(attend)
             db.session.commit()
+            if attend.budget:
+                get_seminar_yearly_budget(account.id, seminar.start_datetime or attend.start_datetime)
         flash('เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar_id))
     return render_template('staff/seminar_add_attendee.html', seminar=seminar)
