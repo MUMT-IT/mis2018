@@ -10420,17 +10420,37 @@ def petty_cash_pending_approvals():
     setting = _resolve_petty_cash_setting(user)
     is_custodian = _is_petty_cash_custodian(user, setting)
 
-    fund_requests = (
+    pending_fund_requests = (
         _fund_request_org_filter(db.session.query(FundRequest), org)
         .filter(
             FundRequest.is_legacy_import.is_(False),
             FundRequest.status_id == _status_id("fund_request", code="PENDING"),
-            FundRequest.confirmed_at.isnot(None),
             FundRequest.approved_at.is_(None),
         )
         .order_by(FundRequest.id.desc())
         .all()
     )
+    fund_requests = []
+    for fund_request in pending_fund_requests:
+        if not _is_fund_request_org_head(user, fund_request):
+            continue
+
+        expected_confirmer_id = _fund_request_expected_confirmer_id(fund_request)
+        if expected_confirmer_id:
+            expected_confirmer = _get_user_by_id(expected_confirmer_id)
+            if not _staff_accounts_match(expected_confirmer, user):
+                continue
+
+        fund_request.pending_head_action = (
+            "confirm"
+            if expected_confirmer_id
+            and _fund_request_requires_separate_head_requester_confirmation(
+                fund_request
+            )
+            else "approve"
+        )
+        fund_requests.append(fund_request)
+
     for fund_request in fund_requests:
         fund_request.display_requester_name = _fund_request_requester_name(
             fund_request,
