@@ -3233,9 +3233,9 @@ def generate_repair_approval_pdf(repair_approval):
                              f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
 
     if repair_approval.approver:
-        approver = f"{repair_approval.approver.fullname_with_full_position}"
+        head = f"{repair_approval.approver.fullname_with_full_position}"
     else:
-        approver = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+        head = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
     organization_info = Paragraph(organization_text, style=header_right_style)
@@ -3246,7 +3246,7 @@ def generate_repair_approval_pdf(repair_approval):
         ['', ''],
         ['', ''],
         [Paragraph('ลงชื่อ', center_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', center_style)],
-        [Paragraph(f'({approver})', center_style), ''],
+        [Paragraph(f'({head})', center_style), ''],
     ], colWidths=[160, 160])
     person.setStyle(TableStyle([
         ('SPAN', (0, 1), (1, 1)),
@@ -3268,6 +3268,25 @@ def generate_repair_approval_pdf(repair_approval):
         else f"{repair_approval.price:,.2f}"
 
     mhesi_no_date_info = '''<font name="SarabunBold">วันที่</font>'''
+
+    dean = StaffHeadPosition.query.filter_by(position='คณบดีคณะเทคนิคการแพทย์').first()
+    associate_dean = StaffHeadPosition.query.filter_by(position='รองคณบดีคณะเทคนิคการแพทย์').first()
+
+    if repair_approval.price and repair_approval.price > 100000:
+        if dean:
+            approver_name = dean.staff.fullname_with_full_position
+            approver_position = dean.position
+        else:
+            approver_name = None
+            approver_position = None
+    elif associate_dean:
+        approver_name = associate_dean.staff.fullname_with_full_position
+        approver_position = associate_dean.position
+    else:
+        approver_name = None
+        approver_position = None
+
+    recipient = f'<font name="SarabunBold">เรียน</font>&nbsp;&nbsp;&nbsp;&nbsp;{approver_position}'
 
     if repair_approval.repair_type == 'เร่งด่วน':
         indent = 47
@@ -3468,30 +3487,16 @@ def generate_repair_approval_pdf(repair_approval):
         ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
     ]))
 
-    dean = StaffHeadPosition.query.filter_by(position='คณบดีคณะเทคนิคการแพทย์').first()
-    associate_dean = StaffHeadPosition.query.filter_by(position='รองคณบดีคณะเทคนิคการแพทย์').first()
-
-    if repair_approval.price and repair_approval.price > 100000:
-        if dean:
-            approver_name = (f'{dean.staff.fullname_with_full_position}<br/>{dean.position}'
-                             f'<br/>ปฏิบัติหน้าที่แทนอธิการบดีมหาวิทยาลัยมหิดล')
-        else:
-            approver_name = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+    if approver_name:
+        approver = (f'{approver_name}<br/>{approver_position}<br/>ปฏิบัติหน้าที่แทนอธิการบดีมหาวิทยาลัยมหิดล')
     else:
-        if associate_dean:
-            approver_name = (f'{associate_dean.staff.fullname_with_full_position}<br/>{associate_dean.position}'
-                             f'<br/>ปฏิบัติหน้าที่แทนอธิการบดีมหาวิทยาลัยมหิดล')
-        else:
-            approver_name = (
-                f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+        approver = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                        f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                        f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
 
     approval = Table([
         [Paragraph('อนุมัติ', style=approver_style)],
-        [Paragraph(f'{approver_name}', style=center_style)]
+        [Paragraph(f'{approver}', style=center_style)]
     ], colWidths=215)
 
     approval.setStyle(TableStyle([
@@ -3517,8 +3522,7 @@ def generate_repair_approval_pdf(repair_approval):
     data.append(Paragraph(mhesi_no, style=content_style))
     data.append(Paragraph(mhesi_no_date_info, style=content_style))
     data.append(Paragraph(item, style=item_style))
-    data.append(Paragraph(f'<font name="SarabunBold">เรียน</font>&nbsp;&nbsp;&nbsp;&nbsp;คณบดีคณะเทคนิคการแพทย์',
-                          style=content_style))
+    data.append(Paragraph(recipient, style=content_style))
     data.append(Paragraph(item_detail, style=item_detail_style))
     data.append(Paragraph(reason_title, style=content_style))
     data.append(Paragraph(f'<para firstLineIndent={indent}>{repair_approval.reason}</para>', style=content_style))
