@@ -6108,9 +6108,10 @@ def seminar_attend_info(seminar_id):
     else:
         upload_file_url = None
     already_attend = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id, seminar_id=seminar.id).first()
+    is_secretary = bool(secretary_permission)
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends,
                            already_attend=already_attend, current_user_attended=current_user_attended,
-                           upload_file_url=upload_file_url)
+                           upload_file_url=upload_file_url, is_secretary=is_secretary)
 
 
 @staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
@@ -6188,13 +6189,27 @@ def _get_seminar_idp(staff_account_id, seminar):
 
 
 @staff.route('/seminar/create-record/<int:seminar_id>', methods=['GET', 'POST'])
+@staff.route('/seminar/create-record-for-secretary/<int:seminar_id>', methods=['GET', 'POST'],
+             endpoint='seminar_create_record_for_secretary')
 @login_required
 def seminar_create_record(seminar_id):
-    is_attend = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
+    is_secretary_proxy = request.endpoint == 'staff.seminar_create_record_for_secretary'
+    if is_secretary_proxy and not secretary_permission.can():
+        abort(403)
+    is_attend = None if is_secretary_proxy else StaffSeminarAttend.query.filter_by(
+        seminar_id=seminar_id, staff=current_user
+    ).first()
     if is_attend:
         flash('พบข้อมูลของท่าน บันทึกเข้าร่วมกิจกรรมนี้แล้ว', 'success')
         return redirect(url_for('staff.show_seminar_info_each_person', record_id=is_attend.id))
-    MyStaffSeminarAttendForm = create_seminar_attend_form(current_user)
+    selected_staff_ids = []
+    form_staff = current_user
+    if is_secretary_proxy:
+        selected_staff_ids = (request.form.getlist('bulk_staff_ids') if request.method == 'POST'
+                              else request.args.getlist('bulk_staff_ids'))
+        if len(selected_staff_ids) == 1 and selected_staff_ids[0].isdigit():
+            form_staff = StaffAccount.query.get(int(selected_staff_ids[0])) or current_user
+    MyStaffSeminarAttendForm = create_seminar_attend_form(form_staff)
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     form_initial = {
@@ -6213,7 +6228,7 @@ def seminar_create_record(seminar_id):
         'deduct_transfer': False,
         'objective': '',
         'idp_item_ids': [],
-        'staff_account_id': current_user.id,
+        'staff_account_id': form_staff.id,
     }
 
     def apply_selected_seminar_expenses(attend):
@@ -6250,8 +6265,37 @@ def seminar_create_record(seminar_id):
             request.form.get('deduct_transfer') == 'yes'
             and request.form.get('payment') == 'paid'
         )
-        bulk_ids = request.form.getlist('bulk_staff_ids')
-        if secretary_permission.can() and bulk_ids:
+        bulk_ids = request.form.getlist('bulk_staff_ids') if is_secretary_proxy else []
+        is_idp_objective = 'IDP' in (request.form.get('objective') or '')
+        selected_idp_items = []
+        if is_secretary_proxy and not bulk_ids:
+            flash('กรุณาเลือกบุคลากรที่ต้องการทำหนังสือแทน', 'warning')
+            return redirect(url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar_id))
+        if is_secretary_proxy and any(not str(staff_id).isdigit() for staff_id in bulk_ids):
+            flash('รายชื่อบุคลากรที่เลือกไม่ถูกต้อง กรุณาเลือกใหม่', 'warning')
+            return redirect(url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar_id))
+        if is_secretary_proxy and is_idp_objective and len(bulk_ids) != 1:
+            flash('กรุณาทำขออนุมัติรายบุคคล กรณีใช้ IDP หรือเปลี่ยนเป็นพัฒนาตามความสนใจ', 'warning')
+            return redirect(url_for('staff.seminar_create_record_for_secretary',
+                                    seminar_id=seminar_id, bulk_staff_ids=bulk_ids))
+        if is_secretary_proxy and is_idp_objective:
+            from app.PA.models import IDP, IDPItem, PAFunctionalCompetencyRound
+            selected_item_ids = [int(item_id) for item_id in request.form.getlist('idps')
+                                 if str(item_id).isdigit()]
+            target_staff_id = int(bulk_ids[0])
+            if selected_item_ids:
+                selected_idp_items = IDPItem.query.join(IDPItem.idp).join(IDP.round).filter(
+                    IDPItem.id.in_(selected_item_ids),
+                    IDP.staff_account_id == target_staff_id,
+                    PAFunctionalCompetencyRound.start <= seminar.start_datetime.date(),
+                    PAFunctionalCompetencyRound.end >= seminar.start_datetime.date(),
+                ).all()
+            if not selected_idp_items:
+                flash('กรุณาเลือก IDP ของบุคลากรที่เลือกอย่างน้อย 1 รายการก่อนบันทึก', 'warning')
+                return redirect(url_for('staff.seminar_create_record_for_secretary',
+                                        seminar_id=seminar_id, bulk_staff_ids=bulk_ids))
+
+        if is_secretary_proxy and bulk_ids:
             batch = StaffSeminarBatch(seminar_id=seminar.id, created_by_id=current_user.id)
             db.session.add(batch)
             db.session.flush()
@@ -6297,15 +6341,9 @@ def seminar_create_record(seminar_id):
                     position_id=request.form.get('position')
                 )
                 db.session.add(document_approver)
-                if "IDP" in request.form.get('objective'):
+                if is_idp_objective:
                     yearly_budget = get_seminar_yearly_budget(staff_account.id, seminar.start_datetime)
-                    idp_items = request.form.getlist('idps')
-                    if idp_items:
-                        from app.PA.models import IDPItem
-                        for idp_item in idp_items:
-                            item = IDPItem.query.get(idp_item)
-                            if item:
-                                attend.idp_items.append(item)
+                    attend.idp_items.extend(selected_idp_items)
                 created_ids.append(attend.id)
             db.session.commit()
             if missing:
@@ -6316,7 +6354,7 @@ def seminar_create_record(seminar_id):
                                         record_id=created_ids[0],
                                         bulk_ids=",".join([str(i) for i in created_ids])))
             flash('ไม่พบรายการที่สามารถเพิ่มได้', 'warning')
-            return redirect(url_for('staff.seminar_create_record', seminar_id=seminar_id))
+            return redirect(url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar_id))
         is_attend = StaffSeminarAttend.query.filter_by(seminar=seminar, staff=current_user).first()
         if not is_attend:
             attend = StaffSeminarAttend()
@@ -6349,7 +6387,7 @@ def seminar_create_record(seminar_id):
                 position_id=request.form.get('position')
             )
             db.session.add(document_approver)
-            if "IDP" in request.form.get('objective'):
+            if is_idp_objective:
                 yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
                 idp_items = request.form.getlist('idps')
                 if idp_items:
@@ -6393,7 +6431,7 @@ def seminar_create_record(seminar_id):
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
     staff_list = []
-    if secretary_permission.can():
+    if is_secretary_proxy:
         for account in StaffAccount.query.filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None))).all():
             staff_list.append({
@@ -6402,8 +6440,10 @@ def seminar_create_record(seminar_id):
                 'email': account.email
             })
     _, END_FISCAL_DATE = get_fiscal_date(seminar.start_datetime)
-    return render_template('staff/seminar_create_record.html', seminar=seminar, form=form,
+    return render_template('staff/seminar_create_record_for_secretary.html' if is_secretary_proxy
+                           else 'staff/seminar_create_record.html', seminar=seminar, form=form,
                            is_secretary=secretary_permission.can(), staff_list=staff_list,
+                           selected_staff_ids=selected_staff_ids,
                            fiscal_year=END_FISCAL_DATE.year, is_edit=False, attend=None,
                            form_initial=form_initial)
 
@@ -6572,7 +6612,11 @@ def seminar_batch_detail(batch_id):
 def get_idp_for_seminar(seminar_id):
     option = request.args.get('objective') or ''
     if "IDP" in option:
-        staff_account_id = request.args.get('staff_account_id', type=int) or current_user.id
+        is_secretary_request = request.args.get('for_secretary') == 'true'
+        staff_account_id = request.args.get('staff_account_id', type=int)
+        if is_secretary_request and not staff_account_id:
+            return make_response('<p>กรุณาเลือกบุคลากรหนึ่งคนเพื่อแสดงรายการ IDP</p>')
+        staff_account_id = staff_account_id or current_user.id
         if staff_account_id != current_user.id and not (
                 secretary_permission.can() or hr_permission.can()):
             abort(403)
