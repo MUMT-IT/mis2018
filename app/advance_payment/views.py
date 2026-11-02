@@ -10328,7 +10328,7 @@ def staff_fund_request_history():
             for item in getattr(claim, "items", [])
             if (item.description or "").strip()
         ) or "-"
-        claim.claim_number = (
+        claim.display_claim_number = (
             claim.claim_number
             or (fund_request.ticket_number if fund_request and fund_request.ticket_number else None)
             or f"PC-{claim.id}"
