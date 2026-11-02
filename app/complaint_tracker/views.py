@@ -2828,14 +2828,13 @@ def edit_repair_approval(repair_approval_id):
 
 
 def _committee_group_definitions(price):
-    """Return the committee groups and their minimum member counts."""
     if price > 500000:
         return [
             ('คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ', 3),
             ('คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์', 3),
             ('คณะกรรมการตรวจรับพัสดุ', 3),
         ]
-    if price > 30000:
+    elif price >= 30000:
         return [('คณะกรรมการตรวจรับพัสดุ', 3)]
     return [('ผู้ตรวจรับพัสดุ', 1)]
 
