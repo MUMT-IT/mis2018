@@ -13194,19 +13194,20 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
         if not current_setting or not getattr(current_setting, "id", None):
             flash("ไม่พบการตั้งค่าเงินสดย่อยสำหรับหน่วยงาน", "warning")
             return redirect(url_for("advance_payment.petty_cash_ledger", month=selected_month))
-        # The ledger keeps its existing accounting scope, but the report
-        # summary must include every non-cancelled/non-rejected document that
-        # still requires action, including requests from previous months.
+        # Include earlier requests and stop at the end of the selected month.
         summary_fund_requests = (
             _fund_request_setting_filter(
                 db.session.query(FundRequest),
                 current_setting,
             )
-            .filter(~FundRequest.status_id.in_(_status_ids("fund_request", [
-                "PENDING",
-                "CLAIM_CANCELLED",
-                "REJECTED",
-            ])))
+            .filter(
+                ~FundRequest.status_id.in_(_status_ids("fund_request", [
+                    "PENDING",
+                    "CLAIM_CANCELLED",
+                    "REJECTED",
+                ])),
+                FundRequest.request_date < next_month_start,
+            )
             .all()
         )
         summary = summarize_petty_cash_month(selected_month_start, summary_fund_requests, all_claims)

@@ -585,7 +585,7 @@ def _get_bank_account_info_for_petty_cash_setting(setting):
 # 3. PDF GENERATION FUNCTIONS
 # =========================================================================
 def summarize_petty_cash_month(month_start, fund_requests, claims):
-    """Summarize petty-cash documents requiring action.
+    """Summarize petty-cash documents through the end of the selected month.
 
     A submitted document is counted per claim, but only while the claim is in
     one of the three review statuses. Parcel-return documents in the
@@ -593,18 +593,20 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     are submitted documents as well. The pending amount is the unsubmitted
     remainder of each petty-cash FundRequest after non-rejected linked
     documents are accounted for. Requests whose linked documents are all
-    rejected therefore remain pending for their full requested amount.
+    rejected therefore remain pending for their full requested amount. Claims
+    use their creation date and parcel returns use their sent date.
     """
-    # The report's selected month controls the ledger balance, but documents
-    # requiring action must remain visible even when they were submitted in a
-    # previous month.
-    requests = list(fund_requests)
+    def through_selected_month(value):
+        return value is not None and (value.year, value.month) <= (month_start.year, month_start.month)
+
+    requests = [fr for fr in fund_requests if through_selected_month(fr.request_date)]
     request_ids = {fr.id for fr in requests}
+    eligible_claims = [claim for claim in claims if through_selected_month(claim.created_at)]
     submitted_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ผ่านการตรวจสอบ"}
     rejected_statuses = {"ปฏิเสธ", "ถูกปฏิเสธ"}
     non_accounted_claim_statuses = rejected_statuses | {"ฉบับร่าง", "ยกเลิก"}
     submitted_claims = [
-        claim for claim in claims
+        claim for claim in eligible_claims
         if claim.fund_request_id in request_ids
         and (claim.status or "").strip() in submitted_statuses
     ]
@@ -614,6 +616,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
         .all()
         if request_ids else []
     )
+    parcel_returns = [parcel for parcel in parcel_returns if through_selected_month(parcel.sent_date)]
     submitted_parcel_returns = [
         parcel for parcel in parcel_returns
         if (parcel.status or "").strip() in {
@@ -626,7 +629,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     # document. This also handles partially submitted FundRequests: the
     # remaining amount must stay in the "ยังไม่ส่งเบิก" row.
     accounted_amount_by_request = {}
-    for claim in claims:
+    for claim in eligible_claims:
         if claim.fund_request_id not in request_ids:
             continue
         if (claim.status or "").strip() in non_accounted_claim_statuses:
@@ -637,7 +640,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
             Decimal("0.00"),
         )
     for parcel in parcel_returns:
-        if parcel.fund_request_id is None:
+        if parcel.fund_request_id not in request_ids:
             continue
         if (parcel.status or "").strip() in rejected_statuses | {"ฉบับร่าง"}:
             continue
