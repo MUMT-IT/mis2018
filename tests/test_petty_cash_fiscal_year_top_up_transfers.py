@@ -240,8 +240,11 @@ class PettyCashFiscalYearTopUpTransferTests(unittest.TestCase):
         self.assertNotIn("reduction_requests=reduction_requests", route_source)
         self.assertIn("transferred_at = reduction_request.request_date", route_source)
         self.assertIn("transfer.fund_request_id = reduction_request.id", route_source)
+        self.assertIn("transfer_amount = reduction_request.amount", route_source)
+        self.assertIn("reduction_recorded_by_request=reduction_recorded_by_request", route_source)
         self.assertNotIn('id="reduction-fund-requests"', template)
         self.assertIn("จากใบเบิก", template)
+        self.assertIn("บันทึกแล้ว (จากใบเบิก)", template)
 
     def test_fund_request_form_type_supports_reduction_value(self):
         models_source = (ROOT / "app/advance_payment/models.py").read_text(

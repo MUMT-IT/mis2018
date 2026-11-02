@@ -50,8 +50,8 @@
       {% endif %}
     </td>
     <td class="text-center">
-      <span class="small {% if row.transfer %}text-success{% else %}text-muted{% endif %}">
-        {{ 'บันทึกแล้ว' if row.transfer else 'ยังไม่บันทึก (ค่าแนะนำ)' }}
+      <span class="small {% if row.transfer or row.reduction_recorded_by_request %}text-success{% else %}text-muted{% endif %}">
+        {% if row.transfer %}บันทึกแล้ว{% elif row.reduction_recorded_by_request %}บันทึกแล้ว (จากใบเบิก){% else %}ยังไม่บันทึก (ค่าแนะนำ){% endif %}
       </span>
     </td>
     <td class="text-center">

@@ -8908,11 +8908,19 @@ def petty_cash_fiscal_year_top_up_transfers():
                 else PETTY_CASH_TRANSFER_NONE
             )
         )
-        transfer_amount = (
-            transfer.transfer_amount if transfer is not None else abs(suggested_difference)
-        )
         matching_requests = reduction_requests_by_setting_id.get(setting.id, [])
         reduction_request = matching_requests[0] if len(matching_requests) == 1 else None
+        if transfer is not None:
+            transfer_amount = transfer.transfer_amount
+        elif transfer_type == PETTY_CASH_TRANSFER_REDUCTION and reduction_request is not None:
+            transfer_amount = reduction_request.amount
+        else:
+            transfer_amount = abs(suggested_difference)
+        reduction_recorded_by_request = (
+            transfer_type == PETTY_CASH_TRANSFER_REDUCTION
+            and reduction_request is not None
+            and reduction_request.request_date is not None
+        )
         if transfer_type == PETTY_CASH_TRANSFER_REDUCTION:
             display_transferred_at = reduction_request.request_date if reduction_request else None
         else:
@@ -8923,6 +8931,7 @@ def petty_cash_fiscal_year_top_up_transfers():
                 previous_carryover=previous_carryover,
                 previous_budget=previous_budget,
                 transfer=transfer,
+                reduction_recorded_by_request=reduction_recorded_by_request,
                 transfer_type=transfer_type,
                 transfer_amount=transfer_amount,
                 reduction_request=reduction_request,
@@ -12809,6 +12818,27 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             "is_fund_request": is_fund_request,
             "sort_order": sort_order,
         })
+
+    if current_setting and current_setting.id:
+        top_up_transfer = (
+            db.session.query(PettyCashFiscalYearTopUpTransfer)
+            .filter_by(
+                petty_cash_setting_id=current_setting.id,
+                transfer_type=PETTY_CASH_TRANSFER_TOP_UP,
+            )
+            .first()
+        )
+        if (
+            top_up_transfer
+            and top_up_transfer.transferred_at
+            and top_up_transfer.transfer_amount > 0
+        ):
+            _append_ledger_row(
+                receipt_date=top_up_transfer.transferred_at,
+                created_at=top_up_transfer.created_at,
+                description="เงินโอนจากการเพิ่มวงเงินตามปีงบประมาณ",
+                bank_income=float(top_up_transfer.transfer_amount),
+            )
 
     # 2. ดึงข้อมูล Fund Request (การเบิก/ยืมเงิน) -> แยกยอดเงินตามหมวดหมู่
     # Ledger entries are scoped to the selected setting. The helper also
