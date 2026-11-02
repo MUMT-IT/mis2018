@@ -7040,11 +7040,14 @@ def show_seminar_info_each_person(record_id):
     if bulk_ids:
         attend_map = {a.id: a for a in StaffSeminarAttend.query.filter(StaffSeminarAttend.id.in_(bulk_ids)).all()}
         names = []
-        for idx, attend_id in enumerate(bulk_ids, start=1):
+        for attend_id in bulk_ids:
             record = attend_map.get(attend_id)
             if record:
-                names.append(f"{idx}) {record.staff.personal_info}")
                 proposer_names.append(str(record.staff.personal_info))
+        if len(proposer_names) == 1:
+            names = proposer_names
+        elif proposer_names:
+            names = [f"{idx}) {name}" for idx, name in enumerate(proposer_names, start=1)]
         if names:
             proposer_list_text = " ".join(names)
     else:
