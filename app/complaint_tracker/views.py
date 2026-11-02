@@ -3355,12 +3355,13 @@ def generate_repair_approval_pdf(repair_approval):
     elif repair_approval.principle_approval_type == 'ซื้อ' or repair_approval.principle_approval_type == 'จ้าง':
         indent = 14
         text_style = content_style
-        if repair_approval.price <= 30000:
-            mtpc = 'MTPC-002'
-        elif repair_approval.price >  30000 and repair_approval.price <= 500000:
+        if repair_approval.price > 500000:
+            mtpc = 'MTPC-004'
+        elif repair_approval.price >= 30000:
             mtpc = 'MTPC-003'
         else:
-            mtpc = 'MTPC-004'
+            mtpc = 'MTPC-002'
+
         form_code = Table(
             [[Paragraph(mtpc, style=bold_style)]],
             colWidths=[70],
