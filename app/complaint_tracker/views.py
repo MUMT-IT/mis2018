@@ -2801,8 +2801,15 @@ def edit_repair_approval(repair_approval_id):
     ComplaintRepairApprovalForm = create_repair_approval_form(is_used=True)
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
+        previous_price_band = _committee_price_band(repair_approval.price)
+        new_price_band = _committee_price_band(form.price.data)
+        committee_structure_changed = previous_price_band != new_price_band
         form.populate_obj(repair_approval)
         if (form.cost_center.data and form.io_code.data and form.product_code.data):
+            if committee_structure_changed:
+                ComplaintCommittee.query.filter_by(
+                    repair_approval_id=repair_approval.id
+                ).delete(synchronize_session=False)
             repair_approval.is_print = True
             repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(repair_approval)
@@ -2837,6 +2844,16 @@ def _committee_group_definitions(price):
     elif price >= 30000:
         return [('คณะกรรมการตรวจรับพัสดุ', 3)]
     return [('ผู้ตรวจรับพัสดุ', 1)]
+
+
+def _committee_price_band(price):
+    if price is None:
+        return None
+    if price > 500000:
+        return 'over_500000'
+    if price >= 30000:
+        return '30000_to_500000'
+    return 'under_30000'
 
 
 def _committee_group_counts_from_request(groups):
@@ -2907,9 +2924,17 @@ def _committee_fragment_form(groups, counts, previous_counts=None):
             c_form.form.position.data = request.form.get(f'committees-{previous_index}-position', '')
             c_form.form.committee_position.data = request.form.get(
                 f'committees-{previous_index}-committee_position'
-            ) or ('ประธาน' if group_offset == 0 else 'กรรมการ')
+            ) or (
+                'ผู้ตรวจรับพัสดุ'
+                if groups[group_index][1] == 1
+                else ('ประธาน' if group_offset == 0 else 'กรรมการ')
+            )
         else:
-            c_form.form.committee_position.data = 'ประธาน' if group_offset == 0 else 'กรรมการ'
+            c_form.form.committee_position.data = (
+                'ผู้ตรวจรับพัสดุ'
+                if groups[group_index][1] == 1
+                else ('ประธาน' if group_offset == 0 else 'กรรมการ')
+            )
         group_offset += 1
 
     selected_staff_ids = {
@@ -2992,7 +3017,11 @@ def edit_committee(repair_approval_id):
                     c_form.form.position.data = committee.position
                     c_form.form.committee_position.data = committee.committee_position
                 else:
-                    c_form.form.committee_position.data = 'ประธาน' if offset == 0 else 'กรรมการ'
+                    c_form.form.committee_position.data = (
+                        'ผู้ตรวจรับพัสดุ'
+                        if groups[index][1] == 1
+                        else ('ประธาน' if offset == 0 else 'กรรมการ')
+                    )
         staff_accounts = [committee.staff for committee in committees if committee.staff]
         _set_committee_staff_choices(form, staff_accounts)
     else:
