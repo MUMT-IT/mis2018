@@ -1219,6 +1219,7 @@ def _render_html_with_chromium(html_source):
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
             headless=True,
+            executable_path=os.environ.get("CHROMIUM_EXECUTABLE_PATH") or None,
             args=["--no-sandbox", "--disable-setuid-sandbox"],
         )
         try:
