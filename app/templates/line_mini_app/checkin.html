@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f6f8f8">
+    <title>ลงเวลาเข้า–ออกงาน · MUMT Connect</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='line_mini_app/connect.css') }}">
+    <style>
+        .back { display: inline-flex; align-items: center; min-height: 44px; color: var(--teal); font-size: .9rem; }
+        .gps-panel { background: white; border: 1px solid var(--border); border-radius: 22px; padding: 18px; margin-bottom: 22px; }
+        #gps-status { margin: 0 0 12px; font-size: .9rem; }
+        button { font: inherit; cursor: pointer; }
+        button.action { border: 0; font-size: .85rem; margin: 4px 4px 4px 0; }
+        .secondary { background: #edf2f2; color: var(--navy); }
+        button:disabled { cursor: default; }
+        .locations { display: grid; gap: 12px; }
+        .location { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; padding: 20px; text-align: left; color: var(--navy); background: white; border: 1px solid #82bdb4; border-radius: 22px; }
+        .location strong, .location small { display: block; }
+        .location strong { font-size: .95rem; font-weight: 600; }
+        .location small { font-size: .77rem; color: var(--teal); margin-top: 5px; }
+        .distance { font-size: 1rem; font-weight: 650; white-space: nowrap; color: var(--teal); }
+        .location:disabled { background: #f0f3f3; border-color: var(--border); color: #68767d; }
+        .location:disabled small, .location:disabled .distance { color: #68767d; }
+        .radius { color: var(--muted); font-size: .8rem; margin: 0 0 14px; }
+        dialog { width: calc(100% - 32px); max-width: 420px; padding: 24px; border: 0; border-radius: 24px; color: var(--navy); }
+        dialog::backdrop { background: #102d4266; }
+        dialog h2 { margin-top: 0; font-size: 1.2rem; }
+        #checkout-warning { padding: 12px; background: #faf1d8; border-radius: 12px; }
+    </style>
+</head>
+<body>
+<main>
+    <a class="back" href="{{ url_for('line_mini_app.index') }}">← กลับ Connect</a>
+    <section class="intro">
+        <p class="eyebrow">MUMT Connect</p>
+        <h1>ลงเวลาเข้า–ออกงาน</h1>
+        <p>เลือกสถานที่ที่คุณกำลังปฏิบัติงาน</p>
+    </section>
+    <section class="gps-panel" aria-label="ตำแหน่งปัจจุบัน">
+        <p id="gps-status" role="status" aria-live="polite">รับตำแหน่ง GPS เพื่อดูระยะห่างและเลือกสถานที่</p>
+        <button type="button" class="action" id="gps-retry">รับตำแหน่ง GPS</button>
+        <button type="button" class="action secondary" id="gps-browser" hidden>ลอง GPS ในเบราว์เซอร์</button>
+    </section>
+    <p class="radius">ลงเวลาได้ภายใน {{ '%.2f'|format(max_distance_km) }} กม. จากสถานที่ · ระยะห่างโดยประมาณ</p>
+    <div class="locations" aria-label="สถานที่ลงเวลา">
+        {% for key, place in checkin_places.items() %}
+        <button type="button" class="location" data-place="{{ key }}" data-lat="{{ place[1] }}" data-lon="{{ place[2] }}" disabled>
+            <span><strong>{{ place[0] }}</strong><small class="availability">รอตำแหน่ง GPS</small></span>
+            <span class="distance">— กม.</span>
+        </button>
+        {% endfor %}
+    </div>
+    <dialog id="checkin-confirm" aria-labelledby="confirm-title">
+        <h2 id="confirm-title">ยืนยันลงเวลาเข้า–ออกงาน</h2>
+        <p id="selected-place"></p>
+        <p id="checkout-warning" hidden></p>
+        <p id="save-status" role="status" aria-live="polite">ระบบจะบันทึกเวลาปัจจุบันเมื่อคุณยืนยัน</p>
+        <button type="button" class="action" id="gps-submit">ยืนยันลงเวลา</button>
+        <button type="button" class="action secondary" id="gps-close">ยกเลิก</button>
+    </dialog>
+</main>
+<script src="{{ url_for('static', filename='line_mini_app/checkin.js') }}" data-endpoint="{{ url_for('line_mini_app.checkin') }}" data-home="{{ url_for('line_mini_app.index') }}" data-max-distance="{{ max_distance_km }}" data-csrf="{{ csrf_token() }}"></script>
+</body>
+</html>

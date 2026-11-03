@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f6f8f8">
+    <title>คำขอรับรองเวลา · MUMT Connect</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='line_mini_app/connect.css') }}">
+    <style>
+        .back { display: inline-flex; align-items: center; min-height: 44px; color: var(--teal); font-size: .9rem; }
+        .request-list { display: grid; gap: 14px; padding: 0; margin: 0; list-style: none; }
+        .request-card { border: 1px solid var(--border); border-radius: 22px; padding: 20px; background: white; }
+        .request-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+        .request-card h2 { font-size: 1rem; margin: 0; font-weight: 650; }
+        .badge { border-radius: 20px; padding: 4px 10px; font-size: .74rem; font-weight: 600; }
+        .pending { color: #775b16; background: #faf1d8; }
+        .approved { color: #186252; background: #e5f3ec; }
+        .closed { color: #5b6772; background: #edf0f3; }
+        .request-date { margin: 14px 0 8px; font-size: 1rem; }
+        .reason { color: var(--muted); font-size: .88rem; margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+        .note { font-size: .78rem; color: var(--muted); margin-top: 20px; }
+        .empty { background: white; border: 1px solid var(--border); border-radius: 24px; padding: 30px 22px; }
+        .empty p { margin: 6px 0 0; color: var(--muted); }
+    </style>
+</head>
+<body>
+<main>
+    <a class="back" href="{{ url_for('line_mini_app.index') }}">← กลับ Connect</a>
+    <section class="intro" aria-labelledby="requests-title">
+        <p class="eyebrow">MUMT Connect</p>
+        <h1 id="requests-title">คำขอรับรองเวลา</h1>
+        <p>ติดตามคำขอเข้า–ออกงานของคุณ</p>
+    </section>
+    <section class="quota-card" aria-labelledby="quota-title" data-quota-url="{{ url_for('staff.send_time_report_quota') }}">
+        <h2 id="quota-title">สรุปโควตาการลงเวลา</h2>
+        <p id="quota-period" class="quota-note">กำลังโหลดรอบโควตา…</p>
+        <div id="quota-content" aria-live="polite" aria-busy="true">
+            <p class="quota-note">กำลังโหลดข้อมูลโควตา…</p>
+        </div>
+        <button type="button" id="quota-retry" class="summary-retry" hidden>ลองอีกครั้ง</button>
+    </section>
+    <h2 class="requests-heading">คำขอล่าสุด</h2>
+    {% if items %}
+    <ol class="request-list" aria-label="คำขอของฉัน เรียงจากส่งล่าสุด">
+        {% for item in items %}
+        <li class="request-card">
+            <div class="request-header"><h2>{{ item.kind }}</h2><span class="badge {{ item.state }}">{{ item.status }}</span></div>
+            <p class="request-date">{{ item.date }} · {{ item.time }} น.</p>
+            <p class="reason">{{ item.reason }}</p>
+        </li>
+        {% endfor %}
+    </ol>
+    <p class="note">แสดงคำขอที่ส่งล่าสุดสูงสุด 20 รายการ · เวลาประเทศไทย<br>“ปิดคำขอ” หมายถึงคำขอที่ถูกยกเลิกหรือไม่อนุมัติ</p>
+    {% else %}
+    <div class="empty"><strong>ยังไม่มีคำขอรับรองเวลา</strong><p>เมื่อคุณส่งคำขอ รายการและสถานะจะแสดงที่นี่</p></div>
+    {% endif %}
+</main>
+<script src="{{ url_for('static', filename='line_mini_app/quota.js') }}"></script>
+</body>
+</html>
