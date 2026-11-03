@@ -1978,7 +1978,9 @@ def create_test_result(detail_id=None, test_result_id=None):
         form = SoftwareRequestTestResultForm()
     else:
         test_result = SoftwareRequestTestResult.query.get(test_result_id)
-        SoftwareRequestTestResultForm = create_test_result_form(detail_id=test_result.request_id, has_note=False)
+        SoftwareRequestTestResultForm = create_test_result_form(detail_id=test_result.request_id, has_note=False,
+                                                                issue_id=test_result.issue_id,
+        )
         form = SoftwareRequestTestResultForm(obj=test_result)
     if form.validate_on_submit():
         if detail_id:
@@ -2052,7 +2054,11 @@ def delete_test_result(test_result_id):
 @software_request.route('/request/test_result/note/edit/<int:test_result_id>', methods=['GET', 'POST'])
 def create_note(test_result_id):
     test_result = SoftwareRequestTestResult.query.get(test_result_id)
-    SoftwareRequestTestResultForm = create_test_result_form(detail_id=test_result.request_id, has_note=True)
+    SoftwareRequestTestResultForm = create_test_result_form(
+        detail_id=test_result.request_id,
+        has_note=True,
+        issue_id=test_result.issue_id,
+    )
     form = SoftwareRequestTestResultForm(obj=test_result)
     if form.validate_on_submit():
         form.populate_obj(test_result)

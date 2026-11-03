@@ -21,6 +21,21 @@
                 </a>
             </div>
         </div>
+        <form method="get" class="box">
+            <div class="columns is-vcentered">
+                <div class="column">
+                    <label class="label" for="start-date">วันที่เริ่มต้น</label>
+                    <input class="input" type="date" id="start-date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="column">
+                    <label class="label" for="end-date">วันที่สิ้นสุด</label>
+                    <input class="input" type="date" id="end-date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="column is-narrow">
+                    <button class="button is-info" type="submit">ค้นหา</button>
+                </div>
+            </div>
+        </form>
         <div class="columns">
             <div class="column">
                 <table class="table is-striped" id="seminarTable">

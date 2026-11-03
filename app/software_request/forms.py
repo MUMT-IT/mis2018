@@ -131,7 +131,7 @@ class SoftwareRequestIssueForm(ModelForm):
                              get_label='fullname')
 
 
-def create_test_result_form(detail_id, has_note=False):
+def create_test_result_form(detail_id, has_note=False, issue_id=None):
     class SoftwareRequestTestResultForm(ModelForm):
         class Meta:
             model = SoftwareRequestTestResult
@@ -141,7 +141,11 @@ def create_test_result_form(detail_id, has_note=False):
                 'Requirement',
                 query_factory=lambda: SoftwareIssues.query.filter(
                     SoftwareIssues.tested_at != None,
-                    SoftwareIssues.software_request_detail_id == detail_id
+                    SoftwareIssues.software_request_detail_id == detail_id,
+                    or_(
+                        ~SoftwareIssues.test_results.any(),
+                        SoftwareIssues.id == issue_id
+                    )
                 ).all(),
                 allow_blank=True,
                 blank_text='กรุณาเลือก Requirement',

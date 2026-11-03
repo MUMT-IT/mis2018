@@ -487,6 +487,7 @@ class IDP(db.Model):
     accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
     approver_review = db.Column(db.String())
     achievement_percentage = db.Column(db.Float())
+    is_active = db.Column('is_active', db.Boolean(), default=True)
 
     @property
     def submitted(self):

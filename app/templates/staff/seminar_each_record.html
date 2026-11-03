@@ -156,7 +156,7 @@
                             </td>
                         </tr>
                         {% endif %}
-                        {% if attend.budget %}
+                        {#{% if attend.budget %}
                         <tr>
                             <td>
                                <label class="label">ค่าใช้จ่าย</label>
@@ -166,7 +166,7 @@
                                 {% endif %}
                             </td>
                         </tr>
-                        {% endif %}
+                        {% endif %}#}
                         {% if attend.registration_fee %}
                         <tr>
                             <td></td>
@@ -347,9 +347,10 @@
     }
 
     let docDefinition = {
+        pageMargins: [40, 20, 40, 40],
         defaultStyle: {
             font: "Noto",
-            fontSize: 17,
+            fontSize: 16,
         },
 
         icon: { font: 'Fontello' },
@@ -366,18 +367,18 @@
             alignment: 'center'
         }
                             , {text: '\n\n'+{{ org_name|tojson|safe }}+' คณะเทคนิคการแพทย์\nโทร. 02-441-4371',
-                                fontSize:17, alignment: 'right'},''],
+                                fontSize:16, alignment: 'right'},''],
                         ],
                     }
                 },
                 {
                     type: 'none',
 			        ul: [
-				        {text: '\nที่  ' ,fontSize:17},
-				        {text: 'วันที่' ,fontSize:17},
-                        {text: 'เรื่อง   ขออนุมัติเข้าร่วม' + {{ seminar_attend.seminar.topic_type|tojson|safe }} ,fontSize:17},
+				        {text: '\nที่  ' ,fontSize:16},
+				        {text: 'วันที่' ,fontSize:16},
+                        {text: 'เรื่อง   ขออนุมัติเข้าร่วม' + {{ seminar_attend.seminar.topic_type|tojson|safe }} ,fontSize:16},
                         {text: ' ' ,fontSize:8},
-                        {text: 'เรียน   คณบดีคณะเทคนิคการแพทย์', fontSize:17},
+                        {text: 'เรียน   คณบดีคณะเทคนิคการแพทย์', fontSize:16},
                         {text: ' ' ,fontSize:8},
                         {
                             layout: 'lightHorizontalLines',
@@ -386,7 +387,7 @@
                                 widths: [18, 400, 5],
                                 body: [
                                     ['', {text: 'เพื่อโปรดพิจารณาการเสนอขออนุมัติเข้าร่วม'+{{
-                                    seminar_attend.seminar.topic_type|tojson|safe }} + ' ดังนี้' ,fontSize:17},''],
+                                    seminar_attend.seminar.topic_type|tojson|safe }} + ' ดังนี้' ,fontSize:16},''],
                                 ],
                             }
                         },
@@ -405,7 +406,7 @@
                                 '{{ idp_value }}',
                                 'เป็นการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"
                                 +' เพื่อพัฒนาในด้าน\n'+"{{ seminar_attend.mission_list|join(", ") }}",
-                                {text: 'ความเห็นผู้บังคับบัญชา เห็นควรอนุมัติ เหตุผลความจำเป็น.....................................................................'},
+                                {text: 'ความเห็นผู้บังคับบัญชา เห็นควรอนุมัติ เหตุผลความจำเป็น...................................................................................................................................................'},
                             ]
 				        },
 			        ]
@@ -417,7 +418,7 @@
                         headerRow: 0,
                         widths: [60, 400, 5],
                         body: [
-                            ['', {text: 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ จักเป็นพระคุณยิ่ง\n', fontSize:17},''],
+                            ['', {text: 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ จักเป็นพระคุณยิ่ง\n', fontSize:16},''],
                         ],
                     }
                 },
@@ -428,7 +429,7 @@
                         widths: [230,'*',5],
                         body: [
                             ['', {text: '\n\n'+"("+"{{ prefix_position }} "+"{{ approver }}"+" )"+'\n'+ "{{ approver_position }}",
-                                fontSize:17, alignment: 'center'},''],
+                                fontSize:16, alignment: 'center'},''],
                         ],
                     }
                 },

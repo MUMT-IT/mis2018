@@ -37,7 +37,7 @@ from flask_mail import Message
 from ..models import Org
 from ..procurement.models import ProcurementDetail
 from ..roles import admin_permission
-from ..staff.models import StaffPersonalInfo, StaffCostCenterAuthority
+from ..staff.models import StaffAccount, StaffEmployment, StaffPersonalInfo, StaffCostCenterAuthority, StaffHeadPosition
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -1039,6 +1039,38 @@ def get_position():
     staff = StaffAccount.query.filter_by(id=staff_id).first()
     position = staff.personal_info.position if staff else ''
     return jsonify({"position": position})
+
+
+@complaint_tracker.route('/api/committee/staff')
+@login_required
+def get_committee_staff():
+    search_term = (request.args.get('q') or request.args.get('term') or '').strip()
+    limit = 50
+    query = (
+        StaffAccount.query
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(
+            StaffPersonalInfo.retirement_date.is_(None),
+            StaffPersonalInfo.resignation_date.is_(None),
+            or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
+            ~StaffPersonalInfo.employment.has(StaffEmployment.title.ilike('%ลูกจ้างชั่วคราว%')),
+        )
+        .order_by(StaffPersonalInfo.th_firstname.asc(), StaffPersonalInfo.en_firstname.asc())
+    )
+    if search_term:
+        pattern = f'%{search_term}%'
+        query = query.filter(or_(
+            StaffPersonalInfo.th_firstname.ilike(pattern),
+            StaffPersonalInfo.th_lastname.ilike(pattern),
+            StaffPersonalInfo.en_firstname.ilike(pattern),
+            StaffPersonalInfo.en_lastname.ilike(pattern),
+            StaffAccount.email.ilike(pattern),
+        ))
+
+    accounts = query.limit(limit).all()
+    return jsonify({
+        'results': [{'id': account.id, 'text': account.fullname} for account in accounts],
+    })
 
 
 @complaint_tracker.route('/')
@@ -2777,8 +2809,17 @@ def edit_repair_approval(repair_approval_id):
     ComplaintRepairApprovalForm = create_repair_approval_form(is_used=True)
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
+        previous_price_band = _committee_price_band(repair_approval.price,
+                                                    repair_approval.principle_approval_type)
+        new_price_band = _committee_price_band(form.price.data,
+                                               form.principle_approval_type.data)
+        committee_structure_changed = previous_price_band != new_price_band
         form.populate_obj(repair_approval)
         if (form.cost_center.data and form.io_code.data and form.product_code.data):
+            if committee_structure_changed:
+                ComplaintCommittee.query.filter_by(
+                    repair_approval_id=repair_approval.id
+                ).delete(synchronize_session=False)
             repair_approval.is_print = True
             repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(repair_approval)
@@ -2803,6 +2844,147 @@ def edit_repair_approval(repair_approval_id):
                            tab=tab, menu=menu, repair_approval=repair_approval)
 
 
+def _committee_group_definitions(price, principle_approval_type=None):
+    if price > 500000 and principle_approval_type != 'จ้างซ่อม':
+        return [
+            ('คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ', 3),
+            ('คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์', 3),
+            ('คณะกรรมการตรวจรับพัสดุ', 3),
+        ]
+    elif price >= 30000:
+        return [('คณะกรรมการตรวจรับพัสดุ', 3)]
+    return [('ผู้ตรวจรับพัสดุ', 1)]
+
+
+def _committee_price_band(price, principle_approval_type=None):
+    if price is None:
+        return None
+    if principle_approval_type == 'จ้างซ่อม':
+        return 'repair_30000_plus' if price >= 30000 else 'repair_under_30000'
+    if price > 500000:
+        return 'over_500000'
+    if price >= 30000:
+        return '30000_to_500000'
+    return 'under_30000'
+
+
+def _committee_group_counts_from_request(groups):
+    counts = []
+    for index, (_, minimum) in enumerate(groups):
+        count = request.form.get(f'committee_group_count_{index}', type=int)
+        counts.append(count if count is not None else minimum)
+    return counts
+
+
+def _committee_groups(form, groups, counts):
+    committee_groups = []
+    start = 0
+    for index, ((name, minimum), count) in enumerate(zip(groups, counts)):
+        committee_groups.append({
+            'index': index,
+            'name': name,
+            'minimum': minimum,
+            'count': count,
+            'start': start,
+            'entries': form.committees[start:start + count],
+            'dynamic': True,
+        })
+        start += count
+    return committee_groups
+
+
+def _set_committee_staff_choices(form, staff_accounts):
+    staff_accounts = {account.id: account for account in staff_accounts}
+    for c_form in form.committees.entries:
+        selected_staff_id = int(c_form.form.staff.data) if str(c_form.form.staff.data).isdigit() else None
+        selected_staff = staff_accounts.get(selected_staff_id)
+        c_form.form.staff.choices = [('', 'กรุณาเลือกรายชื่อคณะกรรมการ')]
+        if selected_staff:
+            c_form.form.staff.choices.append((str(selected_staff.id), selected_staff.fullname))
+            c_form.form.staff.data = str(selected_staff.id)
+        else:
+            c_form.form.staff.data = ''
+
+
+def _committee_fragment_form(groups, counts, previous_counts=None):
+    form = ComplaintCommitteeGroupForm(formdata=None)
+    total = sum(counts)
+    group_index = 0
+    group_offset = 0
+    group_end = counts[0]
+    previous_counts = previous_counts or counts
+    previous_starts = []
+    previous_start = 0
+    for count in previous_counts:
+        previous_starts.append(previous_start)
+        previous_start += count
+    for index in range(total):
+        if index >= group_end and group_index < len(groups) - 1:
+            group_index += 1
+            group_offset = 0
+            group_end += counts[group_index]
+        previous_index = (
+            previous_starts[group_index] + group_offset
+            if group_offset < previous_counts[group_index]
+            else None
+        )
+        c_form = form.committees.append_entry()
+        if previous_index is not None:
+            c_form.form.id.data = request.form.get(f'committees-{previous_index}-id', '')
+            c_form.form.staff.data = request.form.get(f'committees-{previous_index}-staff', '')
+            c_form.form.position.data = request.form.get(f'committees-{previous_index}-position', '')
+            c_form.form.committee_position.data = request.form.get(
+                f'committees-{previous_index}-committee_position'
+            ) or (
+                'ผู้ตรวจรับพัสดุ'
+                if groups[group_index][1] == 1
+                else ('ประธานกรรมการ' if group_offset == 0 else 'กรรมการ')
+            )
+        else:
+            c_form.form.committee_position.data = (
+                'ผู้ตรวจรับพัสดุ'
+                if groups[group_index][1] == 1
+                else ('ประธานกรรมการ' if group_offset == 0 else 'กรรมการ')
+            )
+        group_offset += 1
+
+    selected_staff_ids = {
+        int(c_form.form.staff.data)
+        for c_form in form.committees.entries
+        if c_form.form.staff.data and str(c_form.form.staff.data).isdigit()
+    }
+    staff_accounts = StaffAccount.query.filter(StaffAccount.id.in_(selected_staff_ids)).all() \
+        if selected_staff_ids else []
+    _set_committee_staff_choices(form, staff_accounts)
+    return form
+
+
+@complaint_tracker.route('/api/committee/members/<int:repair_approval_id>', methods=['POST', 'DELETE'])
+@login_required
+def update_committee_members(repair_approval_id):
+    rep_approval = ComplaintRepairApproval.query.get_or_404(repair_approval_id)
+    groups = _committee_group_definitions(rep_approval.price,
+                                          rep_approval.principle_approval_type)
+    counts = _committee_group_counts_from_request(groups)
+    previous_counts = list(counts)
+    group_index = request.args.get('group_index', type=int)
+
+    if group_index is not None and 0 <= group_index < len(groups):
+        minimum = groups[group_index][1]
+        if request.method == 'POST':
+            counts[group_index] += 2
+        elif counts[group_index] > minimum:
+            counts[group_index] = max(minimum, counts[group_index] - 2)
+
+    form = _committee_fragment_form(groups, counts, previous_counts=previous_counts)
+    return render_template(
+        'complaint_tracker/committee_members.html',
+        form=form,
+        committee_groups=_committee_groups(form, groups, counts),
+        repair_approval_id=repair_approval_id,
+    )
+
+
 @complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
 @login_required
 def edit_committee(repair_approval_id):
@@ -2810,50 +2992,134 @@ def edit_committee(repair_approval_id):
     menu = request.args.get('menu')
     temp = request.args.get('temp')
     rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
-    committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).all()
-    if rep_approval.price > 500000:
-        min_entries = 9
-        default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ',
-                             'กรรมการ']
-    elif rep_approval.price > 30000 and rep_approval.price <= 500000:
-        min_entries = 3
-        default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ']
-    else:
-        min_entries = 1
-        default_positions = ['ผู้ตรวจรับพัสดุ']
+    committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).order_by(
+        ComplaintCommittee.id
+    ).all()
+    groups = _committee_group_definitions(rep_approval.price,
+                                          rep_approval.principle_approval_type)
     form = ComplaintCommitteeGroupForm(obj=committees)
     if request.method == 'GET':
-        current_count = len(committees)
-        if committees:
-            for committee in committees:
-                c_form = form.committees.append_entry()
-                c_form.form.id.data = committee.id
-                c_form.form.staff.data = committee.staff
-                c_form.form.position.data = committee.position
-                c_form.form.committee_position.data = committee.committee_position
-            for i in range(min_entries - current_count):
-                c_form = form.committees.append_entry()
-                if i < len(default_positions):
-                    c_form.form.committee_position.data = default_positions[i]
+        if rep_approval.price > 500000 and rep_approval.principle_approval_type != 'จ้างซ่อม':
+            committees_by_group = {
+                name: [committee for committee in committees if committee.committee_name == name]
+                for name, _ in groups
+            }
+            if sum(map(len, committees_by_group.values())) != len(committees):
+                committees_by_group = {
+                    name: committees[index * 3:(index + 1) * 3]
+                    for index, (name, _) in enumerate(groups)
+                }
+            counts = [max(minimum, len(committees_by_group[name])) for name, minimum in groups]
         else:
-            for i in range(min_entries):
+            committees_by_group = {groups[0][0]: committees}
+            counts = [max(groups[0][1], len(committees))]
+
+        for index, (name, _) in enumerate(groups):
+            group_committees = committees_by_group[name]
+            for offset in range(counts[index]):
                 c_form = form.committees.append_entry()
-                if i < len(default_positions):
-                    c_form.form.committee_position.data = default_positions[i]
+                if offset < len(group_committees):
+                    committee = group_committees[offset]
+                    c_form.form.id.data = committee.id
+                    if committee.staff:
+                        c_form.form.staff.choices = [
+                            ('', 'กรุณาเลือกรายชื่อคณะกรรมการ'),
+                            (str(committee.staff.id), committee.staff.fullname),
+                        ]
+                        c_form.form.staff.data = str(committee.staff.id)
+                    c_form.form.position.data = committee.position
+                    c_form.form.committee_position.data = committee.committee_position
+                else:
+                    c_form.form.committee_position.data = (
+                        'ผู้ตรวจรับพัสดุ'
+                        if groups[index][1] == 1
+                        else ('ประธานกรรมการ' if offset == 0 else 'กรรมการ')
+                    )
+        staff_accounts = [committee.staff for committee in committees if committee.staff]
+        _set_committee_staff_choices(form, staff_accounts)
+    else:
+        counts = _committee_group_counts_from_request(groups)
+        submitted_staff_ids = {
+            int(c_form.form.staff.data)
+            for c_form in form.committees.entries
+            if c_form.form.staff.data and str(c_form.form.staff.data).isdigit()
+        }
+        staff_accounts = []
+        if submitted_staff_ids:
+            staff_accounts = StaffAccount.query \
+                .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id) \
+                .filter(
+                    StaffAccount.id.in_(submitted_staff_ids),
+                    StaffPersonalInfo.retirement_date.is_(None),
+                    StaffPersonalInfo.resignation_date.is_(None),
+                    or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
+                    ~StaffPersonalInfo.employment.has(StaffEmployment.title.ilike('%ลูกจ้างชั่วคราว%')),
+                ) \
+                .all()
+        _set_committee_staff_choices(form, staff_accounts)
     if form.validate_on_submit():
+        invalid_counts = any(
+            count < minimum or count % 2 == 0
+            for count, (_, minimum) in zip(counts, groups)
+        ) or sum(counts) != len(form.committees.entries)
+        if invalid_counts:
+            flash('จำนวนคณะกรรมการต้องเป็นเลขคี่ และไม่น้อยกว่าจำนวนขั้นต่ำของแต่ละชุด', 'danger')
+            return render_template(
+                'complaint_tracker/committee_form.html', form=form, committee_groups=_committee_groups(form, groups, counts),
+                temp=temp, tab=tab, menu=menu, repair_approval_id=repair_approval_id, rep_approval=rep_approval,
+            )
+        if rep_approval.price > 500000 and rep_approval.principle_approval_type != 'จ้างซ่อม':
+            group_ranges = []
+            start = 0
+            for count in counts:
+                group_ranges.append((start, start + count))
+                start += count
+            result_committee_staff_ids = {
+                str(c_form.form.staff.data)
+                for c_form in form.committees.entries[group_ranges[1][0]:group_ranges[1][1]]
+                if c_form.form.staff.data
+            }
+            receiving_committee_staff_ids = {
+                str(c_form.form.staff.data)
+                for c_form in form.committees.entries[group_ranges[2][0]:group_ranges[2][1]]
+                if c_form.form.staff.data
+            }
+
+            if result_committee_staff_ids & receiving_committee_staff_ids:
+                flash(
+                    'คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์ '
+                    'และคณะกรรมการตรวจรับพัสดุห้ามมีรายชื่อซ้ำกัน',
+                    'danger'
+                )
+                return render_template(
+                    'complaint_tracker/committee_form.html',
+                    form=form,
+                    committee_groups=_committee_groups(form, groups, counts),
+                    temp=temp,
+                    tab=tab,
+                    menu=menu,
+                    repair_approval_id=repair_approval_id,
+                    rep_approval=rep_approval,
+                )
+
         ComplaintCommittee.query.filter_by(repair_approval_id=rep_approval.id).delete()
+        group_index = 0
+        group_end = counts[0]
         for i, c_form in enumerate(form.committees.entries):
             if not c_form.form.staff.data:
                 continue
+            while i >= group_end and group_index < len(groups) - 1:
+                group_index += 1
+                group_end += counts[group_index]
             committee = ComplaintCommittee(
-                staff=c_form.form.staff.data,
+                staff_id=int(c_form.form.staff.data),
                 position=c_form.form.position.data,
                 committee_position=c_form.form.committee_position.data,
                 repair_approval_id=rep_approval.id,
-                committee_name=request.form.get(f'committee_name_{i // 3}', 'ผู้ตรวจรับพัสดุ')
+                committee_name=groups[group_index][0]
             )
             db.session.add(committee)
-            db.session.commit()
+        db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         if temp == 'index':
             return redirect(url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu))
@@ -2862,7 +3128,8 @@ def edit_committee(repair_approval_id):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('complaint_tracker/committee_form.html', form=form, temp=temp,
+    return render_template('complaint_tracker/committee_form.html', form=form,
+                           committee_groups=_committee_groups(form, groups, counts), temp=temp,
                            tab=tab, menu=menu, repair_approval_id=repair_approval_id, rep_approval=rep_approval)
 
 
@@ -3007,9 +3274,9 @@ def generate_repair_approval_pdf(repair_approval):
                              f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
 
     if repair_approval.approver:
-        approver = f"{repair_approval.approver.fullname_with_full_position}"
+        head = f"{repair_approval.approver.fullname_with_full_position}"
     else:
-        approver = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+        head = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
     organization_info = Paragraph(organization_text, style=header_right_style)
@@ -3020,7 +3287,7 @@ def generate_repair_approval_pdf(repair_approval):
         ['', ''],
         ['', ''],
         [Paragraph('ลงชื่อ', center_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', center_style)],
-        [Paragraph(f'({approver})', center_style), ''],
+        [Paragraph(f'({head})', center_style), ''],
     ], colWidths=[160, 160])
     person.setStyle(TableStyle([
         ('SPAN', (0, 1), (1, 1)),
@@ -3042,6 +3309,25 @@ def generate_repair_approval_pdf(repair_approval):
         else f"{repair_approval.price:,.2f}"
 
     mhesi_no_date_info = '''<font name="SarabunBold">วันที่</font>'''
+
+    dean = StaffHeadPosition.query.filter_by(position='คณบดีคณะเทคนิคการแพทย์').first()
+    associate_dean = StaffHeadPosition.query.filter_by(position='รองคณบดีคณะเทคนิคการแพทย์').first()
+
+    if repair_approval.price and repair_approval.price > 100000:
+        if dean:
+            approver_name = dean.staff.fullname_with_full_position
+            approver_position = dean.position
+        else:
+            approver_name = None
+            approver_position = None
+    elif associate_dean:
+        approver_name = associate_dean.staff.fullname_with_full_position
+        approver_position = associate_dean.position
+    else:
+        approver_name = None
+        approver_position = None
+
+    recipient = f'<font name="SarabunBold">เรียน</font>&nbsp;&nbsp;&nbsp;&nbsp;{approver_position}'
 
     if repair_approval.repair_type == 'เร่งด่วน':
         indent = 47
@@ -3111,12 +3397,13 @@ def generate_repair_approval_pdf(repair_approval):
     elif repair_approval.principle_approval_type == 'ซื้อ' or repair_approval.principle_approval_type == 'จ้าง':
         indent = 14
         text_style = content_style
-        if repair_approval.price <= 30000:
-            mtpc = 'MTPC-002'
-        elif repair_approval.price > 30000 and repair_approval.price <= 500000:
+        if repair_approval.price > 500000:
+            mtpc = 'MTPC-004'
+        elif repair_approval.price >= 30000:
             mtpc = 'MTPC-003'
         else:
-            mtpc = 'MTPC-004'
+            mtpc = 'MTPC-002'
+
         form_code = Table(
             [[Paragraph(mtpc, style=bold_style)]],
             colWidths=[70],
@@ -3242,14 +3529,16 @@ def generate_repair_approval_pdf(repair_approval):
         ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
     ]))
 
-    if repair_approval.price and repair_approval.price >= 100000:
-        approver_name = '(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์'
+    if approver_name:
+        approver = (f'{approver_name}<br/>{approver_position}<br/>ปฏิบัติหน้าที่แทนอธิการบดีมหาวิทยาลัยมหิดล')
     else:
-        approver_name = '(รองศาสตราจารย์ ดร.ธนาวุฒิ ตันติมงคลวัฒน์)<br/>รองคณบดีคณะเทคนิคการแพทย์'
+        approver = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                        f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                        f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
 
     approval = Table([
         [Paragraph('อนุมัติ', style=approver_style)],
-        [Paragraph(f'{approver_name}', style=center_style)]
+        [Paragraph(f'{approver}', style=center_style)]
     ], colWidths=215)
 
     approval.setStyle(TableStyle([
@@ -3275,8 +3564,7 @@ def generate_repair_approval_pdf(repair_approval):
     data.append(Paragraph(mhesi_no, style=content_style))
     data.append(Paragraph(mhesi_no_date_info, style=content_style))
     data.append(Paragraph(item, style=item_style))
-    data.append(Paragraph(f'<font name="SarabunBold">เรียน</font>&nbsp;&nbsp;&nbsp;&nbsp;คณบดีคณะเทคนิคการแพทย์',
-                          style=content_style))
+    data.append(Paragraph(recipient, style=content_style))
     data.append(Paragraph(item_detail, style=item_detail_style))
     data.append(Paragraph(reason_title, style=content_style))
     data.append(Paragraph(f'<para firstLineIndent={indent}>{repair_approval.reason}</para>', style=content_style))
@@ -3286,63 +3574,76 @@ def generate_repair_approval_pdf(repair_approval):
     data.append(Paragraph(receipt, style=content_style))
     data.append(Paragraph(code_detail, style=content_style))
     if repair_approval.repair_type != 'เร่งด่วน':
-        if repair_approval.price > 500000:
-            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ</font>'
+        if repair_approval.principle_approval_type and repair_approval.principle_approval_type == 'จ้างซ่อม':
+            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ / ผู้ตรวจรับพัสดุ</font>'
             data.append(Paragraph(committee_title, style=content_style))
-            ordered_committee_names = [
-                'คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ',
-                'คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์',
-                'คณะกรรมการตรวจรับพัสดุ'
-            ]
-
-            for committee_name in ordered_committee_names:
-                committee_members = [
-                    c for c in repair_approval.committees
-                    if c.committee_name.strip() == committee_name
-                ]
-
-                if committee_members:
-                    data.append(Paragraph(committee_name, style=content_style))
-                    count = 2
-                    for c in committee_members:
-                        if c.committee_position == "ประธาน":
-                            para = f'<para leftIndent=35>1) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
-                            data.append(Paragraph(para, style=content_style))
-                    for c in committee_members:
-                        if c.committee_position == "กรรมการ":
-                            para = f'<para leftIndent=35>{count}) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
-                            data.append(Paragraph(para, style=content_style))
-                            count += 1
-        elif repair_approval.price > 30000 and repair_approval.price <= 500000:
-            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ</font>'
-            data.append(Paragraph(committee_title, style=content_style))
-            count = 2
+            count = 1
             for c in repair_approval.committees:
-                if c.committee_position == "ประธาน":
-                    committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
-                                 .format(committee=c.staff.fullname, position=c.position,
-                                         committee_position=c.committee_position))
-                elif c.committee_position == "กรรมการ":
-                    committee = (
-                        '<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
-                        .format(num=count, committee=c.staff.fullname, position=c.position,
-                                committee_position=c.committee_position))
-                    count += 1
-                else:
-                    committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
-                                 .format(committee=c.staff.fullname, position=c.position,
-                                         committee_position=c.committee_position))
+                committee = ('<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
+                             .format(num=count, committee=c.staff.fullname, position=c.position,
+                                     committee_position=c.committee_position))
+                count += 1
                 data.append(Paragraph(committee, style=content_style))
         else:
-            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ</font>'
-            data.append(Paragraph(committee_title, style=content_style))
-            for c in repair_approval.committees:
-                committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
-                             .format(committee=c.staff.fullname, position=c.position,
-                                     committee_position=c.committee_position))
-                data.append(Paragraph(committee, style=content_style))
+            if repair_approval.price > 500000:
+                committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการเพื่อดำเนินงาน ดังนี้</font>'
+                data.append(Paragraph(committee_title, style=content_style))
+                ordered_committee_names = [
+                    'คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ',
+                    'คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์',
+                    'คณะกรรมการตรวจรับพัสดุ'
+                ]
+
+                for committee_name in ordered_committee_names:
+                    committee_members = [
+                        c for c in repair_approval.committees
+                        if c.committee_name.strip() == committee_name
+                    ]
+
+                    if committee_members:
+                        data.append(Paragraph(committee_name, style=content_style))
+                        count = 2
+                        for c in committee_members:
+                            if c.committee_position == "ประธาน" or c.committee_position == "ประธานกรรมการ":
+                                para = f'<para leftIndent=35>1) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
+                                data.append(Paragraph(para, style=content_style))
+                        for c in committee_members:
+                            if c.committee_position == "กรรมการ":
+                                para = f'<para leftIndent=35>{count}) {c.staff.fullname} ตำแหน่ง {c.position} {c.committee_position}</para>'
+                                data.append(Paragraph(para, style=content_style))
+                                count += 1
+            elif repair_approval.price >= 30000:
+                committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ</font>'
+                data.append(Paragraph(committee_title, style=content_style))
+                count = 2
+                for c in repair_approval.committees:
+                    if c.committee_position == "ประธาน" or c.committee_position == "ประธานกรรมการ":
+                        committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
+                                     .format(committee=c.staff.fullname, position=c.position,
+                                             committee_position=c.committee_position))
+                    elif c.committee_position == "กรรมการ":
+                        committee = (
+                            '<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
+                            .format(num=count, committee=c.staff.fullname, position=c.position,
+                                    committee_position=c.committee_position))
+                        count += 1
+                    else:
+                        committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
+                                     .format(committee=c.staff.fullname, position=c.position,
+                                             committee_position=c.committee_position))
+                    data.append(Paragraph(committee, style=content_style))
+            else:
+                committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ</font>'
+                data.append(Paragraph(committee_title, style=content_style))
+                count = 1
+                for c in repair_approval.committees:
+                    committee = ('<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
+                                 .format(num=count, committee=c.staff.fullname, position=c.position,
+                                         committee_position=c.committee_position))
+                    count += 1
+                    data.append(Paragraph(committee, style=content_style))
     if (repair_approval.repair_type == 'เร่งด่วน' and repair_approval.remark) or repair_approval.principle_approval_type == 'ซื้อ' \
-            or repair_approval.principle_approval_type == 'จ้าง' or repair_approval.repair_type == 'จ้างซ่อม':
+            or repair_approval.principle_approval_type == 'จ้าง' or repair_approval.repair_type == 'จ้างซ่พม':
         data.append(Paragraph(remark, style=text_style))
     description_parts = [
         part + '</para>'

@@ -108,6 +108,13 @@
                                         <span>รายละเอียดการเข้าร่วมของท่าน</span>
                                     </a>
                                 </div>
+                                {% if is_secretary %}
+                                    <div class="column has-text-centered">
+                                        <a href="{{ url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar.id) }}" class="button is-info is-light">
+                                            <span>ทำขออนุมัติแทนบุคลากร</span>
+                                        </a>
+                                    </div>
+                                {% endif %}
                             </div>
                             <div class="columns">
                                 <div class="column">

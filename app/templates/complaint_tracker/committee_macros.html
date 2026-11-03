@@ -1,19 +1,19 @@
 {% macro render_committee_form(c_form, idx) %}
     <div class="field-body">
         <div class="field">
-            <label class="label">รายชื่อ</label>
+            <label class="label">รายชื่อ <span class="has-text-danger">*</span></label>
             <div class="control">
                 {{ c_form.staff(class='js-example-basic-single', onchange='syncPosition(' ~ idx ~ ')') }}
             </div>
         </div>
         <div class="field">
-            <label class="label">{{ c_form.position.label }}</label>
+            <label class="label">{{ c_form.position.label }} <span class="has-text-danger">*</span></label>
             <div class="control">
                 {{ c_form.position(class='input') }}
             </div>
         </div>
         <div class="field">
-            <label class="label">{{ c_form.committee_position.label }}</label>
+            <label class="label">{{ c_form.committee_position.label }} <span class="has-text-danger">*</span></label>
             <div class="control">
                 {{ c_form.committee_position(class='input') }}
             </div>
