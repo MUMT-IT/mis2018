@@ -912,7 +912,7 @@ def _build_fnar02_html(memo_context):
         f"{escaped['start_date_str']} - {escaped['end_date_str']}"
     )
     paragraph_two = (
-        f"ทั้งนี้โดยมอบหมายให้ {escaped['borrower_name']} เป็นผู้ยืมเงิน "
+        f"ทั้งนี้ ขอมอบหมายให้ {escaped['borrower_name']} เป็นผู้ยืมเงิน "
         f"โดยโปรดโอนเงินเข้าบัญชี เลขที่ {escaped['account_number']} "
         f"ชื่อบัญชี {escaped['account_name']} โดยมีระยะเวลาในการดำเนินภายในวันที่ "
         f"{escaped['due_date_thai']}"
@@ -1210,6 +1210,7 @@ def _render_html_with_chromium(html_source):
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
             headless=True,
+            executable_path=os.environ.get("CHROMIUM_EXECUTABLE_PATH") or None,
             args=["--no-sandbox", "--disable-setuid-sandbox"],
         )
         try:
@@ -1240,15 +1241,7 @@ _pdf_log = logging.getLogger(__name__)
 
 
 def _render_with_reportlab_fallback(chromium_render, reportlab_render, document_name):
-    """Select a renderer after data collection; otherwise fall back on Chromium failure."""
-    if os.environ.get("ADVANCE_PAYMENT_PDF_RENDERER", "").strip().lower() == "reportlab":
-        pdf = reportlab_render()
-        _pdf_log.warning(
-            "PDF generated: document=%s renderer=ReportLab mode=forced bytes=%d",
-            document_name, len(pdf),
-        )
-        return pdf
-
+    """Only rendering failures trigger the fallback; data collection stays upstream."""
     try:
         pdf = chromium_render()
         if not pdf or not pdf.startswith(b"%PDF-"):
@@ -1534,7 +1527,7 @@ def _render_fnar02_with_reportlab(context):
         f"ด้วย{context['department_name']} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน "
         f"{context['amount_numeric']} บาท ({context['amount_text']}) เพื่อทดรองจ่าย"
         f"{context['borrowing_purpose']} ตั้งแต่วันที่ {context['start_date_str']} - {context['end_date_str']}",
-        f"ทั้งนี้โดยมอบหมายให้ {context['borrower_name']} เป็นผู้ยืมเงิน โดยโปรดโอนเงินเข้าบัญชี "
+        f"ทั้งนี้ โดยมอบหมายให้ {context['borrower_name']} เป็นผู้ยืมเงิน โดยโปรดโอนเงินเข้าบัญชี "
         f"เลขที่ {context['account_number']} ชื่อบัญชี {context['account_name']} "
         f"โดยมีระยะเวลาในการดำเนินภายในวันที่ {context['due_date_thai']}",
         "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้ "
