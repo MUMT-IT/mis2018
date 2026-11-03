@@ -1249,7 +1249,15 @@ _pdf_log = logging.getLogger(__name__)
 
 
 def _render_with_reportlab_fallback(chromium_render, reportlab_render, document_name):
-    """Only rendering failures trigger the fallback; data collection stays upstream."""
+    """Select a renderer after data collection; otherwise fall back on Chromium failure."""
+    if os.environ.get("ADVANCE_PAYMENT_PDF_RENDERER", "").strip().lower() == "reportlab":
+        pdf = reportlab_render()
+        _pdf_log.warning(
+            "PDF generated: document=%s renderer=ReportLab mode=forced bytes=%d",
+            document_name, len(pdf),
+        )
+        return pdf
+
     try:
         pdf = chromium_render()
         if not pdf or not pdf.startswith(b"%PDF-"):
@@ -1348,11 +1356,11 @@ def _render_reimbursement_with_reportlab(context):
     output = BytesIO()
     doc = _rl_doc(output, context["title"], top=22, bottom=22)
     width = doc.width
-    # ReportLab distributes Thai word spaces very unevenly with TA_JUSTIFY.
-    # Keep the official first-line indent, but use natural spacing throughout.
+    justify_claim = context["title"] == "Petty Claim Request"
     body_style = ParagraphStyle(
         "ThaiReimbursementBody", parent=styles["ThaiNormal"],
-        alignment=TA_LEFT, firstLineIndent=70,
+        alignment=TA_JUSTIFY if justify_claim else TA_LEFT,
+        firstLineIndent=70,
     )
     story = [
         _rl_letterhead(context["department_name"], context["telephone_number"]),
@@ -1391,11 +1399,7 @@ def _render_reimbursement_with_reportlab(context):
     ]))
     story.extend([
         total, Spacer(1, 10),
-        _rl_paragraph(
-            context["reference_text"],
-            body_style if context["title"] == "Ticket Return Request" or context.get("extra_header_space")
-            else styles["ThaiNormal"],
-        ),
+        _rl_paragraph(context["reference_text"], body_style),
         Spacer(1, 12),
         _rl_paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", styles["ThaiCenter"]),
         Spacer(1, 30),
@@ -1688,15 +1692,16 @@ def _build_reimbursement_letter_html(context):
   .letterhead {{
     position: relative;
     height: 27.5mm;
-    margin-bottom: 6mm
+    margin-bottom: 6mm;
   }}
   .letter-page.extra-header-space .document-info {{ margin-top: 7mm; }}
   .logo {{
     position: absolute;
     top: 0;
-    left: 67.7mm;
+    left: 50%;
     width: 23.3mm;
     height: 23.3mm;
+    transform: translateX(-50%);
     object-fit: contain;
   }}
   .organization {{
@@ -1868,7 +1873,7 @@ def generate_petty_claim(claim, claim_type="1"):
         or getattr(fund_request, "claim_name", None)
         or PDF_BLANK
     )
-    subject_text = (f"ขออนุมัติเบิกค่าใช้จ่าย{request_purpose}")
+    subject_text = (f"ขออนุมัติเบิกค่าใช้จ่ายในการดำเนินงาน")
 
     claim_items = list(getattr(claim, "items", None) or [])
     display_items = [
