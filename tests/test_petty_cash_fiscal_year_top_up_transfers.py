@@ -252,7 +252,7 @@ class PettyCashFiscalYearTopUpTransferTests(unittest.TestCase):
         )
         self.assertIn("form_type = Column(String(10), nullable=False)", models_source)
 
-    def test_reduction_form_uses_manual_amount_without_receipt_items(self):
+    def test_reduction_form_uses_manual_amount_with_fixed_category_five_item(self):
         views_source = (ROOT / "app/advance_payment/views.py").read_text(
             encoding="utf-8-sig"
         )
@@ -270,6 +270,10 @@ class PettyCashFiscalYearTopUpTransferTests(unittest.TestCase):
         self.assertIn('userTotalInput.required = isInterestForm || isReductionForm', form_template)
         self.assertIn('if form_type == FUND_REQUEST_FORM_PETTY_CASH:', views_source)
         self.assertIn('fund_request_purpose = FUND_REQUEST_REDUCTION_PURPOSE', views_source)
+        self.assertIn('FUND_REQUEST_REDUCTION_ITEM_DESCRIPTION = "เบิกลดวงเงินจัดสรรเงินสดย่อย"', views_source)
+        self.assertIn('description=FUND_REQUEST_REDUCTION_ITEM_DESCRIPTION', views_source)
+        self.assertIn('category_type=5,', views_source)
+        self.assertIn('id="reductionItemAmountPreview"', form_template)
         self.assertNotIn('if (isActive) select.value = "5";', form_template)
 
 

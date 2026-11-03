@@ -11,12 +11,20 @@ ACTIVE_STATUS_LABELS = {
 }
 
 IGNORED_STATUS_LABELS = {"เคลียร์ยอดแล้ว"}
+TEMPORARY_EMPLOYMENT_TITLE = "ลูกจ้างชั่วคราว"
+TEMPORARY_EMPLOYEE_MESSAGE = (
+    "ไม่สามารถทำการสร้างรายการสัญญาเงินยืมได้ เนื่องจากเป็นลูกจ้างชั่วคราว"
+)
+ACTIVE_BORROWING_MESSAGE = (
+    "ไม่สามารถส่งสัญญาเงินยืมเงินฉบับใหม่ได้ เนื่องจากมีรายการที่อยู่ระหว่างดำเนินการ"
+)
 
 @dataclass(frozen=True)
 class BorrowingTicketEligibility:
     is_eligible: bool
     blocking_statuses: tuple[str, ...]
     blocking_records: tuple[dict, ...]
+    is_temporary_employee: bool
 
 def _get_record_value(record, key, default=None):
     if isinstance(record, dict):
@@ -27,6 +35,7 @@ def calculate_borrowing_ticket_eligibility(
     borrowing_history: Iterable,
     borrower_email: str,  # รับ email ของผู้ยืมเพิ่มเข้ามา
     current_ticket_id=None,
+    employment_title: str | None = None,
 ):
     blocking_statuses = []
     blocking_records = []
@@ -34,6 +43,9 @@ def calculate_borrowing_ticket_eligibility(
 
     # ทำความสะอาดข้อมูล email ที่ส่งเข้ามาเพื่อป้องกัน case sensitive หรือ space ขอบข้าง
     target_email = (borrower_email or "").strip().lower()
+    is_temporary_employee = (
+        (employment_title or "").strip() == TEMPORARY_EMPLOYMENT_TITLE
+    )
 
     for record in borrowing_history:
         record_id = _get_record_value(record, "id")
@@ -73,8 +85,9 @@ def calculate_borrowing_ticket_eligibility(
             blocking_records.append(record)
 
     return BorrowingTicketEligibility(
-        is_eligible=not blocking_records,
+        is_eligible=not blocking_records and not is_temporary_employee,
         blocking_statuses=tuple(blocking_statuses),
         blocking_records=tuple(blocking_records),
+        is_temporary_employee=is_temporary_employee,
     )
 

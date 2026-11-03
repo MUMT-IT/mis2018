@@ -35,7 +35,11 @@ from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
-from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
+from .borrowing_ticket_eligibility import (
+    ACTIVE_BORROWING_MESSAGE,
+    TEMPORARY_EMPLOYEE_MESSAGE,
+    calculate_borrowing_ticket_eligibility,
+)
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
@@ -191,6 +195,7 @@ FUND_REQUEST_FORM_INTEREST = "interest"
 FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
 FUND_REQUEST_FORM_REDUCTION = "reduction"
 FUND_REQUEST_REDUCTION_PURPOSE = "เบิกเงินยืมเพื่อลดวงเงินตามปีงบประมาณ"
+FUND_REQUEST_REDUCTION_ITEM_DESCRIPTION = "เบิกลดวงเงินจัดสรรเงินสดย่อย"
 PETTY_CASH_TRANSFER_NONE = 0
 PETTY_CASH_TRANSFER_TOP_UP = 1
 PETTY_CASH_TRANSFER_REDUCTION = 2
@@ -1303,6 +1308,8 @@ def _can_manage_petty_cash_claim(user, claim, setting):
 def _can_download_petty_cash_claim_pdf(user, claim, setting):
     """Allow claim managers and the linked fund request's requester to export PDF."""
     if not user or not claim or not setting or not getattr(setting, "id", None):
+        return False
+    if not getattr(claim, "approved_at", None):
         return False
     if getattr(claim, "petty_cash_setting_id", None) != setting.id:
         return False
@@ -4529,14 +4536,24 @@ def coordinator_dashboard():
     eligibility_by_email = {}
     for user in dept_users:
         user_email = (user.email or "").strip().lower()
+        employment = getattr(getattr(user, "personal_info", None), "employment", None)
         eligibility_by_email[user_email] = calculate_borrowing_ticket_eligibility(
             tickets_by_email.get(user_email, []),
             user.email,
             current_ticket_id=editing_ticket.id if editing_ticket else None,
+            employment_title=(
+                getattr(employment, "title", None)
+                if editing_ticket is None
+                else None
+            ),
         )
         user.is_eligible = eligibility_by_email[user_email].is_eligible
-        user.ineligible_reason = ", ".join(
-            eligibility_by_email[user_email].blocking_statuses
+        user.ineligible_reason = (
+            TEMPORARY_EMPLOYEE_MESSAGE
+            if eligibility_by_email[user_email].is_temporary_employee
+            else ACTIVE_BORROWING_MESSAGE
+            if eligibility_by_email[user_email].blocking_records
+            else ""
         )
 
     if is_borrower_mode:
@@ -4862,7 +4879,9 @@ def coordinator_dashboard():
     if request.method == "POST":
         if is_borrower_mode and form_locked:
             return _validation_error_response(
-                "คุณยังไม่สามารถสร้างสัญญาเงินยืมใหม่ได้ เนื่องจากมีรายการค้างที่ต้องดำเนินการก่อน"
+                TEMPORARY_EMPLOYEE_MESSAGE
+                if current_user_eligibility.is_temporary_employee
+                else ACTIVE_BORROWING_MESSAGE
             )
 
         # ผู้ยืมสร้างได้เฉพาะของตัวเอง ส่วนผู้ประสานงานเลือกแทนได้
@@ -4911,8 +4930,9 @@ def coordinator_dashboard():
         if not coordinator_eligibility.is_eligible:
             # หากผู้ยืมไม่ผ่านเงื่อนไข ระบบจะแจ้งเตือนและไม่อนุญาตให้สร้างสัญญา
             return _validation_error_response(
-                f"ไม่สามารถสร้างสัญญาแทนได้: {coordinator_user.name} ไม่ผ่านเงื่อนไขการยืมเงินทดรองจ่าย "
-                f"(สถานะที่ยังค้างอยู่: {', '.join(coordinator_eligibility.blocking_statuses)})"
+                TEMPORARY_EMPLOYEE_MESSAGE
+                if coordinator_eligibility.is_temporary_employee
+                else ACTIVE_BORROWING_MESSAGE
             )
 
         if form.validate():
@@ -5050,6 +5070,11 @@ def coordinator_dashboard():
         creator_return_details=creator_return_details,
         borrowing_ticket_form=form,
         borrowing_ticket_form_locked=form_locked,
+        borrowing_ticket_ineligible_reason=(
+            TEMPORARY_EMPLOYEE_MESSAGE
+            if current_user_eligibility and current_user_eligibility.is_temporary_employee
+            else ACTIVE_BORROWING_MESSAGE
+        ),
         editing_ticket=editing_ticket,
         bank_account_options=bank_account_options,
         bank_account_values=bank_account_values,
@@ -9927,6 +9952,17 @@ def staff_fund_request():
                     )
                 )
 
+            if form_type == FUND_REQUEST_FORM_REDUCTION:
+                db.session.add(
+                    FundRequestItem(
+                        fund_request_id=new_request.id,
+                        description=FUND_REQUEST_REDUCTION_ITEM_DESCRIPTION,
+                        amount=form.amount.data,
+                        category_type=5,
+                        created_at=datetime.now(),
+                    )
+                )
+
             if form_type == FUND_REQUEST_FORM_INTEREST:
                 # 1. ดึงค่าจาก Radio Button (จะได้ เช่น "มิถุนายน พ.ศ. 2567" หรือ "ธันวาคม พ.ศ. 2567")
                 selected_period = request.form.get("period_year_radio", "")
@@ -10774,6 +10810,8 @@ def export_ticket_return_pdf(return_id):
         abort(404)
     if _selected_system() == FINANCE_SYSTEM and return_detail.status_id == _status_id_for_record(return_detail, "DRAFT"):
         abort(404)
+    if not return_detail.approved_at:
+        abort(403)
 
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
     if not borrowing_ticket:

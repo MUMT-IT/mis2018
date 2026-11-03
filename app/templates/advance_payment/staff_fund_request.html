@@ -290,6 +290,39 @@
               </div>
             </div>
 
+            <div id="reductionReceiptTableContainer" class="mb-4 border rounded-3 p-3 bg-white shadow-sm" style="display: none;">
+              <h6 class="fw-bold text-dark mb-2"><i class="bi bi-list-ol me-2 text-primary"></i>รายการที่ขอเบิก</h6>
+              <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0">
+                  <thead class="table-light small fw-bold">
+                    <tr>
+                      <th style="width: 70px;" class="text-center">ลำดับ</th>
+                      <th>หมวดหมู่รายจ่าย</th>
+                      <th style="width: 260px;">รายการ</th>
+                      <th style="width: 140px;" class="text-center">จำนวนเงิน (บาท)</th>
+                      <th style="width: 60px;" class="text-center">ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="text-center fw-bold">1</td>
+                      <td><select class="form-select form-select-sm" disabled><option selected>อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option></select></td>
+                      <td><textarea class="form-control form-control-sm" rows="1" readonly>เบิกลดวงเงินจัดสรรเงินสดย่อย</textarea></td>
+                      <td><input type="text" class="form-control form-control-sm text-end fw-bold" id="reductionItemAmountPreview" value="0.00" readonly></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="d-flex align-items-center mt-3 p-2 bg-light rounded-3 gap-3">
+                <div class="ms-auto text-end">
+                  <span class="fw-bold text-dark me-2">เป็นเงินทั้งสิ้น:</span>
+                  <span class="fw-bold text-primary fs-5" id="reductionItemTotal">0.00</span>
+                  <span class="fw-bold text-dark ms-1">บาท</span>
+                </div>
+              </div>
+            </div>
+
             <!-- ส่วนกรอกจำนวนเงินและแสดงข้อความแจ้งเตือนข้อผิดพลาด (จัดชิดขวา) -->
           <div class="row g-3 mb-4 justify-content-end align-items-end">
             
@@ -510,6 +543,17 @@
           maximumFractionDigits: 2
         });
       }
+      const reductionItemAmountPreview = document.getElementById("reductionItemAmountPreview");
+      const reductionItemTotal = document.getElementById("reductionItemTotal");
+      if (reductionItemAmountPreview) {
+        reductionItemAmountPreview.value = requestedAmount.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+      if (reductionItemTotal && reductionItemAmountPreview) {
+        reductionItemTotal.textContent = reductionItemAmountPreview.value;
+      }
 
       if (budgetAfterRequestDisplay) {
         budgetAfterRequestDisplay.textContent = remainingAfterRequest.toLocaleString("en-US", {
@@ -573,6 +617,7 @@
       const borrowerSection = document.getElementById("section_borrower_info");
       const requesterIsEditable = requesterInput && requesterInput.tagName === "SELECT";
       const receiptContainer = document.getElementById("receiptTableContainer");
+      const reductionReceiptContainer = document.getElementById("reductionReceiptTableContainer");
       const borrowingTicketSelect = document.getElementById("borrowing_ticket_id");
       const borrowingTicketBorrowerPreview = document.getElementById("borrowing_ticket_borrower_preview");
       const borrowingTicketPurposePreview = document.getElementById("borrowing_ticket_purpose_preview");
@@ -713,6 +758,7 @@
           ? 'ยอดส่วนต่างที่ต้องการเบิก (บาท) <span class="text-danger">*</span>'
           : 'จำนวนเงินที่ต้องการขอเบิก (บาท) <span class="text-danger">*</span>';
         if (userTotalInput) userTotalInput.required = isInterestForm || isReductionForm;
+        reductionReceiptContainer.style.display = isReductionForm ? "block" : "none";
         if (!isBorrowingTicketForm) onBorrowerChange();
 
         if (pettyCashRadio.checked) {
