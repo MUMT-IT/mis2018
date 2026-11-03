@@ -427,6 +427,35 @@ def test_format_bangkok_datetime_normalizes_database_values(staff_views, stored_
     assert staff_views._format_bangkok_datetime(stored_datetime) == "26/06/2026 07:48"
 
 
+@pytest.mark.parametrize("list_view", ["summary", "request_list"])
+def test_approver_lists_hide_own_request(staff_views, monkeypatch, list_view):
+    own_request = SimpleNamespace(id=1, staff_account_id=29, approver_id=29)
+    other_request = SimpleNamespace(id=2, staff_account_id=42, approver_id=29)
+    query = _FakeQuery()
+    query.rows = [own_request, other_request]
+    class StaffIdColumn:
+        def __ne__(self, account_id):
+            return lambda row: row.staff_account_id != account_id
+
+    def filter_rows(predicate):
+        query.rows = [row for row in query.rows if predicate(row)]
+        return query
+
+    query.filter = filter_rows
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(
+        query=query, requested_at=SimpleNamespace(desc=lambda: None), staff_account_id=StaffIdColumn(),
+    ))
+
+    if list_view == "summary":
+        assert staff_views._pending_clockin_requests_for(29) == [other_request]
+        assert query.filters == [{"approver_id": 29, "approved_at": None, "cancelled_at": None}]
+    else:
+        monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=29))
+        monkeypatch.setattr(staff_views, "render_template", lambda template, **context: context)
+        assert staff_views.list_for_clockin_clockout.__wrapped__()["all_requests"] == [other_request]
+        assert query.filters == [{"approver_id": 29}]
+
+
 def test_clock_requester_can_view_approved_request(staff_views, monkeypatch):
     clock_request = SimpleNamespace(
         id=5051,
@@ -458,11 +487,14 @@ def test_clock_requester_can_view_approved_request(staff_views, monkeypatch):
     assert context["can_approve"] is False
 
 
-def test_clock_requester_cannot_submit_approval_decision(staff_views, monkeypatch):
+@pytest.mark.parametrize("approver_id", [29, 42])
+@pytest.mark.parametrize("method", ["GET", "POST"])
+@pytest.mark.parametrize("decision", ["yes", "no"])
+def test_clock_requester_cannot_submit_approval_decision(staff_views, monkeypatch, approver_id, method, decision):
     clock_request = SimpleNamespace(
         id=5051,
         staff_account_id=42,
-        approver_id=29,
+        approver_id=approver_id,
     )
     monkeypatch.setattr(
         staff_views,
@@ -473,7 +505,7 @@ def test_clock_requester_cannot_submit_approval_decision(staff_views, monkeypatc
     monkeypatch.setattr(
         staff_views,
         "request",
-        SimpleNamespace(method="GET", args=SimpleNamespace(get=lambda _key: "yes")),
+        SimpleNamespace(method=method, args={"approved": decision}, form={"approved": decision}),
     )
 
     with pytest.raises(Forbidden):
@@ -1091,6 +1123,51 @@ def test_each_active_approver_can_open_emailed_request(staff_views, monkeypatch,
         assert query.filters == [{
             "staff_account_id": 42, "approver_account_id": approver_id, "is_active": True,
         }]
+
+
+@pytest.mark.parametrize("decision", ["yes", "no"])
+@pytest.mark.parametrize("method", ["GET", "POST"])
+def test_clock_decision_redirects_to_scoped_request_list(staff_views, monkeypatch, decision, method):
+    clock_request = SimpleNamespace(
+        id=5051, staff_account_id=42, approver_id=29,
+        approved_at=None, cancelled_at=None, date_id=20261030,
+        work_datetime=datetime(2026, 10, 30, 1), is_checkin=True,
+        staff=SimpleNamespace(line_id=None, email="requester"),
+    )
+    query = _FakeQuery()
+    query.get_or_404 = lambda request_id: clock_request
+    query.populate_existing = lambda: query
+    query.with_for_update = lambda: query
+    query.one = lambda: clock_request
+    def forbid_unfiltered_list():
+        pytest.fail("Approval must not load every user's requests")
+    query.all = forbid_unfiltered_list
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(query=query))
+
+    class Login:
+        query = _FakeQuery()
+
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", Login)
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=29, fullname="Approver"))
+    monkeypatch.setattr(staff_views, "current_app", SimpleNamespace(debug=False))
+    monkeypatch.setattr(staff_views, "request", SimpleNamespace(
+        method=method, args={"approved": decision}, form={"approved": decision}, headers={},
+    ))
+    monkeypatch.setattr(staff_views, "db", SimpleNamespace(session=_FakeSession()))
+    monkeypatch.setattr(staff_views, "flash", lambda *args: None)
+    monkeypatch.setattr(staff_views, "send_mail", lambda *args: None)
+    monkeypatch.setattr(staff_views, "_refresh_daily_attendance_after_record", lambda record: None)
+    monkeypatch.setattr(staff_views, "url_for", lambda endpoint, **kwargs: endpoint)
+    monkeypatch.setattr(staff_views, "redirect", lambda target: ("redirect", target))
+
+    assert staff_views.approved_for_clockin_clockout.__wrapped__(5051) == (
+        "redirect", "staff.list_for_clockin_clockout",
+    )
+    assert bool(clock_request.approved_at) == (decision == "yes")
+    assert bool(clock_request.cancelled_at) == (decision == "no")
 
 
 @pytest.mark.parametrize("closed_field", ["approved_at", "cancelled_at", "existing_login"])

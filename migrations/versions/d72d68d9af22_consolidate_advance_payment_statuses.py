@@ -25,6 +25,22 @@ STATUS_TABLES = (
 )
 
 
+def _map_legacy_fund_request_cancellations(connection):
+    # Older fund requests used this name before cancellation was renamed.
+    connection.execute(
+        sa.text(
+            "UPDATE petty_cash_fund_requests AS target "
+            "SET status_id = catalog.id "
+            "FROM advance_payment_statuses AS catalog "
+            "WHERE target.status = :legacy_name "
+            "AND target.status_id IS NULL "
+            "AND catalog.status_group = :status_group "
+            "AND catalog.code = :code"
+        ),
+        {"legacy_name": "ยกเลิก", "status_group": "fund_request", "code": "CLAIM_CANCELLED"},
+    )
+
+
 # (status group, code, Thai name); keep in sync with docs/advance-payment-statuses.md.
 STATUS_ROWS = (
     ("borrowing_ticket", "PENDING", "กำลังส่งคำขอ"),
@@ -124,6 +140,8 @@ def upgrade():
             ),
             {"status_group": status_group},
         )
+        if status_group == "fund_request":
+            _map_legacy_fund_request_cancellations(connection)
         missing = connection.execute(
             sa.text(f"SELECT COUNT(*) FROM {table_name} WHERE status_id IS NULL")
         ).scalar_one()
