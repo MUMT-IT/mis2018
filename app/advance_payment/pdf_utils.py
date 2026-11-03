@@ -11,7 +11,7 @@ from pathlib import Path
 from bahttext import bahttext
 
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether, PageBreak, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
@@ -379,13 +379,7 @@ def _get_head_signature(
         if head_personal_info is None:
             continue
 
-        head_name = " ".join(
-            str(value).strip() for value in (
-                getattr(head_personal_info, "th_title", None),
-                getattr(head_personal_info, "th_firstname", None),
-                getattr(head_personal_info, "th_lastname", None),
-            ) if value and str(value).strip()
-        )
+        head_name = head_personal_info.fullname
         return _pdf_text(head_name), _pdf_text(head_position_record.position)
 
     # If the current organization has no head, walk up its parent hierarchy
@@ -430,13 +424,7 @@ def _get_head_signature(
     if not head_personal_info:
         return _pdf_text(None), _pdf_text(None)
 
-    head_name = " ".join(
-        str(value).strip() for value in (
-            getattr(head_personal_info, "th_title", None),
-            getattr(head_personal_info, "th_firstname", None),
-            getattr(head_personal_info, "th_lastname", None),
-        ) if value and str(value).strip()
-    )
+    head_name = head_personal_info.fullname
     # The position is organization-specific and must come from
     # staff_head_positions, never from the staff member's generic position.
     head_position_record = (
@@ -450,9 +438,9 @@ def _get_head_signature(
     return _pdf_text(head_name), _pdf_text(getattr(head_position_record, "position", None))
 
 
-def _get_leave_approver_signatures(ticket):
-    """Return active lower/middle approvers, or one active fallback approver."""
-    borrower_id = getattr(ticket, "borrower_id", None)
+def _get_leave_approver_signatures(ticket=None, *, staff_account_id=None, middle_level_only=False):
+    """Return active approvers, optionally restricted to the middle level."""
+    borrower_id = staff_account_id or getattr(ticket, "borrower_id", None)
     if not borrower_id:
         return []
 
@@ -485,8 +473,9 @@ def _get_leave_approver_signatures(ticket):
 
     signatures = []
     approver_filters = (
-        {"is_lower_level": True},
-        {"is_middle_level": True},
+        ({"is_middle_level": True},)
+        if middle_level_only
+        else ({"is_lower_level": True}, {"is_middle_level": True})
     )
     for level_filter in approver_filters:
         approver = (
@@ -504,7 +493,7 @@ def _get_leave_approver_signatures(ticket):
         if signature is not None:
             signatures.append(signature)
 
-    if not signatures:
+    if not signatures and not middle_level_only:
         fallback_approver = (
             db.session.query(StaffLeaveApprover)
             .filter_by(
@@ -522,9 +511,11 @@ def _get_leave_approver_signatures(ticket):
     return signatures
 
 
-def _get_leave_approver_signature(ticket):
-    """Resolve one FNAR02 signer, preferring lower over middle level."""
-    signatures = _get_leave_approver_signatures(ticket)
+def _get_leave_approver_signature(ticket=None, *, staff_account_id=None, middle_level_only=False):
+    """Resolve one signer, preferring lower level unless middle is required."""
+    signatures = _get_leave_approver_signatures(
+        ticket, staff_account_id=staff_account_id, middle_level_only=middle_level_only
+    )
     if signatures:
         return signatures[0]
     return _pdf_text(None), _pdf_text(None)
@@ -1219,7 +1210,6 @@ def _render_html_with_chromium(html_source):
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
             headless=True,
-            executable_path=os.environ.get("CHROMIUM_EXECUTABLE_PATH") or None,
             args=["--no-sandbox", "--disable-setuid-sandbox"],
         )
         try:
@@ -1432,17 +1422,47 @@ def _render_fund_request_with_reportlab(context):
     output = BytesIO()
     doc = _rl_doc(output, context["title"], left=45, right=45, top=16, bottom=16)
     width = doc.width
+
+    def section_heading(title):
+        meta = Paragraph(
+            f"เลขที่ใบเบิกเงิน {html.escape(str(context['ticket_number']))}<br/>"
+            f"วันที่ {html.escape(str(context['date_thai']))}",
+            styles["ThaiSmallRight"],
+        )
+        heading_row = Table(
+            [[_rl_paragraph(title, styles["ThaiBold"]), meta]],
+            colWidths=[width * .6, width * .4],
+        )
+        heading_row.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        return heading_row
+
+    def section_separator():
+        return HRFlowable(
+            width="100%", thickness=.5, color=colors.grey,
+            spaceBefore=5, spaceAfter=5, dash=[1, 2],
+        )
+
     logo = Image(str(PDF_LOGO_PATH), width=64, height=64)
     heading = Table([[logo, Paragraph(
         "ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย<br/>" + html.escape(str(context["department"])),
         styles["ThaiCenterBold"]), _rl_paragraph("MT-Petty Cash-02", styles["ThaiSmallRight"])]],
         colWidths=[75, width - 190, 115])
     heading.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    story = [heading, draw_dotted_line(),
-             _rl_paragraph("ส่วนที่ 1 ใบยืมเงินสดย่อย", styles["ThaiBold"]),
-             _rl_paragraph(f"เลขที่ใบเบิกเงิน {context['ticket_number']}  วันที่ {context['date_thai']}", styles["ThaiRight"]),
-             _rl_paragraph(f"ข้าพเจ้า {context['requester']} ตำแหน่ง {context['requester_position']} "
-                           f"มีความประสงค์ขอยืมเงินสดย่อย เพื่อ{context['purpose']} มีรายละเอียดดังนี้"),
+    story = [heading, section_separator(),
+             section_heading("ส่วนที่ 1 ใบยืมเงินสดย่อย"),
+             Paragraph(
+                 f"ข้าพเจ้า {html.escape(str(context['requester']))} "
+                 f"ตำแหน่ง {html.escape(str(context['requester_position']))} "
+                 "มีความประสงค์ขอยืมเงินสดย่อย<br/>"
+                 f"เพื่อ{html.escape(str(context['purpose']))} มีรายละเอียดดังนี้",
+                 styles["ThaiNormal"],
+             ),
              Spacer(1, 5)]
     rows = [[_rl_paragraph("ลำดับ", styles["ThaiCenterBold"]),
              _rl_paragraph("รายการ", styles["ThaiCenterBold"]),
@@ -1465,9 +1485,8 @@ def _render_fund_request_with_reportlab(context):
                                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
                                     ("TOPPADDING", (0, 0), (-1, -1), 7),
                                     ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
-    story.extend([Spacer(1, 10), signatures, draw_dotted_line(),
-                  _rl_paragraph("ส่วนที่ 2 ใบเบิกเงิน", styles["ThaiBold"]),
-                  _rl_paragraph(f"เลขที่ใบเบิกเงิน {context['ticket_number']}  วันที่ {context['date_thai']}", styles["ThaiRight"]),
+    story.extend([Spacer(1, 10), signatures, section_separator(),
+                  section_heading("ส่วนที่ 2 ใบเบิกเงิน"),
                   _rl_paragraph(f"เรียน  {context['head_position']}"), Spacer(1, 4)])
     def option(mark, content):
         mark_font = "DejaVuSans" if os.path.exists(DEJAVU_PATH) else "Sarabun"
@@ -1852,7 +1871,13 @@ def generate_petty_claim(claim, claim_type="1"):
     )
 
     borrowing_ticket = getattr(fund_request, "borrowing_ticket", None) if fund_request else None
-    head_name, head_position = _get_head_signature(claim=claim, fund_request=fund_request)
+    signer_staff_id = (
+        getattr(fund_request, "requester_id", None)
+        or getattr(claim, "user_id", None)
+    )
+    head_name, head_position = _get_leave_approver_signature(
+        staff_account_id=signer_staff_id, middle_level_only=True
+    )
 
     requester_name = (
         getattr(requester, "name", None)
@@ -2027,7 +2052,9 @@ def generate_ticket_return(return_detail):
         or dept_service_data.get("phone_number")
         or PDF_BLANK
     )
-    head_name, head_position = _get_head_signature(ticket=ticket)
+    head_name, head_position = _get_leave_approver_signature(
+        ticket, middle_level_only=True
+    )
     document_context = {
         "title": "Ticket Return Request",
         "department_name": department_name,
