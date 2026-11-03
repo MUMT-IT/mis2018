@@ -3269,13 +3269,17 @@ def idp_accept_result(idp_id):
 @pa.route('/idp/results')
 @login_required
 def idp_all_results():
-    all_idp = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
+    all_idp = IDP.query.filter_by(approver=current_user).filter(
+        IDP.is_active.is_not(False)
+    ).join(PAFunctionalCompetencyRound).filter(
         PAFunctionalCompetencyRound.is_closed != True).all()
     rounds = PAFunctionalCompetencyRound.query.all()
     round_id = request.args.get('roundid', type=int)
     if round_id:
         print('round_id')
-        all_idp = IDP.query.filter_by(approver=current_user, round_id=round_id).join(PAFunctionalCompetencyRound).filter(
+        all_idp = IDP.query.filter_by(approver=current_user, round_id=round_id).filter(
+            IDP.is_active.is_not(False)
+        ).join(PAFunctionalCompetencyRound).filter(
             PAFunctionalCompetencyRound.is_closed != True).all()
 
     return render_template('PA/idp_all_results.html', all_idp=all_idp, round=round_id,
@@ -3457,11 +3461,12 @@ def hr_update_idp_approver(idp_id):
 @hr_permission.require()
 def hr_delete_idp(idp_id):
     idp = IDP.query.get(idp_id)
-    db.session.delete(idp)
+    idp.is_active = False
+    db.session.add(idp)
     db.session.commit()
 
-    email_title = 'ลบข้อมูล IDP เรียบร้อยแล้ว'
-    email_msg = u'{} ได้ลบข้อมูล IDP รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว' \
+    email_title = 'ยกเลิกข้อมูล IDP เรียบร้อยแล้ว'
+    email_msg = u'{} ได้ยกเลิกข้อมูล IDP รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว' \
               u'\n\n\nคณะเทคนิคการแพทย์'. \
         format(current_user.personal_info.fullname, idp.round, idp.staff.fullname, idp.approver.fullname)
 
@@ -3470,7 +3475,7 @@ def hr_delete_idp(idp_id):
         send_mail([current_user.email + "@mahidol.ac.th"], email_title, email_msg)
     else:
         print(idp.round, email_title, email_msg)
-    flash('ลบข้อมูล IDP ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว '.format(idp.staff.fullname, idp.approver.fullname), 'success')
+    flash('ยกเลิกข้อมูล IDP ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว '.format(idp.staff.fullname, idp.approver.fullname), 'success')
     return redirect(request.referrer or url_for('pa.hr_all_idp'))
 
 
