@@ -3,6 +3,7 @@ import ast
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from datetime import datetime
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -128,10 +129,13 @@ class PettyCashOrganizationScopeTests(unittest.TestCase):
             user_id=9,
             petty_cash_setting_id=self.setting.id,
             fund_request=SimpleNamespace(creator_id=12, requester_id=self.user.id),
+            approved_at=None,
         )
         self.setting.org_id = 11
 
         self.assertFalse(self.can_manage_claim(self.user, claim, self.setting))
+        self.assertFalse(self.can_download_claim_pdf(self.user, claim, self.setting))
+        claim.approved_at = datetime(2026, 10, 30)
         self.assertTrue(self.can_download_claim_pdf(self.user, claim, self.setting))
 
         claim.fund_request.requester_id = 13
