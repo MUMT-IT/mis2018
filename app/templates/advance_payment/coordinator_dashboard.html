@@ -139,7 +139,7 @@
                     <option value="{{ u.email }}" 
                             data-org-id="{{ u.personal_info.org_id if u.personal_info else '' }}"
                             data-eligible="{{ 'true' if u.is_eligible else 'false' }}" 
-                            data-reason="{{ u.ineligible_reason or 'ไม่ผ่านเงื่อนไขการยืมเงินทดรองจ่าย' }}"
+                            data-reason="{{ u.ineligible_reason }}"
                             {% if borrowing_ticket_form.borrower_email.data|lower == u.email|lower %}selected{% endif %}>
                       {{ u.name }}{% if u.department %} ({{ u.department }}){% endif %} - {{ u.email }}
                     </option>
@@ -623,7 +623,7 @@
       if (!isEligible) {
         window.openAppPopup({
           title: "ไม่สามารถยืมได้",
-          message: `ไม่สามารถยืมได้: ผู้ยืมเงิน ${selectedOption.text.trim()} ยังมีหนี้คงค้างในระบบ`,
+          message: selectedOption.getAttribute('data-reason'),
           confirmText: "ตกลง",
           confirmClass: "btn-primary",
           alertOnly: true,
