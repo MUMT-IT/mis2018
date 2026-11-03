@@ -4,7 +4,6 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
-{% import 'complaint_tracker/committee_macros.html' as macros %}
 {% block page_content %}
     {% include "nav.html" %}
     <section class="section">
@@ -18,47 +17,9 @@
                     <hr>
                         <form method="post">
                             {{ form.hidden_tag() }}
-                            {% if rep_approval.price > 500000 %}
-                                <input type="hidden" name="committee_name_0" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ">
-                                <div class="field">
-                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ" style="color: #000; font-weight: bold;">
-                                </div>
-                                {% for c_form in form.committees[0:3] %}
-                                    {{ macros.render_committee_form(c_form, loop.index0 + 0) }}
-                                {% endfor %}
-                                <hr>
-                                <input type="hidden" name="committee_name_1" value="คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์">
-                                <div class="field">
-                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์" style="color: #000; font-weight: bold;">
-                                </div>
-                                {% for c_form in form.committees[3:6] %}
-                                    {{ macros.render_committee_form(c_form, loop.index0 + 3) }}
-                                {% endfor %}
-                                <input type="hidden" name="committee_name_2" value="คณะกรรมการตรวจรับพัสดุ">
-                                <div class="field">
-                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการตรวจรับพัสดุ" style="color: #000; font-weight: bold;">
-                                </div>
-                                <hr>
-                                {% for c_form in form.committees[6:9] %}
-                                    {{ macros.render_committee_form(c_form, loop.index0 + 6) }}
-                                {% endfor %}
-                            {% elif rep_approval.price > 30000 and rep_approval.price <= 500000 %}
-                                <input type="hidden" name="committee_name_0" value="คณะกรรมการตรวจรับพัสดุ">
-                                    <div class="field">
-                                        <input class="input is-static" type="text" value="คณะกรรมการตรวจรับพัสดุ" style="color: #000; font-weight: bold;" disabled>
-                                    </div>
-                                    {% for c_form in form.committees %}
-                                        {{ macros.render_committee_form(c_form, loop.index0) }}
-                                    {% endfor %}
-                            {% else %}
-                                <input type="hidden" name="committee_name_0" value="ผู้ตรวจรับพัสดุ">
-                                <div class="field">
-                                    <input class="input is-static" type="text" value="ผู้ตรวจรับพัสดุ" style="color: #000; font-weight: bold;" disabled>
-                                </div>
-                                {% for c_form in form.committees %}
-                                    {{ macros.render_committee_form(c_form, loop.index0) }}
-                                {% endfor %}
-                            {% endif %}
+                            <div id="committee-members">
+                                {% include 'complaint_tracker/committee_members.html' %}
+                            </div>
                             <div class="field" style="margin-top: 1em">
                                 <div class="buttons is-centered">
                                     <a class="button is-light" href="{{ url_for('comp_tracker.edit_repair_approval',
@@ -79,11 +40,48 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+        /* Select2 keeps the original select for form submission; do not show both controls. */
+        #committee-members select.select2-hidden-accessible {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
+    </style>
     <script>
-        $(document).ready(function() {
-            $('select.js-example-basic-single').each(function() {
-                $(this).select2();
+        function activateCommitteeSelects(root) {
+            const scope = root ? $(root) : $(document);
+            scope.find('select.js-example-basic-single').addBack('select.js-example-basic-single').each(function() {
+                const select = $(this);
+                if (select.hasClass('select2-hidden-accessible')) {
+                    return;
+                }
+                select.select2({
+                    width: '100%',
+                    placeholder: 'กรุณาเลือกรายชื่อคณะกรรมการ',
+                    ajax: {
+                        url: "{{ url_for('comp_tracker.get_committee_staff') }}",
+                        dataType: 'json',
+                        delay: 250
+                    }
+                });
             });
+        }
+
+        $(document).ready(activateCommitteeSelects);
+        document.body.addEventListener('htmx:load', function(event) {
+            activateCommitteeSelects(event.detail.elt || event.target);
+        });
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            if (event.detail.target && event.detail.target.id === 'committee-members') {
+                activateCommitteeSelects(event.detail.target);
+            }
         });
     </script>
     <script>

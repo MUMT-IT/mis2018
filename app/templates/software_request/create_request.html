@@ -13,7 +13,7 @@
             <div class="columns">
                 <div class="box column is-half is-offset-3">
                     <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
-                    <form method="post" enctype="multipart/form-data">
+                    <form id="myForm" method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">
@@ -116,10 +116,18 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="field">
+                            <p class="subtitle has-text-info is-hidden" id="progressMessage">กำลังดำเนินการ โปรดรอสักครู่</p>
+                        </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('software_request.index') }}" class="button">Back</a>
-                                <input class="button is-success" type="submit" value="Submit">
+                                <a id="cancelButton" href="{{ url_for('software_request.index') }}" class="button">Back</a>
+                                <button id="submitButton" class="button is-success">
+                                    <span>Submit</span>
+                                    <span id="spinnerIcon" class="icon is-hidden">
+                                        <i class="fas fa-spinner fa-pulse"></i>
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -207,5 +215,14 @@
         }
         ShowField();
         document.querySelector('[name="type"]').addEventListener("change", ShowField);
+
+        window.addEventListener('submit', ()=>{
+            document.getElementById("submitButton").setAttribute('disabled', '')
+            document.getElementById("cancelButton").setAttribute('disabled', '')
+            document.getElementById("spinnerIcon").classList.remove('is-hidden')
+            document.getElementById("progressMessage").classList.remove('is-hidden')
+            document.getElementById("spinnerIcon").classList.add('fa-pulse')
+            document.getElementById("spinnerIcon").querySelector('i').classList.add('fa-spin')
+        });
     </script>
 {% endblock %}

@@ -1,0 +1,44 @@
+{% import 'complaint_tracker/committee_macros.html' as macros %}
+
+{% for group in committee_groups %}
+    <div class="committee-group" id="committee-group-{{ group.index }}">
+        <input type="hidden" name="committee_name_{{ group.index }}" value="{{ group.name }}">
+        <input type="hidden" name="committee_group_count_{{ group.index }}" value="{{ group.count }}">
+        <div class="field">
+            <input class="input is-static" type="text" value="{{ group.name }}"
+                   style="color: #000; font-weight: bold;" disabled>
+        </div>
+        <div id="committee-group-{{ group.index }}-members">
+            {% for c_form in group.entries %}
+                {{ macros.render_committee_form(c_form, group.start + loop.index0) }}
+            {% endfor %}
+        </div>
+        {% if group.dynamic %}
+            <div class="field has-addons" style="margin-top: 1em">
+                <div class="control">
+                    <a class="button is-info is-small is-outlined is-rounded"
+                       hx-post="{{ url_for('comp_tracker.update_committee_members', repair_approval_id=repair_approval_id, group_index=group.index) }}"
+                       hx-include="closest form"
+                       hx-target="#committee-members"
+                       hx-swap="innerHTML">
+                        <span class="icon"><i class="fas fa-plus"></i></span>
+                        <span>เพิ่ม</span>
+                    </a>
+                </div>
+                <div class="control">
+                    <a class="button is-danger is-small is-outlined is-rounded"
+                       hx-delete="{{ url_for('comp_tracker.update_committee_members', repair_approval_id=repair_approval_id, group_index=group.index) }}"
+                       hx-include="closest form"
+                       hx-target="#committee-members"
+                       hx-swap="innerHTML"
+                       {% if group.count <= group.minimum %}disabled{% endif %}>
+                        <span class="icon"><i class="far fa-trash-alt"></i></span>
+                        <span>ลบ</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    {% if not loop.last %}
+        <hr>{% endif %}
+{% endfor %}

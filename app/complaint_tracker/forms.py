@@ -2,8 +2,8 @@
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import RadioField, FieldList, FormField, HiddenField, DateField
-from wtforms.validators import Optional
+from wtforms import RadioField, FieldList, FormField, HiddenField, DateField, SelectField, StringField
+from wtforms.validators import DataRequired, Optional
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.complaint_tracker.models import *
@@ -150,8 +150,16 @@ class ComplaintCommitteeForm(ModelForm):
         model = ComplaintCommittee
 
     id = HiddenField()
-    staff = QuerySelectField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname',
-                                allow_blank=True, blank_text='กรุณาเลือกรายชื่อคณะกรรมการ')
+    staff = SelectField(
+        'รายชื่อ',
+        choices=[('', 'กรุณาเลือกรายชื่อคณะกรรมการ')],
+        validators=[DataRequired(message='กรุณาเลือกรายชื่อคณะกรรมการ')],
+    )
+    position = StringField('ตำแหน่ง', validators=[DataRequired(message='กรุณากรอกตำแหน่ง')])
+    committee_position = StringField(
+        'ตำแหน่งคณะกรรมการ',
+        validators=[DataRequired(message='กรุณากรอกตำแหน่งคณะกรรมการ')],
+    )
 
 
 class ComplaintCommitteeGroupForm(ModelForm):
