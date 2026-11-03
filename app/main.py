@@ -152,6 +152,9 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['LINE_CLIENT_ID'] = os.environ.get('LINE_CLIENT_ID')
     app.config['LINE_CLIENT_SECRET'] = os.environ.get('LINE_CLIENT_SECRET')
+    app.config['LINE_MINI_APP_CHANNEL_ID'] = os.environ.get('LINE_MINI_APP_CHANNEL_ID')
+    app.config['LINE_MINI_APP_CHANNEL_SECRET'] = os.environ.get('LINE_MINI_APP_CHANNEL_SECRET')
+    app.config['LINE_MINI_APP_LIFF_ID'] = os.environ.get('LINE_MINI_APP_LIFF_ID')
     app.config['LINE_MESSAGE_API_ACCESS_TOKEN'] = \
         os.environ.get('LINE_MESSAGE_API_ACCESS_TOKEN')
     app.config['LINE_MESSAGE_API_CLIENT_SECRET'] = \
@@ -3744,3 +3747,6 @@ app.register_blueprint(continuing_edu_admin_cert_bp)
 # the existing StaffAccount/Flask-Principal role system for administrators.
 from app.international_relations import bp as international_relations_bp
 app.register_blueprint(international_relations_bp)
+
+from app.line_mini_app import bp as line_mini_app_bp
+app.register_blueprint(line_mini_app_bp)
