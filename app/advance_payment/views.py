@@ -191,6 +191,7 @@ FUND_REQUEST_FORM_INTEREST = "interest"
 FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
 FUND_REQUEST_FORM_REDUCTION = "reduction"
 FUND_REQUEST_REDUCTION_PURPOSE = "เบิกเงินยืมเพื่อลดวงเงินตามปีงบประมาณ"
+FUND_REQUEST_REDUCTION_ITEM_DESCRIPTION = "เบิกลดวงเงินจัดสรรเงินสดย่อย"
 PETTY_CASH_TRANSFER_NONE = 0
 PETTY_CASH_TRANSFER_TOP_UP = 1
 PETTY_CASH_TRANSFER_REDUCTION = 2
@@ -9922,6 +9923,17 @@ def staff_fund_request():
                         fund_request_id=new_request.id,
                         description=f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_number}",
                         amount=ticket_amount,
+                        category_type=5,
+                        created_at=datetime.now(),
+                    )
+                )
+
+            if form_type == FUND_REQUEST_FORM_REDUCTION:
+                db.session.add(
+                    FundRequestItem(
+                        fund_request_id=new_request.id,
+                        description=FUND_REQUEST_REDUCTION_ITEM_DESCRIPTION,
+                        amount=form.amount.data,
                         category_type=5,
                         created_at=datetime.now(),
                     )
