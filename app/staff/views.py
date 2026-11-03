@@ -7611,7 +7611,8 @@ def seminar_attend_search_result():
     distinct_objective = db.session.query(StaffSeminarObjective.objective).distinct().all()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     seminar_attend_records = StaffSeminarAttend.query \
-        .filter(func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE,
+        .filter(func.date(func.coalesce(StaffSeminarAttend.end_datetime,
+                                        StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
                 func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE) \
         .order_by(StaffSeminarAttend.start_datetime.desc())
     selected_dates = "{} - {}".format(
@@ -7636,7 +7637,8 @@ def seminar_attend_search_result():
         if start:
             query = query.filter(
                 and_(
-                    func.date(StaffSeminarAttend.end_datetime) >= start.date(),
+                    func.date(func.coalesce(StaffSeminarAttend.end_datetime,
+                                            StaffSeminarAttend.start_datetime)) >= start.date(),
                     func.date(StaffSeminarAttend.start_datetime) <= end.date()
                 )
             )
