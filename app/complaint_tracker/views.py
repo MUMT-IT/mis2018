@@ -1075,7 +1075,7 @@ def get_committee_staff():
 
 @complaint_tracker.route('/')
 def index():
-    categories = ComplaintCategory.query.all()
+    categories = ComplaintCategory.query.filter(ComplaintCategory.no.notin_([1, 5]))
     return render_template('complaint_tracker/index.html', categories=categories)
 
 
