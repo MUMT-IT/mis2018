@@ -973,7 +973,7 @@ def create_request(pa_id):
         db.session.add(new_request)
         db.session.commit()
         req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, new_request.for_,
             url_for("pa.view_request", request_id=new_request.id, _external=True, _scheme='https'))
         req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
@@ -1056,7 +1056,7 @@ def respond_request(request_id):
         flash('ดำเนินการเรียบร้อยแล้ว', 'success')
 
         req_msg = '{} {}คำขอ{}ในระบบ PA ท่านแล้ว รายละเอียดกรุณาคลิก link {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, req.status, req.for_,
             url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True, _scheme='https'))
         req_title = 'แจ้งผลคำขอ PA' + req.for_
@@ -3101,7 +3101,7 @@ def idp_send_request(idp_id):
         db.session.commit()
 
         req_msg = '{}ส่งคำ{} IDP ในระบบ MIS กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                     idp.staff.fullname, new_request.for_, url_for("pa.idp_all_requests"
                                                                   , _external=True, _scheme='https'))
         req_title = 'แจ้งการส่ง IDP'
@@ -3125,7 +3125,7 @@ def idp_delete_request(req_id):
     db.session.commit()
     idp = IDP.query.filter_by(id=idp_req.idp_id).first()
     req_msg = '{}ยกเลิกคำ{} IDP แล้ว' \
-              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(idp.staff.fullname, idp_req.for_)
+              '\n\n\nคณะเทคนิคการแพทย์'.format(idp.staff.fullname, idp_req.for_)
     req_title = 'แจ้งการส่ง IDP'
     if not current_app.debug:
         send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -3204,7 +3204,7 @@ def idp_respond_request(request_id):
         db.session.commit()
 
         req_msg = '{} {}คำขอ{}ของท่านในระบบ IDP' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                     current_user.personal_info.fullname, req.status,req.for_)
         req_title = 'แจ้งผลคำขอ IDP'
         if not current_app.debug:
@@ -3242,7 +3242,7 @@ def idp_review(idp_id):
 
         req_msg = 'ผู้บังคับบัญชาขั้นต้นได้ประเมินผล IDP ของท่านเรียบร้อยแล้ว ' \
                   'กรุณากดรับทราบผลการประเมิน IDP ในระบบ {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                    url_for("pa.idp_details", idp_id=idp_id, _external=True, _scheme='https'))
         req_title = 'แจ้งการประเมิน IDP กรุณาดำเนินการ'
         if not current_app.debug:
@@ -3398,7 +3398,7 @@ def idp_delete_request_by_hr(req_id):
             evaluated_at_local = tz.localize(evaluated_at_local)
         evaluated_at_local = evaluated_at_local.astimezone(tz).strftime('%d/%m/%Y %X')
         req_msg = '{} ได้ลบคำ{} IDP และวันที่ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา {} รอบ{} ของ{} แล้ว' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, idp_req.for_, evaluated_at_local, idp.round.desc, idp.staff.fullname)
         idp.evaluated_at = None
         if idp.accepted_at:
@@ -3407,13 +3407,13 @@ def idp_delete_request_by_hr(req_id):
                 accepted_at_local = tz.localize(accepted_at_local)
             accepted_at_local = accepted_at_local.astimezone(tz).strftime('%d/%m/%Y %X')
             req_msg = '{} ได้ลบคำ{} IDP วันที่ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา{}และ วันที่รับทราบผลการพัฒนา{} รอบ{} ของ{} แล้ว' \
-                      '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                      '\n\n\nคณะเทคนิคการแพทย์'.format(
                 current_user.personal_info.fullname, idp_req.for_, evaluated_at_local, accepted_at_local, idp.round.desc, idp.staff.fullname)
             idp.accepted_at = None
         db.session.add(idp)
     else:
         req_msg = '{} ได้ลบคำ{} IDP รอบ{} ของ{} แล้ว' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, idp_req.for_, idp.round.desc, idp.staff.fullname)
     db.session.delete(idp_req)
     db.session.commit()
