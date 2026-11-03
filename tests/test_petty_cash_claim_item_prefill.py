@@ -47,18 +47,15 @@ class PettyCashClaimItemPrefillTests(unittest.TestCase):
         self.assertNotIn("length > 1", remove_row_source)
         self.assertNotIn("ต้องมีรายการอย่างน้อย 1 รายการ", remove_row_source)
 
-    def test_saving_a_draft_renders_the_claim_form_again(self):
+    def test_ajax_draft_save_stays_on_the_claim_form(self):
         submit_source = self.views[
             self.views.index("def submit_petty_cash_claim"):
         ]
-        draft_return = """if is_draft:
-            flash("บันทึกฉบับร่างเรียบร้อยแล้ว", "success")
-            return submit_petty_cash_claim(
-                _render_after_post=True,
-                _forced_fund_request_id=fund_request_id,
-            )"""
-
-        self.assertIn(draft_return, submit_source)
+        self.assertIn('"draft_saved": True', submit_source)
+        self.assertIn('"receipt_proofs": {', submit_source)
+        self.assertIn('"reference_proofs": saved_proofs(', submit_source)
+        self.assertIn("claimForm.addEventListener('app:ajax-success'", self.template)
+        self.assertIn("return submit_petty_cash_claim(\n                _render_after_post=True", submit_source)
 
 
 if __name__ == "__main__":

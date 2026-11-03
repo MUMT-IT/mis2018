@@ -1500,6 +1500,9 @@
               // Use the literal form attribute. A form control named `action`
               // can shadow the DOM form.action property with a RadioNodeList.
               const formAction = form.getAttribute("action") || window.location.href;
+              if (form.id === "claimForm" && form.pendingDraftSave) {
+                await form.pendingDraftSave;
+              }
               const formData = new FormData(form);
               // Preserve the original submit-button flow (for example
               // action=draft versus action=submit).
@@ -1543,6 +1546,7 @@
                   });
                   return;
                 }
+                form.dispatchEvent(new CustomEvent("app:ajax-success", { detail: payload }));
               } else if (response.ok) {
                 // Successful POST returns the newly created detail page as HTML.
                 document.open();

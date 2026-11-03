@@ -812,6 +812,11 @@ class PettyCashFiscalYearTopUpTransfer(FinanceEditMixin, db.Model):
             "ix_petty_cash_top_up_transfer_setting_id",
             "petty_cash_setting_id",
         ),
+        CheckConstraint(
+            "(transfer_type = 0 AND transfer_amount = 0) OR "
+            "(transfer_type IN (1, 2) AND transfer_amount > 0)",
+            name="ck_petty_cash_transfer_type_amount",
+        ),
     )
 
     id = Column(Integer, primary_key=True)
@@ -821,6 +826,13 @@ class PettyCashFiscalYearTopUpTransfer(FinanceEditMixin, db.Model):
         nullable=False,
     )
     transfer_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    transfer_type = Column(Integer, nullable=False)
+    fund_request_id = Column(
+        Integer,
+        ForeignKey("petty_cash_fund_requests.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     transferred_at = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(
@@ -834,6 +846,7 @@ class PettyCashFiscalYearTopUpTransfer(FinanceEditMixin, db.Model):
         "PettyCashSetting",
         foreign_keys=[petty_cash_setting_id],
     )
+    fund_request = relationship("FundRequest", foreign_keys=[fund_request_id])
 
 
 class CashManagementFinanceState(FinanceEditMixin, db.Model):

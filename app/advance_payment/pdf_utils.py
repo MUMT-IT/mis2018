@@ -585,7 +585,7 @@ def _get_bank_account_info_for_petty_cash_setting(setting):
 # 3. PDF GENERATION FUNCTIONS
 # =========================================================================
 def summarize_petty_cash_month(month_start, fund_requests, claims):
-    """Summarize petty-cash documents requiring action.
+    """Summarize petty-cash documents through the end of the selected month.
 
     A submitted document is counted per claim, but only while the claim is in
     one of the three review statuses. Parcel-return documents in the
@@ -593,18 +593,20 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     are submitted documents as well. The pending amount is the unsubmitted
     remainder of each petty-cash FundRequest after non-rejected linked
     documents are accounted for. Requests whose linked documents are all
-    rejected therefore remain pending for their full requested amount.
+    rejected therefore remain pending for their full requested amount. Claims
+    use their creation date and parcel returns use their sent date.
     """
-    # The report's selected month controls the ledger balance, but documents
-    # requiring action must remain visible even when they were submitted in a
-    # previous month.
-    requests = list(fund_requests)
+    def through_selected_month(value):
+        return value is not None and (value.year, value.month) <= (month_start.year, month_start.month)
+
+    requests = [fr for fr in fund_requests if through_selected_month(fr.request_date)]
     request_ids = {fr.id for fr in requests}
+    eligible_claims = [claim for claim in claims if through_selected_month(claim.created_at)]
     submitted_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ผ่านการตรวจสอบ"}
     rejected_statuses = {"ปฏิเสธ", "ถูกปฏิเสธ"}
     non_accounted_claim_statuses = rejected_statuses | {"ฉบับร่าง", "ยกเลิก"}
     submitted_claims = [
-        claim for claim in claims
+        claim for claim in eligible_claims
         if claim.fund_request_id in request_ids
         and (claim.status or "").strip() in submitted_statuses
     ]
@@ -614,6 +616,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
         .all()
         if request_ids else []
     )
+    parcel_returns = [parcel for parcel in parcel_returns if through_selected_month(parcel.sent_date)]
     submitted_parcel_returns = [
         parcel for parcel in parcel_returns
         if (parcel.status or "").strip() in {
@@ -626,7 +629,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     # document. This also handles partially submitted FundRequests: the
     # remaining amount must stay in the "ยังไม่ส่งเบิก" row.
     accounted_amount_by_request = {}
-    for claim in claims:
+    for claim in eligible_claims:
         if claim.fund_request_id not in request_ids:
             continue
         if (claim.status or "").strip() in non_accounted_claim_statuses:
@@ -637,7 +640,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
             Decimal("0.00"),
         )
     for parcel in parcel_returns:
-        if parcel.fund_request_id is None:
+        if parcel.fund_request_id not in request_ids:
             continue
         if (parcel.status or "").strip() in rejected_statuses | {"ฉบับร่าง"}:
             continue
@@ -679,8 +682,47 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     }
 
 
+def _petty_cash_monthly_report_document_amounts(
+        summary, carryover=None, direct_legacy_transferred=0,
+        imported_legacy_request_amount=0):
+    """Move imported opening amounts out of carryover as they enter the report."""
+    submitted_values = (
+        summary.get("submitted_amount"),
+        summary.get("submitted_parcel_amount"),
+    )
+    submitted = (
+        sum(Decimal(str(value or 0)) for value in submitted_values)
+        if any(value is not None for value in submitted_values)
+        else None
+    )
+    pending = summary.get("pending_amount")
+    if carryover is None:
+        return submitted, pending
+
+    submitted_carryover = Decimal(str(carryover.finance_pending_transfer or 0))
+    pending_carryover = (
+        Decimal(str(carryover.custodian_cash_on_hand or 0))
+        + Decimal(str(carryover.custodian_pending_budget or 0))
+    )
+    transferred = max(Decimal(str(direct_legacy_transferred or 0)), Decimal("0.00"))
+    # Direct legacy transfers enter the bank balance. Consume the submitted
+    # carryover first, then only the excess from the pending carryover.
+    submitted_offset = min(submitted_carryover, transferred)
+    pending_offset = transferred - submitted_offset
+    pending_offset += Decimal(str(imported_legacy_request_amount or 0))
+
+    submitted = Decimal(str(submitted or 0)) + submitted_carryover - submitted_offset
+    pending = Decimal(str(pending or 0)) + max(
+        pending_carryover - pending_offset, Decimal("0.00")
+    )
+    return submitted, pending
+
+
 def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_budget,
-                                          summary, telephone_number=""):
+                                          summary, carryover=None,
+                                          direct_legacy_transferred=0,
+                                          imported_legacy_request_amount=0,
+                                          telephone_number=""):
     """Create the MT-Petty Cash-004 monthly status letter as PDF bytes."""
     from reportlab.platypus import Image
 
@@ -693,16 +735,11 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     last_day_label = get_thai_month_year(last_day)
     budget = setting.budget
     balance = Decimal(str(remaining_budget)).quantize(Decimal("0.01")) if remaining_budget is not None else None
-    submitted_values = (
-        summary.get("submitted_amount"),
-        summary.get("submitted_parcel_amount"),
+    submitted, pending = _petty_cash_monthly_report_document_amounts(
+        summary, carryover=carryover,
+        direct_legacy_transferred=direct_legacy_transferred,
+        imported_legacy_request_amount=imported_legacy_request_amount,
     )
-    submitted = (
-        sum(Decimal(str(value or 0)) for value in submitted_values)
-        if any(value is not None for value in submitted_values)
-        else None
-    )
-    pending = summary.get("pending_amount")
     total = (sum(Decimal(str(value)) for value in (balance, submitted, pending))
              if all(value is not None for value in (balance, submitted, pending)) else None)
     normal = ParagraphStyle("MonthlyNormal", parent=styles["ThaiNormal"], fontSize=14, leading=18, wordWrap="CJK")

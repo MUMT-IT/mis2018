@@ -344,13 +344,6 @@
       </div>
       {% endif %}
 
-      <!-- Auto Save Status Indicator -->
-      <!-- <div class="d-flex justify-content-end align-items-center mb-3">
-        <span id="autoSaveStatus" class="badge bg-light text-muted fw-normal px-3 py-2 border">
-          <i class="bi bi-cloud-check me-1"></i> พร้อมบันทึกร่างอัตโนมัติ
-        </span>
-      </div> -->
-
       <div class="accordion" id="claimReturnAccordion">
       <!-- ข้อมูลประกอบการส่งเบิก -->
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
@@ -400,8 +393,8 @@
           <div class="col-md-4 d-flex flex-column-reverse">
             <div class="reference-filenames-container"></div>
             {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
-              <input type="hidden" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
-              <div class="input-group input-group-sm">
+              <input type="hidden" class="saved-reference-proof" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
+              <div class="input-group input-group-sm saved-reference-proof">
                 <span class="input-group-text text-success">ชื่อหนังสือ</span>
                 <input type="text" class="form-control" name="existing_reference_filenames[]" value="{{ reference_file.filename }}" aria-label="ชื่อไฟล์เอกสารอ้างอิงเดิม">
               </div>
@@ -520,11 +513,11 @@
                   <td>
                     <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item_proof_files %}required{% endif %}>
                     {% for proof_file in item_proof_files %}
-                      <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
-                      <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
-                      <small class="text-success d-block mt-1">
-                        <i class="bi bi-file-earmark-check"></i> {{ proof_file.filename }}
-                      </small>
+                      <div class="small text-muted mt-1 saved-claim-proof">
+                        <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
+                        <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
+                        ไฟล์เดิม: <a href="{{ proof_file.proof_reference|advance_payment_file_url }}" target="_blank" rel="noopener">{{ proof_file.filename }}</a>
+                      </div>
                     {% endfor %}
                   </td>
                   <td class="text-center">
@@ -745,9 +738,11 @@
             <input type="file" name="cash_return_proof_file" accept="image/*,.pdf" class="form-control cash-return-input">
             {% if cash_return_item %}
               {% for proof_file in cash_return_item.proof_files %}
-                <input type="hidden" name="cash_return_existing_proof" value="{{ proof_file.proof_reference }}">
-                <input type="hidden" name="cash_return_existing_filename" value="{{ proof_file.filename }}">
-                <small class="text-success d-block mt-1"><i class="bi bi-file-earmark-check"></i> {{ proof_file.filename }}</small>
+                <div class="small text-muted mt-1 saved-cash-proof">
+                  <input type="hidden" name="cash_return_existing_proof" value="{{ proof_file.proof_reference }}">
+                  <input type="hidden" name="cash_return_existing_filename" value="{{ proof_file.filename }}">
+                  ไฟล์เดิม: <a href="{{ proof_file.proof_reference|advance_payment_file_url }}" target="_blank" rel="noopener">{{ proof_file.filename }}</a>
+                </div>
               {% endfor %}
             {% endif %}
           </div>
@@ -795,6 +790,10 @@
           <i class="bi bi-send me-1"></i> {% if claim_edit_mode|default(false) %}บันทึกการแก้ไข{% elif not cash_mng_finance_open %}ยืนยันส่งคืนเงิน{% else %}ยืนยันส่งเบิกเงิน{% endif %}
         </button>
       </div>
+      <div id="claimDraftDateError" class="small text-danger text-end mt-2 d-none" role="alert">
+        กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่าง
+      </div>
+      <div id="claimDraftSaveStatus" class="small text-success text-end mt-2" role="status" aria-live="polite"></div>
     </form>
   </div>
 </div>
@@ -1106,6 +1105,7 @@ function togglePettyCashClaimForm() {
 
 <script>
 let autoSaveTimer = null;
+let claimAutoSaveQueue = Promise.resolve();
 
 document.addEventListener('DOMContentLoaded', function() {
   calculateTotal();
@@ -1124,6 +1124,95 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const claimForm = document.getElementById('claimForm');
   if (claimForm) {
+    const draftSaveStatus = claimForm.querySelector('#claimDraftSaveStatus');
+    const addSavedProof = (parent, className, fields, proof) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = `small text-muted mt-1 ${className}`;
+      fields.forEach(([name, value]) => {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = name;
+        hidden.value = value;
+        wrapper.appendChild(hidden);
+      });
+      wrapper.append('ไฟล์เดิม: ');
+      const link = document.createElement('a');
+      link.href = proof.url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = proof.filename;
+      wrapper.appendChild(link);
+      parent.appendChild(wrapper);
+    };
+    claimForm.addEventListener('app:ajax-success', function(event) {
+      const result = event.detail;
+      if (!result?.draft_saved && !result?.auto_saved) return;
+      Object.entries(result.receipt_proofs || {}).forEach(([index, proofs]) => {
+        const row = claimForm.querySelectorAll('#claimBody tr')[Number(index)];
+        const fileInput = row?.querySelector(`input[name="proof_files_${index}[]"]`);
+        if (!fileInput) return;
+        const parent = fileInput.parentElement;
+        parent.querySelectorAll('.saved-claim-proof').forEach(node => node.remove());
+        proofs.forEach(proof => addSavedProof(parent, 'saved-claim-proof', [
+          [`existing_proof_files_${index}[]`, proof.proof_reference],
+          [`existing_proof_filenames_${index}[]`, proof.filename]
+        ], proof));
+        if (proofs.length) fileInput.value = '';
+      });
+      if (Array.isArray(result.cash_proofs)) {
+        const fileInput = claimForm.querySelector('[name="cash_return_proof_file"]');
+        const parent = fileInput?.parentElement;
+        if (parent) {
+          parent.querySelectorAll('.saved-cash-proof').forEach(node => node.remove());
+          result.cash_proofs.forEach(proof => addSavedProof(parent, 'saved-cash-proof', [
+            ['cash_return_existing_proof', proof.proof_reference],
+            ['cash_return_existing_filename', proof.filename]
+          ], proof));
+          if (result.cash_proofs.length) fileInput.value = '';
+        }
+      }
+      if (Array.isArray(result.reference_proofs)) {
+        const parent = claimForm.querySelector('.reference-filenames-container')?.parentElement;
+        const fileInput = claimForm.querySelector('[name="reference_files[]"]');
+        if (parent) {
+          parent.querySelectorAll('.saved-reference-proof').forEach(node => node.remove());
+          result.reference_proofs.forEach(proof => {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.className = 'saved-reference-proof';
+            hidden.name = 'existing_reference_files[]';
+            hidden.value = proof.proof_reference;
+            parent.appendChild(hidden);
+            const group = document.createElement('div');
+            group.className = 'input-group input-group-sm saved-reference-proof';
+            const label = document.createElement('span');
+            label.className = 'input-group-text text-success';
+            label.textContent = 'ชื่อหนังสือ';
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.className = 'form-control';
+            nameInput.name = 'existing_reference_filenames[]';
+            nameInput.value = proof.filename;
+            group.append(label, nameInput);
+            parent.appendChild(group);
+          });
+          if (fileInput) fileInput.value = '';
+          const pendingNames = parent.querySelector('.reference-filenames-container');
+          if (pendingNames) pendingNames.innerHTML = '';
+        }
+      }
+      updateIndices();
+      if (result.draft_saved) {
+        showClaimDraftDateError(false);
+        if (draftSaveStatus) draftSaveStatus.textContent = 'บันทึกฉบับร่างแล้ว';
+      }
+    });
+    claimForm.addEventListener('input', function() {
+      if (draftSaveStatus) draftSaveStatus.textContent = '';
+    });
+    claimForm.addEventListener('change', function() {
+      if (draftSaveStatus) draftSaveStatus.textContent = '';
+    });
     const referenceToggle = claimForm.querySelector('#hasReferenceInfo');
     const referenceInfoFields = claimForm.querySelector('#referenceInfoFields');
     const syncReferenceInfoVisibility = () => {
@@ -1367,108 +1456,114 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 
-// ฟังก์ชันสั่งการ Auto Save เมื่อหยุดพิมพ์/แก้ไข 2 วินาที (Debounce)
-function triggerAutoSave() {
-  if ({{ 'true' if claim_edit_mode|default(false) else 'false' }}) return;
-  if (!{{ 'true' if cash_mng_finance_open else 'false' }}) return;
-  const statusEl = document.getElementById('autoSaveStatus');
-  if (statusEl) {
-    statusEl.className = "badge bg-warning text-dark px-3 py-2 border";
-    statusEl.innerHTML = '<i class="bi bi-pencil-fill me-1"></i> กำลังรอการบันทึก...';
-  }
-
-  clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(autoSavePettyCashDraft, 2000);
+function showClaimDraftDateError(visible) {
+  document.getElementById('claimDraftDateError')?.classList.toggle('d-none', !visible);
 }
 
-// ฟังก์ชันส่ง AJAX ไปบันทึกฉบับร่าง
-async function autoSavePettyCashDraft() {
-  const statusEl = document.getElementById('autoSaveStatus');
-  const claimForm = document.getElementById('claimForm');
-  if (!claimForm) return;
-
-  if (statusEl) {
-    statusEl.className = "badge bg-info text-white px-3 py-2 border";
-    statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> กำลังบันทึกร่าง...';
-  }
-
-  // รวบรวมข้อมูล รายการใบเสร็จ
-  const items = [];
-  document.querySelectorAll('#claimBody tr').forEach(row => {
-    const receiptDate = window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || '');
-    const categoryType = row.querySelector('select[name="category_type[]"]')?.value || '1';
-    const description = row.querySelector('input[name="description[]"]')?.value || '';
-    const amountVal = row.querySelector('.claim-amount')?.value.replace(/,/g, '') || '0';
-
-    if (!receiptDate && !description.trim() && !(parseFloat(amountVal) || 0)) return;
-    items.push({
-      receipt_date: receiptDate,
-      category_type: categoryType,
-      description: description,
-      amount: parseFloat(amountVal) || 0
+function showClaimSaveError(message) {
+  if (typeof window.openAppPopup === 'function') {
+    window.openAppPopup({
+      title: 'ไม่สามารถบันทึกข้อมูลได้',
+      message: message || 'กรุณาลองใหม่อีกครั้ง',
+      confirmText: 'ตกลง',
+      confirmClass: 'btn-danger',
+      alertOnly: true,
     });
-  });
-
-  // รวบรวมข้อมูล เอกสารประกาศ
-  const announcements = [];
-  document.querySelectorAll('.document-input-row').forEach(row => {
-    const title = row.querySelector('.announcement-input')?.value.trim() || '';
-    const docId = row.querySelector('.announcement-id-input')?.value.trim() || '';
-    if (title || docId) {
-      announcements.push({ id: docId, title: title });
-    }
-  });
-
-  const fundRequestId = document.getElementById('fund_request_id')?.value || '';
-  const csrfToken = claimForm.querySelector('input[name="csrf_token"]')?.value || '';
-  const cashReturnDate = window.appDateToISO(claimForm.querySelector('[name="cash_return_date"]')?.value || '');
-  const cashReturnAmount = claimForm.querySelector('[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
-  const note = claimForm.querySelector('[name="note"]')?.value.trim() || '';
-
-  try {
-    const response = await fetch(
-      "{{ url_for('advance_payment.coordinator_petty_cash_claim_autosave_draft') }}",
-      {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken
-      },
-      body: JSON.stringify({
-        fund_request_id: fundRequestId,
-        items: items,
-        cash_return: { receipt_date: cashReturnDate, amount: cashReturnAmount },
-        announcements: announcements,
-        reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
-        reference_date: window.appDateToISO(claimForm.querySelector('[name="reference_date"]')?.value || ''),
-        note: note
-      })
-      }
-    );
-
-    const responseText = await response.text();
-    let result = {};
-    try {
-      result = responseText ? JSON.parse(responseText) : {};
-    } catch (parseError) {
-      throw new Error(`เซิร์ฟเวอร์ตอบกลับไม่ใช่ JSON (HTTP ${response.status})`);
-    }
-
-    if (response.ok && result.success) {
-      if (statusEl) {
-        statusEl.className = "badge bg-success text-white px-3 py-2 border";
-        statusEl.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> บันทึกร่างอัตโนมัติเมื่อ ${result.saved_at}`;
-      }
-    } else {
-      throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึก');
-    }
-  } catch (err) {
-    console.error('AutoSave Error:', err);
-    if (statusEl) {
-      statusEl.className = "badge bg-danger text-white px-3 py-2 border";
-      statusEl.textContent = err.message || 'บันทึกร่างล้มเหลว';
-    }
+  } else {
+    window.alert(message || 'ไม่สามารถบันทึกข้อมูลได้');
   }
+}
+
+function triggerAutoSave(event) {
+  if ({{ 'true' if claim_edit_mode|default(false) else 'false' }}) return;
+  if (!{{ 'true' if cash_mng_finance_open else 'false' }}) return;
+  if (event?.target?.type === 'file') return;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => autoSavePettyCashDraft(), 1500);
+}
+
+function autoSavePettyCashDraft(includeFiles = false) {
+  const claimForm = document.getElementById('claimForm');
+  if (!claimForm || {{ 'true' if claim_edit_mode|default(false) else 'false' }}) return Promise.resolve();
+
+  const save = async () => {
+    const rows = Array.from(claimForm.querySelectorAll('#claimBody tr'));
+    const rowIsEmpty = row => !Array.from(row.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"]'))
+      .some(input => input.value.trim()) && !(includeFiles && row.querySelector('input[type="file"]')?.files.length);
+    while (rows.length && rowIsEmpty(rows[rows.length - 1])) rows.pop();
+
+    const items = rows.map(row => ({
+      receipt_date: window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || ''),
+      category_type: row.querySelector('select[name="category_type[]"]')?.value || '1',
+      description: row.querySelector('input[name="description[]"]')?.value || '',
+      amount: (row.querySelector('.claim-amount')?.value || '').replace(/,/g, '') || '0',
+    }));
+    if (items.some(item => !item.receipt_date)) {
+      showClaimDraftDateError(true);
+      return;
+    }
+    showClaimDraftDateError(false);
+
+    const announcements = [];
+    claimForm.querySelectorAll('.document-input-row').forEach(row => {
+      const title = row.querySelector('.announcement-input')?.value.trim() || '';
+      const docId = row.querySelector('.announcement-id-input')?.value.trim() || '';
+      if (title || docId) announcements.push({ id: docId, title });
+    });
+    const payload = {
+      fund_request_id: claimForm.querySelector('#fund_request_id')?.value || '',
+      items,
+      cash_return: {
+        receipt_date: window.appDateToISO(claimForm.querySelector('[name="cash_return_date"]')?.value || ''),
+        amount: (claimForm.querySelector('[name="cash_return_amount"]')?.value || '').replace(/,/g, ''),
+      },
+      announcements,
+      reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
+      reference_date: window.appDateToISO(claimForm.querySelector('[name="reference_date"]')?.value || ''),
+      note: claimForm.querySelector('[name="note"]')?.value.trim() || '',
+    };
+    const uploads = rows.map((row, index) => {
+      const input = row.querySelector(`input[name="proof_files_${index}[]"]`);
+      return { input, files: includeFiles ? Array.from(input?.files || []) : [] };
+    });
+    const hasFiles = uploads.some(upload => upload.files.length);
+    const body = hasFiles ? new FormData() : JSON.stringify(payload);
+    if (hasFiles) {
+      body.append('payload', JSON.stringify(payload));
+      uploads.forEach((upload, index) => upload.files.forEach(file => body.append(`proof_files_${index}[]`, file)));
+    }
+
+    const endpoint = "{{ url_for('advance_payment.coordinator_petty_cash_claim_autosave_draft') }}";
+    const tokenResponse = await fetch(endpoint, { credentials: 'same-origin' });
+    const tokenData = await tokenResponse.json().catch(() => ({}));
+    if (!tokenResponse.ok || !tokenData.csrf_token) throw new Error('ไม่สามารถต่ออายุ token ได้ กรุณาเข้าสู่ระบบใหม่หรือโหลดหน้าอีกครั้ง');
+    claimForm.querySelector('[name="csrf_token"]').value = tokenData.csrf_token;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: hasFiles ? { 'X-CSRFToken': tokenData.csrf_token } : { 'Content-Type': 'application/json', 'X-CSRFToken': tokenData.csrf_token },
+      credentials: 'same-origin',
+      body,
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.success) throw new Error(result.message || `บันทึกร่างไม่สำเร็จ (HTTP ${response.status})`);
+    if (hasFiles) {
+      const receipt_proofs = {};
+      result.proof_files?.forEach((proofs, index) => {
+        if (proofs.length) receipt_proofs[index] = proofs;
+      });
+      claimForm.dispatchEvent(new CustomEvent('app:ajax-success', {
+        detail: { auto_saved: true, receipt_proofs },
+      }));
+    }
+  };
+  const queued = claimAutoSaveQueue.then(save, save).catch(error => {
+    console.error('AutoSave Error:', error);
+    if (includeFiles) showClaimSaveError(error.message);
+  });
+  claimAutoSaveQueue = queued;
+  claimForm.pendingDraftSave = queued;
+  return queued;
 }
 
 function updateFundRequestInfo(selectElem) {
@@ -1807,12 +1902,17 @@ function addRow() {
   bindAmountEvents(newAmountInput);
   
   updateIndices();
-  triggerAutoSave();
+  const draftSaveStatus = document.getElementById('claimDraftSaveStatus');
+  if (draftSaveStatus) draftSaveStatus.textContent = '';
+  clearTimeout(autoSaveTimer);
+  autoSavePettyCashDraft(true);
 }
 
 function removeRow(btn) {
   btn.closest('tr').remove();
   updateIndices();
+  const draftSaveStatus = document.getElementById('claimDraftSaveStatus');
+  if (draftSaveStatus) draftSaveStatus.textContent = '';
   calculateTotal();
   triggerAutoSave();
 }
