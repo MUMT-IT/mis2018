@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">วงเงินอบรมรายบุคคล</h1>
+        <p class="subtitle">ข้อมูลจะแสดงเฉพาะบุคลากรที่ได้มีการสร้างขออนุมัติอบรม โดยแยกตามบุคลากรและปีงบประมาณ</p>
+
+        <form method="get" class="box">
+            <div class="columns is-multiline">
+                <div class="column is-one-third">
+                    <label class="label" for="fiscal-year">ปีงบประมาณ</label>
+                    <div class="select is-fullwidth">
+                        <select id="fiscal-year" name="fiscal_year">
+                            {% for year in fiscal_year_options %}
+                                <option value="{{ year }}" {% if year == fiscal_year %}selected{% endif %}>
+                                    {{ year + 543 }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="column is-one-third">
+                    <label class="label" for="org">สังกัด</label>
+                    <div class="select is-fullwidth">
+                        <select id="org" name="org">
+                            <option value="">ทุกสังกัด</option>
+                            {% for org in orgs %}
+                                <option value="{{ org.id }}" {% if org.id == selected_org_id %}selected{% endif %}>
+                                    {{ org.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="column is-one-third">
+                    <label class="label" for="name">ชื่อบุคลากร</label>
+                    <div class="control">
+                        <select class="js-staff-select" id="staff" name="staff" style="width:100%">
+                            <option value="">บุคลากรทุกคน</option>
+                            {% if selected_staff %}
+                                <option value="{{ selected_staff.id }}" selected>{{ selected_staff.fullname }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+                <div class="column is-full">
+                    <button class="button is-info" type="submit">ค้นหา</button>
+                    <a class="button is-light" href="{{ url_for('staff.seminar_yearly_budgets') }}">ล้างตัวกรอง</a>
+                </div>
+            </div>
+        </form>
+
+        <div class="table-container">
+            <table class="table is-striped is-fullwidth" id="seminarYearlyBudgetTable">
+                <thead>
+                <tr>
+                    <th>ชื่อ</th>
+                    <th>สังกัด</th>
+                    <th class="has-text-right">วงเงิน (บาท)</th>
+                    <th class="has-text-right">ยอดที่ใช้ (บาท)</th>
+                    <th class="has-text-right">คงเหลือ (บาท)</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for record in budget_records %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('staff.seminar_attend_search_result', dates=seminar_search_dates, staff=record.staff.personal_id) }}">
+                                {{ record.staff.fullname }}
+                            </a>
+                        </td>
+                        <td>{{ record.staff.personal_info.org.name if record.staff.personal_info.org else '-' }}</td>
+                        <td class="has-text-right">{{ "{:,.2f}".format(record.budget or 0) }}</td>
+                        <td class="has-text-right">{{ "{:,.2f}".format(record.total_used or 0) }}</td>
+                        <td class="has-text-right">{{ "{:,.2f}".format(record.remaining or 0) }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="has-text-centered has-text-grey">ไม่พบข้อมูลในปีงบประมาณที่เลือก</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <a href="{{ url_for('staff.seminar') }}" class="button is-info is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span><span>กลับ</span>
+        </a>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('.js-staff-select').select2({
+                width: '100%',
+                placeholder: 'พิมพ์ค้นหาชื่อบุคลากร',
+                allowClear: true,
+                ajax: {
+                    url: "{{ url_for('staff.get_all_employees') }}",
+                    dataType: 'json'
+                }
+            });
+            $('#seminarYearlyBudgetTable').DataTable({pageLength: 25});
+        });
+    </script>
+{% endblock %}

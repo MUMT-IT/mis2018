@@ -973,7 +973,7 @@ def create_request(pa_id):
         db.session.add(new_request)
         db.session.commit()
         req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, new_request.for_,
             url_for("pa.view_request", request_id=new_request.id, _external=True, _scheme='https'))
         req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
@@ -1056,7 +1056,7 @@ def respond_request(request_id):
         flash('ดำเนินการเรียบร้อยแล้ว', 'success')
 
         req_msg = '{} {}คำขอ{}ในระบบ PA ท่านแล้ว รายละเอียดกรุณาคลิก link {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, req.status, req.for_,
             url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True, _scheme='https'))
         req_title = 'แจ้งผลคำขอ PA' + req.for_
@@ -3101,7 +3101,7 @@ def idp_send_request(idp_id):
         db.session.commit()
 
         req_msg = '{}ส่งคำ{} IDP ในระบบ MIS กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                     idp.staff.fullname, new_request.for_, url_for("pa.idp_all_requests"
                                                                   , _external=True, _scheme='https'))
         req_title = 'แจ้งการส่ง IDP'
@@ -3125,7 +3125,7 @@ def idp_delete_request(req_id):
     db.session.commit()
     idp = IDP.query.filter_by(id=idp_req.idp_id).first()
     req_msg = '{}ยกเลิกคำ{} IDP แล้ว' \
-              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(idp.staff.fullname, idp_req.for_)
+              '\n\n\nคณะเทคนิคการแพทย์'.format(idp.staff.fullname, idp_req.for_)
     req_title = 'แจ้งการส่ง IDP'
     if not current_app.debug:
         send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -3204,7 +3204,7 @@ def idp_respond_request(request_id):
         db.session.commit()
 
         req_msg = '{} {}คำขอ{}ของท่านในระบบ IDP' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                     current_user.personal_info.fullname, req.status,req.for_)
         req_title = 'แจ้งผลคำขอ IDP'
         if not current_app.debug:
@@ -3242,7 +3242,7 @@ def idp_review(idp_id):
 
         req_msg = 'ผู้บังคับบัญชาขั้นต้นได้ประเมินผล IDP ของท่านเรียบร้อยแล้ว ' \
                   'กรุณากดรับทราบผลการประเมิน IDP ในระบบ {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                    url_for("pa.idp_details", idp_id=idp_id, _external=True, _scheme='https'))
         req_title = 'แจ้งการประเมิน IDP กรุณาดำเนินการ'
         if not current_app.debug:
@@ -3364,6 +3364,74 @@ def hr_all_idp():
                            rounds=[{'id': r.id,
                                     'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
                                         '%d/%m/%Y')} for r in rounds])
+
+
+@pa.route('/idp/details/<int:idp_id>/for-hr', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def idp_details_for_hr(idp_id):
+    idp = IDP.query.filter_by(id=idp_id).first()
+    is_support_staff = True if not idp.staff.personal_info.academic_staff else False
+    idp_items = IDPItem.query.filter_by(idp_id=idp_id).all()
+    budget = 0
+    for item in idp_items:
+        if item.budget:
+            budget += item.budget
+    if idp.staff.personal_info.academic_staff:
+        over_budget = True if budget > 15000 else False
+    else:
+        over_budget = True if budget > 10000 else False
+    return render_template('staff/HR/PA/edit_idp_detail_for_hr.html',
+                           idp_items=idp_items, idp=idp, over_budget=over_budget, is_support_staff=is_support_staff)
+
+
+@pa.route('/idp/deleted-request/<int:req_id>/by-hr', methods=['DELETE'])
+@login_required
+def idp_delete_request_by_hr(req_id):
+    idp_req = IDPRequest.query.get(req_id)
+    flash('ลบคำ{} เรียบร้อย'.format(idp_req.for_), 'success')
+    idp_req.idp.submitted_at = None
+    idp = IDP.query.filter_by(id=idp_req.idp_id).first()
+    if idp.evaluated_at:
+        evaluated_at_local = idp.evaluated_at
+        if evaluated_at_local.tzinfo is None:
+            evaluated_at_local = tz.localize(evaluated_at_local)
+        evaluated_at_local = evaluated_at_local.astimezone(tz).strftime('%d/%m/%Y %X')
+        req_msg = '{} ได้ลบคำ{} IDP และวันที่ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา {} รอบ{} ของ{} แล้ว' \
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
+            current_user.personal_info.fullname, idp_req.for_, evaluated_at_local, idp.round.desc, idp.staff.fullname)
+        idp.evaluated_at = None
+        if idp.accepted_at:
+            accepted_at_local = idp.accepted_at
+            if accepted_at_local.tzinfo is None:
+                accepted_at_local = tz.localize(accepted_at_local)
+            accepted_at_local = accepted_at_local.astimezone(tz).strftime('%d/%m/%Y %X')
+            req_msg = '{} ได้ลบคำ{} IDP วันที่ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา{}และ วันที่รับทราบผลการพัฒนา{} รอบ{} ของ{} แล้ว' \
+                      '\n\n\nคณะเทคนิคการแพทย์'.format(
+                current_user.personal_info.fullname, idp_req.for_, evaluated_at_local, accepted_at_local, idp.round.desc, idp.staff.fullname)
+            idp.accepted_at = None
+        db.session.add(idp)
+    else:
+        req_msg = '{} ได้ลบคำ{} IDP รอบ{} ของ{} แล้ว' \
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
+            current_user.personal_info.fullname, idp_req.for_, idp.round.desc, idp.staff.fullname)
+    db.session.delete(idp_req)
+    db.session.commit()
+    req_title = 'แจ้งการแก้ไขคำขอ IDP'
+    recipients = []
+    for account in (current_user, idp.approver, idp.staff):
+        email = (account.email or '').strip() if account else ''
+        if email and '@' not in email:
+            email = email + '@mahidol.ac.th'
+        if email and email not in recipients:
+            recipients.append(email)
+    if not current_app.debug:
+        if recipients:
+            send_mail(recipients, req_title, req_msg)
+    else:
+        print(recipients, req_title, req_msg)
+    resp = make_response()
+    return resp
 
 
 @pa.route('/hr/idp/<int:idp_id>/approver', methods=['POST'])

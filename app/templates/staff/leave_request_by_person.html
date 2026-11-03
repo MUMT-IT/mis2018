@@ -17,7 +17,8 @@
                     <label class="label">สังกัด</label>
                     <div class="select">
                         <select v-model="department" v-on:change="proceed()">
-                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
+                            <option v-bind:value="null">ทุกสังกัด</option>
+                            <option v-for="d in departments" v-bind:value="d.id" :key="d.id">
                                 <% d.name %>
                             </option>
                         </select>
@@ -103,15 +104,10 @@
         },
         methods: {
             proceed: function() {
-                if (this.year === null && this.department !== null){
-                    window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department;
-                }
-                if (this.year !== null && this.department !== null){
-                    window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department+"&fiscal_year="+this.year;
-                }
-                if (this.year != null && this.department == null){
-                    window.location.href = "/staff/leave/requests/result-by-person?"+"&fiscal_year="+this.year;
-                }
+                const params = new URLSearchParams();
+                if (this.department !== null && this.department !== '') params.set('deptid', this.department);
+                if (this.year !== null && this.year !== '') params.set('fiscal_year', this.year);
+                window.location.href = "/staff/leave/requests/result-by-person?" + params.toString();
             }
         }
     })

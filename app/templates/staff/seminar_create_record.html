@@ -54,19 +54,29 @@
                         {{ form.hidden_tag() }}
                         {% if is_secretary and not is_edit %}
                         <div class="box">
-                            <p class="title is-size-5">กรณีทำหนังสือแทน (เฉพาะธุรการ)</p>
-                            <div class="field">
-                                <label class="label">ผู้เข้าร่วม (เพิ่มได้หลายท่าน)</label>
-                                <select class="js-example-basic-multiple" name="bulk_staff_ids" multiple="multiple" style="width:100%">
-                                    {% for staff in staff_list %}
-                                        <option value="{{ staff.id }}">{{ staff.fullname }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="field">
-                                <a href="{{ url_for('staff.seminar_batch_history') }}" class="button is-small is-light">
-                                    ดูประวัติการบันทึกของธุรการ
-                                </a>
+                            <div class="columns">
+                                <div class="column">
+                                    <p class="title is-size-5">สำหรับธุรการหน่วยงาน</p>
+                                    <span>ขณะนี้ท่านกำลังทำรายการขออนุมัติ สำหรับตนเอง</span>
+                                </div>
+                                <div class="column">
+
+                                        <div class="column is-flex is-flex-direction-column is-align-items-flex-end" style="gap: 10px;">
+                                        <a href="{{ url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar.id) }}" class="button is-info is-light">
+                                            <span>ทำขออนุมัติแทนบุคลากร</span>
+                                            <span class="icon">
+                                                <i class="fa-solid fa-external-link"></i>
+                                            </span>
+                                        </a>
+                                        <a href="{{ url_for('staff.seminar_batch_history') }}" class="button is-small is-light">
+                                            <span>ดูประวัติการบันทึกของธุรการ</span>
+                                            <span class="icon">
+                                                <i class="fa-solid fa-external-link"></i>
+                                            </span>
+                                        </a>
+                                        </div>
+
+                                </div>
                             </div>
                         </div>
                         {% endif %}
@@ -197,7 +207,7 @@
                                 <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
                             </div>
                         </div>
-                        <b-field label="แหล่งงบประมาณ/เงินทุน" v-if="payment === 'paid'">
+                        {#<b-field label="แหล่งงบประมาณ/เงินทุน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget_type"
                                      v-model="budgetType"
@@ -206,7 +216,7 @@
                                      icon="comment"
                                      placeholder="เช่น เงินรายได้คณะ">
                             </b-input>
-                        </b-field>
+                        </b-field>#}
                         <b-field label="ค่าลงทะเบียน (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="registration_fee"

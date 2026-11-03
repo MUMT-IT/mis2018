@@ -13,7 +13,7 @@ from pandas import read_excel, isna, DataFrame
 from app.eduqa.models import EduQAInstructor
 from . import staffbp as staff
 from app.main import get_weekdays, mail, app, csrf
-from app.models import Holidays
+from app.models import Holidays, Org
 from flask import (abort, jsonify, render_template, render_template_string, request,
                    redirect, url_for, flash, session, send_from_directory,
                    make_response, current_app, send_file)
@@ -1454,7 +1454,7 @@ def request_for_leave(quota_id=None):
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
                     if quota.max_per_leave:
-                        if req_duration >= quota.max_per_leave and upload_file_id is None:
+                        if req_duration > quota.max_per_leave and upload_file_id is None:
                             flash('ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ', 'danger')
                             resp = make_response()
                             resp.headers['HX-Redirect'] = request.referrer
@@ -2557,27 +2557,34 @@ def leave_request_result_by_date():
              methods=['GET', 'POST'])
 @login_required
 def leave_request_result_by_person():
-    org_id = request.args.get('deptid')
-    fiscal_year = request.args.get('fiscal_year')
-    years = set()
+    org_id = request.args.get('deptid', type=int)
+    _, current_end_fiscal_date = get_fiscal_date(datetime.today())
+    current_fiscal_year = current_end_fiscal_date.year
+    fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
+    years = {row[0] for row in db.session.query(StaffLeaveUsedQuota.fiscal_year).distinct().all()
+             if row[0] is not None}
+    years.add(current_fiscal_year)
     leaves_list = []
     departments = Org.query.order_by(Org.id.asc()).all()
     leave_types = [t.type_ for t in StaffLeaveType.query.all()]
     leave_types_r = [t.type_ + u'คงเหลือ' for t in StaffLeaveType.query.all()]
-    if org_id is None:
-        account_query = StaffAccount.query.all()
-    else:
+    account_query = StaffAccount.query.join(StaffAccount.personal_info).filter(
+        StaffPersonalInfo.retirement_date.is_(None),
+        StaffPersonalInfo.resignation_date.is_(None),
+        or_(StaffPersonalInfo.retired.is_(False), StaffPersonalInfo.retired.is_(None)),
+    )
+    if org_id is not None:
         selected_org = Org.query.get(org_id)
         org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(StaffPersonalInfo.org_id.in_(org_ids))) \
-            .filter(or_(StaffAccount.personal_info.has(retired=False),
-                        StaffAccount.personal_info.has(retired=None)))
+        account_query = account_query.filter(StaffPersonalInfo.org_id.in_(org_ids))
     for account in account_query:
         record = {}
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
-        record["total"] = 0
-        record["pending"] = 0
+        used_quotas = StaffLeaveUsedQuota.query.filter_by(staff=account, fiscal_year=fiscal_year).all()
+        used_by_type = {quota.leave_type_id: quota for quota in used_quotas}
+        record["total"] = sum(quota.used_days or 0 for quota in used_quotas)
+        record["pending"] = sum(quota.pending_days or 0 for quota in used_quotas)
         if account.personal_info.org:
             record["org"] = account.personal_info.org.name
         else:
@@ -2586,50 +2593,17 @@ def leave_request_result_by_person():
             record[leave_type] = 0
         for leave_remain in leave_types_r:
             record[leave_remain] = 0
-        if fiscal_year:
-            used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account, fiscal_year=fiscal_year).all()
-        else:
-            used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account).all()
-        if used_quota:
-            for quota in used_quota:
-                record["total"] += quota.used_days
-                record["pending"] += quota.pending_days
-
-        quota = StaffLeaveQuota.query.filter_by(employment_id=account.personal_info.employment_id).all()
-        for quota in quota:
+        quotas = StaffLeaveQuota.query.filter_by(employment_id=account.personal_info.employment_id).all()
+        for quota in quotas:
             leave_type = quota.leave_type.type_
-            leave_remain = quota.leave_type.type_
-            if fiscal_year:
-                used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account, leave_type_id=quota.leave_type_id,
-                                                                 fiscal_year=fiscal_year).first()
-                if used_quota:
-                    record[leave_remain] = used_quota.quota_days - used_quota.used_days
-                    record[leave_type] = used_quota.used_days
-                else:
-                    record[leave_type] = 0
-                    record[leave_remain] = 0
-            else:
-                _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-                used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account,
-                                                                 leave_type_id=quota.leave_type_id,
-                                                                 fiscal_year=END_FISCAL_DATE.year).first()
-                if used_quota:
-                    record["total"] += used_quota.used_days
-                    record["pending"] += used_quota.pending_days
-                    record[leave_type] = used_quota.used_days
-                    record[leave_remain] = used_quota.quota_days - used_quota.used_days
-                else:
-                    record["total"] = 0
-                    record["pending"] = 0
-                    record[leave_type] = 0
-                    record[leave_remain] = 0
-        for req in account.leave_requests:
-            years.add(req.start_datetime.year)
+            leave_remain = leave_type + u'คงเหลือ'
+            used_quota = used_by_type.get(quota.leave_type_id)
+            if used_quota:
+                used_days = used_quota.used_days or 0
+                record[leave_type] = used_days
+                record[leave_remain] = (used_quota.quota_days or 0) - used_days
         leaves_list.append(record)
     years = sorted(years)
-    if len(years) > 0:
-        years.append(years[-1] + 1)
-        years.insert(0, years[0] - 1)
     return render_template('staff/leave_request_by_person.html', leave_types=leave_types, leave_types_r=leave_types_r,
                            sel_dept=org_id, year=fiscal_year,
                            leaves_list=leaves_list, departments=[{'id': d.id, 'name': d.name}
@@ -6477,6 +6451,13 @@ def seminar_attend_info_for_hr(seminar_id):
                            upload_file_url=upload_file_url)
 
 
+@staff.route('/seminar/info/<int:record_id>/for-hr')
+@login_required
+def show_seminar_info_each_person_for_hr(record_id):
+    attend = StaffSeminarAttend.query.get(record_id)
+    return render_template('staff/seminar_each_record_for_hr.html', attend=attend)
+
+
 @staff.route('/seminar/add-attend/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
 def seminar_attend_info(seminar_id):
@@ -6492,9 +6473,10 @@ def seminar_attend_info(seminar_id):
     else:
         upload_file_url = None
     already_attend = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id, seminar_id=seminar.id).first()
+    is_secretary = bool(secretary_permission)
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends,
                            already_attend=already_attend, current_user_attended=current_user_attended,
-                           upload_file_url=upload_file_url)
+                           upload_file_url=upload_file_url, is_secretary=is_secretary)
 
 
 @staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
@@ -6534,6 +6516,20 @@ def seminar_records():
         df.to_excel('attend_summary.xlsx', index=False, columns=columns)
         return send_from_directory(os.getcwd(), 'attend_summary.xlsx')
     else:
+        current_fiscal_year = convert_to_fiscal_year(date.today())
+        default_start_date = date(current_fiscal_year - 2, 10, 1)
+        default_end_date = date(current_fiscal_year, 9, 30)
+        try:
+            start_date = date.fromisoformat(request.args.get('start_date', ''))
+        except ValueError:
+            start_date = default_start_date
+        try:
+            end_date = date.fromisoformat(request.args.get('end_date', ''))
+        except ValueError:
+            end_date = default_end_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
         seminar_list = []
         seminar_query = db.session.query(StaffSeminar). \
             outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
@@ -6541,7 +6537,9 @@ def seminar_records():
                       staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
             outerjoin(StaffSeminarMission,
                       StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
-            filter(StaffSeminar.cancelled_at == None).all()
+            filter(StaffSeminar.cancelled_at == None,
+                   func.date(func.coalesce(StaffSeminar.end_datetime, StaffSeminar.start_datetime)) >= start_date,
+                   func.date(StaffSeminar.start_datetime) <= end_date).all()
         for seminar in seminar_query:
             record = {}
             record["id"] = seminar.id
@@ -6561,7 +6559,8 @@ def seminar_records():
 
             record["missions"] = missions
             seminar_list.append(record)
-        return render_template('staff/seminar_records.html', seminar_list=seminar_list)
+        return render_template('staff/seminar_records.html', seminar_list=seminar_list,
+                               start_date=start_date.isoformat(), end_date=end_date.isoformat())
 
 
 def _get_seminar_idp(staff_account_id, seminar):
@@ -6572,13 +6571,27 @@ def _get_seminar_idp(staff_account_id, seminar):
 
 
 @staff.route('/seminar/create-record/<int:seminar_id>', methods=['GET', 'POST'])
+@staff.route('/seminar/create-record-for-secretary/<int:seminar_id>', methods=['GET', 'POST'],
+             endpoint='seminar_create_record_for_secretary')
 @login_required
 def seminar_create_record(seminar_id):
-    is_attend = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
+    is_secretary_proxy = request.endpoint == 'staff.seminar_create_record_for_secretary'
+    if is_secretary_proxy and not secretary_permission.can():
+        abort(403)
+    is_attend = None if is_secretary_proxy else StaffSeminarAttend.query.filter_by(
+        seminar_id=seminar_id, staff=current_user
+    ).first()
     if is_attend:
         flash('พบข้อมูลของท่าน บันทึกเข้าร่วมกิจกรรมนี้แล้ว', 'success')
         return redirect(url_for('staff.show_seminar_info_each_person', record_id=is_attend.id))
-    MyStaffSeminarAttendForm = create_seminar_attend_form(current_user)
+    selected_staff_ids = []
+    form_staff = current_user
+    if is_secretary_proxy:
+        selected_staff_ids = (request.form.getlist('bulk_staff_ids') if request.method == 'POST'
+                              else request.args.getlist('bulk_staff_ids'))
+        if len(selected_staff_ids) == 1 and selected_staff_ids[0].isdigit():
+            form_staff = StaffAccount.query.get(int(selected_staff_ids[0])) or current_user
+    MyStaffSeminarAttendForm = create_seminar_attend_form(form_staff)
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     form_initial = {
@@ -6597,7 +6610,7 @@ def seminar_create_record(seminar_id):
         'deduct_transfer': False,
         'objective': '',
         'idp_item_ids': [],
-        'staff_account_id': current_user.id,
+        'staff_account_id': form_staff.id,
     }
 
     def apply_selected_seminar_expenses(attend):
@@ -6634,8 +6647,37 @@ def seminar_create_record(seminar_id):
             request.form.get('deduct_transfer') == 'yes'
             and request.form.get('payment') == 'paid'
         )
-        bulk_ids = request.form.getlist('bulk_staff_ids')
-        if secretary_permission.can() and bulk_ids:
+        bulk_ids = request.form.getlist('bulk_staff_ids') if is_secretary_proxy else []
+        is_idp_objective = 'IDP' in (request.form.get('objective') or '')
+        selected_idp_items = []
+        if is_secretary_proxy and not bulk_ids:
+            flash('กรุณาเลือกบุคลากรที่ต้องการทำหนังสือแทน', 'warning')
+            return redirect(url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar_id))
+        if is_secretary_proxy and any(not str(staff_id).isdigit() for staff_id in bulk_ids):
+            flash('รายชื่อบุคลากรที่เลือกไม่ถูกต้อง กรุณาเลือกใหม่', 'warning')
+            return redirect(url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar_id))
+        if is_secretary_proxy and is_idp_objective and len(bulk_ids) != 1:
+            flash('กรุณาทำขออนุมัติรายบุคคล กรณีใช้ IDP หรือเปลี่ยนเป็นพัฒนาตามความสนใจ', 'warning')
+            return redirect(url_for('staff.seminar_create_record_for_secretary',
+                                    seminar_id=seminar_id, bulk_staff_ids=bulk_ids))
+        if is_secretary_proxy and is_idp_objective:
+            from app.PA.models import IDP, IDPItem, PAFunctionalCompetencyRound
+            selected_item_ids = [int(item_id) for item_id in request.form.getlist('idps')
+                                 if str(item_id).isdigit()]
+            target_staff_id = int(bulk_ids[0])
+            if selected_item_ids:
+                selected_idp_items = IDPItem.query.join(IDPItem.idp).join(IDP.round).filter(
+                    IDPItem.id.in_(selected_item_ids),
+                    IDP.staff_account_id == target_staff_id,
+                    PAFunctionalCompetencyRound.start <= seminar.start_datetime.date(),
+                    PAFunctionalCompetencyRound.end >= seminar.start_datetime.date(),
+                ).all()
+            if not selected_idp_items:
+                flash('กรุณาเลือก IDP ของบุคลากรที่เลือกอย่างน้อย 1 รายการก่อนบันทึก', 'warning')
+                return redirect(url_for('staff.seminar_create_record_for_secretary',
+                                        seminar_id=seminar_id, bulk_staff_ids=bulk_ids))
+
+        if is_secretary_proxy and bulk_ids:
             batch = StaffSeminarBatch(seminar_id=seminar.id, created_by_id=current_user.id)
             db.session.add(batch)
             db.session.flush()
@@ -6681,15 +6723,9 @@ def seminar_create_record(seminar_id):
                     position_id=request.form.get('position')
                 )
                 db.session.add(document_approver)
-                if "IDP" in request.form.get('objective'):
+                if is_idp_objective:
                     yearly_budget = get_seminar_yearly_budget(staff_account.id, seminar.start_datetime)
-                    idp_items = request.form.getlist('idps')
-                    if idp_items:
-                        from app.PA.models import IDPItem
-                        for idp_item in idp_items:
-                            item = IDPItem.query.get(idp_item)
-                            if item:
-                                attend.idp_items.append(item)
+                    attend.idp_items.extend(selected_idp_items)
                 created_ids.append(attend.id)
             db.session.commit()
             if missing:
@@ -6700,7 +6736,7 @@ def seminar_create_record(seminar_id):
                                         record_id=created_ids[0],
                                         bulk_ids=",".join([str(i) for i in created_ids])))
             flash('ไม่พบรายการที่สามารถเพิ่มได้', 'warning')
-            return redirect(url_for('staff.seminar_create_record', seminar_id=seminar_id))
+            return redirect(url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar_id))
         is_attend = StaffSeminarAttend.query.filter_by(seminar=seminar, staff=current_user).first()
         if not is_attend:
             attend = StaffSeminarAttend()
@@ -6733,7 +6769,7 @@ def seminar_create_record(seminar_id):
                 position_id=request.form.get('position')
             )
             db.session.add(document_approver)
-            if "IDP" in request.form.get('objective'):
+            if is_idp_objective:
                 yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
                 idp_items = request.form.getlist('idps')
                 if idp_items:
@@ -6777,7 +6813,7 @@ def seminar_create_record(seminar_id):
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
     staff_list = []
-    if secretary_permission.can():
+    if is_secretary_proxy:
         for account in StaffAccount.query.filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None))).all():
             staff_list.append({
@@ -6786,8 +6822,10 @@ def seminar_create_record(seminar_id):
                 'email': account.email
             })
     _, END_FISCAL_DATE = get_fiscal_date(seminar.start_datetime)
-    return render_template('staff/seminar_create_record.html', seminar=seminar, form=form,
+    return render_template('staff/seminar_create_record_for_secretary.html' if is_secretary_proxy
+                           else 'staff/seminar_create_record.html', seminar=seminar, form=form,
                            is_secretary=secretary_permission.can(), staff_list=staff_list,
+                           selected_staff_ids=selected_staff_ids,
                            fiscal_year=END_FISCAL_DATE.year, is_edit=False, attend=None,
                            form_initial=form_initial)
 
@@ -6956,7 +6994,11 @@ def seminar_batch_detail(batch_id):
 def get_idp_for_seminar(seminar_id):
     option = request.args.get('objective') or ''
     if "IDP" in option:
-        staff_account_id = request.args.get('staff_account_id', type=int) or current_user.id
+        is_secretary_request = request.args.get('for_secretary') == 'true'
+        staff_account_id = request.args.get('staff_account_id', type=int)
+        if is_secretary_request and not staff_account_id:
+            return make_response('<p>กรุณาเลือกบุคลากรหนึ่งคนเพื่อแสดงรายการ IDP</p>')
+        staff_account_id = staff_account_id or current_user.id
         if staff_account_id != current_user.id and not (
                 secretary_permission.can() or hr_permission.can()):
             abort(403)
@@ -7258,24 +7300,19 @@ def seminar_proposal():
 @login_required
 def seminar_add_attendee(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
-    staff_list = []
-    account_query = StaffAccount.query.all()
-    for account in account_query:
-        record = dict(staffid=account.id,
-                      fullname=account.personal_info.fullname,
-                      email=account.email)
-        organization = account.personal_info.org
-        record["org"] = organization.name if organization else ""
-        staff_list.append(record)
     if request.method == "POST":
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
         # objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
         # mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
-        for staff_id in form.getlist("participants"):
+        for personal_info_id in form.getlist("participants"):
+            personal_info = StaffPersonalInfo.query.get(personal_info_id)
+            account = personal_info.staff_account if personal_info else None
+            if not account:
+                continue
             attend = StaffSeminarAttend(
-                staff_account_id=staff_id,
+                staff_account_id=account.id,
                 seminar_id=seminar_id,
                 role=form.get('role'),
                 registration_fee=form.get('registration_fee') if form.get("registration_fee") else 0,
@@ -7296,9 +7333,11 @@ def seminar_add_attendee(seminar_id):
             #         objective.objective_attends.append(attend)
             #         mission.mission_attends.append(attend)
             db.session.commit()
+            if attend.budget:
+                get_seminar_yearly_budget(account.id, seminar.start_datetime or attend.start_datetime)
         flash('เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar_id))
-    return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
+    return render_template('staff/seminar_add_attendee.html', seminar=seminar)
 
 
 @staff.route('/seminar/seminar-attend/<int:attend_id>')
@@ -7380,11 +7419,14 @@ def show_seminar_info_each_person(record_id):
     if bulk_ids:
         attend_map = {a.id: a for a in StaffSeminarAttend.query.filter(StaffSeminarAttend.id.in_(bulk_ids)).all()}
         names = []
-        for idx, attend_id in enumerate(bulk_ids, start=1):
+        for attend_id in bulk_ids:
             record = attend_map.get(attend_id)
             if record:
-                names.append(f"{idx}) {record.staff.personal_info}")
                 proposer_names.append(str(record.staff.personal_info))
+        if len(proposer_names) == 1:
+            names = proposer_names
+        elif proposer_names:
+            names = [f"{idx}) {name}" for idx, name in enumerate(proposer_names, start=1)]
         if names:
             proposer_list_text = " ".join(names)
     else:
@@ -7577,10 +7619,10 @@ def seminar_attend_search_result():
         END_FISCAL_DATE.strftime('%d/%m/%Y')
     )
 
-    if request.method == 'POST':
-        form = request.form
-        selected_dates = request.form.get('dates', None)
-        start_d, end_d = form.get('dates').split(' - ')
+    if request.method == 'POST' or request.args.get('staff') or request.args.get('dates'):
+        form = request.values
+        selected_dates = form.get('dates') or selected_dates
+        start_d, end_d = selected_dates.split(' - ')
         start = datetime.strptime(start_d, '%d/%m/%Y')
         end = datetime.strptime(end_d, '%d/%m/%Y')
         personal_info_id = form.get('staff')
@@ -7627,6 +7669,7 @@ def seminar_attend_search_result():
         return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                                budget=budget, selected_dates=selected_dates,
                                personal_info_id=personal_info_id,
+                               selected_staff_id=personal_info_id,
                                selected_staff_name=selected_staff.fullname if selected_staff else "",
                                selected_topic_type=topic_type, selected_role=role,
                                distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
@@ -7634,6 +7677,54 @@ def seminar_attend_search_result():
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                            budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
                            distinct_org=distinct_org, distinct_objective=distinct_objective, selected_dates=selected_dates)
+
+
+@staff.route('/seminar/yearly-budgets', methods=['GET'])
+@login_required
+def seminar_yearly_budgets():
+    current_fiscal_year = convert_to_fiscal_year(date.today())
+    fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
+    selected_org_id = request.args.get('org', type=int)
+    selected_staff_id = request.args.get('staff', type=int)
+
+    available_budget_years = [row[0] for row in db.session.query(SeminarYearlyBudget.year)
+                              .distinct().order_by(SeminarYearlyBudget.year.desc()).all()]
+    fiscal_year_options = sorted(
+        {current_fiscal_year, *(budget_year + 1 for budget_year in available_budget_years)},
+        reverse=True,
+    )
+
+    query = SeminarYearlyBudget.query.join(SeminarYearlyBudget.staff) \
+        .join(StaffAccount.personal_info).outerjoin(StaffPersonalInfo.org) \
+        .filter(SeminarYearlyBudget.year == fiscal_year - 1)
+    orgs = Org.query.order_by(Org.name).all()
+    selected_staff = StaffPersonalInfo.query.get(selected_staff_id) if selected_staff_id else None
+    if selected_org_id:
+        selected_org = Org.query.get(selected_org_id)
+        if selected_org:
+            query = query.filter(StaffPersonalInfo.org_id.in_(get_org_and_children_ids(selected_org)))
+        else:
+            selected_org_id = None
+    if selected_staff_id:
+        query = query.filter(StaffPersonalInfo.id == selected_staff_id)
+
+    budget_records = query.order_by(Org.name, StaffPersonalInfo.th_firstname,
+                                   StaffPersonalInfo.en_firstname).all()
+    seminar_search_dates = '{} - {}'.format(
+        datetime(fiscal_year - 1, 10, 1).strftime('%d/%m/%Y'),
+        datetime(fiscal_year, 9, 30).strftime('%d/%m/%Y'),
+    )
+    return render_template(
+        'staff/seminar_yearly_budgets.html',
+        budget_records=budget_records,
+        orgs=orgs,
+        selected_org_id=selected_org_id,
+        selected_staff_id=selected_staff_id,
+        selected_staff=selected_staff,
+        fiscal_year=fiscal_year,
+        fiscal_year_options=fiscal_year_options,
+        seminar_search_dates=seminar_search_dates,
+    )
 
 
 @staff.route('/api/time-report')

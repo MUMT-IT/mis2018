@@ -3,7 +3,7 @@
 
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block page_content %}
@@ -30,13 +30,15 @@
                     <div class="field">
                         <b-field label="บทบาทในการประชุม/อบรม">
                             <b-select placeholder="เลือกประเภท" name="role" required>
-                                <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
                                 <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
+                                <option value="ศึกษาดูงาน">ศึกษาดูงาน</option>
+                                <option value="ปฏิบัติงานนอกสถานที่">ปฏิบัติงานนอกสถานที่</option>
+                                {#<option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
                                 <option value="ที่ปรึกษา">ที่ปรึกษา</option>
                                 <option value="วิทยากร">วิทยากร</option>
                                 <option value="กรรมการ">กรรมการ</option>
                                 <option value="นิเทศน์งาน">นิเทศน์งาน</option>
-                                <option value="ราชการ">ราชการ</option>
+                                <option value="ราชการ">ราชการ</option>#}
                             </b-select>
                         </b-field>
 {#                        <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">#}
@@ -102,16 +104,17 @@
                                 <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
                             </div>
                         </div>
-                        <b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
+                        {#<b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget_type"
                                      icon-pack="far"
                                      icon="comment">
                             </b-input>
-                        </b-field>
+                        </b-field>#}
                         <b-field label="ค่าลงทะเบียน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="registration_fee"
+                                     v-model="registrationFee"
                                      icon-pack="far"
                                      icon="dollar-sign"
                                      required>
@@ -120,6 +123,7 @@
                         <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="accommodation_cost"
+                                     v-model="accommodationCost"
                                      icon-pack="far"
                                      icon="house">
                             </b-input>
@@ -144,6 +148,7 @@
                         <b-field label="ค่าน้ำมัน (บาท)" v-if="transportation === 'fuel_cost'">
                             <b-input type="text"
                                      name="fuel_cost"
+                                     v-model="fuelCost"
                                      icon-pack="far"
                                      icon="gas-pump">
                             </b-input>
@@ -151,6 +156,7 @@
                         <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="taxi_cost"
+                                     v-model="taxiCost"
                                      icon-pack="far"
                                      icon="taxi">
                             </b-input>
@@ -159,6 +165,7 @@
                                  v-if="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="train_ticket_cost"
+                                     v-model="trainTicketCost"
                                      icon-pack="far"
                                      icon="train">
                             </b-input>
@@ -167,6 +174,7 @@
                                  v-if="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
                             <b-input type="text"
                                      name="flight_ticket_cost"
+                                     v-model="flightTicketCost"
                                      icon-pack="far"
                                      icon="plane">
                             </b-input>
@@ -174,6 +182,7 @@
                         <b-field label="ค่าใช้จ่ายรวมต่อคน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget"
+                                     :value="totalBudget"
                                      icon-pack="far"
                                      icon="dollar-sign"
                                      required>
@@ -184,33 +193,9 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                    <label class="label">รายชื่อผู้เข้าร่วม</label>
-                    <table class="table is-striped" id="seminarTable">
-                        <thead>
-                        <th>เลือก</th>
-                        <th>อีเมล</th>
-                        <th>สังกัด</th>
-                        </thead>
-                        <tbody>
-                        {% for record in staff_list %}
-                        <tr>
-                            <td>
-                                <b-field>
-                                    <b-checkbox v-model="participants" native-value="{{ record['staffid'] }}" name="participants">
-                                        {{ record["fullname"] }}
-                                    </b-checkbox>
-                                </b-field>
-                            </td>
-                            <td>
-                                {{ record["email"] }}
-                            </td>
-                            <td>
-                                {{ record["org"] }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
+                    <label class="label" for="participants">รายชื่อผู้เข้าร่วม</label>
+                    <select class="js-staff-select" id="participants" name="participants" multiple="multiple"
+                            style="width:100%" required></select>
                 </div>
             </div>
             <div class="columns">
@@ -232,9 +217,17 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $(document).ready(function(){
-        $('#seminarTable').DataTable();
+    $(document).ready(function () {
+        $('.js-staff-select').select2({
+            width: '100%',
+            placeholder: 'พิมพ์ค้นหาชื่อบุคลากร',
+            ajax: {
+                url: "{{ url_for('staff.get_all_employees') }}",
+                dataType: 'json'
+            }
+        });
     });
 </script>
 <script>
@@ -251,6 +244,12 @@
                 data: [],
                 participants: [],
                 transportation: "no_cost",
+                registrationFee: '',
+                accommodationCost: '',
+                fuelCost: '',
+                taxiCost: '',
+                trainTicketCost: '',
+                flightTicketCost: '',
                 timepicker: {
                 incrementMinutes: 30
             }
@@ -268,6 +267,26 @@
                     return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
                 }
                 return null
+            },
+            totalBudget: function () {
+                const toAmount = value => {
+                    const amount = parseFloat(String(value || '').replace(/,/g, '').trim());
+                    return Number.isFinite(amount) ? amount : 0;
+                };
+                let travelTotal = 0;
+                if (this.transportation === 'fuel_cost') {
+                    travelTotal = toAmount(this.fuelCost);
+                } else if (this.transportation === 'train_ticket_cost') {
+                    travelTotal = toAmount(this.trainTicketCost);
+                } else if (this.transportation === 'taxi_cost') {
+                    travelTotal = toAmount(this.taxiCost)
+                        + toAmount(this.trainTicketCost)
+                        + toAmount(this.flightTicketCost);
+                } else if (this.transportation === 'flight_ticket_cost') {
+                    travelTotal = toAmount(this.flightTicketCost);
+                }
+                const total = toAmount(this.registrationFee) + toAmount(this.accommodationCost) + travelTotal;
+                return total.toFixed(2);
             }
         }
     });
