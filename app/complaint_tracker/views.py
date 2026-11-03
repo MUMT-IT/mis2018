@@ -1081,17 +1081,23 @@ def index():
 
 @complaint_tracker.route('/request/index')
 def repair_request_landing():
-    topics = ComplaintTopic.query.filter(ComplaintTopic.code.in_(['room', 'runied'])).all()
-    topic_ids = {topic.code: topic.id for topic in topics}
-    room_id = topic_ids.get('room')
-    procurement_id = topic_ids.get('runied')
-    return render_template('complaint_tracker/repair_request_landing.html', room_id=room_id,
-                           procurement_id=procurement_id)
+    category = ComplaintCategory.query.filter_by(no=1).first()
+    topics = []
+    damaged_equipment_topic = None
+    if category:
+        topics = ComplaintTopic.query.filter_by(category_id=category.id).all()
+        for topic in topics:
+            if topic.code == 'runied':
+                damaged_equipment_topic = topic
+                break
+    return render_template('complaint_tracker/repair_request_landing.html',
+                           category=category, topics=topics, damaged_equipment_topic=damaged_equipment_topic)
 
 
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
+    has_procurement = request.values.get('has_procurement', 'false')
     ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
     room_number = request.values.get('number')
@@ -1099,7 +1105,7 @@ def new_record(topic_id, room=None, procurement=None):
     procurement_no = request.values.get('procurement_no')
     pro_number = request.values.get('pro_number')
     is_admin = False
-    if not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด':
+    if (not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด' and has_procurement == 'true'):
         return redirect(url_for('auth.login'))
     if current_user.is_authenticated:
         is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user, topic_id=topic_id).first() else False
@@ -1111,10 +1117,11 @@ def new_record(topic_id, room=None, procurement=None):
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
-        if topic.code == 'runied' and not procurement:
+        if topic.code == 'runied' and has_procurement == 'true' and not procurement:
             flash('กรุณาเพิ่มข้อมูลครุภัณฑ์ โดยสแกน QR Code หรือกรอกเลขครุภัณฑ์', 'danger')
             resp = make_response()
-            resp.headers['HX-Redirect'] = url_for('comp_tracker.new_record', topic_id=topic_id)
+            resp.headers['HX-Redirect'] = url_for('comp_tracker.new_record', topic_id=topic_id,
+                                                  has_procurement=has_procurement)
             return resp
         file = form.file_upload.data
         record.topic = topic
@@ -1177,7 +1184,7 @@ def new_record(topic_id, room=None, procurement=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
-                           is_admin=is_admin, procurement=procurement)
+                           is_admin=is_admin, procurement=procurement, has_procurement=has_procurement)
 
 
 @complaint_tracker.route('issue/closing-page')
