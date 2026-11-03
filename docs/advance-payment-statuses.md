@@ -2,6 +2,8 @@
 
 สถานะกลางสำหรับระบบเบิกจ่ายเงินล่วงหน้า โดย `code` เป็นชื่ออ้างอิงภาษาอังกฤษตัวพิมพ์ใหญ่คั่นด้วย underscore ส่วน `status_group` ใช้แยกระบบ
 
+Migration `d72d68d9af22` maps the legacy fund-request status `ยกเลิก` to `fund_request / CLAIM_CANCELLED` (`ยกเลิกใบเบิก`). Other unknown status names still stop the migration for review.
+
 | id | Status group | Code | Name |
 |---:|---|---:|---|
 | — | `borrowing_ticket` | `PENDING` | กำลังส่งคำขอ |

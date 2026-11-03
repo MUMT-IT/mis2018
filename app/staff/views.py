@@ -4814,8 +4814,7 @@ def approved_for_clockin_clockout(request_id):
             response.headers['HX-Refresh'] = 'true'
             return response
 
-        all_requests = StaffRequestWorkLogin.query.all()
-        return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
+        return redirect(url_for('staff.list_for_clockin_clockout'))
     return render_template(
         'staff/checkin_approval.html',
         clock_request=clock_request,
