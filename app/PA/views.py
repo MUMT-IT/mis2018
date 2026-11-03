@@ -2528,7 +2528,10 @@ def fc_all_evaluation():
 @login_required
 def fc_current_evaluation():
     all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).join(
-        PAFunctionalCompetencyRound).filter(PAFunctionalCompetencyRound.is_closed != True).all()
+        PAFunctionalCompetencyRound).filter(
+            PAFunctionalCompetencyRound.is_closed != True,
+            PAFunctionalCompetencyEvaluation.is_active.is_not(False),
+        ).all()
 
     return render_template('PA/fc_current_evaluation.html', all_evaluation=all_evaluation)
 
@@ -2588,7 +2591,15 @@ def evaluate_fc_confirm(evaluation_id):
 @pa.route('/pa/fc/all-subordinators')
 @login_required
 def fc_all_subordinators():
-    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).all()
+    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(
+        evaluator_account_id=current_user.id
+    ).join(PAFunctionalCompetencyEvaluation.staff).join(
+        StaffAccount.personal_info
+    ).filter(
+        StaffPersonalInfo.resignation_date.is_(None),
+        StaffPersonalInfo.retirement_date.is_(None),
+        or_(StaffPersonalInfo.retired.is_(False), StaffPersonalInfo.retired.is_(None)),
+    ).all()
 
     grouped_subordinators = {}
     for evaluation in all_evaluation:
@@ -2783,17 +2794,18 @@ def delete_fc_evaluator(evaluation_id):
     for indicator_result in evaluation.evaluation_eva_indicator:
         db.session.delete(indicator_result)
 
-    email_title = 'ลบข้อมูลผู้ประเมิน FC เรียบร้อยแล้ว'
-    email_msg = u'{} ได้ลบข้อมูล FC รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว' \
+    email_title = 'ยกเลิกข้อมูลผู้ประเมิน FC เรียบร้อยแล้ว'
+    email_msg = u'{} ได้ยกเลิกข้อมูล FC รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว' \
                 u'\n\n\nคณะเทคนิคการแพทย์'. \
         format(current_user.personal_info.fullname, evaluation.round.desc, evaluation.staff.fullname, evaluation.evaluator.fullname)
     if not current_app.debug:
         send_mail([current_user.email + "@mahidol.ac.th"], email_title, email_msg)
     else:
         print(evaluation.round.desc, email_title, email_msg)
-    db.session.delete(evaluation)
+    evaluation.is_active = False
+    db.session.add(evaluation)
     db.session.commit()
-    flash('ลบข้อมูล FC รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว '.format(evaluation.round.desc, evaluation.staff.fullname, evaluation.evaluator.fullname), 'success')
+    flash('ยกเลิก FC รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว '.format(evaluation.round.desc, evaluation.staff.fullname, evaluation.evaluator.fullname), 'success')
     return redirect(request.referrer or url_for('pa.fc_evaluator'))
 
 

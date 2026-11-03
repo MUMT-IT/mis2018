@@ -7986,6 +7986,19 @@ def staff_edit_info(staff_id):
                     send_mail([responsible_person.email + "@mahidol.ac.th"], req_title, req_msg)
                 else:
                     print(req_msg, responsible_person.email)
+
+            from app.PA.models import IDP, PAFunctionalCompetencyEvaluation
+            all_idp = IDP.query.filter_by(staff_account_id=staff_account.id).all()
+            for idp in all_idp:
+                idp.is_active = False
+                db.session.add(idp)
+            all_fc = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=staff_account.id).all()
+            for fc in all_fc:
+                fc.is_active = False
+                db.session.add(fc)
+            db.session.commit()
+            flash('ยกเลิกรายการ IDP และ FC ที่เกี่ยวข้องเรียบร้อยแล้ว', 'success')
+
         flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
         return redirect(url_for('staff.staff_show_info', staff_id=staff_id))
     staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
