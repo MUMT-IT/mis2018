@@ -1,5 +1,6 @@
 """Regression tests for cash-advance return ownership checks."""
 import ast
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -55,6 +56,43 @@ class ReturnDetailPermissionTests(unittest.TestCase):
 
         self.assertFalse(self.check(None, detail))
         self.assertFalse(self.check(689, None))
+
+    def test_pdf_route_requires_approval_even_for_finance(self):
+        source = ast.parse(
+            (ROOT / "app/advance_payment/views.py").read_text(encoding="utf-8-sig")
+        )
+        route = next(
+            node for node in source.body
+            if isinstance(node, ast.FunctionDef) and node.name == "export_ticket_return_pdf"
+        )
+        route.decorator_list = []
+        detail = SimpleNamespace(ticket_id=32, status_id="APPROVED", approved_at=None)
+        ticket = SimpleNamespace(id=32)
+        context = {
+            "db": SimpleNamespace(session=SimpleNamespace(query=lambda model: SimpleNamespace(
+                get=lambda record_id: detail if model == "return" else ticket
+            ))),
+            "ReturnDetail": "return",
+            "BorrowingTicket": "ticket",
+            "FINANCE_SYSTEM": "finance",
+            "ADVANCE_PAYMENT_SYSTEM": "advance_payment",
+            "_selected_system": lambda: "finance",
+            "_status_id_for_record": lambda record, code: code,
+            "abort": lambda status: (_ for _ in ()).throw(PermissionError(status)),
+            "request": SimpleNamespace(method="GET"),
+            "redirect": lambda url: url,
+            "url_for": lambda endpoint, **kwargs: endpoint,
+        }
+        exec(compile(ast.Module(body=[route], type_ignores=[]), "views.py", "exec"), context)
+
+        with self.assertRaisesRegex(PermissionError, "403"):
+            context["export_ticket_return_pdf"](23)
+
+        detail.approved_at = datetime(2026, 10, 30)
+        self.assertEqual(
+            context["export_ticket_return_pdf"](23),
+            "advance_payment.return_proof_detail",
+        )
 
 
 if __name__ == "__main__":
