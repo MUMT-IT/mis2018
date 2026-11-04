@@ -2330,6 +2330,7 @@ def customer_register_index():
 @service_admin.route('/admin/register/search')
 @login_required
 def search_customer_for_admin():
+    is_admin = 'true'
     customer_name = request.args.get('customer_name', '').strip()
     customers = []
     if customer_name:
@@ -2347,8 +2348,7 @@ def search_customer_for_admin():
             .all()
         )
     return render_template(
-        'service_admin/search_customer.html',
-        customers=customers,
+        'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
         customer_name=customer_name,
     )
 
@@ -2379,8 +2379,8 @@ def search_customer_for_customer():
 
 
 @service_admin.route('/customer/register/detail/<int:customer_id>')
-@login_required
 def customer_detail(customer_id):
+    is_admin = request.args.get('is_admin')
     customer = ServiceCustomerInfo.query.get(customer_id)
     # lab_payments = _build_customer_lab_payments(customer)
     overdue_invoices = _get_customer_overdue_invoices(customer)
@@ -2403,8 +2403,7 @@ def customer_detail(customer_id):
         .all()
     )
     return render_template(
-        'service_admin/customer_detail.html',
-        customer=customer,
+        'service_admin/customer_detail.html',is_admin=is_admin, customer=customer,
         overdue_invoices=overdue_invoices,
         latest_service_requests=latest_service_requests
     )
