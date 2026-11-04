@@ -1,0 +1,126 @@
+{% macro icon(name) -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% if name == 'pin' %}<path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>
+{% elif name == 'calendar' %}<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 5h2m4 0h2"/>
+{% elif name == 'room' %}<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 21V8l7-2v15m-4-7h.01"/>
+{% elif name == 'person' %}<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>
+{% elif name == 'people' %}<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m3 9v-2a6 6 0 0 0-2-4"/>
+{% elif name == 'document' %}<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8m-8 4h5"/>
+{% else %}<path d="M5 12h14m-6-6 6 6-6 6"/>{% endif %}
+</svg>
+{%- endmacro %}
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f6f8f8">
+    <title>MUMT Connect · บริการบุคลากร</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='line_mini_app/connect.css') }}">
+</head>
+<body>
+<main>
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark">{{ icon('people') }}</span>
+            <div><div class="brand-name">MUMT <span>Connect</span></div><small class="brand-caption">YOUR EVERYDAY COMPANION</small></div>
+        </div>
+        {% if staff_access %}<a class="profile" href="{{ url_for('auth.account') }}" aria-label="บัญชีผู้ใช้ของฉัน">{{ icon('person') }}</a>{% endif %}
+    </header>
+    <section class="intro" aria-labelledby="welcome">
+        <p class="eyebrow">บริการบุคลากร</p>
+        <h1 id="welcome">{% if staff_access %}สวัสดี {{ current_user.fullname }}{% else %}ยินดีต้อนรับสู่ Connect{% endif %}</h1>
+        <p>วันนี้ ให้เราช่วยคุณเรื่องอะไร?</p>
+    </section>
+    <div id="status" role="status" aria-live="polite" {% if staff_access %}hidden{% endif %}>กำลังเตรียมบริการสำหรับคุณ…</div>
+    <a id="link-account" class="action" href="{{ url_for('auth.account') }}" hidden>เข้าสู่ MIS เพื่อเชื่อมบัญชี LINE</a>
+    {% if staff_access %}
+    <a class="checkin" href="{{ url_for('line_mini_app.checkin') }}">
+        <div class="checkin-top"><span class="icon">{{ icon('pin') }}</span>ลงเวลาเข้างาน{% if today_checkin_status %} · {{ today_checkin_status.date_label }}{% endif %}</div>
+        {% if today_checkin_status and today_checkin_status.checked_in %}
+        <h2>{{ today_checkin_status.time_label }} น.</h2>
+        <p>วันนี้ลงชื่อเข้างานแล้ว</p>
+        <span class="checkin-button">ดูการลงเวลาเข้า–ออก {{ icon('arrow') }}</span>
+        {% else %}
+        <h2>ลงเวลาเข้างาน</h2>
+        <p>วันนี้ยังไม่ได้ลงชื่อเข้างาน</p>
+        <span class="checkin-button">เช็คอิน {{ icon('arrow') }}</span>
+        {% endif %}
+    </a>
+    <section class="activity-card weekly-card" aria-label="สรุปกิจกรรมสัปดาห์นี้ที่ท่านต้องเข้าร่วม">
+        <div id="week-summary" data-url="{{ url_for('home_week_events_summary') }}" aria-live="polite" aria-busy="true">
+            <h2>สรุปกิจกรรมสัปดาห์นี้ที่ท่านต้องเข้าร่วม</h2>
+            <p class="activity-muted">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI…</p>
+        </div>
+        <button type="button" id="week-retry" class="summary-retry" hidden>ลองอีกครั้ง</button>
+    </section>
+    {% if today_calendar %}
+    <section class="activity-card" aria-labelledby="today-heading">
+        <div class="activity-heading"><h2 id="today-heading">กิจกรรมวันนี้</h2><span class="activity-count">{{ today_calendar.count }} รายการ</span></div>
+        <p class="activity-muted">{{ today_calendar.today_label }}</p>
+        <div class="today-events">
+            {% for item in today_calendar['items'] %}
+            <article class="today-event">
+                <p class="event-time">{{ item.time }}</p>
+                <h3>{{ item.title }}</h3>
+                <p class="activity-muted">{{ item.meta }}</p>
+            </article>
+            {% else %}<p class="activity-muted">วันนี้ไม่มีนัดหมาย</p>{% endfor %}
+        </div>
+        {% if today_calendar.count > today_calendar['items']|length %}<p class="activity-muted">แสดง {{ today_calendar['items']|length }} จาก {{ today_calendar.count }} รายการ</p>{% endif %}
+    </section>
+    {% endif %}
+    <div class="section-heading"><h2 id="services-heading">บริการของคุณ</h2><span>ทุกวัน สะดวกขึ้น</span></div>
+    <nav class="menu" aria-labelledby="services-heading">
+        <a class="service" href="{{ url_for('line_mini_app.attendance_requests') }}"><span class="icon">{{ icon('document') }}</span><strong>คำขอรับรองเวลา</strong><small>ติดตามคำขอเข้า–ออกงาน</small></a>
+        <a class="service" href="{{ url_for('staff.show_leave_info') }}"><span class="icon">{{ icon('calendar') }}</span><strong>การลา</strong><small>ข้อมูลและบริการการลา</small></a>
+        <a class="service" href="{{ url_for('room.index') }}"><span class="icon">{{ icon('room') }}</span><strong>จองห้องประชุม</strong><small>หาพื้นที่สำหรับทีมคุณ</small></a>
+        <a class="service" href="{{ url_for('staff.index') }}"><span class="icon">{{ icon('person') }}</span><strong>ข้อมูลของฉัน</strong><small>ข้อมูลและบริการส่วนบุคคล</small></a>
+        <a class="service" href="{{ url_for('staff.employee_search') }}"><span class="icon">{{ icon('people') }}</span><strong>ค้นหาบุคลากร</strong><small>ติดต่อเพื่อนร่วมงาน</small></a>
+    </nav>
+    <a class="docs" href="{{ url_for('docs_query.index') }}"><span class="icon">{{ icon('document') }}</span><span><strong>Docs IQ</strong><small>ค้นหาคำตอบจากเอกสาร</small></span>{{ icon('arrow') }}</a>
+    {% endif %}
+    <noscript><p>กรุณาเปิด JavaScript เพื่อใช้งาน LINE Mini App</p></noscript>
+    <footer><span>เชื่อมต่อทุกวันทำงาน</span><a href="{{ url_for('index') }}">ไปที่ MIS {{ icon('arrow') }}</a></footer>
+</main>
+{% if staff_access %}
+<script src="{{ url_for('static', filename='line_mini_app/activities.js') }}"></script>
+{% endif %}
+{% if liff_id %}
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+(async () => {
+    const status = document.getElementById('status');
+    try {
+        await liff.init({liffId: {{ liff_id|tojson }}});
+        if (!liff.isLoggedIn()) {
+            liff.login({redirectUri: new URL({{ url_for('line_mini_app.index')|tojson }}, window.location.origin).href});
+            return;
+        }
+        {% if not staff_access %}
+        const token = liff.getIDToken();
+        const accessToken = token ? null : liff.getAccessToken();
+        if (!token && !accessToken) throw new Error('ไม่พบข้อมูลเข้าสู่ระบบ กรุณาปิดแล้วเปิด Mini App อีกครั้ง');
+        const response = await fetch({{ url_for('line_mini_app.authenticate')|tojson }}, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': {{ csrf_token()|tojson }}},
+            body: JSON.stringify(token ? {id_token: token} : {access_token: accessToken})
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            if (result.link_url) document.getElementById('link-account').hidden = false;
+            throw new Error(result.message || 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่');
+        }
+        window.location.replace(result.redirect_url);
+        {% endif %}
+    } catch (error) {
+        status.hidden = false;
+        status.textContent = error.message || 'ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาเปิดแอปอีกครั้ง';
+    }
+})();
+</script>
+{% else %}
+<script>document.getElementById('status').hidden = false; document.getElementById('status').textContent = 'ยังไม่ได้ตั้งค่า LINE Mini App';</script>
+{% endif %}
+</body>
+</html>
