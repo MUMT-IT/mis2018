@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
-
 {% block head %}
     {{ super() }}
     <style>
@@ -26,13 +25,20 @@
             margin-top: 0;
         }
 
+        .repair-request-category {
+            color: #1a3d7c;
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 0.35rem 0 0;
+        }
+
         .repair-request-grid {
             margin: 0 auto;
             max-width: 860px;
         }
 
         .repair-request-option {
-            align-items: stretch;
+            align-items: center;
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(58, 101, 184, 0.16);
             border-radius: 20px;
@@ -141,35 +147,60 @@
                 </div>
             </div>
         </div>
-        <div class="columns is-centered repair-request-grid">
-            <div class="column is-6">
-                <a class="repair-request-option" href="{{ url_for('comp_tracker.new_record', topic_id=procurement_id) }}">
-                    <span class="repair-request-option__icon">
-                        <i class="fas fa-barcode" aria-hidden="true"></i>
-                    </span>
-                    <span class="repair-request-option__text">
-                        <span class="repair-request-option__title">แจ้งซ่อมครุภัณฑ์ที่มีเลขครุภัณฑ์</span>
-                        <span class="repair-request-option__desc">สำหรับรายการที่มีการติดเลขครุภัณฑ์หรือมีการติดQR Code ครุภัณฑ์</span>
-                    </span>
-                    <span class="repair-request-option__chevron" aria-hidden="true">
-                        <i class="fas fa-chevron-right"></i>
-                    </span>
-                </a>
-            </div>
-            <div class="column is-6">
-                <a class="repair-request-option" href="{{ url_for('comp_tracker.new_record', topic_id=room_id) }}">
-                    <span class="repair-request-option__icon repair-request-option__icon--alert">
-                        <i class="fas fa-ban" aria-hidden="true"></i>
-                    </span>
-                    <span class="repair-request-option__text">
-                        <span class="repair-request-option__title">แจ้งซ่อมครุภัณฑ์ที่ไม่มีเลขครุภัณฑ์</span>
-                        <span class="repair-request-option__desc">สำหรับรายการที่ยังไม่ได้ติดเลขครุภัณฑ์หรือไม่ทราบเลขครุภัณฑ์</span>
-                    </span>
-                    <span class="repair-request-option__chevron" aria-hidden="true">
-                        <i class="fas fa-chevron-right"></i>
-                    </span>
-                </a>
-            </div>
+        <div class="columns is-centered is-multiline repair-request-grid">
+            {% if damaged_equipment_topic %}
+                <div class="column is-12">
+                    <div class="columns">
+                        <div class="column is-6">
+                            <a class="repair-request-option" href="{{ url_for('comp_tracker.new_record',
+                                topic_id=damaged_equipment_topic.id, has_procurement='true') }}">
+                                <span class="repair-request-option__icon">
+                                    <i class="fas fa-barcode"></i>
+                                </span>
+                                <span class="repair-request-option__text">
+                                    <span class="repair-request-option__title">{{ damaged_equipment_topic.topic }} (มีเลขครุภัณฑ์)</span>
+                                </span>
+                                <span class="repair-request-option__chevron" aria-hidden="true">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="column is-6">
+                            <a class="repair-request-option" href="{{ url_for('comp_tracker.new_record',
+                                topic_id=damaged_equipment_topic.id, has_procurement='false') }}">
+                                <span class="repair-request-option__icon">
+                                    <i class="fas fa-screwdriver-wrench"></i>
+                                </span>
+                                <span class="repair-request-option__text">
+                                    <span class="repair-request-option__title">{{ damaged_equipment_topic.topic }} (ไม่มีเลขครุภัณฑ์)</span>
+                                </span>
+                                <span class="repair-request-option__chevron" aria-hidden="true">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% for topic in topics %}
+                {% if not damaged_equipment_topic or topic.id != damaged_equipment_topic.id %}
+                    <div class="column is-6">
+                        <a class="repair-request-option" href="{{ url_for('comp_tracker.new_record', topic_id=topic.id) }}">
+                            <span class="repair-request-option__icon">{{ topic.icon|safe }}</span>
+                            <span class="repair-request-option__text">
+                                <span class="repair-request-option__title">{{ topic.topic }}</span>
+                            </span>
+                            <span class="repair-request-option__chevron" aria-hidden="true">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                        </a>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="column is-12">
+                    <div class="notification is-warning has-text-centered">ไม่พบหัวข้อสำหรับหมวดนี้</div>
+                </div>
+            {% endfor %}
         </div>
     </div>
 </section>
