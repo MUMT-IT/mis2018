@@ -21,7 +21,7 @@
                         <button type="button"
                                 class="button is-primary is-rounded"
                                 hx-post="{{ url_for('service_admin.create_request_id', customer_id=customer_id,
-                                sub_lab_id=sub_lab.id, request_index='true') }}"
+                                sub_lab_id=sub_lab.id, request_index='true', is_admin=is_admin) }}"
                                 hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
                                 hx-confirm="ท่านต้องการสร้าง Request ID ใหม่ของบริการนี้ใช่หรือไม่">
                             <span class="icon"><i class="fas fa-plus"></i></span>
@@ -29,7 +29,7 @@
                         </button>
                     {% endif %}
                     <a class="button external-request-back"
-                       href="{{ url_for('service_admin.external_lab_index', customer_id=customer_id) }}">
+                       href="{{ url_for('service_admin.external_lab_index', customer_id=customer_id, is_admin=is_admin) }}">
                         <span class="icon"><i class="fas fa-arrow-left"></i></span>
                         <span>กลับ</span>
                     </a>
