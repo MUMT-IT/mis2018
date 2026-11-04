@@ -7047,6 +7047,12 @@ def show_seminar_info_each_person(record_id):
             proposer_list_text = " ".join(names)
     else:
         proposer_names = [str(seminar_attend.staff.personal_info)]
+    if len(proposer_names) > 1 and seminar_attend.budget:
+        pdf_budget_text = 'จำนวน {} คน รวมทั้งสิ้น {:,.2f} บาท '.format(
+            len(proposer_names), seminar_attend.budget * len(proposer_names)
+        )
+    else:
+        pdf_budget_text = 'รวมทั้งสิ้น {} บาท '.format(budget)
     approver = seminar_attend.lower_level_approver.personal_info if seminar_attend.lower_level_approver else ''
     document_approver = StaffSeminarDocumentApprover.query.filter_by(seminar_attend=seminar_attend).first()
     approver_position = document_approver.position.position if document_approver else ''
@@ -7089,6 +7095,7 @@ def show_seminar_info_each_person(record_id):
                            taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
                            prefix_position=prefix_position, telephone=telephone,
                            proposer_list_text=proposer_list_text, proposer_names=proposer_names,
+                           pdf_budget_text=pdf_budget_text,
                            seminar_start_date_thai=seminar_start_date_thai,
                            seminar_end_date_thai=seminar_end_date_thai,
                            approver=approver, approver_position=approver_position, idp_value=idp_value,
