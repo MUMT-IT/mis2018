@@ -18,7 +18,11 @@
                                 จัดเก็บข้อมูลผู้รับบริการสำหรับใช้อ้างอิงในงานบริการตรวจวิเคราะห์
                             </p>
                         </div>
-                        <div class="customer-register-divider" aria-hidden="true"></div>
+                        <br>
+                        <p class="customer-register-prompt">
+                            <span class="icon"><i class="fas fa-user-cog"></i></span>
+                            <span>สำหรับแอดมิน</span>
+                        </p>
                         <div class="customer-register-actions">
                             <a class="customer-register-action customer-register-action-search"
                                href="{{ url_for('service_admin.search_customer') }}">
@@ -33,7 +37,7 @@
                         </div>
                         <div class="customer-register-customer-section">
                             <p class="customer-register-customer-label">
-                                <span class="icon"><i class="fas fa-user-check"></i></span>
+                                <span class="icon"><i class="fas fa-user-tie"></i></span>
                                 ส่วนสำหรับลูกค้า
                             </p>
                             <div class="customer-register-customer-actions">
@@ -59,7 +63,6 @@
                                 </a>
                             </div>
                         </div>
-
                         <div class="customer-register-note">
                             <span class="icon" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
                             <span>ข้อมูลจะถูกจัดเก็บเพื่อใช้ประกอบการให้บริการและการออกเอกสารที่เกี่ยวข้อง</span>
@@ -71,10 +74,10 @@
     </section>
     <style>
         .customer-register-page {
-            min-height: 31rem;
+            min-height: calc(100vh - 6rem);
             overflow: hidden;
             padding-bottom: 4rem;
-            padding-top: 4rem;
+            padding-top: clamp(2.5rem, 7vh, 5rem);
             position: relative;
         }
 
@@ -107,12 +110,12 @@
         }
 
         .customer-register-card {
-            background: rgba(255, 255, 255, 0.94);
+            background: rgba(255, 255, 255, 0.96);
             border: 1px solid rgba(58, 101, 184, 0.18);
             border-radius: 28px;
-            box-shadow: 0 20px 50px rgba(18, 39, 84, 0.12);
+            box-shadow: 0 24px 60px rgba(18, 39, 84, 0.14);
             overflow: hidden;
-            padding: clamp(1.75rem, 4vw, 3rem);
+            padding: clamp(1.5rem, 4vw, 3.25rem);
             position: relative;
         }
 
@@ -156,6 +159,7 @@
         .customer-register-title {
             color: #15284d;
             font-size: clamp(1.8rem, 4vw, 2.45rem);
+            letter-spacing: -0.025em;
             margin-bottom: 0.55rem !important;
         }
 
@@ -173,16 +177,32 @@
         }
 
         .customer-register-prompt {
-            color: #425675;
+            align-items: center;
+            color: #1e67aa;
+            display: flex;
             font-size: 0.9rem;
             font-weight: 700;
-            margin-bottom: 1rem;
+            gap: 0.45rem;
+            margin: 0 0 0.75rem;
+        }
+
+        .customer-register-section-icon {
+            align-items: center;
+            background: #eef6ff;
+            border: 1px solid #cfe5fb;
+            border-radius: 8px;
+            color: #2f80c9;
+            display: inline-flex;
+            font-size: 0.72rem;
+            height: 1.55rem;
+            justify-content: center;
+            width: 1.55rem;
         }
 
         .customer-register-actions {
             display: grid;
             gap: 0.85rem;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: 1fr;
         }
 
         .customer-register-action {
@@ -191,10 +211,10 @@
             border-radius: 18px;
             display: flex;
             gap: 0.85rem;
-            min-height: 5.6rem;
-            padding: 1rem 1.1rem;
+            min-height: 5.85rem;
+            padding: 1rem 1.15rem;
             text-decoration: none;
-            transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+            transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
         }
 
         .customer-register-action:hover,
@@ -204,7 +224,7 @@
         }
 
         .customer-register-action-search {
-            background: #eef6ff;
+            background: linear-gradient(135deg, #eef7ff, #f6faff);
             border-color: #cfe5fb;
             color: #1e5f98;
         }
@@ -225,7 +245,7 @@
         .customer-register-customer-section {
             border-top: 1px solid #e8edf5;
             margin-top: 1.5rem;
-            padding-top: 1.25rem;
+            padding-top: 1.4rem;
         }
 
         .customer-register-customer-actions {
@@ -238,11 +258,17 @@
             color: #8b641e;
             font-size: 0.82rem;
             font-weight: 800;
-            margin: 0 0 0.65rem;
+            margin: 0;
         }
 
         .customer-register-customer-label .icon {
             margin-right: 0.25rem;
+        }
+
+        .customer-register-customer-hint {
+            color: #8793a7;
+            font-size: 0.78rem;
+            margin: 0.2rem 0 0.75rem 1.45rem;
         }
 
         .customer-register-action-icon {
@@ -280,7 +306,7 @@
 
         .customer-register-action-copy strong {
             color: #1e3152;
-            font-size: 1rem;
+            font-size: 1.02rem;
         }
 
         .customer-register-action-copy small {
@@ -290,8 +316,18 @@
         }
 
         .customer-register-action-arrow {
+            align-self: center;
             color: #8391a8;
             font-size: 0.85rem;
+            margin-left: auto;
+            padding-left: 0.4rem;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .customer-register-action:hover .customer-register-action-arrow,
+        .customer-register-action:focus-visible .customer-register-action-arrow {
+            color: currentColor;
+            transform: translateX(3px);
         }
 
         .customer-register-note {
@@ -315,10 +351,6 @@
             .customer-register-page {
                 padding-bottom: 2rem;
                 padding-top: 2rem;
-            }
-
-            .customer-register-actions {
-                grid-template-columns: 1fr;
             }
 
             .customer-register-customer-actions {
