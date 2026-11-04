@@ -25,7 +25,7 @@
                         </p>
                         <div class="customer-register-actions">
                             <a class="customer-register-action customer-register-action-search"
-                               href="{{ url_for('service_admin.search_customer') }}">
+                               href="{{ url_for('service_admin.search_customer_for_admin') }}">
                                 <span class="customer-register-action-icon" aria-hidden="true">
                                     <i class="fas fa-search"></i>
                                 </span>
@@ -42,13 +42,13 @@
                             </p>
                             <div class="customer-register-customer-actions">
                                 <a class="customer-register-action customer-register-action-customer-search"
-                                   href="{{ url_for('academic_services.customer_account', menu='view') }}">
+                                    href="{{ url_for('service_admin.search_customer_for_customer') }}">
                                     <span class="customer-register-action-icon" aria-hidden="true">
                                         <i class="fas fa-search"></i>
                                     </span>
                                     <span class="customer-register-action-copy">
-                                        <strong>ค้นหาข้อมูลลูกค้า</strong>
-                                        <small>ตรวจสอบข้อมูลผู้รับบริการที่ผูกกับบัญชีของตนเอง</small>
+                                        <strong>ค้นหาข้อมูลผู้รับบริการ</strong>
+                                        <small>ตรวจสอบข้อมูลผู้รับบริการที่มีอยู่ในระบบ</small>
                                     </span>
                                 </a>
                                 <a class="customer-register-action customer-register-action-create"
