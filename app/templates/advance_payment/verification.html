@@ -193,7 +193,7 @@
           {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
             <button
               type="button"
-              class="btn btn-info btn-sm fw-bold text-dark px-3 py-1.5"
+              class="btn btn-info btn-sm fw-bold px-3 py-1.5"
               data-popup-trigger="true"
               data-popup-title="ยืนยันการเริ่มดำเนินการ"
               data-popup-message="คุณต้องการเปลี่ยนสถานะสัญญาเงินยืมเป็น กำลังดำเนินการ ใช่หรือไม่?"
@@ -266,7 +266,7 @@
       </div>
     {% endif %}
     <div class="d-flex flex-row justify-content-end gap-2 mt-3">
-      {% if borrowing_ticket.status|lower == "อนุมัติจ่ายเงิน" and advance_payment_role != 'finance' %}
+      {% if can_submit_return %}
         <div class="d-flex justify-content-end mt-3">
           <button type="button" class="btn btn-outline-primary fw-bold" style="border-radius:6px;" onclick="switchReturnTicketForm({{ borrowing_ticket.id }})">
             <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
@@ -339,7 +339,7 @@
   </div>
 </section>
 {% endif %}
-{% if can_submit_return %}
+{% if can_submit_return or return_edit_detail %}
   {% set actionable_tickets = [borrowing_ticket] %}
   {% set return_ticket_script_state = namespace(rendered=false) %}
   {% set return_is_borrower_page = false %}

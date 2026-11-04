@@ -1176,7 +1176,11 @@ def module_role_required(permission, role, system):
     def decorator(view_func):
         @wraps(view_func)
         def wrapped(*args, **kwargs):
-            if current_user.is_authenticated and _can_use_module_system(current_user, system):
+            if (
+                request.method in {"GET", "HEAD", "OPTIONS"}
+                and current_user.is_authenticated
+                and _can_use_module_system(current_user, system)
+            ):
                 _set_selected_system(system)
             if _selected_system() != system or _current_module_role() != role:
                 abort(403)
@@ -1199,7 +1203,7 @@ def module_system_required(systems):
                 current_user.is_authenticated
                 and selected_system in allowed_systems
                 and _can_use_module_system(current_user, selected_system)
-            ):
+            ) and request.method in {"GET", "HEAD", "OPTIONS"}:
                 selected_system = next(
                     (
                         system
@@ -1215,7 +1219,10 @@ def module_system_required(systems):
                 )
                 if selected_system:
                     _set_selected_system(selected_system)
-            if selected_system not in allowed_systems:
+            if (
+                selected_system not in allowed_systems
+                or not _can_use_module_system(current_user, selected_system)
+            ):
                 abort(403)
             if (
                 selected_system == ADVANCE_PAYMENT_SYSTEM
@@ -1374,6 +1381,18 @@ def _can_submit_return_detail(user_id, borrowing_ticket):
     )
 
 
+def _can_submit_return(user_id, borrowing_ticket):
+    """Allow a new return only for an actionable ticket in Advance Payment."""
+    return bool(
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and borrowing_ticket
+        and borrowing_ticket.status_id in _status_ids_for_record(
+            borrowing_ticket, {"APPROVED", "PARTIAL_RETURN"}
+        )
+        and _can_submit_return_detail(user_id, borrowing_ticket)
+    )
+
+
 def _can_access_return_detail(user_id, return_detail, borrowing_ticket=None):
     """Allow the return creator or anyone who may submit for its ticket."""
     if not user_id or not return_detail:
@@ -1391,7 +1410,8 @@ def _can_access_return_detail(user_id, return_detail, borrowing_ticket=None):
 def _can_edit_borrowing_ticket(user_id, borrowing_ticket):
     """Return whether the user may open the existing borrowing-ticket form."""
     return bool(
-        borrowing_ticket
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and borrowing_ticket
         and user_id in {
             borrowing_ticket.creator_id,
             borrowing_ticket.borrower_id,
@@ -1403,9 +1423,10 @@ def _can_edit_borrowing_ticket(user_id, borrowing_ticket):
 
 
 def _can_delete_borrowing_ticket(user_id, borrowing_ticket):
-    """Allow deletion only while a ticket is waiting to be processed."""
+    """Allow the creator to delete a pending ticket in Advance Payment."""
     return bool(
-        borrowing_ticket
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and borrowing_ticket
         and user_id == borrowing_ticket.creator_id
         and borrowing_ticket.status_id == _status_id_for_record(borrowing_ticket, "PENDING")
     )
@@ -4658,6 +4679,10 @@ def coordinator_dashboard():
                 BorrowingTicket.approved_at.asc().nullslast(),
                 BorrowingTicket.id.asc(),
             ).all()
+            actionable_tickets = [
+                ticket for ticket in actionable_tickets
+                if _can_submit_return(current_user.id, ticket)
+            ]
 
     tickets_with_return_forms = list({
         ticket.id: ticket
@@ -5732,9 +5757,8 @@ def verification_view(ticket_id):
         ):
             abort(403)
 
-    can_edit_borrowing_ticket = (
-        _selected_system() == ADVANCE_PAYMENT_SYSTEM
-        and _can_edit_borrowing_ticket(_current_user_id(), borrowing_ticket)
+    can_edit_borrowing_ticket = _can_edit_borrowing_ticket(
+        _current_user_id(), borrowing_ticket
     )
     can_delete_borrowing_ticket = _can_delete_borrowing_ticket(
         _current_user_id(), borrowing_ticket
@@ -5765,15 +5789,8 @@ def verification_view(ticket_id):
                 )
             abort(403)
 
-    can_submit_return = (
-        edit_return_detail is not None
-        or (
-            _selected_system() == ADVANCE_PAYMENT_SYSTEM
-            and borrowing_ticket.status_id in _status_ids_for_record(borrowing_ticket, {"APPROVED", "PARTIAL_RETURN"})
-            and _can_submit_return_detail(_current_user_id(), borrowing_ticket)
-        )
-    )
-    if can_submit_return:
+    can_submit_return = _can_submit_return(_current_user_id(), borrowing_ticket)
+    if can_submit_return or edit_return_detail is not None:
         if edit_return_detail is not None:
             _attach_return_edit_data(borrowing_ticket, edit_return_detail)
         else:
@@ -6642,11 +6659,8 @@ def submit_return_details():
         return _validation_error_response("สัญญาเงินยืมที่เชื่อมโยงต้องอยู่ในสถานะที่พร้อมส่งคืน")
 
     current_user_id = _current_user_id()
-    if not _can_submit_return_detail(current_user_id, borrowing_ticket):
+    if edit_return_detail is None and not _can_submit_return(current_user_id, borrowing_ticket):
         abort(403)
-
-    if not edit_return_detail and borrowing_ticket.status_id in _status_ids_for_record(borrowing_ticket, {"CLOSED", "REJECTED"}):
-        return _validation_error_response("ไม่สามารถดำเนินการสำหรับสัญญาเงินยืมที่มีสถานะนี้ได้")
 
     action = request.form.get("action", "submit")
     is_draft = action == "draft" and edit_return_detail is None
@@ -7269,7 +7283,9 @@ def edit_receipt_item_inline(file_id):
                 current_user,
                 claim_detail.fund_request,
             )
-        if _selected_system() == PETTY_CASH_SYSTEM and not _can_edit_petty_cash_claim(
+        if _selected_system() != PETTY_CASH_SYSTEM:
+            abort(403)
+        if not _can_edit_petty_cash_claim(
             current_user, claim_detail, claim_setting
         ):
             if claim_detail.status_id not in _status_ids_for_record(claim_detail, PETTY_CASH_CLAIM_EDITABLE_CODES):
@@ -7292,7 +7308,9 @@ def edit_receipt_item_inline(file_id):
         if not borrowing_ticket:
             abort(404)
 
-        if _selected_system() == ADVANCE_PAYMENT_SYSTEM and not _can_edit_return_detail(
+        if _selected_system() != ADVANCE_PAYMENT_SYSTEM:
+            abort(403)
+        if not _can_edit_return_detail(
             _current_user_id(), return_detail, borrowing_ticket
         ):
             if return_detail.status_id not in _status_ids_for_record(return_detail, RETURN_DETAIL_EDITABLE_CODES):
@@ -7460,12 +7478,9 @@ def edit_receipt_item_inline(file_id):
 @bp.route("/finance/returns/<int:return_id>/confirm-edit", methods=["POST"])
 @flask_login_required
 def confirm_return_edit(return_id):
-    if _selected_system() == FINANCE_SYSTEM:
+    if _selected_system() != ADVANCE_PAYMENT_SYSTEM:
         abort(403)
-    if (
-        _selected_system() == ADVANCE_PAYMENT_SYSTEM
-        and not _is_cash_mng_finance_open()
-    ):
+    if not _is_cash_mng_finance_open():
         return _validation_error_response(
             ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
             status_code=423,
@@ -7476,11 +7491,8 @@ def confirm_return_edit(return_id):
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
     if not borrowing_ticket:
         abort(404)
-    if (
-        _selected_system() == ADVANCE_PAYMENT_SYSTEM
-        and not _can_access_return_detail(
-            _current_user_id(), return_detail, borrowing_ticket
-        )
+    if not _can_access_return_detail(
+        _current_user_id(), return_detail, borrowing_ticket
     ):
         abort(403)
     if return_detail.status_id != _status_id_for_record(return_detail, "EDIT_CONFIRMATION_REQUIRED"):
@@ -7498,12 +7510,12 @@ def confirm_return_edit(return_id):
 @module_system_required(ADVANCE_PAYMENT_SYSTEM)
 def autosave_return_draft(ticket_id):
     ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
-    if not ticket or ticket.status_id in _status_ids_for_record(ticket, {"CLOSED", "REJECTED"}):
+    if not ticket:
         return jsonify({"success": False, "message": "ไม่สามารถบันทึกร่างได้"}), 400
 
     # ใช้สิทธิ์ชุดเดียวกับการส่ง return เพื่อให้ผู้สร้าง/ผู้ยืม
     # หรือบุคลากรในหน่วยงานเดียวกันที่เปิด verification ได้บันทึกร่างต่อได้
-    if not _can_submit_return_detail(_current_user_id(), ticket):
+    if not _can_submit_return(_current_user_id(), ticket):
         abort(403)
 
     if request.method == "GET":
@@ -12702,33 +12714,24 @@ def reject_petty_claim(claim_id):
 @bp.route("/finance/petty-claims/<int:claim_id>/confirm-edit", methods=["POST"])
 @flask_login_required
 def confirm_petty_claim_edit(claim_id):
-    if _selected_system() == FINANCE_SYSTEM:
+    if _selected_system() != PETTY_CASH_SYSTEM:
         abort(403)
-    if (
-        _selected_system() == ADVANCE_PAYMENT_SYSTEM
-        and not _is_cash_mng_finance_open()
-    ):
-        return _validation_error_response(
-            ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
-            status_code=423,
-        )
     claim = db.session.query(PettyCashClaimDetail).get(claim_id)
     if not claim:
         abort(404)
-    if _selected_system() == PETTY_CASH_SYSTEM:
-        _attach_petty_cash_claim_context(claim)
-        setting = db.session.query(PettyCashSetting).filter_by(
-            id=claim.petty_cash_setting_id,
-        ).first()
-        if not setting and getattr(claim, "fund_request", None):
-            setting = _resolve_petty_cash_setting_for_fund_request(
-                current_user,
-                claim.fund_request,
-            )
-        if not setting or not setting.id or claim.petty_cash_setting_id != setting.id:
-            abort(403)
-        if not _can_manage_petty_cash_claim(current_user, claim, setting):
-            abort(403)
+    _attach_petty_cash_claim_context(claim)
+    setting = db.session.query(PettyCashSetting).filter_by(
+        id=claim.petty_cash_setting_id,
+    ).first()
+    if not setting and getattr(claim, "fund_request", None):
+        setting = _resolve_petty_cash_setting_for_fund_request(
+            current_user,
+            claim.fund_request,
+        )
+    if not setting or not setting.id or claim.petty_cash_setting_id != setting.id:
+        abort(403)
+    if not _can_manage_petty_cash_claim(current_user, claim, setting):
+        abort(403)
     if claim.status_id != _status_id_for_record(claim, "EDIT_CONFIRMATION_REQUIRED"):
         return _validation_error_response("รายการนี้ไม่มีการแก้ไขที่รอการยืนยัน")
 
