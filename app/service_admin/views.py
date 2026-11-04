@@ -2486,14 +2486,17 @@ def _get_customer_overdue_invoices(customer):
 @service_admin.route('/external-lab/index')
 @login_required
 def external_lab_index():
+    is_admin = request.args.get('is_admin')
     customer_id = request.args.get('customer_id', type=int)
     labs = ServiceLab.query.filter_by(is_external=True)
-    return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id)
+    return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id,
+                           is_admin=is_admin)
 
 
 @service_admin.route('/request/external-lab/all/<int:sub_lab_id>')
 @login_required
 def external_lab_request_index(sub_lab_id):
+    is_admin = request.args.get('is_admin')
     customer_id = request.args.get('customer_id', type=int)
     sub_lab = ServiceSubLab.query.get(sub_lab_id)
 
@@ -2506,16 +2509,15 @@ def external_lab_request_index(sub_lab_id):
     )
 
     return render_template(
-        'service_admin/external_lab_request_index.html',
-        sub_lab=sub_lab,
-        customer_id=customer_id,
-        service_requests=service_requests,
+        'service_admin/external_lab_request_index.html', sub_lab=sub_lab, is_admin=is_admin,
+        customer_id=customer_id, service_requests=service_requests
     )
 
 
 @service_admin.route('/request/external-lab/add/<int:sub_lab_id>', methods=['GET', 'POST'])
 @login_required
 def create_request_id(sub_lab_id):
+    is_admin = request.args.get('is_admin')
     request_index = request.args.get('request_index')
     customer_id = request.args.get('customer_id', type=int)
     sub_lab = ServiceSubLab.query.get(sub_lab_id)
@@ -2531,21 +2533,23 @@ def create_request_id(sub_lab_id):
         resp = make_response()
         if request_index:
             resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_request_index', customer_id=customer_id,
-                                                  sub_lab_id=sub_lab_id)
+                                                  sub_lab_id=sub_lab_id, is_admin=is_admin)
         else:
-            resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_index', customer_id=customer_id)
+            resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_index', customer_id=customer_id,
+                                                  is_admin=is_admin)
         flash(f'สร้าง Request ID เลขที่ {service_request.request_no} สำเร็จ', 'success')
         return resp
-    return redirect(url_for('service_admin.external_lab_index', customer_id=customer_id))
+    return redirect(url_for('service_admin.external_lab_index', customer_id=customer_id, is_admin=is_admin))
 
 
 @service_admin.route('/customer/invoice/overdue/view/<int:invoice_id>')
 @login_required
 def view_overdue_invoice(invoice_id):
+    is_admin = request.args.get('is_admin')
     customer_id = request.args.get('customer_id', type=int)
     invoice = ServiceInvoice.query.get(invoice_id)
     return render_template('service_admin/view_overdue_invoice.html', invoice=invoice,
-                           customer_id=customer_id)
+                           is_admin=is_admin, customer_id=customer_id)
 
 
 @service_admin.route('/customer/index')
