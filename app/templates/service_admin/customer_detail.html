@@ -256,7 +256,8 @@
                     <div class="buttons mb-0">
                         {% if is_admin %}
                             <a class="button is-small is-primary is-rounded"
-                               href="{{ url_for('service_admin.external_lab_index', customer_id=customer.id) }}">
+                               href="{{ url_for('service_admin.external_lab_index', customer_id=customer.id,
+                               is_admin=is_admin) }}">
                                 <span class="icon"><i class="fas fa-plus"></i></span>
                                 <span>สร้าง Request ID</span>
                             </a>
