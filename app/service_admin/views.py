@@ -2327,9 +2327,34 @@ def customer_register_index():
     return render_template('service_admin/customer_register_index.html')
 
 
-@service_admin.route('/customer/register/search')
+@service_admin.route('/admin/register/search')
 @login_required
-def search_customer():
+def search_customer_for_admin():
+    customer_name = request.args.get('customer_name', '').strip()
+    customers = []
+    if customer_name:
+        search_term = f'%{customer_name}%'
+        customers = (
+            ServiceCustomerInfo.query
+            .filter(or_(
+                ServiceCustomerInfo.cus_name.ilike(search_term),
+                ServiceCustomerInfo.taxpayer_identification_no.ilike(search_term),
+                ServiceCustomerInfo.accounts.any(ServiceCustomerAccount.email.ilike(search_term)),
+                ServiceCustomerInfo.phone_number.ilike(search_term)
+            ))
+            .order_by(ServiceCustomerInfo.cus_name.asc())
+            .limit(100)
+            .all()
+        )
+    return render_template(
+        'service_admin/search_customer.html',
+        customers=customers,
+        customer_name=customer_name,
+    )
+
+
+@service_admin.route('/customer/register/search')
+def search_customer_for_customer():
     customer_name = request.args.get('customer_name', '').strip()
     customers = []
     if customer_name:
