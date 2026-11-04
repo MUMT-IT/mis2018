@@ -99,7 +99,8 @@
                                     <td>{{ customer.phone_number or '-' }}</td>
                                     <td class="customer-search-action-cell">
                                         <a class="button is-small customer-search-detail-button"
-                                           href="{{ url_for('service_admin.customer_detail', customer_id=customer.id) }}">
+                                           href="{{ url_for('service_admin.customer_detail', customer_id=customer.id,
+                                                   is_admin=is_admin) }}">
                                             <span class="icon"><i class="fas fa-eye"></i></span>
                                             <span>รายละเอียด</span>
                                         </a>
