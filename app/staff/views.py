@@ -5954,7 +5954,36 @@ def seminar_pre_register_info(seminar_id):
 def create_seminar():
     form = StaffSeminarForm()
     if form.validate_on_submit():
-        is_duplicate = StaffSeminar.query.filter_by(topic=form.topic.data, start_datetime=form.start_datetime.data).first()
+        selected_seminar_id = request.form.get('selected_seminar_id', type=int)
+        selected_seminar = StaffSeminar.query.get(selected_seminar_id) if selected_seminar_id else None
+        if selected_seminar:
+            def local_datetime_value(value):
+                if value is None:
+                    return None
+                if value.tzinfo:
+                    value = value.astimezone(tz)
+                return value.replace(tzinfo=None, microsecond=0)
+
+            is_unchanged = (
+                selected_seminar.topic_type == form.topic_type.data
+                and selected_seminar.topic == form.topic.data
+                and local_datetime_value(selected_seminar.start_datetime)
+                == local_datetime_value(form.start_datetime.data)
+                and local_datetime_value(selected_seminar.end_datetime)
+                == local_datetime_value(form.end_datetime.data)
+                and selected_seminar.organize_by == form.organize_by.data
+                and selected_seminar.location == form.location.data
+                and bool(selected_seminar.is_online) == bool(form.is_online.data)
+            )
+            if is_unchanged:
+                flash('เลือกการอบรมที่มีอยู่แล้ว ระบบจะใช้รายการเดิม', 'success')
+                if hr_permission.can():
+                    return redirect(url_for('staff.seminar_attend_info_for_hr',
+                                            seminar_id=selected_seminar.id))
+                return redirect(url_for('staff.seminar_create_record', seminar_id=selected_seminar.id))
+        is_duplicate = None if selected_seminar else StaffSeminar.query.filter_by(
+            topic=form.topic.data, start_datetime=form.start_datetime.data
+        ).first()
         if not is_duplicate:
             seminar = StaffSeminar()
             form.populate_obj(seminar)
