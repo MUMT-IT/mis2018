@@ -26,6 +26,7 @@
                           hx-encoding="multipart/form-data"
                     >
                         {{ form.hidden_tag() }}
+                        <input type="hidden" name="has_procurement" value="{{ has_procurement }}">
                         {% if procurement %}
                             <input type="hidden" name="procurement_no" value="{{ procurement.procurement_no }}">
                         {% elif request.args.get('pro_number') %}
