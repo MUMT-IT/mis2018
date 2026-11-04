@@ -736,7 +736,10 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     normal = ParagraphStyle("MonthlyNormal", parent=styles["ThaiNormal"], fontSize=14, leading=18, wordWrap="CJK")
     right = ParagraphStyle("MonthlyRight", parent=normal, alignment=TA_RIGHT)
     center = ParagraphStyle("MonthlyCenter", parent=normal, alignment=TA_CENTER)
-    official = ParagraphStyle("MonthlyOfficial", parent=normal, firstLineIndent=48)
+    official = ParagraphStyle(
+        "MonthlyOfficial", parent=styles["ThaiNormal"], fontSize=14,
+        leading=18, alignment=TA_JUSTIFY, firstLineIndent=48,
+    )
     p = lambda text, style=normal: Paragraph(text, style)
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=68, rightMargin=50,
@@ -759,11 +762,11 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
         "3. สำเนาสมุดเงินฝากออมทรัพย์ 1 เล่ม")]], colWidths=[78, doc.width - 78])
     attachments.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"),
                                     ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
-    story.extend([attachments, Spacer(1, 16), p(
+    story.extend([attachments, Spacer(1, 16), _rl_thai_edge_paragraph(
         f"ตามที่ {department} ได้รับจัดสรรเงินสดย่อยจากเงินทดรองจ่ายของคณะฯ "
         f"ประจำปีงบประมาณ {_format_fiscal_year_for_pdf(setting.fiscal_year)} "
         f"เป็นจำนวนเงิน {_pdf_amount(budget)} บาท ({bahttext(budget) if budget is not None else PDF_BLANK}) "
-        f"{department} ขอรายงานสถานะเงินสดย่อย ณ วันที่ {last_day_label} ดังนี้", official),
+        f"{department} ขอรายงานสถานะเงินสดย่อย ณ วันที่ {last_day_label} ดังนี้", official, doc.width),
         Spacer(1, 4)])
     rows = [
         [p("ลำดับที่", center), p("รายการ", center), p("จำนวนเงิน", center)],
@@ -777,7 +780,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
                                ("VALIGN", (0, 0), (-1, -1), "TOP"),
                                ("TOPPADDING", (0, 0), (-1, -1), 3),
                                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-    story.extend([table, p("จึงเรียนมาเพื่อโปรดทราบ", official), Spacer(1, 40)])
+    story.extend([table, _rl_thai_edge_paragraph("จึงเรียนมาเพื่อโปรดทราบ", official, doc.width), Spacer(1, 40)])
     signature = Table([["", p(f"({head_name})<br/>{head_position}", center)]],
                       colWidths=[doc.width * 0.45, doc.width * 0.55])
     story.append(signature)
@@ -1241,6 +1244,13 @@ _pdf_log = logging.getLogger(__name__)
 
 
 def _render_with_reportlab_fallback(chromium_render, reportlab_render, document_name):
+    # if os.environ.get("ADVANCE_PAYMENT_PDF_RENDERER", "").strip().lower() == "reportlab":
+    #     pdf = reportlab_render()
+    #     _pdf_log.warning(
+    #         "PDF generated: document=%s renderer=ReportLab mode=forced bytes=%d",
+    #         document_name, len(pdf),
+    #     )
+    #     return pdf
     """Only rendering failures trigger the fallback; data collection stays upstream."""
     try:
         pdf = chromium_render()
@@ -1263,6 +1273,63 @@ def _render_with_reportlab_fallback(chromium_render, reportlab_render, document_
 
 def _rl_paragraph(value, style=None):
     return Paragraph(html.escape(str(value)), style or styles["ThaiNormal"])
+
+
+def _rl_thai_edge_paragraph(value, style, width):
+    """Wrap plain Thai text at syllable boundaries near the margin."""
+    from pythainlp.tokenize import syllable_tokenize, word_tokenize
+    from pythainlp.tokenize.tcc import segment as thai_clusters
+
+    text = str(value).replace("\r\n", " ").replace("\n", " ")
+    # SimpleDocTemplate's frame adds six points of padding on each side.
+    frame_width = width - 12
+    first_width = frame_width - style.leftIndent - style.rightIndent - style.firstLineIndent
+    next_width = frame_width - style.leftIndent - style.rightIndent
+    lines = []
+    line = ""
+    line_width = 0
+    limit = first_width
+
+    def flush():
+        nonlocal line, line_width, limit
+        if line.strip(" "):
+            lines.append(line.rstrip(" "))
+        line = ""
+        line_width = 0
+        limit = next_width
+
+    for token in word_tokenize(text, engine="newmm", keep_whitespace=True):
+        if token[0] in " \t\r\n":
+            if line and not line.endswith(" "):
+                line += " "
+                line_width += pdfmetrics.stringWidth(" ", style.fontName, style.fontSize)
+            continue
+        token_width = pdfmetrics.stringWidth(token, style.fontName, style.fontSize)
+        has_thai = any("\u0e00" <= char <= "\u0e7f" for char in token)
+        if line.strip(" ") and line_width + token_width > limit and not has_thai:
+            flush()
+        if line_width + token_width <= limit:
+            line += token
+            line_width += token_width
+            continue
+        units = syllable_tokenize(token, engine="dict") if has_thai else [token]
+        for unit in units:
+            # TCCs are the last resort for a syllable wider than a full line.
+            parts = (
+                thai_clusters(unit) if has_thai else list(unit)
+            ) if pdfmetrics.stringWidth(unit, style.fontName, style.fontSize) > next_width else [unit]
+            for part in parts:
+                part_width = pdfmetrics.stringWidth(part, style.fontName, style.fontSize)
+                if line.strip(" ") and line_width + part_width > limit:
+                    flush()
+                line += part
+                line_width += part_width
+    if line.strip(" "):
+        lines.append(line.rstrip(" "))
+    wrapped_style = ParagraphStyle(
+        f"{style.name}EdgeWrap", parent=style, justifyBreaks=1,
+    )
+    return Paragraph("<br/>".join(html.escape(part) for part in lines), wrapped_style)
 
 
 def _rl_doc(output, title, *, left=55, right=55, top=25, bottom=25):
@@ -1338,12 +1405,11 @@ def _rl_document_info(subject, width):
 def _render_reimbursement_with_reportlab(context):
     """The one-page letter layout shared by claims and ticket returns."""
     output = BytesIO()
-    doc = _rl_doc(output, context["title"], top=22, bottom=22)
+    doc = _rl_doc(output, context["title"], top=16, bottom=16)
     width = doc.width
-    justify_claim = context["title"] == "Petty Claim Request"
     body_style = ParagraphStyle(
         "ThaiReimbursementBody", parent=styles["ThaiNormal"],
-        alignment=TA_JUSTIFY if justify_claim else TA_LEFT,
+        alignment=TA_JUSTIFY,
         firstLineIndent=70,
     )
     story = [
@@ -1352,7 +1418,7 @@ def _render_reimbursement_with_reportlab(context):
         _rl_document_info(context["subject"], width), Spacer(1, 18),
     ]
     for paragraph in context["body_paragraphs"]:
-        story.extend([_rl_paragraph(paragraph, body_style), Spacer(1, 8)])
+        story.extend([_rl_thai_edge_paragraph(paragraph, body_style, width), Spacer(1, 8)])
     if context["items"]:
         rows = [[
             _rl_paragraph(f"{index}.", styles["ThaiCenter"]),
@@ -1383,7 +1449,7 @@ def _render_reimbursement_with_reportlab(context):
     ]))
     story.extend([
         total, Spacer(1, 10),
-        _rl_paragraph(context["reference_text"], body_style),
+        _rl_thai_edge_paragraph(context["reference_text"], body_style, width),
         Spacer(1, 12),
         _rl_paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", styles["ThaiCenter"]),
         Spacer(1, 30),
@@ -1516,7 +1582,8 @@ def _render_fnar02_with_reportlab(context):
                   left=45, right=45, top=35, bottom=20)
     width = doc.width
     memo_style = ParagraphStyle(
-        "ThaiFnar02Memo", parent=styles["ThaiNormal"], firstLineIndent=70,
+        "ThaiFnar02Memo", parent=styles["ThaiNormal"],
+        alignment=TA_JUSTIFY, firstLineIndent=70,
     )
     agreement_style = ParagraphStyle(
         "ThaiFnar02Agreement", parent=styles["ThaiNormal"], firstLineIndent=45,
@@ -1530,11 +1597,10 @@ def _render_fnar02_with_reportlab(context):
         f"ทั้งนี้ โดยมอบหมายให้ {context['borrower_name']} เป็นผู้ยืมเงิน โดยโปรดโอนเงินเข้าบัญชี "
         f"เลขที่ {context['account_number']} ชื่อบัญชี {context['account_name']} "
         f"โดยมีระยะเวลาในการดำเนินภายในวันที่ {context['due_date_thai']}",
-        "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้ "
-        "ด้วยจักเป็นพระคุณยิ่ง",
+        "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้ด้วยจักเป็นพระคุณยิ่ง",
     ]
     for paragraph in paragraphs:
-        story.extend([_rl_paragraph(paragraph, memo_style), Spacer(1, 12)])
+        story.extend([_rl_thai_edge_paragraph(paragraph, memo_style, width), Spacer(1, 12)])
     for name, position in context["leave_approver_signatures"]:
         sign = Table([["", Paragraph(f"({html.escape(str(name))})<br/>{html.escape(str(position))}",
                                     styles["ThaiCenter"])]], colWidths=[width * .49, width * .51])
@@ -1593,13 +1659,21 @@ def _render_fnar02_with_reportlab(context):
         [cell(f"(ตัวอักษร) ({context['amount_text']})", styles["ThaiCenter"]),
          cell(f"(ตัวเลข) {context['amount_numeric']} บาท", styles["ThaiCenter"])],
     ]
-    agreement = ("ข้าพเจ้าสัญญาว่าจะปฏิบัติตามระเบียบของมหาวิทยาลัยมหิดลทุกประการ "
-                 "และจะนำใบสำคัญคู่จ่ายที่ถูกต้อง พร้อมทั้งเงินเหลือจ่าย (ถ้ามี) ส่งใช้ภายในกำหนด "
-                 f"15 วัน หลังจากเสร็จสิ้นภารกิจ คือวันที่ {context['due_date_thai']} "
-                 "ถ้าข้าพเจ้าไม่ส่งตามกำหนด ข้าพเจ้ายินยอมให้หักเงินเดือน ค่าจ้าง "
-                 "หรือเงินอื่นใดที่ข้าพเจ้าพึงได้รับจากมหาวิทยาลัยมหิดลชดใช้จำนวนเงินที่ยืมไปจนครบถ้วน")
+    agreement_before_break = (
+        "ข้าพเจ้าสัญญาว่าจะปฏิบัติตามระเบียบของมหาวิทยาลัยมหิดลทุกประการ "
+        "และจะนำใบสำคัญคู่จ่ายที่ถูกต้อง พร้อมทั้งเงินเหลือจ่าย (ถ้ามี) ส่งใช้ภายในกำหนด "
+        f"15 วัน หลังจากเสร็จสิ้นภารกิจ คือวันที่ {context['due_date_thai']} ถ้า"
+    )
+    agreement_after_break = (
+        "ข้าพเจ้าไม่ส่งตามกำหนด ข้าพเจ้ายินยอมให้หักเงินเดือน ค่าจ้าง "
+        "หรือเงินอื่นใดที่ข้าพเจ้าพึงได้รับจากมหาวิทยาลัยมหิดลชดใช้จำนวนเงินที่ยืมไปจนครบถ้วน"
+    )
+    agreement_continuation_style = ParagraphStyle(
+        "ThaiFnar02AgreementContinuation", parent=agreement_style, firstLineIndent=0,
+    )
     sections = [
-        [cell(agreement, agreement_style),
+        [_rl_thai_edge_paragraph(agreement_before_break, agreement_style, width),
+         _rl_thai_edge_paragraph(agreement_after_break, agreement_continuation_style, width),
          signature(context["borrower_name"], suffix="ผู้ยืม")],
         [cell("เสนอ คณบดี", styles["ThaiBold"]),
          cell(f"ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมตามใบยืมฉบับนี้ได้ จำนวนเงิน "
