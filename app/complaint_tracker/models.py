@@ -64,6 +64,7 @@ class ComplaintTopic(db.Model):
     __tablename__ = 'complaint_topics'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     topic = db.Column('topic', db.String(255), nullable=False)
+    icon = db.Column('icon', db.String())
     code = db.Column('code', db.String())
     category_id = db.Column('category_id', db.ForeignKey('complaint_categories.id'))
     category = db.relationship(ComplaintCategory, backref=db.backref('topics', cascade='all, delete-orphan'))
