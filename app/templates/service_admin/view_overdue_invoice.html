@@ -13,89 +13,91 @@
                 </div>
                 <div class="column is-one-quarter has-text-right">
                     <a class="button external-lab-back"
-                       href="{{ url_for('service_admin.customer_detail', customer_id=customer_id) }}">
+                       href="{{ url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin) }}">
                         <span class="icon"><i class="fas fa-arrow-left"></i></span>
                         <span>กลับ</span>
                     </a>
                 </div>
             </div>
-            <div class="columns is-flex is-align-items-stretch">
-                <div class="column">
-                    <ul class="steps">
-                        <li class="steps-segment
-                            {% if (not invoice.sent_at or invoice.sent_at) and not invoice.head_approved_at %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-search"></i>
+            {% if is_admin %}
+                <div class="columns is-flex is-align-items-stretch">
+                    <div class="column">
+                        <ul class="steps">
+                            <li class="steps-segment
+                                {% if (not invoice.sent_at or invoice.sent_at) and not invoice.head_approved_at %}
+                                    is-active
+                                {% endif %}"
+                            >
+                                <span class="steps-marker">
+                                    <span class="icon">
+                                        <i class="fas fa-search"></i>
+                                    </span>
                                 </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>ร่างใบแจ้งหนี้</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.head_approved_at and not invoice.assistant_approved_at %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-hourglass-half"></i>
+                                <div class="steps-content">
+                                    <p>ร่างใบแจ้งหนี้</p>
+                                </div>
+                            </li>
+                            <li class="steps-segment
+                                {% if invoice.head_approved_at and not invoice.assistant_approved_at %}
+                                    is-active
+                                {% endif %}"
+                            >
+                                <span class="steps-marker">
+                                    <span class="icon">
+                                        <i class="fas fa-hourglass-half"></i>
+                                    </span>
                                 </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>หัวหน้าอนุมัติ</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.assistant_approved_at and not invoice.file_attached_at %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-clock"></i>
+                                <div class="steps-content">
+                                    <p>หัวหน้าอนุมัติ</p>
+                                </div>
+                            </li>
+                            <li class="steps-segment
+                                {% if invoice.assistant_approved_at and not invoice.file_attached_at %}
+                                    is-active
+                                {% endif %}"
+                            >
+                                <span class="steps-marker">
+                                    <span class="icon">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
                                 </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>ผู้ช่วยคณบดีอนุมัติ</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.file_attached_at and (not invoice.paid_at or not invoice.is_paid) %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-file-signature"></i>
+                                <div class="steps-content">
+                                    <p>ผู้ช่วยคณบดีอนุมัติ</p>
+                                </div>
+                            </li>
+                            <li class="steps-segment
+                                {% if invoice.file_attached_at and (not invoice.paid_at or not invoice.is_paid) %}
+                                    is-active
+                                {% endif %}"
+                            >
+                                <span class="steps-marker">
+                                    <span class="icon">
+                                        <i class="fas fa-file-signature"></i>
+                                    </span>
                                 </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>อัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.is_paid %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-check"></i>
+                                <div class="steps-content">
+                                    <p>อัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์</p>
+                                </div>
+                            </li>
+                            <li class="steps-segment
+                                {% if invoice.is_paid %}
+                                    is-active
+                                {% endif %}"
+                            >
+                                <span class="steps-marker">
+                                    <span class="icon">
+                                        <i class="fas fa-check"></i>
+                                    </span>
                                 </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>ชำระเงินสำเร็จ</p>
-                            </div>
-                        </li>
-                    </ul>
+                                <div class="steps-content">
+                                    <p>ชำระเงินสำเร็จ</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column is-one-quarter"></div>
                 </div>
-                <div class="column is-one-quarter"></div>
-            </div>
+            {% endif %}
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
                     <div class="box">
