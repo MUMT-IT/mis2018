@@ -138,8 +138,8 @@ def _pdf_text(value):
 
 
 def _pdf_telephone_number(value):
-    """Remove the telephone label and any extension details."""
-    telephone = re.split(r"\s*ต่อ", _pdf_text(value), maxsplit=1)[0]
+    """Keep the telephone number and extensions, excluding a fax number."""
+    telephone = re.split(r"\s*โทรสาร", _pdf_text(value), maxsplit=1)[0]
     telephone = re.sub(r"^\s*โทร(?![ก-๙])\s*[.:：]?\s*", "", telephone).strip()
     return telephone or PDF_BLANK
 
