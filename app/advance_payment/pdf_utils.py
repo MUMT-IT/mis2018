@@ -137,6 +137,13 @@ def _pdf_text(value):
     return text
 
 
+def _pdf_telephone_number(value):
+    """Remove the telephone label and any extension details."""
+    telephone = re.split(r"\s*ต่อ", _pdf_text(value), maxsplit=1)[0]
+    telephone = re.sub(r"^\s*โทร(?![ก-๙])\s*[.:：]?\s*", "", telephone).strip()
+    return telephone or PDF_BLANK
+
+
 def _pdf_amount(value):
     if not _pdf_text(value).strip():
         return PDF_BLANK
@@ -720,7 +727,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     department_name = setting.department_name or missing_department_notice()
     department = str(department_name)
     head_name, head_position = _get_head_signature(setting=setting)
-    telephone = str(telephone_number or PDF_BLANK)
+    telephone = _pdf_telephone_number(telephone_number)
     last_day = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
     month_label = get_thai_month_year(month_start).split(" ", 1)[1]
     last_day_label = get_thai_month_year(last_day)
@@ -840,7 +847,7 @@ def _build_fnar02_context(ticket):
 
     from .views import convert_to_fiscal_year, get_department_data_service
 
-    telephone_number = _pdf_text(
+    telephone_number = _pdf_telephone_number(
         (get_department_data_service(department_name) or {}).get("telephone_number")
     )
     fiscal_year_date = (
@@ -2015,7 +2022,7 @@ def generate_petty_claim(claim, claim_type="1"):
 
     dept_service_data = get_department_data_service(department_name) or {}
     org = getattr(getattr(requester, "personal_info", None), "org", None)
-    telephone_number = (
+    telephone_number = _pdf_telephone_number(
         getattr(org, "phone_number", None)
         or dept_service_data.get("telephone_number")
         or dept_service_data.get("phone_number")
@@ -2113,7 +2120,7 @@ def generate_ticket_return(return_detail):
     mission_label = getattr(getattr(return_detail, "iocode", None), "id", None) or PDF_BLANK
 
     dept_service_data = get_department_data_service(department_name) or {}
-    telephone_number = (
+    telephone_number = _pdf_telephone_number(
         getattr(borrower_org, "phone_number", None)
         or dept_service_data.get("telephone_number")
         or dept_service_data.get("phone_number")
