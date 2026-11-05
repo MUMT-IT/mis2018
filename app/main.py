@@ -147,6 +147,8 @@ def create_app():
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    # Replace stale pooled connections before handing them to a request.
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['TEST_SERVER'] = _env_flag('TEST_SERVER', False)
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -320,6 +322,9 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def internal_server_error(e):
+    # Error-page context processors can reload current_user from the database.
+    # Clear a failed transaction before they issue another query.
+    db.session.rollback()
     return render_template('errors/500.html', blueprint=request.blueprint, error=e), 500
 
 
