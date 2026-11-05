@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 import sys
 import types
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -243,6 +243,132 @@ def staff_views(monkeypatch):
     _install_import_stubs(monkeypatch)
     views = importlib.import_module("app.staff.views")
     return views
+
+
+@pytest.mark.parametrize('reference_date, expected_start, expected_end', [
+    (date(2026, 1, 1), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 6, 1), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 6, 30), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 10, 1), date(2026, 10, 1), date(2026, 12, 31)),
+    (date(2026, 12, 31), date(2026, 10, 1), date(2026, 12, 31)),
+    (date(2027, 1, 1), date(2027, 1, 1), date(2027, 6, 30)),
+    (date(2027, 6, 30), date(2027, 1, 1), date(2027, 6, 30)),
+    (date(2027, 7, 1), date(2027, 7, 1), date(2027, 12, 31)),
+    (date(2028, 1, 1), date(2028, 1, 1), date(2028, 6, 30)),
+])
+def test_civil_servant_login_quota_period_boundaries(
+    staff_views, reference_date, expected_start, expected_end
+):
+    staff = SimpleNamespace(employment=SimpleNamespace(title='ข้าราชการ'))
+
+    assert staff_views._current_login_quota_period(reference_date, staff) == (
+        expected_start, expected_end, 15
+    )
+
+
+@pytest.mark.parametrize('employment_title, quota_limit', [
+    ('พนักงานมหาวิทยาลัย', 30),
+    ('ลูกจ้างประจำ', 30),
+    ('ลูกจ้างชั่วคราว', 30),
+    ('ลูกจ้างปฏิบัติงานนอกเวลา', 30),
+])
+@pytest.mark.parametrize('reference_date, expected_start, expected_end', [
+    (date(2026, 10, 1), date(2026, 10, 1), date(2027, 6, 30)),
+    (date(2026, 12, 31), date(2026, 10, 1), date(2027, 6, 30)),
+    (date(2027, 1, 1), date(2026, 10, 1), date(2027, 6, 30)),
+    (date(2027, 6, 30), date(2026, 10, 1), date(2027, 6, 30)),
+    (date(2027, 7, 1), date(2027, 7, 1), date(2028, 6, 30)),
+    (date(2028, 6, 30), date(2027, 7, 1), date(2028, 6, 30)),
+    (date(2028, 7, 1), date(2028, 7, 1), date(2029, 6, 30)),
+])
+def test_other_employment_login_quota_periods(
+    staff_views, employment_title, quota_limit, reference_date, expected_start, expected_end
+):
+    staff = SimpleNamespace(employment=SimpleNamespace(title=employment_title))
+    assert staff_views._current_login_quota_period(reference_date, staff) == (
+        expected_start, expected_end, quota_limit
+    )
+
+
+@pytest.mark.parametrize('round_time, expected_ids', [
+    ('16:40', [1, 2]), ('17:00', [3, 7]),
+])
+def test_checkout_reminder_groups_and_exclusions(staff_views, monkeypatch, round_time, expected_ids):
+    bangkok = pytz.timezone('Asia/Bangkok')
+    target_date = date(2026, 11, 5)
+    accounts = [SimpleNamespace(id=i, line_id=f'line-{i}') for i in range(1, 9)]
+    accounts[7].line_id = None
+    monkeypatch.setattr(staff_views, 'StaffAccount', SimpleNamespace(get_active_accounts=lambda: accounts))
+
+    def record(staff_id, hour, minute=0, end=None, day=5):
+        return SimpleNamespace(
+            staff_id=staff_id,
+            start_datetime=bangkok.localize(datetime(2026, 11, day, hour, minute)),
+            end_datetime=end,
+        )
+
+    records = [
+        record(1, 7), record(2, 8, 40), record(3, 8, 41),
+        record(4, 8, end=bangkok.localize(datetime(2026, 11, 5, 16, 30))),
+        record(5, 8), record(5, 16, 30),  # Scan-based checkout.
+        record(6, 8, day=4),  # No check-in today.
+        record(7, 9), record(8, 8),
+    ]
+    assert [account.id for account in staff_views._build_missing_checkout_recipients(
+        target_date, round_time, records=records
+    )] == expected_ids
+
+    # An approved checkout removes the remaining staff member on recalculation.
+    records[2].end_datetime = bangkok.localize(datetime(2026, 11, 5, 16, 45))
+    records[-2].correction_type = 'checkout'
+    assert 3 not in [account.id for account in staff_views._build_missing_checkout_recipients(
+        target_date, '17:00', records=records
+    )]
+    assert staff_views._build_missing_checkout_recipients(target_date, '17:00', records=records) == []
+
+
+@pytest.mark.parametrize('method, holiday, expected_sent', [
+    ('GET', False, 0), ('POST', False, 1), ('POST', True, 0),
+])
+def test_checkout_reminder_preview_send_and_holiday(
+    staff_views, monkeypatch, method, holiday, expected_sent
+):
+    class FixedDatetime(datetime):
+        @classmethod
+        def now(cls, zone):
+            return zone.localize(cls(2026, 11, 5, 16, 40))
+
+    monkeypatch.setenv('JOB_TOKEN', 'test-token')
+    monkeypatch.setattr(staff_views, 'datetime', FixedDatetime)
+    monkeypatch.setattr(staff_views, 'request', SimpleNamespace(
+        method=method, values={'job_token': 'test-token', 'round': '16:40'},
+    ))
+    monkeypatch.setattr(staff_views, '_get_holiday_for_date', lambda _: holiday)
+    monkeypatch.setattr(staff_views, '_build_missing_checkout_recipients', lambda *_: [
+        SimpleNamespace(id=1, fullname='Test Staff', line_id='line-1'),
+    ])
+    monkeypatch.setattr(staff_views, 'jsonify', lambda payload: payload)
+    pushes = []
+    monkeypatch.setattr(staff_views, 'line_bot_api', SimpleNamespace(
+        push_message=lambda **kwargs: pushes.append(kwargs),
+    ))
+    payload = staff_views.line_remind_missing_checkout()
+
+    assert payload['sent_count'] == expected_sent
+    assert len(pushes) == expected_sent
+    assert payload['recipient_count'] == (0 if holiday else 1)
+
+
+@pytest.mark.parametrize('token', [None, 'wrong-token'])
+def test_checkout_reminder_requires_scheduler_token_or_admin(staff_views, monkeypatch, token):
+    monkeypatch.setenv('JOB_TOKEN', 'test-token')
+    monkeypatch.setattr(staff_views, 'request', SimpleNamespace(
+        method='POST', values={'job_token': token, 'round': '16:40'},
+    ))
+    monkeypatch.setattr(staff_views, 'current_user', SimpleNamespace(is_authenticated=False))
+    from werkzeug.exceptions import Unauthorized
+    with pytest.raises(Unauthorized):
+        staff_views.line_remind_missing_checkout()
 
 
 def test_create_work_login_record_increments_daily_scan_count_and_sets_qrcode_expiry(staff_views, monkeypatch):
