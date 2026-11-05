@@ -2355,6 +2355,7 @@ def search_customer_for_admin():
 
 @service_admin.route('/customer/register/search')
 def search_customer_for_customer():
+    is_admin = 'false'
     customer_name = request.args.get('customer_name', '').strip()
     customers = []
     if customer_name:
@@ -2372,9 +2373,8 @@ def search_customer_for_customer():
             .all()
         )
     return render_template(
-        'service_admin/search_customer.html',
-        customers=customers,
-        customer_name=customer_name,
+        'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
+        customer_name=customer_name
     )
 
 
