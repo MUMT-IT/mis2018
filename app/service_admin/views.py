@@ -2592,8 +2592,9 @@ def view_customer(customer_id):
                            central_admin_academic_service_permission=central_admin_academic_service_permission)
 
 
-@service_admin.route('/customer/add', methods=['GET', 'POST'])
-@service_admin.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
+@service_admin.route('/admin/customer/add', methods=['GET', 'POST'])
+@service_admin.route('/admin/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
+@login_required
 def create_customer_for_admin(customer_id=None):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -2696,7 +2697,142 @@ def create_customer_for_admin(customer_id=None):
             cus_account = ServiceCustomerAccount.query.filter_by(email=email).first()
             if cus_account:
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
-                return redirect(url_for('service_admin.create_customer', custoemr_id=customer_id, tab=tab))
+                return redirect(url_for('service_admin.create_customer_for_admin', custoemr_id=customer_id, tab=tab))
+            else:
+                account = ServiceCustomerAccount(email=email, customer_info=customer,
+                                                 verify_datetime=arrow.now('Asia/Bangkok').datetime)
+        else:
+            account.email = email
+            if customer.is_document_verified is None:
+                customer.is_document_verified = None
+        db.session.add(account)
+        db.session.add(customer)
+        db.session.commit()
+        if customer_id:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        else:
+            flash('เพิ่มลูกค้าสำเร็จ', 'success')
+
+        if menu:
+            return redirect(url_for('service_admin.request_index', menu=menu))
+        else:
+            return redirect(url_for('service_admin.customer_index', tab=tab))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template(
+        'service_admin/create_customer.html', customer_id=customer_id,
+        form=form, account=account, tab=tab, user_type=user_type,
+        document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+        required_document_attachments=_required_document_attachments(customer) if customer else {}
+    )
+
+
+@service_admin.route('/customer/add', methods=['GET', 'POST'])
+@service_admin.route('/customer/edit', methods=['GET', 'POST'])
+@login_required
+def create_customer_for_user(customer_id=None):
+    tab = request.args.get('tab')
+    user_type = session.get('user_type')
+    customer = None
+    if customer_id:
+        customer = ServiceCustomerInfo.query.get(customer_id)
+        account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        account = None
+        form = ServiceCustomerInfoForm()
+    if form.validate_on_submit():
+        if customer_id is None:
+            customer = ServiceCustomerInfo()
+
+        required_documents = _required_customer_documents(form.type.data)
+        type_changed = customer_id is not None and customer.type_id != form.type.data.id
+        if type_changed and customer.required_attachments:
+            customer.required_attachments.clear()
+
+        document_errors = []
+        required_attachments = _required_document_attachments(customer)
+        document_uploads = []
+        for document in required_documents:
+            field_name = f"required_document_{document['key']}"
+            uploaded_file = request.files.get(field_name)
+            has_upload = uploaded_file and uploaded_file.filename
+            attachment = required_attachments.get(document['key'])
+
+            if has_upload:
+                if not allowed_file(uploaded_file.filename):
+                    document_errors.append(
+                        f"ไฟล์{document['label']}ต้องเป็นไฟล์ประเภท {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+                    )
+                    continue
+                document_uploads.append((document, uploaded_file, attachment))
+
+            if not has_upload and (attachment is None or not attachment.attachment):
+                document_errors.append(f"กรุณาแนบ{document['label']}")
+
+        if document_errors:
+            for error in document_errors:
+                flash(error, 'danger')
+            return render_template(
+                'service_admin/create_customer.html', customer_id=customer_id,
+                form=form, account=account, tab=tab, user_type=user_type,
+                document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                required_document_attachments=_required_document_attachments(customer)
+            )
+
+        uploaded_required_documents = []
+        for document, uploaded_file, attachment in document_uploads:
+            file_name = uploaded_file.filename
+            s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=uploaded_file.stream.read(),
+                ContentType=uploaded_file.mimetype
+            )
+            uploaded_required_documents.append((document, attachment, file_name))
+        if form.other_attachments:
+            for item in form.other_attachments:
+                file = item.file_upload.data
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    file_name = file.filename
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
+                    item.attachment.data = file_name
+        form.populate_obj(customer)
+
+        for document, attachment, file_name in uploaded_required_documents:
+            if attachment is None:
+                attachment = ServiceCustomerRequiredAttachment(customer=customer)
+                required_attachments[document['key']] = attachment
+            attachment.file_name = document['label']
+            attachment.attachment = file_name
+
+        for document, attachment in required_attachments.items():
+            attachment.file_name = next(
+                item['label'] for item in CUSTOMER_DOCUMENT_DEFINITIONS if item['key'] == document
+            )
+            attachment.customer = customer
+            if attachment not in customer.required_attachments:
+                customer.required_attachments.append(attachment)
+            db.session.add(attachment)
+
+        email = request.form.get('email')
+        if customer_id is None:
+            customer.is_document_verified = None
+            if current_user.is_authenticated and user_type and user_type == 'staff':
+                customer.creator_id = current_user.id
+            cus_account = ServiceCustomerAccount.query.filter_by(email=email).first()
+            if cus_account:
+                flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
+                return redirect(url_for('service_admin.create_customer_for_user', custoemr_id=customer_id, tab=tab))
             else:
                 account = ServiceCustomerAccount(email=email, customer_info=customer,
                                                  verify_datetime=arrow.now('Asia/Bangkok').datetime)
@@ -2728,10 +2864,7 @@ def create_customer_for_admin(customer_id=None):
         if menu:
             return redirect(url_for('service_admin.request_index', menu=menu))
         else:
-            if current_user.is_authenticated and user_type and user_type == 'staff':
-                return redirect(url_for('service_admin.customer_index', tab=tab))
-            else:
-                return redirect(url_for('service_admin.closing_page'))
+            return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
