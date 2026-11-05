@@ -13,11 +13,9 @@
             <div class="column is-half is-offset-3">
                 {%  include 'messages.html' %}
                 {% if current_user.is_authenticated and user_type and user_type == 'staff' %}
-                    {% if customer_id %}
-                        <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
-                    {% else %}
-                        <h1 class="title has-text-centered">สร้างลูกค้า/ผู้ประสานงาน</h1>
-                    {% endif %}
+                    <h1 class="title has-text-centered">สร้างลูกค้า/ผู้ประสานงาน</h1>
+                {% if customer_id or email %}
+                    <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
                 {% else %}
                     <h1 class="title has-text-centered">ลงทะเบียนผู้รับบริการ</h1>
                 {% endif %}
