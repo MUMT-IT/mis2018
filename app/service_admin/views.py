@@ -2594,7 +2594,7 @@ def view_customer(customer_id):
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
 @service_admin.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-def create_customer(customer_id=None):
+def create_customer_for_admin(customer_id=None):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     user_type = session.get('user_type')
