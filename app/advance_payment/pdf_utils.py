@@ -2390,7 +2390,7 @@ def generate_fund_request_pdf(fund_request):
     dept_display = getattr(org, "name", None) or missing_department_notice()
     items = fund_request.items if hasattr(fund_request, 'items') and fund_request.items else []
     item_rows = []
-    total_amount = 0.0
+    total_amount = Decimal("0.00")
     has_total_amount = False
 
     if is_borrowing_form and not items and borrowing_ticket:
@@ -2403,11 +2403,11 @@ def generate_fund_request_pdf(fund_request):
             f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_no}",
             _pdf_amount(ticket_amount),
         ))
-        total_amount = float(ticket_amount) if ticket_amount is not None else 0.0
+        total_amount = Decimal(str(ticket_amount)) if ticket_amount is not None else Decimal("0.00")
         has_total_amount = ticket_amount is not None
     elif not is_interest_form and items:
         for idx, item in enumerate(items, 1):
-            amt = float(item.amount or 0)
+            amt = Decimal(str(item.amount or 0))
             total_amount += amt
             has_total_amount = has_total_amount or item.amount is not None
             item_rows.append((
