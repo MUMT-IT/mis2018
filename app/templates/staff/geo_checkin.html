@@ -4,62 +4,90 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <style>
+        [v-cloak] { display: none; }
+        #app .checkin-container { max-width: 720px; }
+        #app .location-card { border: 1px solid #dce5e1; border-radius: 8px; padding: .85rem 1rem; margin-bottom: .5rem; background: white; }
+        #app .location-card.is-unavailable { background: #f0f0f0; border-color: #ddd; color: #707070; }
+        #app .location-card.is-eligible { border-color: #48a887; }
+        #app .location-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+        #app .location-name { font-weight: 600; margin-bottom: .15rem; }
+        #app .location-distance { white-space: nowrap; font-weight: 700; }
+        #app .location-card .button { margin-top: .65rem; white-space: normal; height: auto; min-height: 44px; }
+        #app .gps-card { display: flex; align-items: flex-start; gap: .75rem; padding: .85rem 1rem; margin-bottom: 1.5rem; border: 1px solid #e1e5e8; border-radius: 8px; background: #fafbfc; }
+        #app .gps-content { flex: 1; min-width: 0; }
+        #app .gps-label { font-weight: 600; font-size: .875rem; }
+        #app .gps-marker { color: #327b68; padding-top: .15rem; }
+        #app .gps-coordinates { display: flex; flex-wrap: wrap; gap: .15rem 1rem; margin-top: .25rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
+        #app .gps-coordinates strong { color: inherit; }
+        #app .gps-card .gps-refresh { padding: .25rem .5rem; height: auto; min-height: 32px; flex-shrink: 0; }
+        #app .qr-section { margin-bottom: 1.5rem; border-bottom: 1px solid #ddd; padding-bottom: 1rem; }
+        #app .qr-content { text-align: center; padding: 1rem 0; }
+        #app .qr-image { display: block; width: 256px; max-width: 100%; margin: 0 auto 1rem; }
+        @media (max-width: 600px) { #app.section { padding: 1.5rem 1rem; } }
+    </style>
 {% endblock %}
 {% block page_content %}
-<section class="section" id="app">
-    <div class="container">
-        <div class="columns">
-            <div class="column is-half is-offset-one-quarter has-text-centered">
-                <div v-if="isLoading">
-                    <span class="icon is-large" v-if="isLoading">
-                        <i class="fas fa-pulse fa-4x fa-spinner has-text-link"></i>
-                    </span>
-                    <br>
-                    <br>
-                    <span class="has-text-link">กรุณากดอนุญาตหากโปรแกรมขอสิทธิในการเข้าถึงข้อมูล GPS</span>
-                </div>
-                <div v-if="qrcode_base64" class="mb-5">
-                    <h2 class="title is-5">QR Code สำหรับลงชื่อเข้าปฏิบัติงาน</h2>
-                    <figure class="image is-inline-block" style="max-width: 256px;">
-                        <img :src="qrcodeUrl" alt="Staff check-in QR Code">
-                    </figure>
-                    <p class="help">QR Code มีอายุ 10 นาที</p>
-                </div>
-                <div class="notification is-success is-light" v-if="!isLoading">
-                    <span class="icon">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </span>
-                    <span>พิกัด GPS <% lat %>, <% lon %></span>
-                </div>
-                <nav class="panel is-success">
-                  <p class="panel-heading">
-                      สถานที่
-                  </p>
-                  <a class="panel-block" @click="checkin('salaya')">
-                    <span class="panel-icon">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </span>
-                    ศาลายา
-                  </a>
-                  <a class="panel-block" @click="checkin('siriraj')">
-                    <span class="panel-icon">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </span>คณะเทคนิคการแพทย์ (ศิริราช)
-                  </a>
-                    <a class="panel-block" @click="checkin('opd')">
-                    <span class="panel-icon">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </span>สถานเวชศาสตร์ชันสูตร (ศิริราช)
-                    </a>
-                  <a class="panel-block" @click="checkin('gj')">
-                    <span class="panel-icon">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </span>
-                      ศูนย์การแพทย์กาญจนาภิเษก
-                  </a>
-                </nav>
+<section class="section" id="app" v-cloak>
+    <div class="container checkin-container">
+        <h1 class="title is-4">ลงชื่อเข้า–ออกงาน</h1>
+        <p class="subtitle is-6">เลือกสถานที่ที่คุณกำลังปฏิบัติงาน</p>
+        <section class="qr-section" aria-labelledby="qr-heading">
+            <h2 id="qr-heading" class="title is-6">QR Code สำหรับลงชื่อ</h2>
+            <div class="qr-content">
+                <p v-if="isLoading || qrLoading" role="status"><% isLoading ? 'กำลังค้นหาตำแหน่งเพื่อสร้าง QR Code…' : 'กำลังสร้าง QR Code…' %></p>
+                <p v-if="qrError" class="has-text-danger" role="alert"><% qrError %></p>
+                <template v-if="qrcode_base64">
+                    <img v-if="!qrExpired" class="qr-image" :src="qrcodeUrl" alt="QR Code สำหรับลงชื่อเข้าปฏิบัติงาน">
+                    <p v-if="qrExpired" class="has-text-danger" role="status">QR Code หมดอายุแล้ว กรุณาสร้างใหม่</p>
+                    <p v-else class="help">ใช้ได้ถึง <% qrExpiryLabel %> (อายุ 10 นาที)</p>
+                </template>
+                <button type="button" class="button is-light mt-3" :disabled="qrLoading || isLoading" @click="get_qrcode_data">สร้าง QR Code ใหม่</button>
             </div>
+        </section>
+        <div class="gps-card" :aria-busy="isLoading ? 'true' : 'false'">
+            <span class="gps-marker" aria-hidden="true"><i class="fas fa-map-marker-alt"></i></span>
+            <div class="gps-content" role="status" aria-live="polite">
+                <p class="gps-label">ตำแหน่งปัจจุบัน</p>
+                <p v-if="isLoading" class="is-size-7">กำลังค้นหาตำแหน่ง… กรุณาอนุญาตให้เข้าถึง GPS</p>
+                <p v-else-if="gpsError" class="is-size-7 has-text-danger"><% gpsError %></p>
+                <div v-else-if="hasPosition" class="gps-coordinates">
+                    <span>ละติจูด <strong><% lat.toFixed(6) %></strong></span>
+                    <span>ลองจิจูด <strong><% lon.toFixed(6) %></strong></span>
+                </div>
+            </div>
+            <button type="button" class="button is-small is-light gps-refresh" :disabled="isLoading || scanInProgress"
+                    :aria-label="gpsError ? 'ลองค้นหาตำแหน่งอีกครั้ง' : 'ค้นหาตำแหน่งใหม่'"
+                    title="ค้นหาตำแหน่งใหม่" @click="refreshPosition">
+                <span class="icon is-small"><i class="fas fa-sync-alt" :class="{'fa-spin': isLoading}" aria-hidden="true"></i></span>
+                <span><% gpsError ? 'ลองใหม่' : 'รีเฟรช' %></span>
+            </button>
         </div>
+        <div v-if="lastCheckin" class="notification is-success is-light" role="status" aria-live="polite">
+            <p class="has-text-weight-bold"><% lastCheckin.activity %>เรียบร้อยแล้ว</p>
+            <p><% lastCheckin.name %> · <% lastCheckin.place %></p>
+            <p>วันที่และเวลา <% lastCheckin.time %></p>
+        </div>
+        <div v-if="checkinError" class="notification is-danger is-light" role="alert"><% checkinError %></div>
+        <h2 class="title is-5 mb-2">สถานที่ปฏิบัติงาน</h2>
+        <p class="help mb-4">ลงชื่อได้ภายในระยะ <% maxDistanceKm %> กม. จากสถานที่ · เรียงจากใกล้ที่สุด</p>
+        <article v-for="key in sortedLocations" :key="key" class="location-card"
+                 :class="canCheckin(key) ? 'is-eligible' : 'is-unavailable'">
+            <div class="location-heading">
+                <div>
+                    <h3 class="location-name"><% location[key].name %></h3>
+                    <p class="is-size-7"><% !hasPosition ? 'รอพิกัด GPS' : canCheckin(key) ? 'อยู่ในพื้นที่ลงชื่อ' : 'อยู่นอกระยะ' %></p>
+                </div>
+                <span v-if="distances[key] !== null" class="location-distance"
+                      :class="distances[key] > maxDistanceKm ? 'has-text-danger' : 'has-text-success'">
+                    <% distances[key].toFixed(2) %> km
+                </span>
+            </div>
+            <button v-if="canCheckin(key)" type="button" class="button is-success is-small"
+                    :disabled="!canCheckin(key) || scanInProgress || isLoading" @click="checkin(key)">
+                <% scanInProgress && selectedPlace === key ? 'กำลังบันทึก…' : 'ลงชื่อเข้า–ออกงาน' %>
+            </button>
+        </article>
     </div>
 </section>
 {% endblock %}
@@ -75,115 +103,91 @@
                 return {
                     isLoading: true,
                     scanInProgress: false,
+                    selectedPlace: null,
+                    gpsError: '',
+                    checkinError: '',
+                    lastCheckin: null,
+                    qrLoading: false,
+                    qrError: '',
+                    expireDateTime: null,
+                    now: Date.now(),
+                    clockTimer: null,
                     qrcode_base64: '',
-                    lat: '',
-                    lon: '',
+                    lat: null,
+                    lon: null,
+                    maxDistanceKm: 0.5,
                     location: {
-                        salaya: { lat: 13.798807859072065, lon: 100.32312238370811 },
-                        gj: { lat: 13.78719247243879, lon: 100.32144635840142 },
-                        siriraj: { lat: 13.757932973700862, lon: 100.48625575304426 },
-                        opd: { lat: 13.756927312875076, lon: 100.48351451567528 }
+                        salaya: { name: 'ศาลายา', lat: 13.798807859072065, lon: 100.32312238370811 },
+                        gj: { name: 'ศูนย์การแพทย์กาญจนาภิเษก', lat: 13.78719247243879, lon: 100.32144635840142 },
+                        siriraj: { name: 'คณะเทคนิคการแพทย์ (ศิริราช)', lat: 13.757932973700862, lon: 100.48625575304426 },
+                        opd: { name: 'สถานเวชศาสตร์ชันสูตร (ศิริราช)', lat: 13.756927312875076, lon: 100.48351451567528 }
                     }
                 }
             },
             computed: {
+                hasPosition () { return Number.isFinite(this.lat) && Number.isFinite(this.lon) },
+                sortedLocations () {
+                    return Object.keys(this.location).sort((a, b) =>
+                        (this.distances[a] === null ? Infinity : this.distances[a]) -
+                        (this.distances[b] === null ? Infinity : this.distances[b]))
+                },
+                qrExpired () { return !this.expireDateTime || this.now >= Date.parse(this.expireDateTime) },
+                qrExpiryLabel () { return moment(this.expireDateTime).format('DD/MM/YYYY HH:mm:ss') },
+                distances () {
+                    const distances = {}
+                    Object.keys(this.location).forEach((key) => {
+                        const place = this.location[key]
+                        distances[key] = Number.isFinite(this.lat) && Number.isFinite(this.lon)
+                            ? this.calcDistance(this.lat, this.lon, place.lat, place.lon)
+                            : null
+                    })
+                    return distances
+                },
                 qrcodeUrl () {
                     return 'data:image/png;base64,' + this.qrcode_base64
                 }
             },
             methods: {
-                checkin(place) {
-                    if (this.scanInProgress) return
+                canCheckin(place) {
+                    const distance = this.distances[place]
+                    return Number.isFinite(distance) && distance < this.maxDistanceKm
+                },
+                async checkin(place) {
+                    if (this.scanInProgress || this.isLoading || !this.canCheckin(place)) return
                     this.scanInProgress = true
-                    let self = this
-                    let distance = self.calcDistance(self.lat, self.lon,
-                        self.location[place].lat, self.location[place].lon)
-                    if (distance < 0.5) {
-                        const submitCheckin = (confirmCheckout) => axios.post("{{ url_for('staff.geo_checkin') }}", {
-                            data: {
-                                lat: self.lat,
-                                lon: self.lon,
-                                place: place,
-                                confirm_checkout: confirmCheckout
-                            }
-                        })
-                        submitCheckin(false).then(async (resp)=>{
-                            self.scanInProgress = false
-                            self.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
-                            self.staff = resp.data.name
-                            self.numScans = resp.data.numScans
-                            try {
-                                Swal.fire({
-                                    title: 'สวัสดี ' + self.staff,
-                                    timer: 3000,
-                                    showConfirmButton: false,
-                                    timerProgressBar: true,
-                                    icon: 'success',
-                                    text: 'เวลาสแกน ' + self.time
-                                })
-                            } catch {
-                                alert('ลงชื่อเข้าปฏิบัติงานเรียบร้อยเวลา ' + self.time)
-                            }
-                        }).catch(async (error)=>{
-                            if (error.response && error.response.status === 409 &&
-                                error.response.data.message === 'checkout_confirmation_required') {
-                                const result = await Swal.fire({
-                                    title: 'ยืนยันการออกงาน?',
-                                    text: 'เวลาทำงานปัจจุบันประมาณ ' + error.response.data.workedHours + ' ชั่วโมง ต้องการสแกนออกงานหรือไม่?',
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonText: 'ยืนยันออกงาน',
-                                    cancelButtonText: 'ยกเลิก'
-                                })
-                                if (result.isConfirmed) {
-                                    submitCheckin(true).then((resp)=>{
-                                        self.scanInProgress = false
-                                        self.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
-                                        self.staff = resp.data.name
-                                        self.numScans = resp.data.numScans
-                                        Swal.fire({
-                                            title: 'สวัสดี ' + self.staff,
-                                            timer: 3000,
-                                            showConfirmButton: false,
-                                            timerProgressBar: true,
-                                            icon: 'success',
-                                            text: 'เวลาสแกน ' + self.time
-                                        })
-                                    }).catch(()=>{
-                                        self.scanInProgress = false
-                                        Swal.fire({title: 'ระบบเกิดความผิดพลาด', icon: 'error', text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'})
-                                    })
-                                } else {
-                                    self.scanInProgress = false
-                                }
-                                return
-                            }
-                            self.scanInProgress = false
-                            try {
-                                Swal.fire({
-                                    title: 'ระบบเกิดความผิดพลาด',
-                                    timer: 3000,
-                                    timerProgressBar: true,
-                                    icon: 'error',
-                                    text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'
-                                })
-                            } catch {
-                                alert('ระบบเกิดความผิดพลาด ขออภัยในความไม่สะดวก')
-                            }
-                        })
-                    } else {
-                        self.scanInProgress = false
+                    this.selectedPlace = place
+                    this.checkinError = ''
+                    const submit = (confirmCheckout) => axios.post("{{ url_for('staff.geo_checkin') }}", {
+                        data: {lat: this.lat, lon: this.lon, place: place, confirm_checkout: confirmCheckout}
+                    })
+                    try {
+                        let response
                         try {
-                            Swal.fire({
-                                text: 'ท่านอยู่นอกขอบเขตในการลงชื่อเข้าปฏิบัติงานในพื้นที่',
-                                timer: 3000,
-                                timerProgressBar: true,
-                                icon: 'error',
-                                title: 'ระยะห่างรัศมี ' + distance.toFixed(2) + 'km.',
+                            response = await submit(false)
+                        } catch (error) {
+                            if (!error.response || error.response.status !== 409 ||
+                                error.response.data.message !== 'checkout_confirmation_required') throw error
+                            const result = await Swal.fire({
+                                title: 'ยืนยันการออกงาน?',
+                                text: 'เวลาทำงานปัจจุบันประมาณ ' + error.response.data.workedHours + ' ชั่วโมง ต้องการสแกนออกงานหรือไม่?',
+                                icon: 'warning', showCancelButton: true,
+                                confirmButtonText: 'ยืนยันออกงาน', cancelButtonText: 'ยกเลิก'
                             })
-                        } catch {
-                            alert('ท่านอยู่นอกพื้นที่ในการลงชื่อเข้าปฏิบัติงาน')
+                            if (!result.isConfirmed) return
+                            response = await submit(true)
                         }
+                        this.lastCheckin = {
+                            name: response.data.name,
+                            place: this.location[place].name,
+                            activity: response.data.activity === 'checked in' ? 'ลงชื่อเข้างาน' :
+                                response.data.activity === 'checked out' ? 'ลงชื่อออกงาน' : 'บันทึกการลงชื่อ',
+                            time: moment(response.data.time).format('DD/MM/YYYY HH:mm:ss')
+                        }
+                    } catch (error) {
+                        this.checkinError = 'ไม่สามารถบันทึกการลงชื่อได้ กรุณาลองอีกครั้ง หากยังพบปัญหา กรุณาแจ้งหน่วยสารสนเทศ'
+                    } finally {
+                        this.scanInProgress = false
+                        this.selectedPlace = null
                     }
                 },
                 degreesToRadians(degrees) {
@@ -204,34 +208,47 @@
                         Math.cos(startingLong - destinationLong)) * radius;
                     return distanceInKilometers;
                 },
-                get_qrcode_data () {
-                    axios.get("{{ url_for('staff.create_qrcode', account_id=current_user.id) }}",
-                        { params: {'lat': this.lat, 'long': this.lon}}).then((resp)=>{
+                async get_qrcode_data () {
+                    if (this.qrLoading || this.isLoading) return
+                    this.qrLoading = true
+                    this.qrError = ''
+                    try {
+                        const resp = await axios.get("{{ url_for('staff.create_qrcode', account_id=current_user.id) }}",
+                            {params: {lat: this.lat === null ? '' : this.lat, long: this.lon === null ? '' : this.lon}})
                         this.qrcode_base64 = resp.data.qrcode
                         this.expireDateTime = resp.data.expDateTime
+                        this.now = Date.now()
+                    } catch (error) {
+                        this.qrError = 'ไม่สามารถสร้าง QR Code ได้ กรุณาลองอีกครั้ง'
+                    } finally {
+                        this.qrLoading = false
+                    }
+                },
+                refreshPosition () {
+                    this.isLoading = true
+                    this.gpsError = ''
+                    this.lat = null
+                    this.lon = null
+                    this.qrcode_base64 = ''
+                    const failed = () => {
                         this.isLoading = false
-                    })
-                }
-            },
-            mounted () {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition((position)=>{
+                        this.gpsError = 'ไม่สามารถค้นหาตำแหน่งได้ กรุณาเปิด GPS และอนุญาตให้เข้าถึงตำแหน่ง หรือใช้ QR Code สำหรับลงชื่อ'
+                        this.get_qrcode_data()
+                    }
+                    if (!navigator.geolocation) { failed(); return }
+                    navigator.geolocation.getCurrentPosition((position) => {
                         this.lat = position.coords.latitude
                         this.lon = position.coords.longitude
                         this.isLoading = false
                         this.get_qrcode_data()
-                    },
-                    (error)=>{
-                        alert('GPS failed')
-                        this.message = 'ไม่สามารถค้นหาตำแหน่งของคุณได้แต่คุณยังสามารถใช้ QR Code ในการสแกนได้'
-                        this.get_qrcode_data()
-                    },
-                    {timeout: 9000, enableHighAccuracy: true});
-                } else {
-                    alert('Geolocation not supported.')
-                    this.get_qrcode_data()
+                    }, failed, {timeout: 9000, enableHighAccuracy: true, maximumAge: 0})
                 }
-            }
+            },
+            mounted () {
+                this.refreshPosition()
+                this.clockTimer = setInterval(() => { this.now = Date.now() }, 1000)
+            },
+            beforeDestroy () { clearInterval(this.clockTimer) }
         })
     </script>
 {% endblock %}
