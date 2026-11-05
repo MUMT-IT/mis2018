@@ -6338,7 +6338,36 @@ def seminar_pre_register_info(seminar_id):
 def create_seminar():
     form = StaffSeminarForm()
     if form.validate_on_submit():
-        is_duplicate = StaffSeminar.query.filter_by(topic=form.topic.data, start_datetime=form.start_datetime.data).first()
+        selected_seminar_id = request.form.get('selected_seminar_id', type=int)
+        selected_seminar = StaffSeminar.query.get(selected_seminar_id) if selected_seminar_id else None
+        if selected_seminar:
+            def local_datetime_value(value):
+                if value is None:
+                    return None
+                if value.tzinfo:
+                    value = value.astimezone(tz)
+                return value.replace(tzinfo=None, microsecond=0)
+
+            is_unchanged = (
+                selected_seminar.topic_type == form.topic_type.data
+                and selected_seminar.topic == form.topic.data
+                and local_datetime_value(selected_seminar.start_datetime)
+                == local_datetime_value(form.start_datetime.data)
+                and local_datetime_value(selected_seminar.end_datetime)
+                == local_datetime_value(form.end_datetime.data)
+                and selected_seminar.organize_by == form.organize_by.data
+                and selected_seminar.location == form.location.data
+                and bool(selected_seminar.is_online) == bool(form.is_online.data)
+            )
+            if is_unchanged:
+                flash('เลือกการอบรมที่มีอยู่แล้ว ระบบจะใช้รายการเดิม', 'success')
+                if hr_permission.can():
+                    return redirect(url_for('staff.seminar_attend_info_for_hr',
+                                            seminar_id=selected_seminar.id))
+                return redirect(url_for('staff.seminar_create_record', seminar_id=selected_seminar.id))
+        is_duplicate = None if selected_seminar else StaffSeminar.query.filter_by(
+            topic=form.topic.data, start_datetime=form.start_datetime.data
+        ).first()
         if not is_duplicate:
             seminar = StaffSeminar()
             form.populate_obj(seminar)
@@ -7431,6 +7460,12 @@ def show_seminar_info_each_person(record_id):
             proposer_list_text = " ".join(names)
     else:
         proposer_names = [str(seminar_attend.staff.personal_info)]
+    if len(proposer_names) > 1 and seminar_attend.budget:
+        pdf_budget_text = 'จำนวน {} คน รวมทั้งสิ้น {:,.2f} บาท '.format(
+            len(proposer_names), seminar_attend.budget * len(proposer_names)
+        )
+    else:
+        pdf_budget_text = 'รวมทั้งสิ้น {} บาท '.format(budget)
     approver = seminar_attend.lower_level_approver.personal_info if seminar_attend.lower_level_approver else ''
     document_approver = StaffSeminarDocumentApprover.query.filter_by(seminar_attend=seminar_attend).first()
     approver_position = document_approver.position.position if document_approver else ''
@@ -7473,6 +7508,7 @@ def show_seminar_info_each_person(record_id):
                            taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
                            prefix_position=prefix_position, telephone=telephone,
                            proposer_list_text=proposer_list_text, proposer_names=proposer_names,
+                           pdf_budget_text=pdf_budget_text,
                            seminar_start_date_thai=seminar_start_date_thai,
                            seminar_end_date_thai=seminar_end_date_thai,
                            approver=approver, approver_position=approver_position, idp_value=idp_value,
@@ -8385,6 +8421,19 @@ def staff_edit_info(staff_id):
                     send_mail([responsible_person.email + "@mahidol.ac.th"], req_title, req_msg)
                 else:
                     print(req_msg, responsible_person.email)
+
+            from app.PA.models import IDP, PAFunctionalCompetencyEvaluation
+            all_idp = IDP.query.filter_by(staff_account_id=staff_account.id).all()
+            for idp in all_idp:
+                idp.is_active = False
+                db.session.add(idp)
+            all_fc = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=staff_account.id).all()
+            for fc in all_fc:
+                fc.is_active = False
+                db.session.add(fc)
+            db.session.commit()
+            flash('ยกเลิกรายการ IDP และ FC ที่เกี่ยวข้องเรียบร้อยแล้ว', 'success')
+
         flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
         return redirect(url_for('staff.staff_show_info', staff_id=staff_id))
     staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
