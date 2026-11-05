@@ -1,5 +1,7 @@
 """Regression coverage for deleting pending borrowing tickets."""
+import ast
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
 
 
@@ -22,7 +24,33 @@ class BorrowingTicketDeletionTests(unittest.TestCase):
         helper_source = self.views[helper_start:helper_end]
 
         self.assertIn("user_id == borrowing_ticket.creator_id", helper_source)
-        self.assertIn('== "กำลังส่งคำขอ"', helper_source)
+        self.assertIn('_status_id_for_record(borrowing_ticket, "PENDING")', helper_source)
+
+    def test_edit_and_delete_permissions_follow_selected_system(self):
+        source = ast.parse(self.views)
+        helpers = [
+            node for node in source.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name in {"_can_edit_borrowing_ticket", "_can_delete_borrowing_ticket"}
+        ]
+        selected = {"system": "finance"}
+        namespace = {
+            "ADVANCE_PAYMENT_SYSTEM": "advance_payment",
+            "_selected_system": lambda: selected["system"],
+            "_status_id_for_record": lambda ticket, code: code,
+        }
+        exec(compile(ast.Module(body=helpers, type_ignores=[]), "views.py", "exec"), namespace)
+        ticket = SimpleNamespace(
+            creator_id=1, borrower_id=2, status_id="PENDING",
+            approved_at=None, rejection_comment=None,
+        )
+
+        self.assertFalse(namespace["_can_edit_borrowing_ticket"](1, ticket))
+        self.assertFalse(namespace["_can_delete_borrowing_ticket"](1, ticket))
+        selected["system"] = "advance_payment"
+        self.assertTrue(namespace["_can_edit_borrowing_ticket"](1, ticket))
+        self.assertTrue(namespace["_can_delete_borrowing_ticket"](1, ticket))
+        self.assertFalse(namespace["_can_delete_borrowing_ticket"](2, ticket))
 
     def test_delete_route_is_post_only_and_rechecks_permission(self):
         route_start = self.views.index(
