@@ -171,7 +171,7 @@
                     <span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span>
                   </td>
                   <td>
-                    <div class="fw-bold text-dark">{{ claim.fund_request.ticket_number if claim.fund_request_id else '-' }}</div>
+                    <div class="fw-bold text-dark">{{ claim.number if claim.number else claim.fund_request.ticket_number }}</div>
                   </td>
                   <td>
                     <div class="fw-bold text-dark">{{ claim.setting.department_name if claim.setting else 'ไม่ระบุ' }}</div>
