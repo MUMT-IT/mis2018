@@ -112,6 +112,7 @@ def render_template(template_name, *args, **kwargs):
     )
     kwargs.setdefault("cash_mng_finance_open", _is_cash_mng_finance_open())
     kwargs.setdefault("return_detail_is_cash", _return_detail_is_cash)
+    kwargs.setdefault("can_download_return_detail", can_download_return_detail)
     return _render_template(template_name, *args, **kwargs)
 
 
@@ -4266,6 +4267,17 @@ def _return_detail_has_over_limit_item(return_detail):
 def _return_detail_is_cash(return_detail):
     items = list(getattr(return_detail, "receipt_items", None) or [])
     return bool(items) and all(bool(item.is_cash) for item in items)
+
+
+def can_download_return_detail(return_detail, role=None):
+    """Allow an approved non-cash return PDF in the advance-payment system."""
+    role = _current_module_role() if role is None else role
+    return bool(
+        return_detail
+        and role != FINANCE_SYSTEM
+        and (getattr(return_detail, "status", None) or "").lower() == "ผ่านการตรวจสอบ"
+        and not _return_detail_is_cash(return_detail)
+    )
 
 
 def _redirect_with_limit_popup(location, message):
@@ -10828,7 +10840,11 @@ def export_ticket_return_pdf(return_id):
         abort(404)
     if _selected_system() == FINANCE_SYSTEM and return_detail.status_id == _status_id_for_record(return_detail, "DRAFT"):
         abort(404)
-    if not return_detail.approved_at:
+    if _selected_system() == FINANCE_SYSTEM:
+        can_download = bool(return_detail.approved_at)
+    else:
+        can_download = can_download_return_detail(return_detail)
+    if not can_download:
         abort(403)
 
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
