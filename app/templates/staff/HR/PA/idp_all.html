@@ -78,19 +78,23 @@
                                    {% if idp.achievement_percentage %} {{ idp.achievement_percentage }}{% else %}{% endif %}
                                 </td>
                                 <td>
+                                    {% if idp.is_active != False %}
                                     <button type="button" class="button is-small is-info is-light mt-2 js-edit-idp-approver"
                                             onclick="var modal = document.getElementById('idp-approver-modal-{{ idp.id }}'); modal.classList.add('is-active'); window.initIdpApproverSelect2(modal)">
                                             <span class="icon"><i class="fas fa-user-edit"></i></span>
                                             <span>แก้ไขผู้อนุมัติ</span>
                                     </button>
                                     <form method="post" action="{{ url_for('pa.hr_delete_idp', idp_id=idp.id) }}"
-                                          onsubmit="return confirm({{ ('ยืนยันการลบข้อมูล IDP ของ ' ~ idp.staff.fullname ~ ' รอบ ' ~ idp.round ~ '? การลบนี้ไม่สามารถกู้คืนได้')|tojson|forceescape }});">
+                                          onsubmit="return confirm({{ ('ยืนยันการยกเลิก IDP ของ ' ~ idp.staff.fullname ~ ' รอบ ' ~ idp.round ~ '?')|tojson|forceescape }});">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="button is-small is-danger">
                                             <span class="icon"><i class="fas fa-trash"></i></span>
-                                            <span>ลบ</span>
+                                            <span>ยกเลิก</span>
                                         </button>
                                     </form>
+                                    {% else %}
+                                        IDP นี้ถูกยกเลิกแล้ว
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

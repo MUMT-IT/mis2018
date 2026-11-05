@@ -71,6 +71,7 @@
                     </b-notification>
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
+                        <input type="hidden" name="selected_seminar_id" id="selected-seminar-id" value="">
                         <div class="box">
                             <div class="field">
                                 <label class="label">{{ form.topic_type.label }}</label>
@@ -156,6 +157,28 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="modal" id="new-seminar-confirm-modal" role="dialog" aria-modal="true">
+                            <div class="modal-background" data-close-seminar-confirm></div>
+                            <div class="modal-card">
+                                <header class="modal-card-head">
+                                    <p class="modal-card-title">ยืนยันสร้างรายการอบรมใหม่</p>
+                                    <button class="delete" type="button" aria-label="close" data-close-seminar-confirm></button>
+                                </header>
+                                <section class="modal-card-body">
+                                    คุณได้ทำการแก้ไขข้อมูลจากรายการอบรมเดิม ระบบจะดำเนินการสร้างรายการอบรมใหม่
+                                    <label class="checkbox mt-4" style="display:block">
+                                        <input type="checkbox" id="confirm-new-seminar-checkbox">
+                                        ยืนยันสร้างรายการใหม่จากข้อมูลที่แก้ไข
+                                    </label>
+                                </section>
+                                <footer class="modal-card-foot">
+                                    <button type="button" class="button" data-close-seminar-confirm>กลับไปตรวจสอบ</button>
+                                    <button type="button" class="button is-success" id="confirm-new-seminar-submit" disabled>
+                                        ยืนยันและสร้างรายการใหม่
+                                    </button>
+                                </footer>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -211,30 +234,87 @@
                 }
             }
         });
+        const seminarForm = document.querySelector('#app form');
+        const selectedSeminarIdInput = document.querySelector('#selected-seminar-id');
+        const confirmModal = document.querySelector('#new-seminar-confirm-modal');
+        const confirmCheckbox = document.querySelector('#confirm-new-seminar-checkbox');
+        const confirmSubmitButton = document.querySelector('#confirm-new-seminar-submit');
+        let selectedSeminarSnapshot = null;
+        let submitAfterConfirmation = false;
+
+        function readSeminarFormValues() {
+            return {
+                topic_type: seminarForm.elements.namedItem('topic_type').value,
+                topic: seminarForm.elements.namedItem('topic').value,
+                start_datetime: seminarForm.elements.namedItem('start_datetime').value,
+                end_datetime: seminarForm.elements.namedItem('end_datetime').value,
+                organize_by: seminarForm.elements.namedItem('organize_by').value,
+                location: seminarForm.elements.namedItem('location').value,
+                is_online: seminarForm.elements.namedItem('is_online').checked
+            };
+        }
+
+        seminarForm.addEventListener('submit', event => {
+            if (submitAfterConfirmation) {
+                submitAfterConfirmation = false;
+                return;
+            }
+            if (!selectedSeminarIdInput.value || !selectedSeminarSnapshot) {
+                return;
+            }
+            if (JSON.stringify(readSeminarFormValues()) !== JSON.stringify(selectedSeminarSnapshot)) {
+                event.preventDefault();
+                confirmCheckbox.checked = false;
+                confirmSubmitButton.disabled = true;
+                confirmModal.classList.add('is-active');
+            }
+        });
+
+        confirmCheckbox.addEventListener('change', () => {
+            confirmSubmitButton.disabled = !confirmCheckbox.checked;
+        });
+        confirmSubmitButton.addEventListener('click', () => {
+            if (!confirmCheckbox.checked) {
+                return;
+            }
+            confirmModal.classList.remove('is-active');
+            submitAfterConfirmation = true;
+            seminarForm.requestSubmit();
+        });
+        document.querySelectorAll('[data-close-seminar-confirm]').forEach(element => {
+            element.addEventListener('click', () => confirmModal.classList.remove('is-active'));
+        });
+
         function applySeminarSuggestion(data) {
             if (!data) {
                 return;
             }
+            const selectedSeminarId = document.querySelector('#selected-seminar-id');
+            if (selectedSeminarId) {
+                selectedSeminarId.value = data.id || '';
+            }
             let topicInput = document.querySelector("[name='topic']");
-            if (topicInput && data.topic) {
-                topicInput.value = data.topic;
+            if (topicInput) {
+                topicInput.value = data.topic || '';
             }
             let organizeInput = document.querySelector("input[name='organize_by']");
-            if (organizeInput && data.organize_by) {
-                organizeInput.value = data.organize_by;
+            if (organizeInput) {
+                organizeInput.value = data.organize_by || '';
             }
             let locationInput = document.querySelector("input[name='location']");
-            if (locationInput && data.location) {
-                locationInput.value = data.location;
+            if (locationInput) {
+                locationInput.value = data.location || '';
             }
             let topicTypeSelect = document.querySelector("select[name='topic_type']");
-            if (topicTypeSelect && data.topic_type) {
-                topicTypeSelect.value = data.topic_type;
+            if (topicTypeSelect) {
+                topicTypeSelect.value = data.topic_type || '';
             }
             if (data.start_datetime) {
                 const suggestedStart = new Date(data.start_datetime);
                 vm.startDateTime = suggestedStart;
-                vm.endDateTime = new Date(suggestedStart.getTime() + 3 * 60 * 60 * 1000);
+                vm.endDateTime = data.end_datetime
+                    ? new Date(data.end_datetime)
+                    : new Date(suggestedStart.getTime() + 3 * 60 * 60 * 1000);
             } else if (data.end_datetime) {
                 vm.endDateTime = new Date(data.end_datetime);
             }
@@ -246,6 +326,9 @@
             if (list) {
                 list.innerHTML = "";
             }
+            vm.$nextTick(() => {
+                selectedSeminarSnapshot = readSeminarFormValues();
+            });
         }
         window.applySeminarSuggestion = applySeminarSuggestion;
     </script>
