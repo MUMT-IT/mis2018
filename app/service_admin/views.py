@@ -2354,7 +2354,7 @@ def search_customer_for_admin():
 
 
 @service_admin.route('/customer/register/search')
-def search_customer_for_customer():
+def search_customer_for_user():
     is_admin = 'false'
     customer_name = request.args.get('customer_name', '').strip()
     customers = []
@@ -2730,14 +2730,13 @@ def create_customer_for_admin(customer_id=None):
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
 @service_admin.route('/customer/edit', methods=['GET', 'POST'])
-@login_required
 def create_customer_for_user(customer_id=None):
-    tab = request.args.get('tab')
+    email = request.args.get('email')
     user_type = session.get('user_type')
     customer = None
-    if customer_id:
-        customer = ServiceCustomerInfo.query.get(customer_id)
-        account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
+    if email:
+        account = ServiceCustomerAccount.query.filter_by(email=email).first()
+        customer = ServiceCustomerInfo.query.filter_by(id=account.customer_info_id).first()
         form = ServiceCustomerInfoForm(obj=customer)
     else:
         account = None
@@ -2775,9 +2774,8 @@ def create_customer_for_user(customer_id=None):
             for error in document_errors:
                 flash(error, 'danger')
             return render_template(
-                'service_admin/create_customer.html', customer_id=customer_id,
-                form=form, account=account, tab=tab, user_type=user_type,
-                document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                'service_admin/create_customer.html', email=email, form=form, account=account,
+                user_type=user_type, document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
                 required_document_attachments=_required_document_attachments(customer)
             )
 
@@ -2824,20 +2822,20 @@ def create_customer_for_user(customer_id=None):
                 customer.required_attachments.append(attachment)
             db.session.add(attachment)
 
-        email = request.form.get('email')
+        cus_email = request.form.get('email')
         if customer_id is None:
             customer.is_document_verified = None
             if current_user.is_authenticated and user_type and user_type == 'staff':
                 customer.creator_id = current_user.id
-            cus_account = ServiceCustomerAccount.query.filter_by(email=email).first()
+            cus_account = ServiceCustomerAccount.query.filter_by(email=cus_email).first()
             if cus_account:
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
-                return redirect(url_for('service_admin.create_customer_for_user', custoemr_id=customer_id, tab=tab))
+                return redirect(url_for('service_admin.create_customer_for_user', email=email))
             else:
-                account = ServiceCustomerAccount(email=email, customer_info=customer,
+                account = ServiceCustomerAccount(email=cus_email, customer_info=customer,
                                                  verify_datetime=arrow.now('Asia/Bangkok').datetime)
         else:
-            account.email = email
+            account.email = cus_email
             if customer.is_document_verified is None:
                 customer.is_document_verified = None
         db.session.add(account)
@@ -2856,22 +2854,18 @@ def create_customer_for_user(customer_id=None):
             message = f'''เรียน แอดมินส่วนกลาง\n\n'''
             message += f'''มีผู้รับบริการที่ดำเนินการลงทะเบียนเพื่อรับบริการเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
-            message += f'''ระบบงานงานบริการวิชาการ'''
+            message += f'''ระบบขึ้นทะเบียนผู้รับบริการ'''
             if not current_app.debug:
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
-        if menu:
-            return redirect(url_for('service_admin.request_index', menu=menu))
-        else:
-            return redirect(url_for('service_admin.closing_page'))
+        return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template(
-        'service_admin/create_customer.html', customer_id=customer_id,
-        form=form, account=account, tab=tab, user_type=user_type,
-        document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+        'service_admin/create_customer.html', email=email, form=form, account=account,
+        user_type=user_type, document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
         required_document_attachments=_required_document_attachments(customer) if customer else {}
     )
 
