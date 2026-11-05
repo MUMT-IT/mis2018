@@ -2729,7 +2729,6 @@ def create_customer_for_admin(customer_id=None):
 
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
-@service_admin.route('/customer/edit', methods=['GET', 'POST'])
 def create_customer_for_user(customer_id=None):
     email = request.args.get('email')
     user_type = session.get('user_type')
