@@ -726,7 +726,9 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
 
     department_name = setting.department_name or missing_department_notice()
     department = str(department_name)
-    head_name, head_position = _get_head_signature(setting=setting)
+    approver_signatures = _get_leave_approver_signatures(
+        staff_account_id=getattr(setting, "custodian_id", None)
+    )
     telephone = _pdf_telephone_number(telephone_number)
     last_day = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
     month_label = get_thai_month_year(month_start).split(" ", 1)[1]
@@ -787,10 +789,13 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
                                ("VALIGN", (0, 0), (-1, -1), "TOP"),
                                ("TOPPADDING", (0, 0), (-1, -1), 3),
                                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-    story.extend([table, _rl_thai_edge_paragraph("จึงเรียนมาเพื่อโปรดทราบ", official, doc.width), Spacer(1, 40)])
-    signature = Table([["", p(f"({head_name})<br/>{head_position}", center)]],
-                      colWidths=[doc.width * 0.45, doc.width * 0.55])
-    story.append(signature)
+    story.extend([table, _rl_thai_edge_paragraph("จึงเรียนมาเพื่อโปรดทราบ", official, doc.width)])
+    for signer_name, signer_position in approver_signatures:
+        signature = Table([[
+            "",
+            p(f"({html.escape(str(signer_name))})<br/>{html.escape(str(signer_position))}", center),
+        ]], colWidths=[doc.width * 0.45, doc.width * 0.55])
+        story.extend([Spacer(1, 38), signature])
     doc.build(story)
     return buffer.getvalue()
 
@@ -1461,15 +1466,17 @@ def _render_reimbursement_with_reportlab(context):
         _rl_paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", styles["ThaiCenter"]),
         Spacer(1, 30),
     ])
-    head = Table([["", Paragraph(
-        f"({html.escape(str(context['head_name']))})<br/>"
-        f"{html.escape(str(context['head_position']))}", styles["ThaiCenter"])]],
-        colWidths=[width * .36, width * .64])
+    for signer_name, signer_position in context["leave_approver_signatures"]:
+        signature = Table([["", Paragraph(
+            f"({html.escape(str(signer_name))})<br/>"
+            f"{html.escape(str(signer_position))}", styles["ThaiCenter"])]],
+            colWidths=[width * .36, width * .64])
+        story.extend([signature, Spacer(1, 38)])
     approval = Table([[Paragraph(
         "อนุมัติ<br/><br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)"
         "<br/>คณบดีคณะเทคนิคการแพทย์", styles["ThaiCenter"]), ""]],
         colWidths=[width * .64, width * .36])
-    story.extend([head, Spacer(1, 35), approval])
+    story.append(approval)
     doc.build(story)
     return output.getvalue()
 
@@ -1855,6 +1862,7 @@ def _build_reimbursement_letter_html(context):
     text-align: center;
     break-inside: avoid;
   }}
+  .head-signature + .head-signature {{ margin-top: 22mm; }}
   .approval-signature {{
     width: 50%;
     margin-top: 16mm ;
@@ -1892,10 +1900,12 @@ def _build_reimbursement_letter_html(context):
     <p class="government-text">{escaped(context['reference_text'])}</p>
     <p class="closing">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง</p>
   </section>
-  <section class="head-signature">
-    <div>({escaped(context['head_name'])})</div>
-    <div>{escaped(context['head_position'])}</div>
-  </section>
+  {''.join(
+      '<section class="head-signature">'
+      f'<div>({escaped(name)})</div><div>{escaped(position)}</div>'
+      '</section>'
+      for name, position in context['leave_approver_signatures']
+  )}
   <section class="approval-signature">
     <div class="approval-title">อนุมัติ</div>
     <div>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)</div>
@@ -1949,8 +1959,8 @@ def generate_petty_claim(claim, claim_type="1"):
         getattr(fund_request, "requester_id", None)
         or getattr(claim, "user_id", None)
     )
-    head_name, head_position = _get_leave_approver_signature(
-        staff_account_id=signer_staff_id, middle_level_only=True
+    approver_signatures = _get_leave_approver_signatures(
+        staff_account_id=signer_staff_id
     )
 
     requester_name = (
@@ -2069,8 +2079,7 @@ def generate_petty_claim(claim, claim_type="1"):
         "amount_text": amount_text,
         "amount_numeric": amount_numeric,
         "reference_text": ref_text,
-        "head_name": head_name,
-        "head_position": head_position,
+        "leave_approver_signatures": approver_signatures,
         "extra_header_space": no_approval_letter,
     }
     return _render_with_reportlab_fallback(
@@ -2126,9 +2135,7 @@ def generate_ticket_return(return_detail):
         or dept_service_data.get("phone_number")
         or PDF_BLANK
     )
-    head_name, head_position = _get_leave_approver_signature(
-        ticket, middle_level_only=True
-    )
+    approver_signatures = _get_leave_approver_signatures(ticket)
     document_context = {
         "title": "Ticket Return Request",
         "department_name": department_name,
@@ -2152,8 +2159,7 @@ def generate_ticket_return(return_detail):
             f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
             f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตาม เอกสารที่แนบมาพร้อมนี้"
         ),
-        "head_name": head_name,
-        "head_position": head_position,
+        "leave_approver_signatures": approver_signatures,
     }
     return _render_with_reportlab_fallback(
         lambda: _render_html_with_chromium(_build_reimbursement_letter_html(document_context)),
@@ -2390,7 +2396,7 @@ def generate_fund_request_pdf(fund_request):
     dept_display = getattr(org, "name", None) or missing_department_notice()
     items = fund_request.items if hasattr(fund_request, 'items') and fund_request.items else []
     item_rows = []
-    total_amount = 0.0
+    total_amount = Decimal("0.00")
     has_total_amount = False
 
     if is_borrowing_form and not items and borrowing_ticket:
@@ -2403,11 +2409,11 @@ def generate_fund_request_pdf(fund_request):
             f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_no}",
             _pdf_amount(ticket_amount),
         ))
-        total_amount = float(ticket_amount) if ticket_amount is not None else 0.0
+        total_amount = Decimal(str(ticket_amount)) if ticket_amount is not None else Decimal("0.00")
         has_total_amount = ticket_amount is not None
     elif not is_interest_form and items:
         for idx, item in enumerate(items, 1):
-            amt = float(item.amount or 0)
+            amt = Decimal(str(item.amount or 0))
             total_amount += amt
             has_total_amount = has_total_amount or item.amount is not None
             item_rows.append((

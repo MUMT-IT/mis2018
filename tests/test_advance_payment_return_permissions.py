@@ -132,6 +132,65 @@ class ReturnDetailPermissionTests(unittest.TestCase):
             "advance_payment.return_proof_detail",
         )
 
+    def test_return_pdf_permission_matches_advance_payment_download_button(self):
+        source = ast.parse(
+            (ROOT / "app/advance_payment/views.py").read_text(encoding="utf-8-sig")
+        )
+        functions = [
+            node for node in source.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name in {
+                "_return_detail_is_cash",
+                "can_download_return_detail",
+                "export_ticket_return_pdf",
+            }
+        ]
+        for node in functions:
+            node.decorator_list = []
+
+        detail = SimpleNamespace(
+            ticket_id=32,
+            status="ผ่านการตรวจสอบ",
+            approved_at=None,
+            receipt_items=[SimpleNamespace(is_cash=False)],
+        )
+        ticket = SimpleNamespace(id=32)
+        context = {
+            "db": SimpleNamespace(session=SimpleNamespace(query=lambda model: SimpleNamespace(
+                get=lambda record_id: detail if model == "return" else ticket
+            ))),
+            "ReturnDetail": "return",
+            "BorrowingTicket": "ticket",
+            "FINANCE_SYSTEM": "finance",
+            "ADVANCE_PAYMENT_SYSTEM": "advance_payment",
+            "_selected_system": lambda: "advance_payment",
+            "_current_module_role": lambda: "borrower",
+            "_current_user_id": lambda: 22,
+            "_can_access_return_detail": lambda user_id, record, borrowing_ticket: True,
+            "abort": lambda status: (_ for _ in ()).throw(PermissionError(status)),
+            "request": SimpleNamespace(method="GET"),
+            "redirect": lambda url: url,
+            "url_for": lambda endpoint, **kwargs: endpoint,
+        }
+        exec(compile(ast.Module(body=functions, type_ignores=[]), "views.py", "exec"), context)
+        can_download = context["can_download_return_detail"]
+        export = context["export_ticket_return_pdf"]
+
+        self.assertTrue(can_download(detail))
+        self.assertEqual(export(23), "advance_payment.return_proof_detail")
+        self.assertFalse(can_download(detail, role="finance"))
+
+        detail.receipt_items = [SimpleNamespace(is_cash=True)]
+        self.assertFalse(can_download(detail))
+        with self.assertRaisesRegex(PermissionError, "403"):
+            export(23)
+
+        detail.receipt_items = [SimpleNamespace(is_cash=False)]
+        detail.status = "รอตรวจสอบ"
+        self.assertFalse(can_download(detail))
+        with self.assertRaisesRegex(PermissionError, "403"):
+            export(23)
+
 
 if __name__ == "__main__":
     unittest.main()
