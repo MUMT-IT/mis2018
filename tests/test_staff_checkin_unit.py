@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 import sys
 import types
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -243,6 +243,24 @@ def staff_views(monkeypatch):
     _install_import_stubs(monkeypatch)
     views = importlib.import_module("app.staff.views")
     return views
+
+
+@pytest.mark.parametrize('reference_date, expected_start, expected_end', [
+    (date(2026, 1, 1), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 6, 1), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 6, 30), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 7, 1), date(2026, 7, 1), date(2026, 12, 31)),
+    (date(2026, 12, 31), date(2026, 7, 1), date(2026, 12, 31)),
+    (date(2027, 1, 1), date(2027, 1, 1), date(2027, 6, 30)),
+])
+def test_civil_servant_login_quota_period_boundaries(
+    staff_views, reference_date, expected_start, expected_end
+):
+    staff = SimpleNamespace(employment=SimpleNamespace(title='ข้าราชการ'))
+
+    assert staff_views._current_login_quota_period(reference_date, staff) == (
+        expected_start, expected_end, 15
+    )
 
 
 def test_create_work_login_record_increments_daily_scan_count_and_sets_qrcode_expiry(staff_views, monkeypatch):

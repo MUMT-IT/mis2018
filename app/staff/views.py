@@ -297,9 +297,9 @@ def _current_login_quota_period(reference_date=None, staff_personal_info=None):
         quota_start_year = reference_date.year if reference_date.month >= 7 else reference_date.year - 1
         quota_start = date(quota_start_year, 7, 1)
         quota_end = date(quota_start_year + 1, 6, 30)
-    elif reference_date.month >= 6:
+    elif reference_date.month >= 7:
         quota_limit = 15
-        quota_start = date(reference_date.year, 6, 1)
+        quota_start = date(reference_date.year, 7, 1)
         quota_end = date(reference_date.year, 12, 31)
     else:
         quota_limit = 15
