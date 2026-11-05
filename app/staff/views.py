@@ -291,20 +291,24 @@ def _parse_login_summary_date(value, *, default=None):
 
 def _current_login_quota_period(reference_date=None, staff_personal_info=None):
     reference_date = reference_date or datetime.now(tz).date()
-    employment_title = getattr(getattr(staff_personal_info, 'employment', None), 'title', '')
-    if employment_title.strip() == 'พนักงานมหาวิทยาลัย':
-        quota_limit = 30
+    employment_title = (getattr(getattr(staff_personal_info, 'employment', None), 'title', '') or '').strip()
+    quota_limit = 15 if employment_title == 'ข้าราชการ' else 30
+    if employment_title != 'ข้าราชการ':
         quota_start_year = reference_date.year if reference_date.month >= 7 else reference_date.year - 1
         quota_start = date(quota_start_year, 7, 1)
         quota_end = date(quota_start_year + 1, 6, 30)
     elif reference_date.month >= 7:
-        quota_limit = 15
         quota_start = date(reference_date.year, 7, 1)
         quota_end = date(reference_date.year, 12, 31)
     else:
-        quota_limit = 15
         quota_start = date(reference_date.year, 1, 1)
         quota_end = date(reference_date.year, 6, 30)
+    # The initial rollout starts in October; later periods use the regular bounds.
+    first_start = date(2026, 10, 1)
+    first_end = date(2026, 12, 31) if employment_title == 'ข้าราชการ' else date(2027, 6, 30)
+    if first_start <= reference_date <= first_end:
+        quota_start = first_start
+        quota_end = first_end
     return quota_start, quota_end, quota_limit
 
 
@@ -4875,6 +4879,84 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
             continue
         recipients.append(staff_account)
     return recipients
+
+
+def _build_missing_checkout_recipients(target_date, round_time, records=None):
+    """Split recipients by hours at 16:40, checking current checkout records."""
+    if round_time not in {'16:40', '17:00'}:
+        raise ValueError('Invalid checkout reminder round')
+    if records is None:
+        records = StaffWorkLogin.query.filter_by(date_id=target_date.strftime('%Y%m%d')).all()
+    grouped = defaultdict(list)
+    for record in records:
+        start = _to_bangkok(record.start_datetime)
+        if record.staff_id and start and start.date() == target_date:
+            grouped[record.staff_id].append(record)
+
+    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime('16:40', '%H:%M').time()))
+    recipients = []
+    for account in StaffAccount.get_active_accounts():
+        day_records = grouped.get(account.id, [])
+        if not account.line_id or not day_records:
+            continue
+        # Additional scans represent checkout in the existing scan workflow.
+        if len(day_records) > 1 or any(
+            record.end_datetime or getattr(record, 'correction_type', None) == 'checkout'
+            for record in day_records
+        ):
+            continue
+        start = _to_bangkok(day_records[0].start_datetime)
+        early_round = _calculate_work_hours(start, cutoff) >= 8.0
+        if early_round == (round_time == '16:40'):
+            recipients.append(account)
+    return recipients
+
+
+@csrf.exempt
+@staff.route('/admin/line-remind-missing-checkout', methods=['GET', 'POST'])
+def line_remind_missing_checkout():
+    # A missing scheduler token must not make this sending endpoint public.
+    if not (os.environ.get('JOB_TOKEN') and _is_valid_checkin_scheduler_request()):
+        if not current_user.is_authenticated:
+            abort(401)
+        if not admin_permission.can():
+            abort(403)
+    round_time = request.values.get('round')
+    if round_time not in {'16:40', '17:00'}:
+        abort(400)
+    now = datetime.now(tz)
+    target_date = now.date()
+    recipients = []
+    if target_date.weekday() < 5 and not _get_holiday_for_date(target_date):
+        recipients = _build_missing_checkout_recipients(target_date, round_time)
+    payload = {
+        'date': target_date.isoformat(), 'round': round_time,
+        'recipient_count': len(recipients),
+        'recipients': [{'staff_id': account.id, 'staff_name': account.fullname}
+                       for account in recipients],
+        'sent_count': 0, 'failed_count': 0,
+        'message': 'preview' if request.method == 'GET' else 'success',
+    }
+    if request.method == 'GET':
+        return jsonify(payload)
+    # Do not send an early reminder or replay the first round after 17:00.
+    local_time = now.strftime('%H:%M')
+    if local_time < round_time or (round_time == '16:40' and local_time >= '17:00'):
+        abort(400)
+    for account in recipients:
+        try:
+            line_bot_api.push_message(
+                to=account.line_id,
+                messages=TextSendMessage(text=(
+                    f'แจ้งเตือนลงเวลาออกงานประจำวันที่ {target_date:%d/%m/%Y}\n'
+                    'วันนี้ท่านลงเวลาเข้างานแล้ว แต่ยังไม่พบการลงเวลาออกงาน '
+                    'หากสิ้นสุดการปฏิบัติงานแล้ว กรุณาลงเวลาออกงานใน MUMT Connect'
+                )),
+            )
+            payload['sent_count'] += 1
+        except LineBotApiError:
+            payload['failed_count'] += 1
+    return jsonify(payload)
 
 
 def _build_missing_checkin_reminder_message(staff_account, target_date):
