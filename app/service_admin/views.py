@@ -2380,7 +2380,7 @@ def search_customer_for_customer():
 
 @service_admin.route('/customer/register/detail/<int:customer_id>')
 def customer_detail(customer_id):
-    is_admin = request.args.get('is_admin')
+    is_admin = request.args.get('is_admin', 'false')
     customer = ServiceCustomerInfo.query.get(customer_id)
     # lab_payments = _build_customer_lab_payments(customer)
     overdue_invoices = _get_customer_overdue_invoices(customer)
@@ -2486,7 +2486,7 @@ def _get_customer_overdue_invoices(customer):
 @service_admin.route('/external-lab/index')
 @login_required
 def external_lab_index():
-    is_admin = request.args.get('is_admin')
+    is_admin = request.args.get('is_admin', 'false')
     customer_id = request.args.get('customer_id', type=int)
     labs = ServiceLab.query.filter_by(is_external=True)
     return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id,
@@ -2496,7 +2496,7 @@ def external_lab_index():
 @service_admin.route('/request/external-lab/all/<int:sub_lab_id>')
 @login_required
 def external_lab_request_index(sub_lab_id):
-    is_admin = request.args.get('is_admin')
+    is_admin = request.args.get('is_admin', 'false')
     customer_id = request.args.get('customer_id', type=int)
     sub_lab = ServiceSubLab.query.get(sub_lab_id)
 
@@ -2517,7 +2517,7 @@ def external_lab_request_index(sub_lab_id):
 @service_admin.route('/request/external-lab/add/<int:sub_lab_id>', methods=['GET', 'POST'])
 @login_required
 def create_request_id(sub_lab_id):
-    is_admin = request.args.get('is_admin')
+    is_admin = request.args.get('is_admin', 'false')
     request_index = request.args.get('request_index')
     customer_id = request.args.get('customer_id', type=int)
     sub_lab = ServiceSubLab.query.get(sub_lab_id)
@@ -2545,7 +2545,7 @@ def create_request_id(sub_lab_id):
 @service_admin.route('/customer/invoice/overdue/view/<int:invoice_id>')
 @login_required
 def view_overdue_invoice(invoice_id):
-    is_admin = request.args.get('is_admin')
+    is_admin = request.args.get('is_admin', 'false')
     customer_id = request.args.get('customer_id', type=int)
     invoice = ServiceInvoice.query.get(invoice_id)
     return render_template('service_admin/view_overdue_invoice.html', invoice=invoice,
