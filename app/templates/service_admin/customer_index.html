@@ -10,7 +10,7 @@
             <div class="column">
                 {% if not central_admin_academic_service_permission.can() %}
                     <div class="buttons is-centered">
-                        <a class="button is-info" href="{{ url_for('service_admin.create_customer', tab='all') }}">
+                        <a class="button is-info" href="{{ url_for('service_admin.create_customer_for_admin', tab='all') }}">
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
                             </span>
@@ -185,7 +185,7 @@
                                         {% if not central_admin_academic_service_permission.can() %}
                                             <div class="control">
                                                 <a class="button is-small is-warning is-outlined is-rounded"
-                                                   href="{{ url_for('service_admin.create_customer', customer_id=customer.id,
+                                                   href="{{ url_for('service_admin.create_customer_for_admin', customer_id=customer.id,
                                                    tab='all') }}">
                                                     <span class="icon">
                                                         <i class="fas fa-pencil-alt"></i>
