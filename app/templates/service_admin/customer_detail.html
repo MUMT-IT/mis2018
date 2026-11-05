@@ -18,7 +18,7 @@
                 </div>
                 <div class="buttons customer-detail-heading-actions">
                     <a class="button customer-detail-back"
-                       {% if is_admin %}
+                       {% if is_admin == 'true' %}
                             href="{{ url_for('service_admin.search_customer_for_admin', customer_name=customer.cus_name) }}">
                         {% else %}
                             href="{{ url_for('service_admin.search_customer_for_customer', customer_name=customer.cus_name) }}">
@@ -254,7 +254,7 @@
                         <h2><i class="fas fa-flask-vial"></i> บริการล่าสุด</h2>
                     </div>
                     <div class="buttons mb-0">
-                        {% if is_admin %}
+                        {% if is_admin == 'true' %}
                             <a class="button is-small is-primary is-rounded"
                                href="{{ url_for('service_admin.external_lab_index', customer_id=customer.id,
                                is_admin=is_admin) }}">
