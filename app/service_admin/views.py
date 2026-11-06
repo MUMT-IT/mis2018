@@ -3018,7 +3018,7 @@ def send_email_customer():
     is_admin = request.args.get('is_admin', 'false')
     customer_id = request.args.get('customer_id', type=int)
     customer = ServiceCustomerInfo.query.get(customer_id)
-    flash('ขอแก้ไข้ข้อมูลำเร็จ กรุณาดำเนินการเข้าสู่อีเมลเพื่อดำเนินการแก้ไขข้อมูล', 'success')
+    flash('ส่งคำขอแก้ไขข้อมูลสำเร็จ กรุณาตรวจสอบอีเมลเพื่อดำเนินการแก้ไขข้อมูล', 'success')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     token = serializer.dumps({'email': customer.accounts[0].email})
     link = url_for("service_admin.verify_customer_token", token=token, _external=True, _scheme=scheme,
@@ -3026,9 +3026,9 @@ def send_email_customer():
     title_prefix = 'คุณ' if customer.type.type == 'บุคคล' else ''
     title = f'''แจ้งขอแก้ไขข้อมูลผู้รับบริการ'''
     message = f'''เรียน {title_prefix}{customer.cus_name}\n\n'''
-    message += f'''ตามที่ท่านได้ลงทะเบียนขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจสอบข้อมูลการลง'''
-    message += f'''ทะเบียนของท่าน พบว่ามีข้อมูลบางส่วนที่ต้องแก้ไขเพิ่มเติม\nกรุณาดำเนินการแก้ไขข้อมูลให้ถูกต้องครบถ้วน ภายใน 24 ชั่วโมง นับจากที่ได้รับอีเมลฉบับนี้ '''
-    message += f'โดยท่านสามารถแก้ไขข้อมูลได้ที่ลิงก์ด้านล่าง\n\n{link}\n\n'
+    message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอแก้ไขข้อมูลการลงทะเบียนผู้รับบริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+    message += f'''ท่านสามารถดำเนินการแก้ไขข้อมูลได้ที่ลิงก์ด้านล่างภายใน 24 ชั่วโมงนับจากได้รับอีเมลฉบับนี้\n\n'''
+    message += f'{link}\n\n'
     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message += f'''ขอแสดงความนับถือ\n'''
     message += f'''ระบบขึ้นทะเบียนผู้รับบริการ\n'''
@@ -3049,7 +3049,7 @@ def verify_customer_token():
         return 'รหัสหมดอายุหรือไม่ถูกต้อง'
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
     if not user:
-        flash('ไม่พบชื่อบัญชีในฐานข้อมูล')
+        flash('ไม่พบชื่อผู้รับบริการในฐานข้อมูล')
         return redirect(url_for('service_admin.search_customer_for_user'))
     else:
         identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
