@@ -2599,6 +2599,8 @@ def view_customer(customer_id):
 def create_customer_for_admin(customer_id=None):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    source = request.args.get('source', 'academic_service')
+    is_admin = request.args.get('is_admin', 'true')
     user_type = session.get('user_type')
     customer = None
     if customer_id:
@@ -2642,7 +2644,8 @@ def create_customer_for_admin(customer_id=None):
                 flash(error, 'danger')
             return render_template(
                 'service_admin/create_customer.html', customer_id=customer_id,
-                form=form, account=account, tab=tab, user_type=user_type,
+                form=form, account=account, tab=tab, user_type=user_type, source=source,
+                is_admin=is_admin,
                 document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
                 required_document_attachments=_required_document_attachments(customer)
             )
@@ -2722,7 +2725,8 @@ def create_customer_for_admin(customer_id=None):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template(
         'service_admin/create_customer.html', customer_id=customer_id,
-        form=form, account=account, tab=tab, user_type=user_type,
+        form=form, account=account, tab=tab, user_type=user_type, source=source,
+        is_admin=is_admin,
         document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
         required_document_attachments=_required_document_attachments(customer) if customer else {}
     )
@@ -2776,8 +2780,11 @@ def create_customer_for_user():
             for error in document_errors:
                 flash(error, 'danger')
             return render_template(
-                'service_admin/create_customer.html', email=email, form=form, account=account,
-                user_type=user_type, document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                'service_admin/create_customer.html', email=email,
+                customer_id=customer.id if customer else None, source='registration',
+                form=form, account=account,
+                is_admin=is_admin, user_type=user_type,
+                document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
                 required_document_attachments=_required_document_attachments(customer)
             )
 
@@ -2999,8 +3006,10 @@ def create_customer_for_user():
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template(
-        'service_admin/create_customer.html', email=email, form=form, account=account,
-        user_type=user_type, document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+        'service_admin/create_customer.html', email=email,
+        customer_id=customer.id if customer else None, source='registration',
+        form=form, account=account,
+        is_admin=is_admin, user_type=user_type, document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
         required_document_attachments=_required_document_attachments(customer) if customer else {}
     )
 
