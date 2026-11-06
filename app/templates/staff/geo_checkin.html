@@ -7,28 +7,23 @@
     <style>
         [v-cloak] { display: none; }
         #app .checkin-container { max-width: 720px; }
-        #app .location-card { border: 1px solid #dce5e1; border-radius: 8px; padding: .85rem 1rem; margin-bottom: .5rem; background: white; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
-        #app .location-card.is-unavailable { background: #f0f0f0; border-color: #ddd; color: #707070; }
-        #app .location-card.is-eligible { border-color: #48a887; }
-        #app .location-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-        #app .location-name { font-weight: 600; margin-bottom: .15rem; }
-        #app .location-distance { white-space: nowrap; font-weight: 700; }
-        #app .location-card:disabled { cursor: not-allowed; }
-        #app .location-card.is-eligible:not(:disabled):hover { background: #f0faf5; }
-        #app .location-card:focus-visible { outline: 3px solid #327b68; outline-offset: 3px; }
-        #app .location-card .location-name, #app .location-card .location-status { display: block; }
-        #app .gps-card { display: flex; align-items: flex-start; gap: .75rem; padding: .85rem 1rem; margin-bottom: 1.5rem; border: 1px solid #e1e5e8; border-radius: 8px;
+        #app .gps-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: .75rem; padding: .85rem 1rem; margin-bottom: .75rem; border: 1px solid #e1e5e8; border-radius: 8px;
             background-color: #edf2ea;
             background-image: linear-gradient(90deg, rgba(255,255,255,.96), rgba(255,255,255,.86) 60%, rgba(255,255,255,.55)), url("{{ url_for('static', filename='img/checkin-map-background.svg') }}");
             background-size: cover;
             background-position: center;
         }
         #app .gps-content { flex: 1; min-width: 0; }
-        #app .gps-label { font-weight: 600; font-size: .875rem; }
+        #app .gps-label { display: flex; flex-wrap: wrap; gap: .25rem .5rem; font-weight: 600; font-size: .875rem; }
         #app .gps-marker { color: #327b68; padding-top: .15rem; }
-        #app .gps-coordinates { display: flex; flex-wrap: wrap; gap: .15rem 1rem; margin-top: .25rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
-        #app .gps-coordinates strong { color: inherit; }
+        #app .gps-coordinates { font-weight: 400; font-variant-numeric: tabular-nums; }
+        #app .gps-nearest { margin-top: .4rem; font-size: .875rem; }
         #app .gps-card .gps-refresh { padding: .25rem .5rem; height: auto; min-height: 32px; flex-shrink: 0; }
+        #app .gps-checkin { grid-column: 1 / -1; border-top: 1px solid rgba(50,123,104,.18); padding-top: .75rem; text-align: center; }
+        #app .gps-card .checkin-button { background: #e6f3eb; border: 1px solid #8eb6a3; color: #245f4a; border-radius: 999px; }
+        #app .gps-card .checkin-button:hover:not(:disabled) { background: #d9eddf; border-color: #327b68; }
+        #app .gps-card .checkin-button:focus-visible { outline: 3px solid #327b68; outline-offset: 3px; }
+        #app .gps-card .checkin-button:disabled { background: #f0f0f0; color: #777; border-color: #ccc; cursor: not-allowed; opacity: 1; }
         #app .qr-section { margin-top: 1.5rem; border-top: 1px solid #ddd; padding-top: 1rem; }
         #app .qr-content { text-align: center; padding: 1rem 0; }
         #app .qr-image { display: block; width: 256px; max-width: 100%; margin: 0 auto 1rem; }
@@ -43,13 +38,19 @@
         <div class="gps-card" :aria-busy="isLoading ? 'true' : 'false'">
             <span class="gps-marker" aria-hidden="true"><i class="fas fa-map-marker-alt"></i></span>
             <div class="gps-content" role="status" aria-live="polite">
-                <p class="gps-label">ตำแหน่งปัจจุบัน</p>
+                <p class="gps-label">
+                    <span>ตำแหน่งปัจจุบัน</span>
+                    <span v-if="hasPosition" class="gps-coordinates">(<% lat.toFixed(6) %>, <% lon.toFixed(6) %>)</span>
+                </p>
                 <p v-if="isLoading" class="is-size-7">กำลังค้นหาตำแหน่ง… กรุณาอนุญาตให้เข้าถึง GPS</p>
                 <p v-else-if="gpsError" class="is-size-7 has-text-danger"><% gpsError %></p>
-                <div v-else-if="hasPosition" class="gps-coordinates">
-                    <span>ละติจูด <strong><% lat.toFixed(6) %></strong></span>
-                    <span>ลองจิจูด <strong><% lon.toFixed(6) %></strong></span>
-                </div>
+                <p v-else-if="nearestLocation" class="gps-nearest">
+                    <strong class="is-size-5"><% location[nearestLocation].name %></strong> ·
+                    <strong :class="distances[nearestLocation] > maxDistanceKm ? 'has-text-danger' : 'has-text-success'">
+                        ระยะรัศมี <% formatDistance(distances[nearestLocation]) %>
+                    </strong>
+                    <span v-if="!canCheckin(nearestLocation)"> · อยู่นอกระยะ</span>
+                </p>
             </div>
             <button type="button" class="button is-small is-light gps-refresh" :disabled="isLoading || scanInProgress"
                     :aria-label="gpsError ? 'ลองค้นหาตำแหน่งอีกครั้ง' : 'ค้นหาตำแหน่งใหม่'"
@@ -57,6 +58,12 @@
                 <span class="icon is-small"><i class="fas fa-sync-alt" :class="{'fa-spin': isLoading}" aria-hidden="true"></i></span>
                 <span><% gpsError ? 'ลองใหม่' : 'รีเฟรช' %></span>
             </button>
+            <div class="gps-checkin">
+                <button type="button" class="button is-medium checkin-button"
+                        :disabled="!nearestLocation || !canCheckin(nearestLocation) || isLoading || scanInProgress"
+                        :class="{'is-loading': scanInProgress}"
+                        @click="checkin(nearestLocation)">ลงชื่อเข้า-ออกงาน</button>
+            </div>
         </div>
         <div v-if="lastCheckin" class="notification is-success is-light" role="status" aria-live="polite">
             <p class="has-text-weight-bold"><% lastCheckin.activity %>เรียบร้อยแล้ว</p>
@@ -64,24 +71,6 @@
             <p>วันที่และเวลา <% lastCheckin.time %></p>
         </div>
         <div v-if="checkinError" class="notification is-danger is-light" role="alert"><% checkinError %></div>
-        <h2 class="title is-5 mb-2">สถานที่ปฏิบัติงาน</h2>
-        <button v-for="key in sortedLocations" :key="key" type="button" class="location-card"
-                :class="canCheckin(key) ? 'is-eligible' : 'is-unavailable'"
-                :disabled="!canCheckin(key) || scanInProgress || isLoading"
-                :aria-label="'ลงชื่อเข้า–ออกงาน: ' + location[key].name"
-                :aria-busy="scanInProgress && selectedPlace === key ? 'true' : 'false'"
-                @click="checkin(key)">
-            <span class="location-heading">
-                <span>
-                    <span class="location-name"><% location[key].name %></span>
-                    <span v-if="!canCheckin(key) || (scanInProgress && selectedPlace === key)" class="location-status is-size-7"><% scanInProgress && selectedPlace === key ? 'กำลังบันทึก…' : !hasPosition ? 'รอพิกัด GPS' : 'อยู่นอกระยะ' %></span>
-                </span>
-                <span v-if="distances[key] !== null" class="location-distance"
-                      :class="distances[key] > maxDistanceKm ? 'has-text-danger' : 'has-text-success'">
-                    <% distances[key].toFixed(2) %> km
-                </span>
-            </span>
-        </button>
         <section class="qr-section" aria-labelledby="qr-heading">
             <h2 id="qr-heading" class="title is-6">QR Code สำหรับลงชื่อ</h2>
             <div class="qr-content">
@@ -132,6 +121,7 @@
                 }
             },
             computed: {
+                nearestLocation () { return this.hasPosition ? this.sortedLocations[0] || null : null },
                 hasPosition () { return Number.isFinite(this.lat) && Number.isFinite(this.lon) },
                 sortedLocations () {
                     return Object.keys(this.location).sort((a, b) =>
@@ -155,6 +145,12 @@
                 }
             },
             methods: {
+                formatDistance(distanceKm) {
+                    if (!Number.isFinite(distanceKm)) return ''
+                    return distanceKm < 1
+                        ? Math.round(distanceKm * 1000) + ' m'
+                        : distanceKm.toFixed(2) + ' km'
+                },
                 canCheckin(place) {
                     const distance = this.distances[place]
                     return Number.isFinite(distance) && distance < this.maxDistanceKm
@@ -189,6 +185,19 @@
                             activity: response.data.activity === 'checked in' ? 'ลงชื่อเข้างาน' :
                                 response.data.activity === 'checked out' ? 'ลงชื่อออกงาน' : 'บันทึกการลงชื่อ',
                             time: moment(response.data.time).format('DD/MM/YYYY HH:mm:ss')
+                        }
+                        try {
+                            await Swal.fire({
+                                title: this.lastCheckin.activity + 'เรียบร้อยแล้ว',
+                                text: this.lastCheckin.name + ' · ' + this.lastCheckin.place +
+                                    ' · ' + this.lastCheckin.time,
+                                icon: 'success',
+                                confirmButtonText: 'ตกลง',
+                                timer: 3000,
+                                timerProgressBar: true
+                            })
+                        } catch (modalError) {
+                            // The persistent receipt still confirms the successful scan.
                         }
                     } catch (error) {
                         this.checkinError = 'ไม่สามารถบันทึกการลงชื่อได้ กรุณาลองอีกครั้ง หากยังพบปัญหา กรุณาแจ้งหน่วยสารสนเทศ'
