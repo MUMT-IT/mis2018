@@ -5,11 +5,10 @@
     <section class="service-customer-view section">
         <div class="container service-customer-container">
             {% include "messages.html" %}
-
             <div class="service-customer-heading">
                 <div class="service-customer-heading-copy">
                     <span class="service-customer-heading-icon" aria-hidden="true">
-                        <i class="fas fa-user-check"></i>
+                        <i class="fas fa-user"></i>
                     </span>
                     <div>
                         <p class="service-customer-eyebrow">CUSTOMER PROFILE</p>
@@ -63,6 +62,22 @@
                         <span><i class="fas fa-fax"></i> โทรสาร</span>
                         <strong>{{ customer.fax_no or '-' }}</strong>
                     </div>
+                    <div class="service-customer-info-item">
+                        <span><i class="fas fa-envelope-circle-check"></i> ยืนยันอีเมล</span>
+                        <strong>
+                            {% if customer.verify_email %}
+                                <span class="tag is-success is-light is-rounded">
+                                    <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                    ยืนยันแล้ว {{ customer.verify_email|localdate }}
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger is-light is-rounded">
+                                    <i class="fas fa-circle-xmark" aria-hidden="true"></i>
+                                    ยังไม่ยืนยัน
+                                </span>
+                            {% endif %}
+                        </strong>
+                    </div>
                 </div>
             </div>
 
@@ -72,7 +87,6 @@
                         <p class="service-customer-section-eyebrow">CONTACTS</p>
                         <h2><i class="fas fa-address-book"></i> ข้อมูลผู้ประสานงาน</h2>
                     </div>
-                    <span class="service-customer-section-count">{{ customer.customer_contacts|length }} คน</span>
                 </div>
                 <div class="service-customer-contact-grid">
                     {% for contact in customer.customer_contacts %}
@@ -265,7 +279,7 @@
         .service-customer-profile-icon { align-items: center; background: #eef6ff; border-radius: 13px; color: #2f80c9; display: inline-flex; flex: 0 0 3rem; font-size: 1.15rem; height: 3rem; justify-content: center; }
         .service-customer-profile-label { color: #8292a9; font-size: .75rem; font-weight: 700; margin-bottom: .15rem; }
         .service-customer-profile-main h2 { color: #1e3152; font-size: 1.25rem; margin: 0 0 .4rem; overflow-wrap: anywhere; }
-        .service-customer-type-tag { background: #f0f5fb; color: #425675; font-size: .78rem; }
+        .service-customer-type-tag { background: #edf8f0; border-radius: 999px; color: #237348; font-weight: 700; }
         .service-customer-verification .tag { font-weight: 700; padding: .55rem .8rem; }
         .service-customer-section-card { padding: 1.25rem 1.4rem; }
         .service-customer-contact-section { border-color: #cfe5fb; box-shadow: 0 12px 28px rgba(47,128,201,.1); }
@@ -273,11 +287,12 @@
         .service-customer-section-heading h2 { color: #102f58; font-size: 1.08rem; font-weight: 800; margin: 0; }
         .service-customer-section-heading h2 i { color: #2f80c9; margin-right: .35rem; }
         .service-customer-section-count { background: #eef6ff; border-radius: 999px; color: #2f80c9; font-size: .78rem; font-weight: 800; padding: .35rem .7rem; white-space: nowrap; }
-        .service-customer-info-grid { border-top: 1px solid #edf1f7; display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 1.15rem; padding-top: 1rem; }
+        .service-customer-info-grid { border-top: 1px solid #edf1f7; display: grid; gap: 1rem; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 1.15rem; padding-top: 1rem; }
         .service-customer-info-item { display: flex; flex-direction: column; gap: .35rem; min-width: 0; padding: 0 .15rem; }
         .service-customer-info-item span { color: #8292a9; font-size: .78rem; }
         .service-customer-info-item span i { color: #2f80c9; margin-right: .25rem; }
         .service-customer-info-item strong { color: #425675; font-size: .92rem; overflow-wrap: anywhere; }
+        .service-customer-info-item strong .tag i { color: inherit; margin-right: .3rem; }
         .service-customer-address-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .service-customer-address-card { background: #fbfdff; border: 1px solid #e1edf8; border-radius: 12px; padding: 1rem; }
         .service-customer-address-heading { align-items: flex-start; display: flex; gap: .6rem; justify-content: space-between; margin-bottom: .6rem; }

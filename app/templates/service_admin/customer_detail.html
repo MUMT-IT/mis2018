@@ -8,7 +8,7 @@
             <div class="customer-detail-heading">
                 <div class="customer-detail-heading-copy">
                     <span class="customer-detail-heading-icon" aria-hidden="true">
-                        <i class="fas fa-user-check"></i>
+                        <i class="fas fa-user"></i>
                     </span>
                     <div>
                         <p class="customer-detail-eyebrow">CUSTOMER PROFILE</p>
@@ -71,6 +71,22 @@
                     <div class="customer-detail-info-item">
                         <span class="customer-detail-info-label"><i class="fas fa-fax"></i> โทรสาร</span>
                         <strong>{{ customer.fax_no or '-' }}</strong>
+                    </div>
+                    <div class="customer-detail-info-item">
+                        <span class="customer-detail-info-label"><i class="fas fa-envelope-circle-check"></i> ยืนยันอีเมล</span>
+                        <strong>
+                            {% if customer.verify_email %}
+                                <span class="tag is-success is-light is-rounded">
+                                    <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                    ยืนยันแล้ว {{ customer.verify_email|localdate }}
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger is-light is-rounded">
+                                    <i class="fas fa-circle-xmark" aria-hidden="true"></i>
+                                    ยังไม่ยืนยัน
+                                </span>
+                            {% endif %}
+                        </strong>
                     </div>
                 </div>
             </div>
@@ -413,7 +429,7 @@
         .customer-detail-payment-status-tag { margin-left: auto; text-decoration: none; }
         .customer-detail-type-tag, .customer-detail-section-count { background: #edf8f0; border-radius: 999px; color: #237348; font-weight: 700; }
         .customer-detail-section-count { margin-left: auto; }
-        .customer-detail-info-grid { display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0,1fr)); padding-top: 1.25rem; }
+        .customer-detail-info-grid { display: grid; gap: 1rem; grid-template-columns: repeat(6, minmax(0,1fr)); padding-top: 1.25rem; }
         .customer-detail-info-item strong { color: #1e3152; display: block; overflow-wrap: anywhere; }
         .customer-detail-info-label { display: block; }
         .customer-detail-info-label i, .customer-detail-section-heading h2 i, .customer-detail-contact-meta i, .customer-detail-address-meta i { color: #2f80c9; margin-right: .25rem; }
