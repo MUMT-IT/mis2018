@@ -291,6 +291,11 @@
                             </span>
                             <span>Download เอกสาร</span>
                         </button>
+                        <a href="{{ url_for('staff.download_seminar_request_docx', record_id=seminar_attend.id, bulk_ids=request.args.get('bulk_ids')) }}"
+                           class="button is-link">
+                            <span class="icon"><i class="fas fa-file-word"></i></span>
+                            <span>Download Word (.docx)</span>
+                        </a>
                     </div>
                 </div>
             </div>
