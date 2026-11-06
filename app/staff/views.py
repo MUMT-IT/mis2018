@@ -4,7 +4,9 @@ from functools import wraps
 import json
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Cm
+from docx.shared import Cm, Pt
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 import arrow
 import pandas as pd
@@ -307,8 +309,8 @@ def _current_login_quota_period(reference_date=None, staff_personal_info=None):
     else:
         quota_start = date(reference_date.year, 1, 1)
         quota_end = date(reference_date.year, 6, 30)
-    # The initial rollout starts in October; later periods use the regular bounds.
-    first_start = date(2026, 10, 1)
+    # The initial rollout starts in September; later periods use the regular bounds.
+    first_start = date(2026, 9, 1)
     first_end = date(2026, 12, 31) if employment_title == 'ข้าราชการ' else date(2027, 6, 30)
     if first_start <= reference_date <= first_end:
         quota_start = first_start
@@ -7634,6 +7636,16 @@ def show_seminar_info_each_person(record_id):
 @login_required
 def download_seminar_request_docx(record_id):
     attend = StaffSeminarAttend.query.get_or_404(record_id)
+    template_path = os.path.join(current_app.root_path, 'static', 'docs', 'seminar-request.docx')
+    logo_path = os.path.join(current_app.root_path, 'static', 'img', 'logo-MU_blackwhite.png')
+    if not all(os.path.isfile(path) for path in (template_path, logo_path)):
+        current_app.logger.error('Seminar Word export assets missing: %s', ', '.join(
+            path for path in (template_path, logo_path) if not os.path.isfile(path)
+        ))
+        flash('ไม่สามารถดาวน์โหลดไฟล์ Word ได้ เนื่องจากระบบยังไม่มีไฟล์แม่แบบหรือโลโก้ '
+              'กรุณาแจ้งผู้ดูแลระบบ และใช้ไฟล์ PDF ระหว่างนี้', 'warning')
+        return redirect(url_for('staff.show_seminar_info_each_person', record_id=record_id,
+                                bulk_ids=request.args.get('bulk_ids')))
     bulk_ids = [int(value) for value in request.args.get('bulk_ids', '').split(',') if value.strip().isdigit()]
     attendees = []
     if bulk_ids:
@@ -7750,16 +7762,14 @@ def download_seminar_request_docx(record_id):
     # paragraph formatting, tabs, numbering, and spacing. Several template
     # placeholders are split across runs, so merge only paragraphs containing
     # placeholders and carry forward their paragraph-level formatting.
-    template_path = os.path.join(current_app.root_path, 'static', 'docs', 'seminar-request-template.docx')
     document = Document(template_path)
-    logo_path = os.path.join(current_app.root_path, 'static', 'docs', 'seminar-request-logo.jpg')
     # Remove the template's floating logo paragraph first. Its old drawing
     # points at rId5 and can be clipped by Word when retained beside a new
     # inline image in the header table.
     for drawing in document._element.body.xpath('.//wp:anchor'):
         drawing.getparent().remove(drawing)
     # Build a stable five-column header from the same proportions used by the
-    # PDF: centered seal, organization name centered in the area to its right.
+    # PDF: centered seal, with right-aligned organization details beside it.
     header_paragraph = document.paragraphs[0]
     header_paragraph.text = ''
     for paragraph in document.paragraphs[1:3]:
@@ -7778,8 +7788,24 @@ def download_seminar_request_docx(record_id):
             paragraph.paragraph_format.space_before = 0
     header_table.rows[0].cells[2].paragraphs[0].add_run().add_picture(logo_path, width=Cm(2.0))
     org_paragraph = header_table.rows[0].cells[3].paragraphs[0]
-    org_paragraph.add_run(f'{org_name}\nคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nโทร. 02-441-4371')
-    org_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    org_run = org_paragraph.add_run(f'{org_name}\nคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nโทร. 02-441-4371')
+    # Set every script font explicitly: table styles and theme fonts can
+    # otherwise substitute a different font for Thai text.
+    org_run.font.name = 'TH SarabunPSK'
+    org_run.font.size = Pt(16)
+    org_run.font.complex_script = True
+    org_run.font.bold = False
+    org_run.font.cs_bold = False
+    run_properties = org_run._r.get_or_add_rPr()
+    fonts = run_properties.get_or_add_rFonts()
+    for script in ('ascii', 'hAnsi', 'eastAsia', 'cs'):
+        fonts.set(qn(f'w:{script}'), 'TH SarabunPSK')
+    for theme in ('asciiTheme', 'hAnsiTheme', 'eastAsiaTheme', 'cstheme'):
+        fonts.attrib.pop(qn(f'w:{theme}'), None)
+    complex_size = OxmlElement('w:szCs')
+    complex_size.set(qn('w:val'), '32')
+    run_properties.append(complex_size)
+    org_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     # Keep the header in the original first-paragraph position, ahead of the
     # memo metadata, and remove the now-empty placeholder paragraph.
     header_paragraph._p.addnext(header_table._tbl)

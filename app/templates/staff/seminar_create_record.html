@@ -380,9 +380,10 @@
                                    class="button is-light">Cancel</a>
                             </div>
                             <div class="control">
-                                <input v-if="canSubmitForm" type="submit" value="{{ 'บันทึกการแก้ไข' if is_edit else 'submit' }}" class="button is-success"/>
+                                <input :disabled="!canSubmitForm" type="submit" value="{{ 'บันทึกการแก้ไข' if is_edit else 'บันทึก' }}" class="button is-success"/>
                             </div>
                         </div>
+                        <p v-if="submitHelpText" class="help is-warning has-text-centered" role="status" v-text="submitHelpText"></p>
                     </div>
                 </div>
             </form>
@@ -428,6 +429,22 @@
                 }
             },
             computed: {
+                submitHelpText: function () {
+                    if (!this.hasApproverPosition) {
+                        return 'กรุณาเลือกผู้อนุมัติและรอโหลดตำแหน่ง หากไม่พบตำแหน่ง กรุณาติดต่อ HR';
+                    }
+                    const objectiveSelect = document.querySelector('select[name="objective"]');
+                    const selectedObjective = objectiveSelect ? objectiveSelect.value : this.objective;
+                    if (String(selectedObjective || '').includes('IDP')) {
+                        if (!this.hasIdpChoices) {
+                            return 'ไม่พบรายการ IDP กรุณาตรวจสอบแผน IDP หรือเลือกวัตถุประสงค์อื่น';
+                        }
+                        if (!this.idpSelectedCount) {
+                            return 'กรุณาเลือก IDP อย่างน้อย 1 รายการก่อนบันทึก';
+                        }
+                    }
+                    return '';
+                },
                 canSubmitForm: function () {
                     if (!this.hasApproverPosition) {
                         return false;
