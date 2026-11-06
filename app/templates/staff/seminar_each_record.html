@@ -291,6 +291,11 @@
                             </span>
                             <span>Download เอกสาร</span>
                         </button>
+                        <a href="{{ url_for('staff.download_seminar_request_docx', record_id=seminar_attend.id, bulk_ids=request.args.get('bulk_ids')) }}"
+                           class="button is-link">
+                            <span class="icon"><i class="fas fa-file-word"></i></span>
+                            <span>Download Word (.docx)</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -396,7 +401,7 @@
                                 'ผู้เสนอขออนุมัติ ' + {{ proposer_list_text|tojson|safe }},
                                 'ประเภท '+"{{ seminar_attend.seminar.topic_type }}",
                                 'หน่วยงานที่จัด '+"{{ seminar_attend.seminar.organize_by }}",
-                                'ข้อมูลการขออนุมัติหัวข้อ '+"{{ seminar_attend.seminar.topic }}"+
+                                'ข้อมูลการขออนุมัติหัวข้อ ' + {{ seminar_attend.seminar.topic|tojson|safe }} +
                                 '\nระยะเวลาสถานที่จัด '+"{{ seminar_start_date_thai }} {{ seminar_attend.start_datetime|localtime }}"+' น. ถึง '+ "{{ seminar_end_date_thai }} {{ seminar_attend.end_datetime|localtime  }}"+' น.'+
                                 '\nสถานที่จัด '+"{{ seminar_attend.seminar.location }}"+"{{ attend_online }}" ,
                                 'ค่าลงทะเบียน จำนวน '+"{{ registration_fee }}"+ ' บาท '+"{{ transaction_fee }}"+"{{ accommodation_cost }}"
