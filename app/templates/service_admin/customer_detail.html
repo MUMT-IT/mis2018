@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS | รายละเอียดลผู้รับบริการ{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+{% endblock %}
 {% block page_content %}
     {% include "nav.html" %}
     <section class="customer-detail-page section">
@@ -17,11 +21,23 @@
                     </div>
                 </div>
                 <div class="buttons customer-detail-heading-actions">
+                    {% if is_admin == 'true' %}
+                        <a class="button is-warning is-light customer-detail-edit"
+                           href="{{ url_for('service_admin.create_customer_for_admin', customer_id=customer.id, tab='all') }}">
+                            <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                            <span>แก้ไขข้อมูล</span>
+                        </a>
+                    {% else %}
+                        <a class="Warn button is-warning is-light customer-detail-edit">
+                            <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                            <span>แก้ไขข้อมูล</span>
+                        </a>
+                    {% endif %}
                     <a class="button customer-detail-back"
                        {% if is_admin == 'true' %}
                             href="{{ url_for('service_admin.search_customer_for_admin', customer_name=customer.cus_name) }}">
                         {% else %}
-                            href="{{ url_for('service_admin.search_customer_for_customer', customer_name=customer.cus_name) }}">
+                            href="{{ url_for('service_admin.search_customer_for_user', customer_name=customer.cus_name) }}">
                         {% endif %}
                         <span class="icon"><i class="fas fa-arrow-left"></i></span>
                         <span>กลับ</span>
@@ -498,4 +514,28 @@
         @media screen and (max-width: 768px) { .customer-detail-page { padding: 2rem 0; } .customer-detail-heading { align-items: flex-start; flex-direction: column; } .customer-detail-heading-actions { width: 100%; } .customer-detail-heading-actions .button { flex: 1; } }
         @media screen and (max-width: 480px) { .customer-detail-heading-copy { align-items: flex-start; flex-direction: column; } .customer-detail-info-grid { grid-template-columns: 1fr; } .customer-detail-profile-header, .customer-detail-address-topline { align-items: flex-start; flex-direction: column; } }
     </style>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(() => {
+            $('.Warn').click(() => {
+                Swal.fire({
+                    title: 'ยืนยันคำขอแก้ไขข้อมูล',
+                    icon: 'warning',
+                    text: 'ท่านต้องการส่งคำขอแก้ไขข้อมูลใช่หรือไม่',
+                    confirmButtonText: "ยืนยัน",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        var is_admin = '{{ is_admin }}';
+                        var customer_id = '{{ customer.id }}';
+                        window.location.href = "/service_admin/customer/email/send?customer_id=" + customer_id +
+                            '&is_admin=' + is_admin;
+                        {#Swal.fire("ส่งอีเมลแล้ว!", "กรุณาดำเนินการภายใน <strong>24 ชั่วโมง</strong> เพื่อให้สามารถดำเนินการต่อได้", "success");#}
+                    }
+                });
+            })
+        })
+    </script>
 {% endblock %}
