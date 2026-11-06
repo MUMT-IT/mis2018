@@ -1317,8 +1317,8 @@ def _can_download_petty_cash_claim_pdf(user, claim, setting):
     """Allow claim managers and the linked fund request's requester to export PDF."""
     if not user or not claim or not setting or not getattr(setting, "id", None):
         return False
-    if not getattr(claim, "approved_at", None):
-        return False
+    # if not getattr(claim, "approved_at", None): # allow user to donwload without approval
+    #     return False
     if getattr(claim, "petty_cash_setting_id", None) != setting.id:
         return False
 
