@@ -2737,8 +2737,10 @@ def create_customer_for_user(customer_id=None):
         account = ServiceCustomerAccount.query.filter_by(email=email).first()
         customer = ServiceCustomerInfo.query.filter_by(id=account.customer_info_id).first()
         form = ServiceCustomerInfoForm(obj=customer)
+        old_is_document_verified = customer.is_document_verified if customer else None
     else:
         account = None
+        old_is_document_verified = None
         form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
         if customer_id is None:
@@ -2834,7 +2836,7 @@ def create_customer_for_user(customer_id=None):
                 account = ServiceCustomerAccount(email=cus_email, customer_info=customer)
         else:
             account.email = cus_email
-            if customer.is_document_verified is None:
+            if customer.is_document_verified is None or customer.is_document_verified is False:
                 customer.is_document_verified = None
         db.session.add(account)
         db.session.add(customer)
@@ -2857,7 +2859,21 @@ def create_customer_for_user(customer_id=None):
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
-        return redirect(url_for('service_admin.closing_page'))
+            return redirect(url_for('service_admin.closing_page'))
+        elif old_is_document_verified == False and central_admin_accounts:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("service_admin.view_customer", tab='pending', customer_id=account.customer_info_id,
+                           _external=True, _scheme=scheme)
+            title = f'''แจ้งเตือนการแก้ไขข้อมูลผู้รับบริการ'''
+            message = f'''เรียน แอดมินส่วนกลาง\n\n'''
+            message += f'''มีผู้รับบริการดำเนินการแก้ไขข้อมูลตามที่แจ้งเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ระบบขึ้นทะเบียนผู้รับบริการ'''
+            if not current_app.debug:
+                send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
+            else:
+                print('message', message)
+            return redirect(url_for('service_admin.customer_detail', customer_id=customer.id, is_admin='false'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
