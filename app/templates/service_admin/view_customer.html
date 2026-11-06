@@ -237,22 +237,28 @@
                             <strong>ตรวจสอบเอกสารผู้รับบริการ</strong>
                             <p>กรุณาตรวจสอบข้อมูลและเอกสารก่อนเลือกผลการพิจารณา</p>
                         </div>
-                        <div class="buttons mb-0">
-                            <a class="button is-success is-rounded"
+                        <div class="customer-review-progress is-hidden" id="customer-review-progress" role="status" aria-live="polite">
+                            <span class="icon"><i class="fas fa-spinner fa-pulse"></i></span>
+                            <span>กำลังดำเนินการ โปรดรอสักครู่</span>
+                        </div>
+                        <div class="buttons mb-0" id="customer-document-review-actions">
+                            <a class="button is-success is-rounded customer-document-review-action"
                                hx-post="{{ url_for('service_admin.approve_document_customer', tab=tab,
                                customer_id=customer.id) }}"
                                hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
                                hx-confirm="ท่านต้องการอนุมัติใช่หรือไม่">
                                 <span class="icon"><i class="fas fa-check"></i></span>
-                                <span>อนุมัติ</span>
+                                <span class="customer-review-label">อนุมัติ</span>
+                                <span class="icon is-hidden customer-review-spinner"><i class="fas fa-spinner fa-pulse"></i></span>
                             </a>
-                            <a class="button is-danger is-light is-rounded"
+                            <a class="button is-danger is-light is-rounded customer-document-review-action"
                                hx-post="{{ url_for('service_admin.disapprove_document_customer', tab=tab,
                                customer_id=customer.id) }}"
                                hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
                                hx-confirm="ท่านต้องการไม่อนุมัติใช่หรือไม่">
                                 <span class="icon"><i class="fas fa-xmark"></i></span>
-                                <span>ไม่อนุมัติ</span>
+                                <span class="customer-review-label">ไม่อนุมัติ</span>
+                                <span class="icon is-hidden customer-review-spinner"><i class="fas fa-spinner fa-pulse"></i></span>
                             </a>
                         </div>
                     </div>
@@ -272,6 +278,14 @@
         .service-customer-subtitle { color: #66738d; font-size: .9rem; margin: 0; }
         .service-customer-back { border-radius: 10px; color: #294a78; font-weight: 700; }
         .service-customer-profile-card, .service-customer-section-card, .service-customer-review-card { background: rgba(255,255,255,.96); border: 1px solid rgba(58,101,184,.17); border-radius: 18px; box-shadow: 0 14px 32px rgba(18,39,84,.08); margin: 0 auto 1.25rem; max-width: 70rem; }
+        .customer-review-progress { align-items: center; color: #327fc1; display: flex; font-size: .95rem; font-weight: 700; gap: .5rem; margin: .75rem 0; }
+        .customer-review-progress .icon { color: #327fc1; }
+        .customer-document-review-action.is-success.is-light .customer-review-label,
+        .customer-document-review-action.is-success.is-light .icon { color: #257953 !important; }
+        .customer-document-review-action.is-danger.is-light .customer-review-label,
+        .customer-document-review-action.is-danger.is-light .icon { color: #cc0f35 !important; }
+        .customer-document-review-action .customer-review-label { display: inline-block !important; opacity: 1 !important; visibility: visible !important; }
+        .customer-document-review-action.is-loading::after { display: none !important; }
         .service-customer-profile-card { padding: 1.25rem 1.4rem; }
         .service-customer-profile-header { align-items: center; display: flex; gap: 1rem; justify-content: space-between; }
         .service-customer-profile-main { align-items: center; display: flex; gap: .9rem; min-width: 0; }
@@ -334,4 +348,19 @@
             .service-customer-section-card { padding: 1rem; }
         }
     </style>
+    <script>
+        document.addEventListener('htmx:beforeRequest', function (event) {
+            const triggeringElement = event.detail.elt;
+            if (!triggeringElement || !triggeringElement.classList.contains('customer-document-review-action')) return;
+            document.getElementById('customer-review-progress').classList.remove('is-hidden');
+            document.querySelectorAll('.customer-document-review-action').forEach(function (button) {
+                button.classList.remove('is-loading');
+                button.classList.add('is-light');
+                button.style.color = button.classList.contains('is-success') ? '#257953' : '#cc0f35';
+                button.setAttribute('aria-disabled', 'true');
+                button.style.pointerEvents = 'none';
+                button.querySelector('.customer-review-spinner').classList.remove('is-hidden');
+            });
+        });
+    </script>
 {% endblock %}

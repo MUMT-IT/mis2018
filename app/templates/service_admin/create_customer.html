@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Create Customer Account{% endblock %}
-{% if current_user.is_authenticated and user_type and user_type == 'staff' %}
+{% if source == 'academic_service' and current_user.is_authenticated and user_type and user_type == 'staff' %}
     {% include "service_admin/admin_nav.html" %}
 {% endif %}
 {% block head %}
@@ -282,9 +282,12 @@
                             </div>
                         </div>
                     </div>
+                    <div class="field">
+                        <p class="subtitle has-text-info is-hidden" id="progressMessage">กำลังดำเนินการ โปรดรอสักครู่</p>
+                    </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a class="button"
+                            <a id="cancelButton" class="button"
                                {% if source == 'registration' and customer_id %}
                                     href="{{ url_for('service_admin.customer_detail', customer_id=customer_id,
                                     is_admin=is_admin) }}"
@@ -299,7 +302,12 @@
                             >
                                 ย้อนกลับ
                             </a>
-                            <input type="submit" class="button is-success" value="บันทึก">
+                            <button id="submitButton" type="submit" class="button is-success">
+                                <span>บันทึก</span>
+                                <span id="spinnerIcon" class="icon is-hidden">
+                                    <i class="fas fa-spinner fa-pulse"></i>
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -309,6 +317,15 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        document.querySelector('form').addEventListener('submit', function () {
+            document.getElementById('submitButton').setAttribute('disabled', '');
+            document.getElementById('cancelButton').setAttribute('disabled', '');
+            document.getElementById('spinnerIcon').classList.remove('is-hidden');
+            document.getElementById('progressMessage').classList.remove('is-hidden');
+            document.getElementById('spinnerIcon').classList.add('fa-pulse');
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(() => {
