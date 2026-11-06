@@ -44,7 +44,7 @@
                 <div class="service-customer-info-grid">
                     <div class="service-customer-info-item">
                         <span><i class="fas fa-user-tag"></i> ประเภท</span>
-                        <strong><span class="tag service-customer-type-tag">{{ customer.type or '-' }}</span></strong>
+                        <strong><span class="tag customer-detail-type-tag">{{ customer.type.type or '-' }}</span></strong>
                     </div>
                     <div class="service-customer-info-item">
                         <span><i class="fas fa-id-card"></i> เลขประจำตัวผู้เสียภาษีอากร</span>
@@ -279,14 +279,14 @@
         .service-customer-profile-icon { align-items: center; background: #eef6ff; border-radius: 13px; color: #2f80c9; display: inline-flex; flex: 0 0 3rem; font-size: 1.15rem; height: 3rem; justify-content: center; }
         .service-customer-profile-label { color: #8292a9; font-size: .75rem; font-weight: 700; margin-bottom: .15rem; }
         .service-customer-profile-main h2 { color: #1e3152; font-size: 1.25rem; margin: 0 0 .4rem; overflow-wrap: anywhere; }
-        .service-customer-type-tag { background: #edf8f0; border-radius: 999px; color: #237348; font-weight: 700; }
+        .service-customer-info-item .customer-detail-type-tag { background: #f5f5f5; color: #15284d; font-weight: 700; }
         .service-customer-verification .tag { font-weight: 700; padding: .55rem .8rem; }
         .service-customer-section-card { padding: 1.25rem 1.4rem; }
         .service-customer-contact-section { border-color: #cfe5fb; box-shadow: 0 12px 28px rgba(47,128,201,.1); }
         .service-customer-section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1rem; }
         .service-customer-section-heading h2 { color: #102f58; font-size: 1.08rem; font-weight: 800; margin: 0; }
         .service-customer-section-heading h2 i { color: #2f80c9; margin-right: .35rem; }
-        .service-customer-section-count { background: #eef6ff; border-radius: 999px; color: #2f80c9; font-size: .78rem; font-weight: 800; padding: .35rem .7rem; white-space: nowrap; }
+        .service-customer-section-count { background: #eef6ff; color: #2f80c9; font-size: .78rem; font-weight: 800; padding: .35rem .7rem; white-space: nowrap; }
         .service-customer-info-grid { border-top: 1px solid #edf1f7; display: grid; gap: 1rem; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 1.15rem; padding-top: 1rem; }
         .service-customer-info-item { display: flex; flex-direction: column; gap: .35rem; min-width: 0; padding: 0 .15rem; }
         .service-customer-info-item span { color: #8292a9; font-size: .78rem; }
