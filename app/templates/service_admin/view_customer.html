@@ -88,23 +88,22 @@
                         <h2><i class="fas fa-address-book"></i> ข้อมูลผู้ประสานงาน</h2>
                     </div>
                 </div>
-                <div class="service-customer-contact-grid">
-                    {% for contact in customer.customer_contacts %}
-                        <div class="service-customer-contact-card">
-                            <span class="service-customer-contact-icon"><i class="fas fa-user"></i></span>
-                            <div class="service-customer-contact-content">
-                                <strong>{{ contact.contact_name or '-' }}</strong>
+                {% for contact in customer.customer_contacts %}
+                    <div class="service-customer-contact-item">
+                        <div class="service-customer-contact-avatar" aria-hidden="true"><i class="fas fa-user"></i></div>
+                        <div class="service-customer-contact-copy">
+                            <strong>{{ contact.contact_name or '-' }}</strong>
+                            <span>{{ contact.type or 'ผู้ประสานงาน' }}</span>
+                            <div class="service-customer-contact-meta">
                                 <span><i class="fas fa-phone"></i> {{ contact.phone_number or '-' }}</span>
                                 <span><i class="fas fa-envelope"></i> {{ contact.email or '-' }}</span>
-                                {% if contact.remark %}
-                                    <small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>
-                                {% endif %}
                             </div>
+                            {% if contact.remark %}<small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>{% endif %}
                         </div>
-                    {% else %}
-                        <div class="service-customer-empty">ยังไม่มีข้อมูลผู้ประสานงาน</div>
-                    {% endfor %}
-                </div>
+                    </div>
+                {% else %}
+                    <div class="service-customer-empty">ยังไม่มีข้อมูลผู้ประสานงาน</div>
+                {% endfor %}
             </div>
 
             <div class="service-customer-section-card">
@@ -302,13 +301,15 @@
         .service-customer-address-meta { color: #667d9b; display: flex; flex-wrap: wrap; font-size: .78rem; gap: .8rem; margin-top: .55rem; }
         .service-customer-address-meta i, .service-customer-address-remark i { color: #2f80c9; margin-right: .2rem; }
         .service-customer-address-remark { color: #667d9b; display: block; font-size: .78rem; margin-top: .55rem; }
-        .service-customer-contact-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .service-customer-contact-card { align-items: flex-start; background: transparent; border: 0; border-radius: 12px; display: flex; gap: .75rem; padding: .35rem 0; }
-        .service-customer-contact-icon { align-items: center; background: #eef6ff; border-radius: 9px; color: #2f80c9; display: inline-flex; flex: 0 0 2rem; height: 2rem; justify-content: center; }
-        .service-customer-contact-content { display: flex; flex-direction: column; gap: .18rem; min-width: 0; }
-        .service-customer-contact-content strong { color: #1e3152; font-size: .92rem; }
-        .service-customer-contact-content span, .service-customer-contact-content small { color: #667d9b; font-size: .8rem; overflow-wrap: anywhere; }
-        .service-customer-contact-content i { color: #2f80c9; margin-right: .2rem; }
+        .service-customer-contact-item { align-items: flex-start; border-top: 1px solid #edf1f7; display: flex; gap: .75rem; padding-top: 1rem; }
+        .service-customer-contact-item + .service-customer-contact-item { margin-top: 1rem; }
+        .service-customer-contact-avatar { align-items: center; background: #eef6ff; border-radius: 12px; color: #2f80c9; display: inline-flex; flex: 0 0 2.75rem; height: 2.75rem; justify-content: center; }
+        .service-customer-contact-copy { min-width: 0; }
+        .service-customer-contact-copy strong { color: #1e3152; display: block; }
+        .service-customer-contact-copy > span { color: #8391a8; display: block; font-size: .8rem; margin-top: .1rem; }
+        .service-customer-contact-meta { color: #5c6c86; display: flex; flex-wrap: wrap; font-size: .8rem; gap: .65rem 1rem; margin-top: .45rem; }
+        .service-customer-contact-meta i { color: #2f80c9; margin-right: .25rem; }
+        .service-customer-contact-copy small { color: #8391a8; display: block; margin-top: .45rem; }
         .service-customer-document-table th { background: #f3f7fc; color: #425675; font-size: .8rem; }
         .service-customer-document-table td { color: #425675; vertical-align: middle; }
         .service-customer-empty { background: #f8fbff; border: 1px dashed #d7e0ee; border-radius: 10px; color: #8391a8; padding: 1rem; text-align: center; }
@@ -323,7 +324,7 @@
             .service-customer-view { padding-top: 2rem; }
             .service-customer-heading { align-items: flex-start; flex-direction: column; }
             .service-customer-profile-header, .service-customer-review-card { align-items: flex-start; flex-direction: column; }
-            .service-customer-info-grid, .service-customer-address-grid, .service-customer-contact-grid { grid-template-columns: 1fr; }
+            .service-customer-info-grid, .service-customer-address-grid { grid-template-columns: 1fr; }
             .service-customer-review-card .buttons { width: 100%; }
             .service-customer-review-card .button { flex: 1; }
         }
