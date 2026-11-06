@@ -2718,6 +2718,8 @@ def create_customer_for_admin(customer_id=None):
 
         if menu:
             return redirect(url_for('service_admin.request_index', menu=menu))
+        elif source == 'registration':
+            return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
         else:
             return redirect(url_for('service_admin.customer_index', tab=tab))
     else:
