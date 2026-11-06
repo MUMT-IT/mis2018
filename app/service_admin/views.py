@@ -3019,21 +3019,22 @@ def send_email_customer():
     customer_id = request.args.get('customer_id', type=int)
     customer = ServiceCustomerInfo.query.get(customer_id)
     flash('ส่งคำขอแก้ไขข้อมูลสำเร็จ กรุณาตรวจสอบอีเมลเพื่อดำเนินการแก้ไขข้อมูล', 'success')
+    scheme = 'http' if current_app.debug else 'https'
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-    token = serializer.dumps({'email': customer.accounts[0].email})
+    token = serializer.dumps({'email': customer.email})
     link = url_for("service_admin.verify_customer_token", token=token, _external=True, _scheme=scheme,
                    is_seven_days='false')
     title_prefix = 'คุณ' if customer.type.type == 'บุคคล' else ''
     title = f'''แจ้งขอแก้ไขข้อมูลผู้รับบริการ'''
     message = f'''เรียน {title_prefix}{customer.cus_name}\n\n'''
-    message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอแก้ไขข้อมูลการลงทะเบียนผู้รับบริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+    message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอแก้ไขข้อมูลการลงทะเบียนผู้รับบริการกับคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
     message += f'''ท่านสามารถดำเนินการแก้ไขข้อมูลได้ที่ลิงก์ด้านล่างภายใน 24 ชั่วโมงนับจากได้รับอีเมลฉบับนี้\n\n'''
     message += f'{link}\n\n'
     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message += f'''ขอแสดงความนับถือ\n'''
     message += f'''ระบบขึ้นทะเบียนผู้รับบริการ\n'''
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([account.email for account in customer.accounts], title, message)
+    send_mail([customer.email], title, message)
     return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
 
 
