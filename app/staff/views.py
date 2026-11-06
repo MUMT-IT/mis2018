@@ -4,7 +4,9 @@ from functools import wraps
 import json
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Cm
+from docx.shared import Cm, Pt
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 import arrow
 import pandas as pd
@@ -307,8 +309,8 @@ def _current_login_quota_period(reference_date=None, staff_personal_info=None):
     else:
         quota_start = date(reference_date.year, 1, 1)
         quota_end = date(reference_date.year, 6, 30)
-    # The initial rollout starts in October; later periods use the regular bounds.
-    first_start = date(2026, 10, 1)
+    # The initial rollout starts in September; later periods use the regular bounds.
+    first_start = date(2026, 9, 1)
     first_end = date(2026, 12, 31) if employment_title == 'ข้าราชการ' else date(2027, 6, 30)
     if first_start <= reference_date <= first_end:
         quota_start = first_start
@@ -632,6 +634,36 @@ def _build_fallback_login_history_summary(snapshot):
     )
 
 
+def _login_location_frequencies(records, staff_ids, start_date, end_date):
+    location_names = {
+        'salaya': 'ศาลายา',
+        'siriraj': 'คณะเทคนิคการแพทย์ (ศิริราช)',
+        'opd': 'สถานเวชศาสตร์ชันสูตร (ศิริราช)',
+        'gj': 'ศูนย์การแพทย์กาญจนาภิเษก',
+    }
+    counts = defaultdict(lambda: {'checkins': 0, 'checkouts': 0})
+    for record in records:
+        if record.staff_id not in staff_ids:
+            continue
+        source = getattr(record, 'record_source', None)
+        if source in ('approved_request', 'hr_manual'):
+            continue
+        code = (getattr(record, 'note', None) or '').strip().lower()
+        name = location_names.get(code, 'ไม่ระบุสถานที่')
+        start = getattr(record, 'start_datetime', None)
+        end = getattr(record, 'end_datetime', None)
+        if start and start_date <= _to_bangkok(start).date() <= end_date:
+            # New scans are individual rows; legacy rows may contain both times.
+            kind = 'checkouts' if not end and (getattr(record, 'num_scans', 0) or 0) > 1 else 'checkins'
+            counts[name][kind] += 1
+        if end and start_date <= _to_bangkok(end).date() <= end_date:
+            counts[name]['checkouts'] += 1
+    return sorted([
+        {'name': name, **values, 'total': values['checkins'] + values['checkouts']}
+        for name, values in counts.items()
+    ], key=lambda item: (-item['total'], item['name']))
+
+
 def _build_login_summary_dashboard(start_date, end_date, dept_id):
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
     office_end_time = datetime.strptime('16:30', '%H:%M').time()
@@ -675,6 +707,7 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
                 'missing_days': 0,
             },
             'employees': [],
+            'location_frequencies': [],
         }
 
     start_datetime_column = getattr(StaffWorkLogin, 'start_datetime', None)
@@ -916,6 +949,7 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             'missing_days': total_status_days['missing'],
         },
         'employees': employees_payload,
+        'location_frequencies': _login_location_frequencies(records, employees_by_id, start_date, end_date),
     }
 
 
@@ -4886,8 +4920,8 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
 
 
 def _build_missing_checkout_recipients(target_date, round_time, records=None):
-    """Split recipients by hours at 16:40, checking current checkout records."""
-    if round_time not in {'16:40', '17:00'}:
+    """Split recipients by hours at 16:30, checking current checkout records."""
+    if round_time not in {'16:30', '17:00'}:
         raise ValueError('Invalid checkout reminder round')
     if records is None:
         records = StaffWorkLogin.query.filter_by(date_id=target_date.strftime('%Y%m%d')).all()
@@ -4897,7 +4931,7 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
         if record.staff_id and start and start.date() == target_date:
             grouped[record.staff_id].append(record)
 
-    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime('16:40', '%H:%M').time()))
+    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime('16:30', '%H:%M').time()))
     recipients = []
     for account in StaffAccount.get_active_accounts():
         day_records = grouped.get(account.id, [])
@@ -4911,7 +4945,7 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
             continue
         start = _to_bangkok(day_records[0].start_datetime)
         early_round = _calculate_work_hours(start, cutoff) >= 8.0
-        if early_round == (round_time == '16:40'):
+        if early_round == (round_time == '16:30'):
             recipients.append(account)
     return recipients
 
@@ -4926,7 +4960,7 @@ def line_remind_missing_checkout():
         if not admin_permission.can():
             abort(403)
     round_time = request.values.get('round')
-    if round_time not in {'16:40', '17:00'}:
+    if round_time not in {'16:30', '17:00'}:
         abort(400)
     now = datetime.now(tz)
     target_date = now.date()
@@ -4945,7 +4979,7 @@ def line_remind_missing_checkout():
         return jsonify(payload)
     # Do not send an early reminder or replay the first round after 17:00.
     local_time = now.strftime('%H:%M')
-    if local_time < round_time or (round_time == '16:40' and local_time >= '17:00'):
+    if local_time < round_time or (round_time == '16:30' and local_time >= '17:00'):
         abort(400)
     for account in recipients:
         try:
@@ -5616,7 +5650,6 @@ def send_summary_data():
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
     calendar_start_date = cal_start.date() if cal_start else datetime.now(tz).date()
     calendar_end_date = cal_end.date() if cal_end else calendar_start_date
-    calendar_working_dates = _working_dates_between(calendar_start_date, calendar_end_date)
     for emp in employees:
         if tab in ['login', 'all']:
             for row in _daily_work_login_rows(
@@ -5624,8 +5657,6 @@ def send_summary_data():
                 .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))
                 .all()
             ):
-                if row['date'] not in calendar_working_dates:
-                    continue
                 end = row['end']
                 start_dt = parser.isoparse(row['start']) if row['start'] else None
                 end_dt = parser.isoparse(end) if end else None
@@ -7605,6 +7636,16 @@ def show_seminar_info_each_person(record_id):
 @login_required
 def download_seminar_request_docx(record_id):
     attend = StaffSeminarAttend.query.get_or_404(record_id)
+    template_path = os.path.join(current_app.root_path, 'static', 'docs', 'seminar-request.docx')
+    logo_path = os.path.join(current_app.root_path, 'static', 'img', 'logo-MU_blackwhite.png')
+    if not all(os.path.isfile(path) for path in (template_path, logo_path)):
+        current_app.logger.error('Seminar Word export assets missing: %s', ', '.join(
+            path for path in (template_path, logo_path) if not os.path.isfile(path)
+        ))
+        flash('ไม่สามารถดาวน์โหลดไฟล์ Word ได้ เนื่องจากระบบยังไม่มีไฟล์แม่แบบหรือโลโก้ '
+              'กรุณาแจ้งผู้ดูแลระบบ และใช้ไฟล์ PDF ระหว่างนี้', 'warning')
+        return redirect(url_for('staff.show_seminar_info_each_person', record_id=record_id,
+                                bulk_ids=request.args.get('bulk_ids')))
     bulk_ids = [int(value) for value in request.args.get('bulk_ids', '').split(',') if value.strip().isdigit()]
     attendees = []
     if bulk_ids:
@@ -7721,16 +7762,14 @@ def download_seminar_request_docx(record_id):
     # paragraph formatting, tabs, numbering, and spacing. Several template
     # placeholders are split across runs, so merge only paragraphs containing
     # placeholders and carry forward their paragraph-level formatting.
-    template_path = os.path.join(current_app.root_path, 'static', 'docs', 'seminar-request-template.docx')
     document = Document(template_path)
-    logo_path = os.path.join(current_app.root_path, 'static', 'docs', 'seminar-request-logo.jpg')
     # Remove the template's floating logo paragraph first. Its old drawing
     # points at rId5 and can be clipped by Word when retained beside a new
     # inline image in the header table.
     for drawing in document._element.body.xpath('.//wp:anchor'):
         drawing.getparent().remove(drawing)
     # Build a stable five-column header from the same proportions used by the
-    # PDF: centered seal, organization name centered in the area to its right.
+    # PDF: centered seal, with right-aligned organization details beside it.
     header_paragraph = document.paragraphs[0]
     header_paragraph.text = ''
     for paragraph in document.paragraphs[1:3]:
@@ -7749,8 +7788,24 @@ def download_seminar_request_docx(record_id):
             paragraph.paragraph_format.space_before = 0
     header_table.rows[0].cells[2].paragraphs[0].add_run().add_picture(logo_path, width=Cm(2.0))
     org_paragraph = header_table.rows[0].cells[3].paragraphs[0]
-    org_paragraph.add_run(f'{org_name}\nคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nโทร. 02-441-4371')
-    org_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    org_run = org_paragraph.add_run(f'{org_name}\nคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nโทร. 02-441-4371')
+    # Set every script font explicitly: table styles and theme fonts can
+    # otherwise substitute a different font for Thai text.
+    org_run.font.name = 'TH SarabunPSK'
+    org_run.font.size = Pt(16)
+    org_run.font.complex_script = True
+    org_run.font.bold = False
+    org_run.font.cs_bold = False
+    run_properties = org_run._r.get_or_add_rPr()
+    fonts = run_properties.get_or_add_rFonts()
+    for script in ('ascii', 'hAnsi', 'eastAsia', 'cs'):
+        fonts.set(qn(f'w:{script}'), 'TH SarabunPSK')
+    for theme in ('asciiTheme', 'hAnsiTheme', 'eastAsiaTheme', 'cstheme'):
+        fonts.attrib.pop(qn(f'w:{theme}'), None)
+    complex_size = OxmlElement('w:szCs')
+    complex_size.set(qn('w:val'), '32')
+    run_properties.append(complex_size)
+    org_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     # Keep the header in the original first-paragraph position, ahead of the
     # memo metadata, and remove the now-empty placeholder paragraph.
     header_paragraph._p.addnext(header_table._tbl)
@@ -8054,12 +8109,7 @@ def send_time_report_data():
     )
     records = []
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
-    calendar_start_date = _to_bangkok(cal_start).date() if cal_start else datetime.now(tz).date()
-    calendar_end_date = _to_bangkok(cal_end).date() if cal_end else calendar_start_date
-    calendar_working_dates = _working_dates_between(calendar_start_date, calendar_end_date)
     for row in rows:
-        if row['date'] not in calendar_working_dates:
-            continue
         start_dt = parser.isoparse(row['start']) if row['start'] else None
         end_dt = parser.isoparse(row['end']) if row['end'] else None
         hours_is_negative = False

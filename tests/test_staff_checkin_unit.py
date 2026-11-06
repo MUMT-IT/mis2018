@@ -249,8 +249,9 @@ def staff_views(monkeypatch):
     (date(2026, 1, 1), date(2026, 1, 1), date(2026, 6, 30)),
     (date(2026, 6, 1), date(2026, 1, 1), date(2026, 6, 30)),
     (date(2026, 6, 30), date(2026, 1, 1), date(2026, 6, 30)),
-    (date(2026, 10, 1), date(2026, 10, 1), date(2026, 12, 31)),
-    (date(2026, 12, 31), date(2026, 10, 1), date(2026, 12, 31)),
+    (date(2026, 9, 1), date(2026, 9, 1), date(2026, 12, 31)),
+    (date(2026, 10, 1), date(2026, 9, 1), date(2026, 12, 31)),
+    (date(2026, 12, 31), date(2026, 9, 1), date(2026, 12, 31)),
     (date(2027, 1, 1), date(2027, 1, 1), date(2027, 6, 30)),
     (date(2027, 6, 30), date(2027, 1, 1), date(2027, 6, 30)),
     (date(2027, 7, 1), date(2027, 7, 1), date(2027, 12, 31)),
@@ -273,10 +274,11 @@ def test_civil_servant_login_quota_period_boundaries(
     ('ลูกจ้างปฏิบัติงานนอกเวลา', 30),
 ])
 @pytest.mark.parametrize('reference_date, expected_start, expected_end', [
-    (date(2026, 10, 1), date(2026, 10, 1), date(2027, 6, 30)),
-    (date(2026, 12, 31), date(2026, 10, 1), date(2027, 6, 30)),
-    (date(2027, 1, 1), date(2026, 10, 1), date(2027, 6, 30)),
-    (date(2027, 6, 30), date(2026, 10, 1), date(2027, 6, 30)),
+    (date(2026, 9, 1), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2026, 10, 1), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2026, 12, 31), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2027, 1, 1), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2027, 6, 30), date(2026, 9, 1), date(2027, 6, 30)),
     (date(2027, 7, 1), date(2027, 7, 1), date(2028, 6, 30)),
     (date(2028, 6, 30), date(2027, 7, 1), date(2028, 6, 30)),
     (date(2028, 7, 1), date(2028, 7, 1), date(2029, 6, 30)),
@@ -291,7 +293,7 @@ def test_other_employment_login_quota_periods(
 
 
 @pytest.mark.parametrize('round_time, expected_ids', [
-    ('16:40', [1, 2]), ('17:00', [3, 7]),
+    ('16:30', [1, 2]), ('17:00', [3, 7]),
 ])
 def test_checkout_reminder_groups_and_exclusions(staff_views, monkeypatch, round_time, expected_ids):
     bangkok = pytz.timezone('Asia/Bangkok')
@@ -308,7 +310,7 @@ def test_checkout_reminder_groups_and_exclusions(staff_views, monkeypatch, round
         )
 
     records = [
-        record(1, 7), record(2, 8, 40), record(3, 8, 41),
+        record(1, 7), record(2, 8, 30), record(3, 8, 31),
         record(4, 8, end=bangkok.localize(datetime(2026, 11, 5, 16, 30))),
         record(5, 8), record(5, 16, 30),  # Scan-based checkout.
         record(6, 8, day=4),  # No check-in today.
@@ -336,12 +338,12 @@ def test_checkout_reminder_preview_send_and_holiday(
     class FixedDatetime(datetime):
         @classmethod
         def now(cls, zone):
-            return zone.localize(cls(2026, 11, 5, 16, 40))
+            return zone.localize(cls(2026, 11, 5, 16, 30))
 
     monkeypatch.setenv('JOB_TOKEN', 'test-token')
     monkeypatch.setattr(staff_views, 'datetime', FixedDatetime)
     monkeypatch.setattr(staff_views, 'request', SimpleNamespace(
-        method=method, values={'job_token': 'test-token', 'round': '16:40'},
+        method=method, values={'job_token': 'test-token', 'round': '16:30'},
     ))
     monkeypatch.setattr(staff_views, '_get_holiday_for_date', lambda _: holiday)
     monkeypatch.setattr(staff_views, '_build_missing_checkout_recipients', lambda *_: [
@@ -363,12 +365,66 @@ def test_checkout_reminder_preview_send_and_holiday(
 def test_checkout_reminder_requires_scheduler_token_or_admin(staff_views, monkeypatch, token):
     monkeypatch.setenv('JOB_TOKEN', 'test-token')
     monkeypatch.setattr(staff_views, 'request', SimpleNamespace(
-        method='POST', values={'job_token': token, 'round': '16:40'},
+        method='POST', values={'job_token': token, 'round': '16:30'},
     ))
     monkeypatch.setattr(staff_views, 'current_user', SimpleNamespace(is_authenticated=False))
     from werkzeug.exceptions import Unauthorized
     with pytest.raises(Unauthorized):
         staff_views.line_remind_missing_checkout()
+
+
+@pytest.mark.parametrize('record_source', ['scan', 'approved_request'])
+@pytest.mark.parametrize('endpoint', ['send_summary_data', 'send_time_report_data'])
+def test_summary_calendar_includes_weekend_and_holiday_checkins(staff_views, monkeypatch, record_source, endpoint):
+    class Query(_FakeQuery):
+        def __iter__(self):
+            return iter(self.rows)
+
+    class Column:
+        def in_(self, _values):
+            return self
+
+        def between(self, *_args):
+            return self
+
+    employee_query = Query()
+    employee_query.rows = [SimpleNamespace(th_firstname='Test', staff_account=SimpleNamespace())]
+    monkeypatch.setattr(staff_views, 'StaffPersonalInfo', SimpleNamespace(
+        query=employee_query, org_id=Column(),
+    ))
+    login_query = Query()
+    monkeypatch.setattr(staff_views, 'StaffWorkLogin', SimpleNamespace(query=login_query, start_datetime=Column()))
+    monkeypatch.setattr(staff_views, 'func', SimpleNamespace(timezone=lambda *_: Column()))
+    monkeypatch.setattr(staff_views, 'jsonify', lambda payload: payload)
+    monkeypatch.setattr(staff_views, 'request', SimpleNamespace(args=SimpleNamespace(
+        get=lambda key, **_: {'tab': 'login'}.get(key),
+    )))
+    monkeypatch.setattr(staff_views, '_approved_half_day_leave_period', lambda *_: None)
+    monkeypatch.setattr(staff_views, 'current_user', SimpleNamespace(
+        personal_info=SimpleNamespace(th_firstname='Test'),
+    ))
+    # Friday holiday, Saturday, Sunday, and an ordinary Monday.
+    dates = [date(2026, 10, day) for day in (23, 24, 25, 26)]
+    monkeypatch.setattr(staff_views, '_working_dates_between', lambda *_: {dates[-1]})
+    login_query.rows = [
+        SimpleNamespace(
+            id=index, staff_id=1, staff=SimpleNamespace(fullname='Test Staff'),
+            start_datetime=pytz.timezone('Asia/Bangkok').localize(
+                datetime.combine(day, datetime.strptime('08:00', '%H:%M').time())
+            ),
+            end_datetime=None, qrcode_in_exp_datetime=None, qrcode_out_exp_datetime=None,
+            lat=None, long=None, record_source=record_source,
+            correction_type='checkin' if record_source == 'approved_request' else None,
+        )
+        for index, day in enumerate(dates)
+    ]
+
+    events = getattr(staff_views, endpoint).__wrapped__()
+
+    assert [event['start'][:10] for event in events] == [day.isoformat() for day in dates]
+    assert all(event['type'] == 'login' for event in events)
+    assert all(event['approved_checkin'] == (record_source == 'approved_request') for event in events)
+    assert all(event['has_approved_correction'] == (record_source == 'approved_request') for event in events)
 
 
 def test_create_work_login_record_increments_daily_scan_count_and_sets_qrcode_expiry(staff_views, monkeypatch):
@@ -1339,3 +1395,27 @@ def test_closed_clock_request_cannot_be_processed_again(staff_views, monkeypatch
     assert session.commits == 0
     if closed_field == 'existing_login':
         assert login_query.filters == [{"request_id": 5051}]
+
+
+def test_location_frequencies_counts_scans_by_location_and_scopes_dates(staff_views):
+    tz = pytz.timezone('Asia/Bangkok')
+    def record(staff_id=7, note='salaya', scans=1, day=2, source='scan', end=None):
+        return SimpleNamespace(
+            staff_id=staff_id, note=note, num_scans=scans, record_source=source,
+            start_datetime=tz.localize(datetime(2026, 7, day, 8)), end_datetime=end,
+        )
+    records = [
+        record(), record(scans=2), record(note='gj', scans=2),
+        record(note='qrcode'), record(note=None),
+        record(staff_id=99), record(day=1), record(source='approved_request'),
+        record(source='hr_manual'),
+        record(note='opd', end=tz.localize(datetime(2026, 7, 2, 17))),
+    ]
+    result = staff_views._login_location_frequencies(records, {7}, date(2026, 7, 2), date(2026, 7, 2))
+    by_name = {item['name']: item for item in result}
+    assert by_name['ศาลายา'] == {'name': 'ศาลายา', 'checkins': 1, 'checkouts': 1, 'total': 2}
+    assert by_name['ศูนย์การแพทย์กาญจนาภิเษก']['checkouts'] == 1
+    assert by_name['ไม่ระบุสถานที่']['checkins'] == 2
+    assert by_name['สถานเวชศาสตร์ชันสูตร (ศิริราช)']['total'] == 2
+    assert sum(item['total'] for item in result) == 7
+    assert staff_views._login_location_frequencies([], {7}, date(2026, 7, 2), date(2026, 7, 2)) == []

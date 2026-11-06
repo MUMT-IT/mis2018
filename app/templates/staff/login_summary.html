@@ -363,6 +363,19 @@
         width: var(--staff-login-progress-width, 0%);
     }
 
+    .staff-login-locations { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(18,39,84,.12); }
+    .staff-login-location-legend { display: flex; gap: 1rem; margin: .75rem 0; font-size: .8rem; }
+    .staff-login-location-legend span:first-child { color: #276b59; }
+    .staff-login-location-legend span:last-child { color: #325a9c; }
+    #locationFrequencyChart { overflow-x: auto; }
+    .staff-login-location-bars { display: flex; gap: 1.25rem; padding: 1.5rem .5rem .5rem; min-width: min-content; }
+    .staff-login-location-group { flex: 1; min-width: 135px; text-align: center; }
+    .staff-login-location-columns { display: flex; align-items: flex-end; justify-content: center; gap: .5rem; height: 200px; border-bottom: 1px solid rgba(18,39,84,.25); background: repeating-linear-gradient(to top, transparent 0, transparent 49px, rgba(18,39,84,.06) 49px, rgba(18,39,84,.06) 50px); }
+    .staff-login-location-bar { position: relative; width: 36px; max-width: 40%; border-radius: 5px 5px 0 0; }
+    .staff-login-location-value { position: absolute; top: -1.4rem; left: 0; width: 100%; font-size: .8rem; font-weight: 600; color: var(--theme-navy-deep); }
+    .staff-login-location-label { max-width: 180px; margin: .65rem auto 0; font-size: .8rem; overflow-wrap: anywhere; }
+    .staff-login-location-in { background: #276b59; }
+    .staff-login-location-out { background: #325a9c; }
     .staff-login-chart {
         align-items: end;
         display: grid;
@@ -967,6 +980,13 @@
                         <div class="delta">สะสมทั้งช่วงวันที่เลือก</div>
                     </div>
                 </div>
+                <section class="staff-login-locations" aria-labelledby="locationFrequencyHeading">
+                    <h2 id="locationFrequencyHeading" class="staff-login-board-title">ความถี่การเข้า–ออกงานตามสถานที่</h2>
+                    <p class="staff-login-export-note">จำนวนครั้งที่ลงชื่อของบุคลากรในสังกัด ตามช่วงวันที่เลือก · ไม่รวมรายการรับรองเวลาและบันทึกโดย HR</p>
+                    <div class="staff-login-location-legend"><span>■ เข้างาน</span><span>■ ออกงาน</span></div>
+                    <div id="locationFrequencyChart" aria-live="polite"><p class="staff-login-chart-empty">กำลังโหลดข้อมูลสถานที่…</p></div>
+                    <p class="staff-login-export-note">ไม่ระบุสถานที่: รายการที่ไม่มีรหัสสถานที่ เช่น การสแกน QR Code บางรายการ</p>
+                </section>
             </div>
         </div>
         {% endif %}
@@ -1221,6 +1241,32 @@
             '<span class="staff-login-avatar-fallback">' + fallback + '</span>';
     }
 
+    function renderLocationFrequencies(locations) {
+        const target = $('#locationFrequencyChart');
+        if (!locations.length) {
+            target.html('<p class="staff-login-chart-empty">ไม่มีข้อมูลการลงชื่อในช่วงวันที่เลือก</p>');
+            return;
+        }
+        const maximum = Math.max(...locations.map(item => Math.max(item.checkins, item.checkouts)), 1);
+        const chart = $('<div class="staff-login-location-bars"/>');
+        target.empty().append(chart);
+        locations.forEach(item => {
+            const group = $('<div class="staff-login-location-group"/>');
+            const columns = $('<div class="staff-login-location-columns" aria-hidden="true"/>');
+            [['checkins', 'in'], ['checkouts', 'out']].forEach(([key, kind]) => {
+                const bar = $('<div class="staff-login-location-bar"/>')
+                    .addClass('staff-login-location-' + kind)
+                    .css('height', (item[key] / maximum * 100) + '%');
+                $('<span class="staff-login-location-value"/>').text(item[key]).appendTo(bar);
+                bar.appendTo(columns);
+            });
+            const label = $('<p class="staff-login-location-label"/>').text(item.name);
+            const description = $('<span class="is-sr-only"/>')
+                .text('เข้างาน ' + item.checkins + ' ครั้ง ออกงาน ' + item.checkouts + ' ครั้ง รวม ' + item.total + ' ครั้ง');
+            group.append(columns, label, description).appendTo(chart);
+        });
+    }
+
     function renderSummaryCards(data) {
         const totals = data.totals || {};
         const cards = [
@@ -1425,11 +1471,13 @@
     }
 
     function loadSummary(startDate, endDate) {
+        $('#locationFrequencyChart').html('<p class="staff-login-chart-empty">กำลังโหลดข้อมูลสถานที่…</p>');
         $('#summaryCount').text('Loading employees...');
         $('#employeeList').html('<div class="staff-login-chart-empty">Loading summary...</div>');
         $.getJSON(summaryApiUrl, {start: startDate, end: endDate})
             .done(function(response) {
                 renderSummaryCards(response);
+                renderLocationFrequencies(response.location_frequencies || []);
                 renderEmployeeList(response.employees || []);
                 $('#exportDatePicker').val(startDate + ' - ' + endDate);
             })
@@ -1437,6 +1485,7 @@
                 $('#summaryStats').html(
                     '<div class="staff-login-summary-card is-accent"><span class="eyebrow">Error</span><div class="value">--</div><div class="delta">Unable to load summary</div></div>'
                 );
+                $('#locationFrequencyChart').html('<p class="staff-login-chart-empty">ไม่สามารถโหลดข้อมูลสถานที่ได้</p>');
                 $('#summaryCount').text('Summary unavailable');
                 $('#employeeList').html('<div class="staff-login-chart-empty">Unable to load summary data</div>');
             });
