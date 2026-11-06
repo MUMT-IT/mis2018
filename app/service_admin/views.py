@@ -2729,7 +2729,7 @@ def create_customer_for_admin(customer_id=None):
 
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
-def create_customer_for_user(customer_id=None):
+def create_customer_for_user():
     email = request.args.get('email')
     is_admin = request.args.get('is_admin', 'false')
     user_type = session.get('user_type')
@@ -2744,7 +2744,7 @@ def create_customer_for_user(customer_id=None):
         old_is_document_verified = None
         form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
-        if customer_id is None:
+        if email is None:
             customer = ServiceCustomerInfo()
 
         required_documents = _required_customer_documents(form.type.data)
@@ -2825,14 +2825,14 @@ def create_customer_for_user(customer_id=None):
             db.session.add(attachment)
 
         cus_email = request.form.get('email')
-        if email:
+        if not email:
             customer.is_document_verified = None
             if current_user.is_authenticated and user_type and user_type == 'staff':
                 customer.creator_id = current_user.id
             cus_account = ServiceCustomerAccount.query.filter_by(email=cus_email).first()
             if cus_account:
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
-                return redirect(url_for('service_admin.create_customer_for_user', email=email))
+                return redirect(url_for('service_admin.create_customer_for_user'))
             else:
                 account = ServiceCustomerAccount(email=cus_email, customer_info=customer)
         else:
@@ -2874,7 +2874,7 @@ def create_customer_for_user(customer_id=None):
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
-            return redirect(url_for('service_admin.customer_detail', customer_id=customer.id, is_admin='false'))
+            return redirect(url_for('service_admin.customer_detail', customer_id=customer.id, is_admin=is_admin))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
