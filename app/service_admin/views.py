@@ -2748,7 +2748,7 @@ def create_customer_for_user(customer_id=None):
             customer = ServiceCustomerInfo()
 
         required_documents = _required_customer_documents(form.type.data)
-        type_changed = customer_id is not None and customer.type_id != form.type.data.id
+        type_changed = customer is not None and customer.type_id != form.type.data.id
         if type_changed and customer.required_attachments:
             customer.required_attachments.clear()
 
@@ -2825,7 +2825,7 @@ def create_customer_for_user(customer_id=None):
             db.session.add(attachment)
 
         cus_email = request.form.get('email')
-        if customer_id is None:
+        if email:
             customer.is_document_verified = None
             if current_user.is_authenticated and user_type and user_type == 'staff':
                 customer.creator_id = current_user.id
@@ -2842,14 +2842,12 @@ def create_customer_for_user(customer_id=None):
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
-        if customer_id:
-            return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
+        if email:
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
-            return redirect(url_for('service_admin.closing_page'))
             flash('เพิ่มลูกค้าสำเร็จ', 'success')
         central_admin_accounts = get_central_admin_academic_service()
-        if not customer_id and central_admin_accounts:
+        if not email and central_admin_accounts:
             scheme = 'http' if current_app.debug else 'https'
             link = url_for("service_admin.view_customer", tab='pending', customer_id=customer.id, _external=True,
                            _scheme=scheme)
