@@ -11,6 +11,7 @@ import arrow
 import pandas
 from io import BytesIO
 from bahttext import bahttext
+from flask_principal import identity_changed, Identity
 from pytz import timezone
 from datetime import date, timedelta
 from base64 import b64decode
@@ -2957,7 +2958,7 @@ def approve_document_customer(customer_id):
     message += f'''ช่องทางที่กำหนด\n\n'''
     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message += f'''ขอขอบพระคุณที่ใช้บริการ\n\n'''
-    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''ระบบขึ้นทะเบียนผู้รับบริการ\n'''
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([account.email for account in customer.accounts], title, message)
     resp = make_response()
@@ -2977,7 +2978,8 @@ def disapprove_document_customer(customer_id):
     scheme = 'http' if current_app.debug else 'https'
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     token = serializer.dumps({'email': customer.accounts[0].email})
-    link = url_for("academic_services.login_by_token", token=token, _external=True, _scheme=scheme)
+    link = url_for("service_admin.verify_customer_token", token=token, _external=True, _scheme=scheme,
+                   is_seven_days='true')
     title_prefix = 'คุณ' if customer.type.type == 'บุคคล' else ''
     title = f'''แจ้งผลการตรวจสอบข้อมูลการลงทะเบียน'''
     message = f'''เรียน {title_prefix}{customer.cus_name}\n\n'''
@@ -2986,12 +2988,31 @@ def disapprove_document_customer(customer_id):
     message += f'โดยท่านสามารถแก้ไขข้อมูลได้ที่ลิงก์ด้านล่าง\n\n{link}\n\n'
     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message += f'''ขอแสดงความนับถือ\n'''
-    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''ระบบขึ้นทะเบียนผู้รับบริการ\n'''
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([account.email for account in customer.accounts], title, message)
     resp = make_response()
     resp.headers['HX-Redirect'] = url_for('service_admin.view_customer', tab=tab, customer_id=customer_id)
     return resp
+
+
+@service_admin.route('/verify_customer_token', methods=['GET', 'POST'])
+def verify_customer_token():
+    token = request.args.get('token')
+    is_seven_days = request.args.get('is_seven_days', 'false')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        max_age = 604800 if is_seven_days else 86400
+        token_data = serializer.loads(token, max_age=max_age)
+    except:
+        return 'รหัสหมดอายุหรือไม่ถูกต้อง'
+    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
+    if not user:
+        flash('ไม่พบชื่อบัญชีในฐานข้อมูล')
+        return redirect(url_for('service_admin.search_customer_for_user'))
+    else:
+        identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+        return redirect(url_for('service_admin.create_customer_for_user', email=token_data.get('email')))
 
 
 @service_admin.route('/customer/register/closing-page')
