@@ -7,21 +7,29 @@
     <style>
         [v-cloak] { display: none; }
         #app .checkin-container { max-width: 720px; }
-        #app .location-card { border: 1px solid #dce5e1; border-radius: 8px; padding: .85rem 1rem; margin-bottom: .5rem; background: white; }
+        #app .location-card { border: 1px solid #dce5e1; border-radius: 8px; padding: .85rem 1rem; margin-bottom: .5rem; background: white; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
         #app .location-card.is-unavailable { background: #f0f0f0; border-color: #ddd; color: #707070; }
         #app .location-card.is-eligible { border-color: #48a887; }
         #app .location-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
         #app .location-name { font-weight: 600; margin-bottom: .15rem; }
         #app .location-distance { white-space: nowrap; font-weight: 700; }
-        #app .location-card .button { margin-top: .65rem; white-space: normal; height: auto; min-height: 44px; }
-        #app .gps-card { display: flex; align-items: flex-start; gap: .75rem; padding: .85rem 1rem; margin-bottom: 1.5rem; border: 1px solid #e1e5e8; border-radius: 8px; background: #fafbfc; }
+        #app .location-card:disabled { cursor: not-allowed; }
+        #app .location-card.is-eligible:not(:disabled):hover { background: #f0faf5; }
+        #app .location-card:focus-visible { outline: 3px solid #327b68; outline-offset: 3px; }
+        #app .location-card .location-name, #app .location-card .location-status { display: block; }
+        #app .gps-card { display: flex; align-items: flex-start; gap: .75rem; padding: .85rem 1rem; margin-bottom: 1.5rem; border: 1px solid #e1e5e8; border-radius: 8px;
+            background-color: #edf2ea;
+            background-image: linear-gradient(90deg, rgba(255,255,255,.96), rgba(255,255,255,.86) 60%, rgba(255,255,255,.55)), url("{{ url_for('static', filename='img/checkin-map-background.svg') }}");
+            background-size: cover;
+            background-position: center;
+        }
         #app .gps-content { flex: 1; min-width: 0; }
         #app .gps-label { font-weight: 600; font-size: .875rem; }
         #app .gps-marker { color: #327b68; padding-top: .15rem; }
         #app .gps-coordinates { display: flex; flex-wrap: wrap; gap: .15rem 1rem; margin-top: .25rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
         #app .gps-coordinates strong { color: inherit; }
         #app .gps-card .gps-refresh { padding: .25rem .5rem; height: auto; min-height: 32px; flex-shrink: 0; }
-        #app .qr-section { margin-bottom: 1.5rem; border-bottom: 1px solid #ddd; padding-bottom: 1rem; }
+        #app .qr-section { margin-top: 1.5rem; border-top: 1px solid #ddd; padding-top: 1rem; }
         #app .qr-content { text-align: center; padding: 1rem 0; }
         #app .qr-image { display: block; width: 256px; max-width: 100%; margin: 0 auto 1rem; }
         @media (max-width: 600px) { #app.section { padding: 1.5rem 1rem; } }
@@ -32,19 +40,6 @@
     <div class="container checkin-container">
         <h1 class="title is-4">ลงชื่อเข้า–ออกงาน</h1>
         <p class="subtitle is-6">เลือกสถานที่ที่คุณกำลังปฏิบัติงาน</p>
-        <section class="qr-section" aria-labelledby="qr-heading">
-            <h2 id="qr-heading" class="title is-6">QR Code สำหรับลงชื่อ</h2>
-            <div class="qr-content">
-                <p v-if="isLoading || qrLoading" role="status"><% isLoading ? 'กำลังค้นหาตำแหน่งเพื่อสร้าง QR Code…' : 'กำลังสร้าง QR Code…' %></p>
-                <p v-if="qrError" class="has-text-danger" role="alert"><% qrError %></p>
-                <template v-if="qrcode_base64">
-                    <img v-if="!qrExpired" class="qr-image" :src="qrcodeUrl" alt="QR Code สำหรับลงชื่อเข้าปฏิบัติงาน">
-                    <p v-if="qrExpired" class="has-text-danger" role="status">QR Code หมดอายุแล้ว กรุณาสร้างใหม่</p>
-                    <p v-else class="help">ใช้ได้ถึง <% qrExpiryLabel %> (อายุ 10 นาที)</p>
-                </template>
-                <button type="button" class="button is-light mt-3" :disabled="qrLoading || isLoading" @click="get_qrcode_data">สร้าง QR Code ใหม่</button>
-            </div>
-        </section>
         <div class="gps-card" :aria-busy="isLoading ? 'true' : 'false'">
             <span class="gps-marker" aria-hidden="true"><i class="fas fa-map-marker-alt"></i></span>
             <div class="gps-content" role="status" aria-live="polite">
@@ -70,24 +65,36 @@
         </div>
         <div v-if="checkinError" class="notification is-danger is-light" role="alert"><% checkinError %></div>
         <h2 class="title is-5 mb-2">สถานที่ปฏิบัติงาน</h2>
-        <p class="help mb-4">ลงชื่อได้ภายในระยะ <% maxDistanceKm %> กม. จากสถานที่ · เรียงจากใกล้ที่สุด</p>
-        <article v-for="key in sortedLocations" :key="key" class="location-card"
-                 :class="canCheckin(key) ? 'is-eligible' : 'is-unavailable'">
-            <div class="location-heading">
-                <div>
-                    <h3 class="location-name"><% location[key].name %></h3>
-                    <p class="is-size-7"><% !hasPosition ? 'รอพิกัด GPS' : canCheckin(key) ? 'อยู่ในพื้นที่ลงชื่อ' : 'อยู่นอกระยะ' %></p>
-                </div>
+        <button v-for="key in sortedLocations" :key="key" type="button" class="location-card"
+                :class="canCheckin(key) ? 'is-eligible' : 'is-unavailable'"
+                :disabled="!canCheckin(key) || scanInProgress || isLoading"
+                :aria-label="'ลงชื่อเข้า–ออกงาน: ' + location[key].name"
+                :aria-busy="scanInProgress && selectedPlace === key ? 'true' : 'false'"
+                @click="checkin(key)">
+            <span class="location-heading">
+                <span>
+                    <span class="location-name"><% location[key].name %></span>
+                    <span v-if="!canCheckin(key) || (scanInProgress && selectedPlace === key)" class="location-status is-size-7"><% scanInProgress && selectedPlace === key ? 'กำลังบันทึก…' : !hasPosition ? 'รอพิกัด GPS' : 'อยู่นอกระยะ' %></span>
+                </span>
                 <span v-if="distances[key] !== null" class="location-distance"
                       :class="distances[key] > maxDistanceKm ? 'has-text-danger' : 'has-text-success'">
                     <% distances[key].toFixed(2) %> km
                 </span>
+            </span>
+        </button>
+        <section class="qr-section" aria-labelledby="qr-heading">
+            <h2 id="qr-heading" class="title is-6">QR Code สำหรับลงชื่อ</h2>
+            <div class="qr-content">
+                <p v-if="isLoading || qrLoading" role="status"><% isLoading ? 'กำลังค้นหาตำแหน่งเพื่อสร้าง QR Code…' : 'กำลังสร้าง QR Code…' %></p>
+                <p v-if="qrError" class="has-text-danger" role="alert"><% qrError %></p>
+                <template v-if="qrcode_base64">
+                    <img v-if="!qrExpired" class="qr-image" :src="qrcodeUrl" alt="QR Code สำหรับลงชื่อเข้าปฏิบัติงาน">
+                    <p v-if="qrExpired" class="has-text-danger" role="status">QR Code หมดอายุแล้ว กรุณาสร้างใหม่</p>
+                    <p v-else class="help">ใช้ได้ถึง <% qrExpiryLabel %> (อายุ 10 นาที)</p>
+                </template>
+                <button type="button" class="button is-light mt-3" :disabled="qrLoading || isLoading" @click="get_qrcode_data">สร้าง QR Code ใหม่</button>
             </div>
-            <button v-if="canCheckin(key)" type="button" class="button is-success is-small"
-                    :disabled="!canCheckin(key) || scanInProgress || isLoading" @click="checkin(key)">
-                <% scanInProgress && selectedPlace === key ? 'กำลังบันทึก…' : 'ลงชื่อเข้า–ออกงาน' %>
-            </button>
-        </article>
+        </section>
     </div>
 </section>
 {% endblock %}
