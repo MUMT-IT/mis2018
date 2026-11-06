@@ -77,13 +77,17 @@
                         <strong>
                             {% if customer.verify_email %}
                                 <span class="tag is-success is-light is-rounded">
-                                    <i class="fas fa-circle-check" aria-hidden="true"></i>
-                                    ยืนยันแล้ว {{ customer.verify_email|localdate }}
+                                    <span class="icon">
+                                        <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                    </span>
+                                    <span>ยืนยันแล้ว {{ customer.verify_email|localdate }}</span>
                                 </span>
                             {% else %}
                                 <span class="tag is-danger is-light is-rounded">
-                                    <i class="fas fa-circle-xmark" aria-hidden="true"></i>
-                                    ยังไม่ยืนยัน
+                                    <span class="icon">
+                                        <i class="fas fa-circle-xmark" aria-hidden="true"></i>
+                                    </span>
+                                    <span>ยังไม่ยืนยัน</span>
                                 </span>
                             {% endif %}
                         </strong>
