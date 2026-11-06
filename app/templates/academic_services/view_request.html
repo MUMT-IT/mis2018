@@ -208,12 +208,20 @@
                                                         <td>{{ item.note or '-' }}</td>
                                                         <td class="has-text-centered">
                                                             {% if item.attachment %}
-                                                                <a class="button is-small is-link is-light is-rounded"
-                                                                   href="{{ url_for('academic_services.download_file', key=item.attachment,
-                                                                   download_filename=item.attachment) }}">
-                                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                                    <span>ดาวน์โหลด</span>
-                                                                </a>
+                                                                <div class="field has-addons is-justify-content-center">
+                                                                    <div class="control">
+                                                                        <a class="button is-small is-primary is-outlined is-rounded"
+                                                                           href="{{ url_for('academic_services.download_file', key=item.attachment, download_filename=item.attachment, inline=1) }}">
+                                                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                                                        </a>
+                                                                    </div>
+                                                                    <div class="control">
+                                                                        <a class="button is-small is-info is-outlined is-rounded"
+                                                                           href="{{ url_for('academic_services.download_file', key=item.attachment, download_filename=item.attachment) }}">
+                                                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
                                                             {% else %}
                                                                 -
                                                             {% endif %}
@@ -229,12 +237,18 @@
                                                         <td>{{ item.note or '-' }}</td>
                                                         <td class="has-text-centered">
                                                             {% if item.attachment %}
-                                                                <a class="button is-small is-link is-light is-rounded"
-                                                                   href="{{ url_for('academic_services.download_file',
-                                                                   key=item.attachment, download_filename=item.attachment) }}">
-                                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                                    <span>ดาวน์โหลด</span>
-                                                                </a>
+                                                                <div class="field has-addons is-justify-content-center">
+                                                                    <div class="control">
+                                                                        <a class="button is-small is-primary is-outlined is-rounded" title="ดูเอกสาร" aria-label="ดูเอกสาร" target="_blank" rel="noopener" href="{{ url_for('academic_services.download_file', key=item.attachment, download_filename=item.attachment, inline=1) }}">
+                                                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                                                        </a>
+                                                                    </div>
+                                                                    <div class="control">
+                                                                        <a class="button is-small is-info is-outlined is-rounded" title="ดาวน์โหลด" aria-label="ดาวน์โหลด" href="{{ url_for('academic_services.download_file', key=item.attachment, download_filename=item.attachment) }}">
+                                                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
                                                             {% else %}
                                                                 -
                                                             {% endif %}
