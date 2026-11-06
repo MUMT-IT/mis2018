@@ -2731,6 +2731,7 @@ def create_customer_for_admin(customer_id=None):
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
 def create_customer_for_user(customer_id=None):
     email = request.args.get('email')
+    is_admin = request.args.get('is_admin', 'false')
     user_type = session.get('user_type')
     customer = None
     if email:
@@ -2842,8 +2843,10 @@ def create_customer_for_user(customer_id=None):
         db.session.add(customer)
         db.session.commit()
         if customer_id:
+            return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
+            return redirect(url_for('service_admin.closing_page'))
             flash('เพิ่มลูกค้าสำเร็จ', 'success')
         central_admin_accounts = get_central_admin_academic_service()
         if not customer_id and central_admin_accounts:
@@ -3008,6 +3011,30 @@ def disapprove_document_customer(customer_id):
     resp = make_response()
     resp.headers['HX-Redirect'] = url_for('service_admin.view_customer', tab=tab, customer_id=customer_id)
     return resp
+
+
+@service_admin.route('/customer/email/send', methods=['GET', 'POST'])
+def send_email_customer():
+    is_admin = request.args.get('is_admin', 'false')
+    customer_id = request.args.get('customer_id', type=int)
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    flash('ขอแก้ไข้ข้อมูลำเร็จ กรุณาดำเนินการเข้าสู่อีเมลเพื่อดำเนินการแก้ไขข้อมูล', 'success')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    token = serializer.dumps({'email': customer.accounts[0].email})
+    link = url_for("service_admin.verify_customer_token", token=token, _external=True, _scheme=scheme,
+                   is_seven_days='false')
+    title_prefix = 'คุณ' if customer.type.type == 'บุคคล' else ''
+    title = f'''แจ้งขอแก้ไขข้อมูลผู้รับบริการ'''
+    message = f'''เรียน {title_prefix}{customer.cus_name}\n\n'''
+    message += f'''ตามที่ท่านได้ลงทะเบียนขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจสอบข้อมูลการลง'''
+    message += f'''ทะเบียนของท่าน พบว่ามีข้อมูลบางส่วนที่ต้องแก้ไขเพิ่มเติม\nกรุณาดำเนินการแก้ไขข้อมูลให้ถูกต้องครบถ้วน ภายใน 24 ชั่วโมง นับจากที่ได้รับอีเมลฉบับนี้ '''
+    message += f'โดยท่านสามารถแก้ไขข้อมูลได้ที่ลิงก์ด้านล่าง\n\n{link}\n\n'
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ระบบขึ้นทะเบียนผู้รับบริการ\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([account.email for account in customer.accounts], title, message)
+    return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
 
 
 @service_admin.route('/verify_customer_token', methods=['GET', 'POST'])
