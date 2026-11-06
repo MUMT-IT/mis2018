@@ -2606,9 +2606,11 @@ def create_customer_for_admin(customer_id=None):
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
+        old_email = account.email
         form = ServiceCustomerInfoForm(obj=customer)
     else:
         account = None
+        old_email = None
         form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
         if customer_id is None:
@@ -2705,12 +2707,55 @@ def create_customer_for_admin(customer_id=None):
             else:
                 account = ServiceCustomerAccount(email=email, customer_info=customer)
         else:
-            account.email = email
+            if old_email != email:
+                account.email = email
+                account.verify_datetime = None
             if customer.is_document_verified is None:
                 customer.is_document_verified = None
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
+
+        if account and not account.verify_datetime:
+            source_system_names = {
+                'academic_service': 'ระบบบริการตรวจวิเคราะห์',
+                'registration': 'ระบบขึ้นทะเบียนผู้รับบริการ',
+            }
+            system_name = source_system_names.get(source, 'ระบบบริการตรวจวิเคราะห์')
+            scheme = 'http' if current_app.debug else 'https'
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+            token = serializer.dumps({'email': account.email})
+            verification_link = url_for(
+                'service_admin.verify_email', is_admin=is_admin, customer_id=customer.id,
+                token=token, _external=True, _scheme=scheme
+            )
+            email_title = f'ยืนยันอีเมล{system_name} คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
+            plain_message = (
+                f'เรียน ผู้ใช้บริการ\n\n'
+                f'กรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านสำหรับ{system_name}\n'
+                f'{verification_link}\n\n'
+                f'ลิงก์นี้ใช้งานได้ภายใน 3 ชั่วโมงหลังจากได้รับอีเมล\n\n'
+                f'ขอแสดงความนับถือ\n{system_name}\n'
+                f'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
+            )
+            html_message = f'''<!DOCTYPE html>
+            <html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>{email_title}</title></head>
+            <body style="margin:0;padding:24px;background:#f4f6f8;font-family:Arial,sans-serif;color:#444">
+              <div style="max-width:600px;margin:0 auto;padding:36px;background:#fff;border:1px solid #e5e7eb;border-radius:8px">
+                <h1 style="font-size:24px;margin:0 0 20px">{system_name}</h1><hr style="border:0;border-top:1px solid #e5e7eb">
+                <p>เรียน ผู้ใช้บริการ</p>
+                <p>กรุณายืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ</p>
+                <p style="text-align:center;margin:28px 0"><a href="{verification_link}" style="display:inline-block;padding:13px 24px;background:#16834a;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold">ยืนยันบัญชีอีเมล</a></p>
+                <p style="color:#777;font-size:14px">ลิงก์นี้ใช้งานได้ภายใน 3 ชั่วโมงหลังจากได้รับอีเมล</p>
+                <p style="margin-top:32px;color:#888;font-size:13px">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล · {system_name}</p>
+              </div>
+            </body></html>'''
+            if not current_app.debug:
+                send_mail([account.email], email_title, message=plain_message, html=html_message)
+            else:
+                print('message', html_message)
+
         if customer_id:
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
