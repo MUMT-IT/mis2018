@@ -14,7 +14,7 @@
                 {%  include 'messages.html' %}
                 {% if current_user.is_authenticated and user_type and user_type == 'staff' and not customer_id %}
                     <h1 class="title has-text-centered">สร้างลูกค้า/ผู้ประสานงาน</h1>
-                {% elif customer_id or email %}
+                {% elif customer_id %}
                     <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
                 {% else %}
                     <h1 class="title has-text-centered">ลงทะเบียนผู้รับบริการ</h1>
@@ -285,7 +285,13 @@
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a class="button"
-                               {% if current_user.is_authenticated and user_type and user_type == 'staff' %}
+                               {% if source == 'registration' and customer_id %}
+                                    href="{{ url_for('service_admin.customer_detail', customer_id=customer_id,
+                                    is_admin=is_admin) }}"
+                               {% elif source == 'registration' %}
+                                    href="{{ url_for('service_admin.customer_register_index') }}"
+                               {% elif source == 'academic_service' or (current_user.is_authenticated and user_type
+                                    and user_type == 'staff') %}
                                     href="{{ url_for('service_admin.customer_index', tab=tab) }}"
                                {% else %}
                                     href="{{ url_for('service_admin.customer_register_index') }}"
