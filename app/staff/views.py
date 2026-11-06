@@ -2,6 +2,9 @@
 from io import BytesIO
 from functools import wraps
 import json
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Cm
 
 import arrow
 import pandas as pd
@@ -30,6 +33,7 @@ from pydrive.drive import GoogleDrive
 import requests
 import gviz_api
 import os
+from docx import Document
 from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
@@ -7624,6 +7628,192 @@ def show_seminar_info_each_person(record_id):
                            seminar_end_date_thai=seminar_end_date_thai,
                            approver=approver, approver_position=approver_position, idp_value=idp_value,
                            idp_pre_item=idp_pre_item, idp_item=idp_item, is_deduct_transfer=is_deduct_transfer)
+
+
+@staff.route('/seminar/info/<int:record_id>/download-docx')
+@login_required
+def download_seminar_request_docx(record_id):
+    attend = StaffSeminarAttend.query.get_or_404(record_id)
+    bulk_ids = [int(value) for value in request.args.get('bulk_ids', '').split(',') if value.strip().isdigit()]
+    attendees = []
+    if bulk_ids:
+        queried_attendees = StaffSeminarAttend.query.filter(
+            StaffSeminarAttend.id.in_(bulk_ids),
+            StaffSeminarAttend.seminar_id == attend.seminar_id,
+        ).all()
+        attendee_map = {item.id: item for item in queried_attendees}
+        attendees = [attendee_map[item_id] for item_id in bulk_ids if item_id in attendee_map]
+    if not attendees:
+        attendees = [attend]
+    attendee_names = [str(item.staff.personal_info) for item in attendees]
+
+    def local_datetime(value):
+        if not value:
+            return None
+        return tz.localize(value) if value.tzinfo is None else value.astimezone(tz)
+
+    start_date = local_datetime(attend.start_datetime)
+    end_date = local_datetime(attend.end_datetime)
+    event_start = local_datetime(attend.seminar.start_datetime)
+    event_end = local_datetime(attend.seminar.end_datetime)
+    thai_months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+
+    def thai_date(value):
+        return f'{value.day} {thai_months[value.month - 1]} {value.year + 543}' if value else '-'
+
+    org = attend.staff.personal_info.org
+    org_name = org.parent.name if org and org.parent else (org.name if org else 'คณะเทคนิคการแพทย์')
+    def money(value):
+        return f'{value:,.2f}' if value else '-'
+
+    def time_text(value):
+        return value.strftime('%H:%M') if value else ''
+
+    cost_items = []
+    for label, amount in (
+        ('ค่าลงทะเบียน', attend.registration_fee), ('ค่าที่พัก', attend.accommodation_cost),
+        ('ค่าน้ำมัน', attend.fuel_cost), ('ค่ารถไฟ', attend.train_ticket_cost),
+        ('ค่าแท็กซี่', attend.taxi_cost), ('ค่าตั๋วเครื่องบิน', attend.flight_ticket_cost),
+        ('ค่าธรรมเนียมการโอน', attend.transaction_fee),
+    ):
+        if amount:
+            cost_items.append(f'{label} {amount:,.2f} บาท')
+    if attend.budget:
+        total_budget = attend.budget * len(attendee_names)
+        cost_items.append(
+            f'จำนวน {len(attendee_names)} คน รวมทั้งสิ้น {total_budget:,.2f} บาท'
+            if len(attendee_names) > 1 else f'รวมทั้งสิ้น {attend.budget:,.2f} บาท'
+        )
+    if attend.deduct_transfer:
+        _, fiscal_end = get_fiscal_date(attend.start_datetime)
+        cost_items.append(f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_end.year + 543}')
+    costs_text = ' '.join(cost_items) if cost_items else 'ไม่มีค่าใช้จ่าย'
+    objective_names = ', '.join(attend.objective_list) or '-'
+    mission_names = ', '.join(attend.mission_list) or '-'
+    is_idp_objective = any('IDP' in objective.objective for objective in attend.objectives)
+    idp_value = ''
+    if is_idp_objective:
+        yearly_budget = get_seminar_yearly_budget(attend.staff_account_id, attend.start_datetime)
+        idp_value = (
+            f'วงเงิน {yearly_budget.budget:,.2f} บาท '
+            f'ยอดที่ใช้ (รวมครั้งนี้) {yearly_budget.total_used:,.2f} บาท '
+            f'คงเหลือ {yearly_budget.remaining:,.2f} บาท'
+        )
+    idp_items_text = ', '.join(item.plan for item in attend.idp_items) \
+        if is_idp_objective and attend.idp_items else ''
+    topic_type = attend.seminar.topic_type or 'กิจกรรม'
+    online_text = 'เข้าร่วมผ่านช่องทางออนไลน์' if attend.attend_online else ''
+    start_time = time_text(start_date)
+    end_time = time_text(end_date)
+    signature_names = ' '.join(f'{idx}) {name}' for idx, name in enumerate(attendee_names, 1)) \
+        if len(attendee_names) > 1 else (attendee_names[0] if attendee_names else '-')
+    signer = attend.lower_level_approver.personal_info if attend.lower_level_approver else None
+    signer_name = signer.fullname if signer else ''
+    doc_approver = StaffSeminarDocumentApprover.query.filter_by(seminar_attend=attend).first()
+    signer_position = doc_approver.position.position if doc_approver and doc_approver.position else ''
+    _, END_FISCAL_DATE = get_fiscal_date(attend.start_datetime)
+    fiscal_year = END_FISCAL_DATE.year + 543
+    is_deduct_transfer = '' if not attend.deduct_transfer else f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_year}'
+
+    replacements = {
+        '{{ org_name }}': org_name,
+        '{{ seminar_attend.seminar.topic_type }}': topic_type,
+        '{{ proposer_list_text }}': signature_names,
+        '{{ seminar_attend.seminar.organize_by }}': attend.seminar.organize_by or '-',
+        '{{ seminar_attend.seminar.topic }}': attend.seminar.topic or '-',
+        '{{ seminar_start_date_thai }}': thai_date(start_date),
+        '{{ seminar_attend.start_datetime|localtime }}': start_time,
+        '{{ seminar_end_date_thai }}': thai_date(end_date),
+        '{{ seminar_attend.end_datetime|localtime  }}': end_time,
+        '{{ seminar_attend.seminar.location }}': attend.seminar.location or '-',
+        '{{ attend_online }}': online_text,
+        '{{ registration_fee }}': money(attend.registration_fee),
+        '{{ transaction_fee }}': f'ค่าธรรมเนียมการโอนเงิน(ถ้ามี) {money(attend.transaction_fee)} บาท' if attend.transaction_fee else '',
+        '{{ accommodation_cost }}': f'ค่าที่พัก {money(attend.accommodation_cost)} บาท' if attend.accommodation_cost else '',
+        '{{ flight_ticket_cost }}': f'ค่าตั๋วเครื่องบิน {money(attend.flight_ticket_cost)} บาท' if attend.flight_ticket_cost else '',
+        '{{ train_ticket_cost }}': f'ค่ารถไฟ {money(attend.train_ticket_cost)} บาท' if attend.train_ticket_cost else '',
+        '{{ taxi_cost }}': f'ค่าแท็กซี่ {money(attend.taxi_cost)} บาท' if attend.taxi_cost else '',
+        '{{ fuel_cost }}': f'ค่าน้ำมัน {money(attend.fuel_cost)} บาท' if attend.fuel_cost else '',
+        '{{ pdf_budget_text }}': f' {costs_text}',
+        '{{ is_deduct_transfer }}': f' {is_deduct_transfer}' if is_deduct_transfer else '',
+        '{{ seminar_attend.objective_list|join(", ") }}': objective_names,
+        '{{ idp_pre_item }}': ': ' if idp_items_text else '',
+        '{{ idp_item }}': idp_items_text,
+        '{{ idp_value }}': idp_value,
+        '{{ seminar_attend.mission_list|join(", ") }}': mission_names,
+        '{{ approver }}': signer_name,
+        '{{ approver_position }}': signer_position,
+    }
+
+    # Replace placeholders within existing runs to preserve the template's
+    # paragraph formatting, tabs, numbering, and spacing. Several template
+    # placeholders are split across runs, so merge only paragraphs containing
+    # placeholders and carry forward their paragraph-level formatting.
+    template_path = os.path.join(current_app.root_path, 'static', 'docs', 'seminar-request-template.docx')
+    document = Document(template_path)
+    logo_path = os.path.join(current_app.root_path, 'static', 'docs', 'seminar-request-logo.jpg')
+    # Remove the template's floating logo paragraph first. Its old drawing
+    # points at rId5 and can be clipped by Word when retained beside a new
+    # inline image in the header table.
+    for drawing in document._element.body.xpath('.//wp:anchor'):
+        drawing.getparent().remove(drawing)
+    # Build a stable five-column header from the same proportions used by the
+    # PDF: centered seal, organization name centered in the area to its right.
+    header_paragraph = document.paragraphs[0]
+    header_paragraph.text = ''
+    for paragraph in document.paragraphs[1:3]:
+        paragraph._element.getparent().remove(paragraph._element)
+    header_table = document.add_table(rows=1, cols=5)
+    header_table.autofit = False
+    header_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    # PDF widths are points; convert them to centimeters for Word.
+    widths = [Cm(value * 0.0352777778) for value in (100, 92, 66, 212, 1)]
+    for cell, width in zip(header_table.rows[0].cells, widths):
+        cell.width = width
+        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        for paragraph in cell.paragraphs:
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            paragraph.paragraph_format.space_after = 0
+            paragraph.paragraph_format.space_before = 0
+    header_table.rows[0].cells[2].paragraphs[0].add_run().add_picture(logo_path, width=Cm(2.0))
+    org_paragraph = header_table.rows[0].cells[3].paragraphs[0]
+    org_paragraph.add_run(f'{org_name}\nคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nโทร. 02-441-4371')
+    org_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    # Keep the header in the original first-paragraph position, ahead of the
+    # memo metadata, and remove the now-empty placeholder paragraph.
+    header_paragraph._p.addnext(header_table._tbl)
+    header_paragraph._element.getparent().remove(header_paragraph._element)
+    for paragraph in document.paragraphs:
+        original_text = paragraph.text
+        if not any(token in original_text for token in replacements):
+            continue
+        rendered_text = original_text
+        for token, value in replacements.items():
+            rendered_text = rendered_text.replace(token, str(value or ''))
+        if paragraph.runs:
+            paragraph.runs[0].text = rendered_text
+            for run in paragraph.runs[1:]:
+                run.text = ''
+    # Replace each existing footer-slot paragraph's full text while retaining
+    # the paragraph formatting and the first run's character formatting.
+    for paragraph in document.paragraphs:
+        if 'เหตุผลความจำเป็น' in paragraph.text:
+            for run in paragraph.runs:
+                run.text = ''
+        if 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ' in paragraph.text:
+            paragraph.paragraph_format.keep_with_next = True
+    if document.paragraphs:
+        document.paragraphs[-2].paragraph_format.keep_with_next = True
+    output = BytesIO()
+    document.save(output)
+    output.seek(0)
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        as_attachment=True,
+        download_name=f'seminar-request-{record_id}.docx',
+    )
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])
