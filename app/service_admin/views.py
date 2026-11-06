@@ -2942,12 +2942,12 @@ def create_customer_for_user():
                         border-radius: 5px;
                         font-size: 1.2em;
                         font-weight: bold;
-                        margin-bottom: 20px;
+                        margin-bottom: 0;
                         transition: background-color 0.3s ease, transform 0.2s ease;
                         color: #ffffff !important;
                     }}
                     .link-validity {{
-                        margin-top: 35px;
+                        margin-top: 12px;
                         font-size: 0.9em;
                         color: #888;
                         text-align: left;
@@ -2971,7 +2971,9 @@ def create_customer_for_user():
                         <p>ขอบคุณสำหรับการลงทะเบียนใช้งานระบบขึ้นทะเบียนผู้รับบริการ<br>
                             กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
                         </p>
-                        <a href="{link}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
+                        <div style="text-align: center; margin-top: 12px;">
+                            <a href="{link}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
+                        </div>
                         <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 3 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
                     </div>
                     <div class="footer">
@@ -3151,7 +3153,7 @@ def verify_email():
         db.session.add(user)
         db.session.commit()
         flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
-        return render_template('service_admin/confirm_email_page', customer_id=customer_id, is_admin=is_admin)
+        return render_template('service_admin/confirm_email_page.html', customer_id=customer_id, is_admin=is_admin)
 
 
 @service_admin.route('/customer/email/send', methods=['GET', 'POST'])
