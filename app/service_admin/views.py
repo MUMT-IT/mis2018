@@ -2842,10 +2842,7 @@ def create_customer_for_user():
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
-        if email:
-            flash('แก้ไขข้อมูลสำเร็จ', 'success')
-        else:
-            flash('เพิ่มลูกค้าสำเร็จ', 'success')
+
         central_admin_accounts = get_central_admin_academic_service()
         if not email and central_admin_accounts:
             scheme = 'http' if current_app.debug else 'https'
@@ -2860,7 +2857,6 @@ def create_customer_for_user():
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
-            return redirect(url_for('service_admin.closing_page'))
         elif old_is_document_verified == False and central_admin_accounts:
             scheme = 'http' if current_app.debug else 'https'
             link = url_for("service_admin.view_customer", tab='pending', customer_id=account.customer_info_id,
@@ -2874,7 +2870,27 @@ def create_customer_for_user():
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
+
+        if account and ((not account.verify_datetime) or (email != account.email)):
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("service_admin.view_customer", tab='pending', customer_id=account.customer_info_id,
+                           _external=True, _scheme=scheme)
+            title = f'''แจ้งเตือนการแก้ไขข้อมูลผู้รับบริการ'''
+            message = f'''เรียน แอดมินส่วนกลาง\n\n'''
+            message += f'''มีผู้รับบริการดำเนินการแก้ไขข้อมูลตามที่แจ้งเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ระบบขึ้นทะเบียนผู้รับบริการ'''
+            if not current_app.debug:
+                send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
+            else:
+                print('message', message)
+
+        if email:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.customer_detail', customer_id=customer.id, is_admin=is_admin))
+        else:
+            flash('เพิ่มลูกค้าสำเร็จ', 'success')
+            return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -2979,6 +2995,31 @@ def approve_document_customer(customer_id):
     resp = make_response()
     resp.headers['HX-Redirect'] = url_for('service_admin.view_customer', tab=tab, customer_id=customer_id)
     return resp
+
+
+@service_admin.route('/customer/email-verification', methods=['GET', 'POST'])
+def verify_email():
+    token = request.args.get('token')
+    is_admin = request.args.get('is_admin', 'false')
+    customer_id = request.args.get('customer_id', type=int)
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token, max_age=10800)
+    except:
+        return 'รหัสสำหรับทำการยืนยันอีเมลหมดอายุหรือไม่ถูกต้อง'
+    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
+    if not user:
+        flash('ไม่พบชื่อบัญชีผู้ใช้งาน กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
+        return redirect(url_for('service_admin.customer_register_index'))
+    elif user.verify_datetime:
+        flash('ได้รับการยืนยันอีเมลแล้ว', 'info')
+        return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
+    else:
+        user.verify_datetime = arrow.now('Asia/Bangkok').datetime
+        db.session.add(user)
+        db.session.commit()
+        flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('service_admin.confirm_email_page', customer_id=customer_id, is_admin=is_admin))
 
 
 @service_admin.route('/customer/disapprove/<int:customer_id>', methods=['POST'])
