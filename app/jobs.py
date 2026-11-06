@@ -553,8 +553,8 @@ scheduler.add_job(send_checkin_reminder,
                   timezone='Asia/Bangkok')
 scheduler.add_job(send_checkout_reminder,
                   'cron', day_of_week='mon-fri',
-                  hour='16', minute='40',
-                  kwargs={'round_time': '16:40'},
+                  hour='16', minute='30',
+                  kwargs={'round_time': '16:30'},
                   timezone='Asia/Bangkok')
 scheduler.add_job(send_checkout_reminder,
                   'cron', day_of_week='mon-fri',

@@ -628,6 +628,36 @@ def _build_fallback_login_history_summary(snapshot):
     )
 
 
+def _login_location_frequencies(records, staff_ids, start_date, end_date):
+    location_names = {
+        'salaya': 'ศาลายา',
+        'siriraj': 'คณะเทคนิคการแพทย์ (ศิริราช)',
+        'opd': 'สถานเวชศาสตร์ชันสูตร (ศิริราช)',
+        'gj': 'ศูนย์การแพทย์กาญจนาภิเษก',
+    }
+    counts = defaultdict(lambda: {'checkins': 0, 'checkouts': 0})
+    for record in records:
+        if record.staff_id not in staff_ids:
+            continue
+        source = getattr(record, 'record_source', None)
+        if source in ('approved_request', 'hr_manual'):
+            continue
+        code = (getattr(record, 'note', None) or '').strip().lower()
+        name = location_names.get(code, 'ไม่ระบุสถานที่')
+        start = getattr(record, 'start_datetime', None)
+        end = getattr(record, 'end_datetime', None)
+        if start and start_date <= _to_bangkok(start).date() <= end_date:
+            # New scans are individual rows; legacy rows may contain both times.
+            kind = 'checkouts' if not end and (getattr(record, 'num_scans', 0) or 0) > 1 else 'checkins'
+            counts[name][kind] += 1
+        if end and start_date <= _to_bangkok(end).date() <= end_date:
+            counts[name]['checkouts'] += 1
+    return sorted([
+        {'name': name, **values, 'total': values['checkins'] + values['checkouts']}
+        for name, values in counts.items()
+    ], key=lambda item: (-item['total'], item['name']))
+
+
 def _build_login_summary_dashboard(start_date, end_date, dept_id):
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
     office_end_time = datetime.strptime('16:30', '%H:%M').time()
@@ -671,6 +701,7 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
                 'missing_days': 0,
             },
             'employees': [],
+            'location_frequencies': [],
         }
 
     start_datetime_column = getattr(StaffWorkLogin, 'start_datetime', None)
@@ -912,6 +943,7 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             'missing_days': total_status_days['missing'],
         },
         'employees': employees_payload,
+        'location_frequencies': _login_location_frequencies(records, employees_by_id, start_date, end_date),
     }
 
 
@@ -4882,8 +4914,8 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
 
 
 def _build_missing_checkout_recipients(target_date, round_time, records=None):
-    """Split recipients by hours at 16:40, checking current checkout records."""
-    if round_time not in {'16:40', '17:00'}:
+    """Split recipients by hours at 16:30, checking current checkout records."""
+    if round_time not in {'16:30', '17:00'}:
         raise ValueError('Invalid checkout reminder round')
     if records is None:
         records = StaffWorkLogin.query.filter_by(date_id=target_date.strftime('%Y%m%d')).all()
@@ -4893,7 +4925,7 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
         if record.staff_id and start and start.date() == target_date:
             grouped[record.staff_id].append(record)
 
-    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime('16:40', '%H:%M').time()))
+    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime('16:30', '%H:%M').time()))
     recipients = []
     for account in StaffAccount.get_active_accounts():
         day_records = grouped.get(account.id, [])
@@ -4907,7 +4939,7 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
             continue
         start = _to_bangkok(day_records[0].start_datetime)
         early_round = _calculate_work_hours(start, cutoff) >= 8.0
-        if early_round == (round_time == '16:40'):
+        if early_round == (round_time == '16:30'):
             recipients.append(account)
     return recipients
 
@@ -4922,7 +4954,7 @@ def line_remind_missing_checkout():
         if not admin_permission.can():
             abort(403)
     round_time = request.values.get('round')
-    if round_time not in {'16:40', '17:00'}:
+    if round_time not in {'16:30', '17:00'}:
         abort(400)
     now = datetime.now(tz)
     target_date = now.date()
@@ -4941,7 +4973,7 @@ def line_remind_missing_checkout():
         return jsonify(payload)
     # Do not send an early reminder or replay the first round after 17:00.
     local_time = now.strftime('%H:%M')
-    if local_time < round_time or (round_time == '16:40' and local_time >= '17:00'):
+    if local_time < round_time or (round_time == '16:30' and local_time >= '17:00'):
         abort(400)
     for account in recipients:
         try:
@@ -5612,7 +5644,6 @@ def send_summary_data():
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
     calendar_start_date = cal_start.date() if cal_start else datetime.now(tz).date()
     calendar_end_date = cal_end.date() if cal_end else calendar_start_date
-    calendar_working_dates = _working_dates_between(calendar_start_date, calendar_end_date)
     for emp in employees:
         if tab in ['login', 'all']:
             for row in _daily_work_login_rows(
@@ -5620,8 +5651,6 @@ def send_summary_data():
                 .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))
                 .all()
             ):
-                if row['date'] not in calendar_working_dates:
-                    continue
                 end = row['end']
                 start_dt = parser.isoparse(row['start']) if row['start'] else None
                 end_dt = parser.isoparse(end) if end else None
@@ -7864,12 +7893,7 @@ def send_time_report_data():
     )
     records = []
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
-    calendar_start_date = _to_bangkok(cal_start).date() if cal_start else datetime.now(tz).date()
-    calendar_end_date = _to_bangkok(cal_end).date() if cal_end else calendar_start_date
-    calendar_working_dates = _working_dates_between(calendar_start_date, calendar_end_date)
     for row in rows:
-        if row['date'] not in calendar_working_dates:
-            continue
         start_dt = parser.isoparse(row['start']) if row['start'] else None
         end_dt = parser.isoparse(row['end']) if row['end'] else None
         hours_is_negative = False
