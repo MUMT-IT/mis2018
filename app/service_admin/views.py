@@ -2700,8 +2700,7 @@ def create_customer_for_admin(customer_id=None):
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
                 return redirect(url_for('service_admin.create_customer_for_admin', custoemr_id=customer_id, tab=tab))
             else:
-                account = ServiceCustomerAccount(email=email, customer_info=customer,
-                                                 verify_datetime=arrow.now('Asia/Bangkok').datetime)
+                account = ServiceCustomerAccount(email=email, customer_info=customer)
         else:
             account.email = email
             if customer.is_document_verified is None:
@@ -2832,8 +2831,7 @@ def create_customer_for_user(customer_id=None):
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
                 return redirect(url_for('service_admin.create_customer_for_user', email=email))
             else:
-                account = ServiceCustomerAccount(email=cus_email, customer_info=customer,
-                                                 verify_datetime=arrow.now('Asia/Bangkok').datetime)
+                account = ServiceCustomerAccount(email=cus_email, customer_info=customer)
         else:
             account.email = cus_email
             if customer.is_document_verified is None:
