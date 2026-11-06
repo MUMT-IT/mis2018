@@ -2993,7 +2993,7 @@ def create_customer_for_user():
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.customer_detail', customer_id=customer.id, is_admin=is_admin))
         else:
-            flash('เพิ่มลูกค้าสำเร็จ', 'success')
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
