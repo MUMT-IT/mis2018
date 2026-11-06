@@ -23,7 +23,8 @@
                 <div class="buttons customer-detail-heading-actions">
                     {% if is_admin == 'true' %}
                         <a class="button is-warning is-light customer-detail-edit"
-                           href="{{ url_for('service_admin.create_customer_for_admin', customer_id=customer.id, tab='all') }}">
+                           href="{{ url_for('service_admin.create_customer_for_admin', customer_id=customer.id, tab='all',
+                           source='registration', is_admin=is_admin) }}">
                             <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                             <span>แก้ไขข้อมูล</span>
                         </a>
