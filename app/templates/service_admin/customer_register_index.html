@@ -19,30 +19,31 @@
                             </p>
                         </div>
                         <br>
-                        <p class="customer-register-prompt">
-                            <span class="icon"><i class="fas fa-user-cog"></i></span>
-                            <span>สำหรับแอดมิน</span>
-                        </p>
-                        <div class="customer-register-actions">
-                            <a class="customer-register-action customer-register-action-search"
-                               href="{{ url_for('service_admin.search_customer_for_admin') }}">
-                                <span class="customer-register-action-icon" aria-hidden="true">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <span class="customer-register-action-copy">
-                                    <strong>ค้นหาข้อมูลผู้รับบริการ</strong>
-                                    <small>ตรวจสอบข้อมูลผู้รับบริการที่มีอยู่ในระบบ</small>
-                                </span>
-                            </a>
-                        </div>
-                        <div class="customer-register-customer-section">
-                            <p class="customer-register-customer-label">
-                                <span class="icon"><i class="fas fa-user-tie"></i></span>
-                                ส่วนสำหรับลูกค้า
-                            </p>
+                        {% if current_user.is_authenticated and user_type and user_type == 'staff' %}
+{#                            <p class="customer-register-prompt">#}
+{#                                <span class="icon"><i class="fas fa-user-cog"></i></span>#}
+{#                                <span>สำหรับแอดมิน</span>#}
+{#                            </p>#}
+                            <div class="customer-register-actions">
+                                <a class="customer-register-action customer-register-action-search"
+                                   href="{{ url_for('service_admin.search_customer_for_admin') }}">
+                                    <span class="customer-register-action-icon" aria-hidden="true">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <span class="customer-register-action-copy">
+                                        <strong>ค้นหาข้อมูลผู้รับบริการ</strong>
+                                        <small>ตรวจสอบข้อมูลผู้รับบริการที่มีอยู่ในระบบ</small>
+                                    </span>
+                                </a>
+                            </div>
+                        {% else %}
+{#                            <p class="customer-register-customer-label">#}
+{#                                <span class="icon"><i class="fas fa-user-tie"></i></span>#}
+{#                                ส่วนสำหรับลูกค้า#}
+{#                            </p>#}
                             <div class="customer-register-customer-actions">
                                 <a class="customer-register-action customer-register-action-customer-search"
-                                    href="{{ url_for('service_admin.search_customer_for_user') }}">
+                                   href="{{ url_for('service_admin.search_customer_for_user') }}">
                                     <span class="customer-register-action-icon" aria-hidden="true">
                                         <i class="fas fa-search"></i>
                                     </span>
@@ -62,7 +63,7 @@
                                     </span>
                                 </a>
                             </div>
-                        </div>
+                        {% endif %}
                         <div class="customer-register-note">
                             <span class="icon" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
                             <span>ข้อมูลจะถูกจัดเก็บเพื่อใช้ประกอบการให้บริการและการออกเอกสารที่เกี่ยวข้อง</span>
