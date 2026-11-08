@@ -2726,34 +2726,117 @@ def create_customer_for_admin(customer_id=None):
             scheme = 'http' if current_app.debug else 'https'
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': account.email})
-            verification_link = url_for(
-                'service_admin.verify_email', is_admin=is_admin, customer_id=customer.id,
-                token=token, _external=True, _scheme=scheme
+            link = url_for(
+                'service_admin.verify_email', is_admin=is_admin, customer_id=customer.id, token=token,
+                _external=True, _scheme=scheme
             )
-            email_title = f'ยืนยันอีเมล{system_name} คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
-            plain_message = (
-                f'เรียน ผู้ใช้บริการ\n\n'
-                f'กรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านสำหรับ{system_name}\n'
-                f'{verification_link}\n\n'
-                f'ลิงก์นี้ใช้งานได้ภายใน 3 ชั่วโมงหลังจากได้รับอีเมล\n\n'
-                f'ขอแสดงความนับถือ\n{system_name}\n'
-                f'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
-            )
-            html_message = f'''<!DOCTYPE html>
-            <html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>{email_title}</title></head>
-            <body style="margin:0;padding:24px;background:#f4f6f8;font-family:Arial,sans-serif;color:#444">
-              <div style="max-width:600px;margin:0 auto;padding:36px;background:#fff;border:1px solid #e5e7eb;border-radius:8px">
-                <h1 style="font-size:24px;margin:0 0 20px">{system_name}</h1><hr style="border:0;border-top:1px solid #e5e7eb">
-                <p>เรียน ผู้ใช้บริการ</p>
-                <p>กรุณายืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ</p>
-                <p style="text-align:center;margin:28px 0"><a href="{verification_link}" style="display:inline-block;padding:13px 24px;background:#16834a;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold">ยืนยันบัญชีอีเมล</a></p>
-                <p style="color:#777;font-size:14px">ลิงก์นี้ใช้งานได้ภายใน 3 ชั่วโมงหลังจากได้รับอีเมล</p>
-                <p style="margin-top:32px;color:#888;font-size:13px">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล · {system_name}</p>
-              </div>
-            </body></html>'''
+            title = f'ยืนยันอีเมล{system_name} คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
+            html_message = f"""
+                <!DOCTYPE html>
+                <html lang="th">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>{title}</title>
+                        <style>
+                            body {{
+                                font-family: Arial, sans-serif;
+                                background-color: #f4f4f4;
+                                margin: 0;
+                                padding: 20px;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                min-height: 100vh;
+                            }}
+                            .container {{
+                                background-color: #ffffff;
+                                border: 1px solid #e0e0e0;
+                                border-radius: 5px;
+                                max-width: 600px;
+                                width: 100%;
+                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                text-align: center;
+                                padding: 40px;
+                                box-sizing: border-box;
+                            }}
+                            .header {{
+                                margin-bottom: 30px;
+                            }}
+                            .header h1 {{
+                                font-size: 2.5em;
+                                color: #444;
+                                margin: 0;
+                            }}
+                            .header p {{
+                                font-size: 1.2em;
+                                color: #666;
+                                margin-top: 5px;
+                            }}
+                            .content {{
+                                margin-bottom: 30px;
+                                color: #555;
+                                line-height: 1.6;
+                            }}
+                            .content h3 {{
+                                text-align: left;
+                            }}
+                            .content p {{
+                                margin: 0 0 15px 0;
+                                font-size: 1.1em;
+                                text-align: left;
+                            }}
+                            .confirm-button {{
+                                display: inline-block;
+                                background-color: #008000; 
+                                padding: 15px 30px;
+                                text-decoration: none; 
+                                border-radius: 5px;
+                                font-size: 1.2em;
+                                font-weight: bold;
+                                margin-bottom: 0;
+                                transition: background-color 0.3s ease, transform 0.2s ease;
+                                color: #ffffff !important;
+                            }}
+                            .link-validity {{
+                                margin-top: 12px;
+                                font-size: 0.9em;
+                                color: #888;
+                                text-align: left;
+                            }}
+                            .footer {{
+                                margin-top: 40px;
+                                font-size: 0.8em;
+                            color: #aaa;
+                            }}
+                        </style>
+                    </head>
+                    <body style="margin:0; padding:20px; background-color:#f4f4f4; font-family:Arial,sans-serif;">
+                        <div style="max-width:600px; margin:0 auto; padding:40px; box-sizing:border-box; text-align:center;
+                            background-color:#ffffff; border:1px solid #e0e0e0; border-radius:5px;">
+                            <div style="margin-bottom:30px;">
+                                 <h1 style="margin:0; color:#444; font-size:2em;">{system_name}</h1>
+                            </div>
+                            <hr style="border:0; border-top:1px solid #e0e0e0; margin:20px 0;">
+                            <div style="margin-bottom:30px; color:#555; line-height:1.6; text-align:left;">
+                                <h3>เรียน ผู้ใช้บริการ</h3>
+                                <p>ขอบคุณสำหรับการลงทะเบียนใช้งาน{system_name}<br>
+                                    กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
+                                </p>
+                                <div style="text-align: center; margin-top: 12px;">
+                                    <a href="{link}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
+                                </div>
+                                <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 24 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
+                            </div>
+                            <div class="footer">
+                                <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล {system_name}</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                """
             if not current_app.debug:
-                send_mail([account.email], email_title, message=plain_message, html=html_message)
+                send_mail([account.email], title=title, message=None, html=html_message)
             else:
                 print('message', html_message)
 
@@ -3029,7 +3112,7 @@ def create_customer_for_user():
                         <div style="text-align: center; margin-top: 12px;">
                             <a href="{link}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
                         </div>
-                        <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 3 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
+                        <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 24 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
                     </div>
                     <div class="footer">
                         <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ระบบขึ้นทะเบียนผู้รับบริการ</p>
