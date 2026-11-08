@@ -2326,7 +2326,8 @@ def menu():
 
 @service_admin.route('/customer/register/index')
 def customer_register_index():
-    return render_template('service_admin/customer_register_index.html')
+    user_type = session.get('user_type')
+    return render_template('service_admin/customer_register_index.html', user_type=user_type)
 
 
 @service_admin.route('/admin/register/search')
