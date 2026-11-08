@@ -272,7 +272,7 @@
                                 <span class="customer-review-label">อนุมัติ</span>
                                 <span class="icon is-hidden customer-review-spinner"><i class="fas fa-spinner fa-pulse"></i></span>
                             </a>
-                            <a class="button is-danger is-light is-rounded customer-document-review-action"
+                            <a class="button is-danger is-rounded customer-document-review-action"
                                hx-post="{{ url_for('service_admin.disapprove_document_customer', tab=tab,
                                customer_id=customer.id) }}"
                                hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
