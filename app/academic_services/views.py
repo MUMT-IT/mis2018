@@ -140,7 +140,8 @@ def download_file(key):
     outfile = BytesIO()
     s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
     outfile.seek(0)
-    return send_file(outfile, download_name=download_filename, as_attachment=True)
+    inline = request.args.get('inline') == '1'
+    return send_file(outfile, download_name=download_filename, as_attachment=not inline)
 
 
 # def request_data(service_request, type):
