@@ -3278,7 +3278,7 @@ def verify_email():
     customer_id = request.args.get('customer_id', type=int)
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
-        token_data = serializer.loads(token, max_age=10800)
+        token_data = serializer.loads(token, max_age=86400)
     except:
         return 'รหัสสำหรับทำการยืนยันอีเมลหมดอายุหรือไม่ถูกต้อง'
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
@@ -3336,7 +3336,6 @@ def verify_customer_token():
         flash('ไม่พบชื่อผู้รับบริการในฐานข้อมูล')
         return redirect(url_for('service_admin.search_customer_for_user'))
     else:
-        identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
         return redirect(url_for('service_admin.create_customer_for_user', email=token_data.get('email')))
 
 
