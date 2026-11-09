@@ -2,7 +2,7 @@ import os
 import json
 import uuid
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 from sqlalchemy import extract, text
 from sqlalchemy.exc import IntegrityError
@@ -112,6 +112,7 @@ def render_template(template_name, *args, **kwargs):
     )
     kwargs.setdefault("cash_mng_finance_open", _is_cash_mng_finance_open())
     kwargs.setdefault("return_detail_is_cash", _return_detail_is_cash)
+    kwargs.setdefault("can_download_return_detail", can_download_return_detail)
     return _render_template(template_name, *args, **kwargs)
 
 
@@ -1316,8 +1317,8 @@ def _can_download_petty_cash_claim_pdf(user, claim, setting):
     """Allow claim managers and the linked fund request's requester to export PDF."""
     if not user or not claim or not setting or not getattr(setting, "id", None):
         return False
-    if not getattr(claim, "approved_at", None):
-        return False
+    # if not getattr(claim, "approved_at", None): # allow user to donwload without approval
+    #     return False
     if getattr(claim, "petty_cash_setting_id", None) != setting.id:
         return False
 
@@ -2033,13 +2034,13 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
         return {
             "total_claims": 0,
             "total_fund_requests": 0,
-            "total_amount": 0.0,
-            "total_spent": 0.0,
-            "remaining_budget": 0.0,
-            "initial_budget": 0.0,
+            "total_amount": Decimal("0.00"),
+            "total_spent": Decimal("0.00"),
+            "remaining_budget": Decimal("0.00"),
+            "initial_budget": Decimal("0.00"),
         }
 
-    initial_budget = float(setting_budget)
+    initial_budget = _money_decimal(setting_budget)
     setting_org = _setting_org(setting)
     department_name = (getattr(setting_org, "name", "") or getattr(setting, "department_name", "") or "").strip()
     setting_id = getattr(setting, "id", None)
@@ -2064,7 +2065,10 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
             and convert_to_fiscal_year(fund_request.request_date) == current_fiscal_year
         ]
 
-    total_fund_expenses = sum(float(fund_request.amount or 0) for fund_request in approved_fund_requests)
+    total_fund_expenses = sum(
+        (_money_decimal(fund_request.amount) for fund_request in approved_fund_requests),
+        Decimal("0.00"),
+    )
 
     approved_claims = []
     if setting_id:
@@ -2088,7 +2092,7 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
         and convert_to_fiscal_year(claim.created_at.date()) == current_fiscal_year
     ]
 
-    total_claim_incomes = 0.0
+    total_claim_incomes = Decimal("0.00")
     for claim in approved_claims:
         claim_status_id = claim.status_id
         # Replenish expenses only after transfer, retaining the credit when
@@ -2100,10 +2104,10 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
         for item in claim.items:
             # cat_6 is money returned directly to the unit on submission.
             if is_transferred or int(item.category_type or 0) == 6:
-                total_claim_incomes += float(item.amount or 0)
+                total_claim_incomes += _money_decimal(item.amount)
 
     running_balance = initial_budget - total_fund_expenses + total_claim_incomes
-    remaining_budget = max(0.0, running_balance)
+    remaining_budget = max(Decimal("0.00"), running_balance)
 
     return {
         "total_claims": len(approved_claims),
@@ -3326,6 +3330,17 @@ def _money_decimal(value):
     return Decimal(str(value or 0)).quantize(Decimal("0.01"))
 
 
+def _parse_money_input(value):
+    """Parse user-entered money without passing through binary floating point."""
+    try:
+        amount = Decimal(str(value or "0").replace(",", ""))
+        if not amount.is_finite():
+            raise ValueError("Amount must be finite")
+        return amount.quantize(Decimal("0.01"))
+    except (InvalidOperation, TypeError) as exc:
+        raise ValueError("Invalid amount") from exc
+
+
 def _advance_payment_dashboard_amounts():
     """Calculate the five finance revolving-fund dashboard amounts."""
     active_ticket_rows = (
@@ -3805,15 +3820,15 @@ def _ticket_group_ids(ticket_id):
 def _calculate_ticket_group_totals(ticket_ids):
     ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
     if not ticket_ids:
-        return {"cumulative_total": 0.0, "budget": 0.0, "remaining_amount": 0.0}
+        return {"cumulative_total": Decimal("0.00"), "budget": Decimal("0.00"), "remaining_amount": Decimal("0.00")}
 
     tickets = db.session.query(BorrowingTicket).filter(BorrowingTicket.id.in_(ticket_ids)).all()
     ticket_order = sorted(
         tickets,
         key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
     )
-    remaining = {ticket.id: float(ticket.required_budget or 0) for ticket in ticket_order}
-    allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    remaining = {ticket.id: _money_decimal(ticket.required_budget) for ticket in ticket_order}
+    allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     excluded_return_statuses = {"PENDING", "IN_PROGRESS", "DRAFT", "REJECTED"}
 
     return_rows = db.session.query(ReturnDetail).filter(
@@ -3844,7 +3859,7 @@ def _calculate_ticket_group_totals(ticket_ids):
             ),
         ),
     ).all()
-    records = [(row.created_at, row.id, float(row.amount_spent or 0), _return_ticket_ids(row), False) for row in return_rows]
+    records = [(row.created_at, row.id, _money_decimal(row.amount_spent), _return_ticket_ids(row), False) for row in return_rows]
     for row in parcel_rows:
         linked_ids = {row.ticket_id} if row.ticket_id else set()
         linked_ids.update(
@@ -3852,16 +3867,16 @@ def _calculate_ticket_group_totals(ticket_ids):
                 parcel_borrowing_ticket_association.c.ticket_id
             ).filter(parcel_borrowing_ticket_association.c.parcel_return_id == row.id).all()
         )
-        records.append((row.created_at, row.id, float(row.amount_spent or 0), linked_ids, True))
+        records.append((row.created_at, row.id, _money_decimal(row.amount_spent), linked_ids, True))
 
     priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
-    parcel_allocated = {ticket.id: 0.0 for ticket in ticket_order}
-    normal_allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    parcel_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    normal_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     for _, _, amount, linked_ids, is_parcel in sorted(records, key=lambda item: (item[0] or datetime.min, item[1])):
         for linked_id in sorted(linked_ids & ticket_ids, key=lambda value: priority.get(value, 10**9)):
             if amount <= 0:
                 break
-            portion = min(amount, remaining.get(linked_id, 0.0))
+            portion = min(amount, remaining.get(linked_id, Decimal("0.00")))
             allocated[linked_id] += portion
             if is_parcel:
                 parcel_allocated[linked_id] += portion
@@ -3870,7 +3885,7 @@ def _calculate_ticket_group_totals(ticket_ids):
             remaining[linked_id] -= portion
             amount -= portion
     cumulative_total = sum(allocated.values())
-    budget = sum(float(ticket.required_budget or 0) for ticket in ticket_order)
+    budget = sum((_money_decimal(ticket.required_budget) for ticket in ticket_order), Decimal("0.00"))
     return {
         "cumulative_total": cumulative_total,
         "budget": budget,
@@ -3891,9 +3906,9 @@ def _calculate_return_form_group_totals(
     ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
     if not ticket_ids:
         return {
-            "cumulative_total": 0.0,
-            "budget": 0.0,
-            "remaining_amount": 0.0,
+            "cumulative_total": Decimal("0.00"),
+            "budget": Decimal("0.00"),
+            "remaining_amount": Decimal("0.00"),
             "allocated_by_ticket": {},
             "parcel_allocated_by_ticket": {},
             "normal_allocated_by_ticket": {},
@@ -3904,8 +3919,8 @@ def _calculate_return_form_group_totals(
         tickets,
         key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
     )
-    remaining = {ticket.id: float(ticket.required_budget or 0) for ticket in ticket_order}
-    allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    remaining = {ticket.id: _money_decimal(ticket.required_budget) for ticket in ticket_order}
+    allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     excluded_statuses = {"DRAFT", "REJECTED"}
 
     return_query = db.session.query(ReturnDetail).filter(
@@ -3944,7 +3959,7 @@ def _calculate_return_form_group_totals(
         (
             row.created_at,
             row.id,
-            float(row.amount_spent or 0),
+            _money_decimal(row.amount_spent),
             _return_ticket_ids(row),
             False,
         )
@@ -3958,12 +3973,12 @@ def _calculate_return_form_group_totals(
             ).filter(parcel_borrowing_ticket_association.c.parcel_return_id == row.id).all()
         )
         records.append(
-            (row.created_at, row.id, float(row.amount_spent or 0), linked_ids, True)
+            (row.created_at, row.id, _money_decimal(row.amount_spent), linked_ids, True)
         )
 
     priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
-    parcel_allocated = {ticket.id: 0.0 for ticket in ticket_order}
-    normal_allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    parcel_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    normal_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     for _, _, amount, linked_ids, is_parcel in sorted(
         records,
         key=lambda item: (item[0] or datetime.min, item[1]),
@@ -3971,7 +3986,7 @@ def _calculate_return_form_group_totals(
         for linked_id in sorted(linked_ids & ticket_ids, key=lambda value: priority.get(value, 10**9)):
             if amount <= 0:
                 break
-            portion = min(amount, remaining.get(linked_id, 0.0))
+            portion = min(amount, remaining.get(linked_id, Decimal("0.00")))
             allocated[linked_id] += portion
             if is_parcel:
                 parcel_allocated[linked_id] += portion
@@ -3981,7 +3996,7 @@ def _calculate_return_form_group_totals(
             amount -= portion
 
     cumulative_total = sum(allocated.values())
-    budget = sum(float(ticket.required_budget or 0) for ticket in ticket_order)
+    budget = sum((_money_decimal(ticket.required_budget) for ticket in ticket_order), Decimal("0.00"))
     return {
         "cumulative_total": cumulative_total,
         "budget": budget,
@@ -4015,8 +4030,8 @@ def _ticket_allocation_rows(tickets, group_totals):
     )
     rows = []
     for ticket in ticket_order:
-        budget = float(ticket.required_budget or 0)
-        cumulative_total = float(allocated_by_ticket.get(ticket.id, 0.0))
+        budget = _money_decimal(ticket.required_budget)
+        cumulative_total = _money_decimal(allocated_by_ticket.get(ticket.id))
         rows.append({
             "ticket_id": ticket.id,
             "ticket_number": ticket.number or f"#{ticket.id}",
@@ -4029,12 +4044,12 @@ def _ticket_allocation_rows(tickets, group_totals):
 
 def _calculate_ticket_return_totals(ticket_id):
     group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
-    budget = float(
+    budget = _money_decimal(
         db.session.query(BorrowingTicket.required_budget)
         .filter(BorrowingTicket.id == ticket_id)
         .scalar() or 0
     )
-    cumulative_total = float(group_totals.get("allocated_by_ticket", {}).get(ticket_id, 0.0))
+    cumulative_total = _money_decimal(group_totals.get("allocated_by_ticket", {}).get(ticket_id))
     return {
         "cumulative_total": cumulative_total,
         "budget": budget,
@@ -4047,9 +4062,9 @@ def _calculate_ticket_return_totals(ticket_id):
     }
 def _calculate_ticket_return_totals_with_parcel(ticket_id, *, exclude_return_id=None, exclude_parcel_return_id=None):
     group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
-    return_total = float(group_totals.get("normal_allocated_by_ticket", {}).get(ticket_id, 0.0))
-    parcel_total = float(group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id, 0.0))
-    budget = float(db.session.query(BorrowingTicket.required_budget).filter(BorrowingTicket.id == ticket_id).scalar() or 0)
+    return_total = _money_decimal(group_totals.get("normal_allocated_by_ticket", {}).get(ticket_id))
+    parcel_total = _money_decimal(group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id))
+    budget = _money_decimal(db.session.query(BorrowingTicket.required_budget).filter(BorrowingTicket.id == ticket_id).scalar())
     combined_total = return_total + parcel_total
     return {
         "return_total": return_total,
@@ -4072,13 +4087,13 @@ def _calculate_ticket_submission_totals_with_parcel(
         exclude_return_id=exclude_return_id,
         exclude_parcel_return_id=exclude_parcel_return_id,
     )
-    return_total = float(
-        group_totals.get("normal_allocated_by_ticket", {}).get(ticket_id, 0.0)
+    return_total = _money_decimal(
+        group_totals.get("normal_allocated_by_ticket", {}).get(ticket_id)
     )
-    parcel_total = float(
-        group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id, 0.0)
+    parcel_total = _money_decimal(
+        group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id)
     )
-    budget = float(
+    budget = _money_decimal(
         db.session.query(BorrowingTicket.required_budget)
         .filter(BorrowingTicket.id == ticket_id)
         .scalar() or 0
@@ -4096,15 +4111,15 @@ def _calculate_ticket_submission_totals_with_parcel(
 def _with_pending_return_amounts(summary, submitted_ticket_total):
     """Add the same pending/unsubmitted split used by the verification page."""
     summary = dict(summary)
-    approved_ticket_total = float(summary.get("cumulative_total") or 0)
-    submitted_ticket_total = float(submitted_ticket_total or 0)
+    approved_ticket_total = _money_decimal(summary.get("cumulative_total"))
+    submitted_ticket_total = _money_decimal(submitted_ticket_total)
     summary["pending_amount"] = max(
         submitted_ticket_total - approved_ticket_total,
-        0.0,
+        Decimal("0.00"),
     )
     summary["unsubmitted_amount"] = max(
-        float(summary.get("budget") or 0) - submitted_ticket_total,
-        0.0,
+        _money_decimal(summary.get("budget")) - submitted_ticket_total,
+        Decimal("0.00"),
     )
     return summary
 
@@ -4153,9 +4168,9 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
     if exclude_parcel_return_id:
         parcel_query = parcel_query.filter(ParcelReturnDetail.id != exclude_parcel_return_id)
 
-    claim_total = float(claim_query.scalar() or 0)
-    parcel_total = float(parcel_query.scalar() or 0)
-    request_amount = float(
+    claim_total = _money_decimal(claim_query.scalar())
+    parcel_total = _money_decimal(parcel_query.scalar())
+    request_amount = _money_decimal(
         db.session.query(FundRequest.amount)
         .filter(FundRequest.id == fund_request_id)
         .scalar()
@@ -4191,14 +4206,14 @@ def _calculate_fund_request_display_summary(
     if exclude_claim_id:
         claim_query = claim_query.filter(PettyCashClaimDetail.id != exclude_claim_id)
 
-    approved_total = 0.0
-    pending_total = 0.0
+    approved_total = Decimal("0.00")
+    pending_total = Decimal("0.00")
     for claim in claim_query.all():
         claim_items = list(claim.items or [])
         amount = (
-            sum(float(item.amount or 0) for item in claim_items)
+            sum((_money_decimal(item.amount) for item in claim_items), Decimal("0.00"))
             if claim_items
-            else float(claim.total_amount or 0)
+            else _money_decimal(claim.total_amount)
         )
         if claim.approved_at:
             approved_total += amount
@@ -4215,7 +4230,7 @@ def _calculate_fund_request_display_summary(
         )
 
     for parcel_return in parcel_query.all():
-        amount = float(parcel_return.amount_spent or 0)
+        amount = _money_decimal(parcel_return.amount_spent)
         if parcel_return.approved_at:
             approved_total += amount
         else:
@@ -4226,24 +4241,24 @@ def _calculate_fund_request_display_summary(
         "pending_total": pending_total,
         "unsubmitted_amount": max(
             summary["request_amount"] - approved_total - pending_total,
-            0.0,
+            Decimal("0.00"),
         ),
     })
     return summary
 
 
 def _format_currency_amount(amount):
-    return f"{float(amount or 0):,.2f}"
+    return f"{_money_decimal(amount):,.2f}"
 
 
 def _is_over_limit(projected_total, limit_total):
-    return round(float(projected_total or 0), 2) > round(float(limit_total or 0), 2)
+    return _money_decimal(projected_total) > _money_decimal(limit_total)
 
 
 def _return_detail_has_over_limit_item(return_detail):
     """Whether a return contains a non-cash receipt item over 100,000 baht."""
     return any(
-        float(item.amount or 0) > 100000
+        _money_decimal(item.amount) > Decimal("100000.00")
         for item in (return_detail.receipt_items or [])
         if not getattr(item, "is_cash", False)
     )
@@ -4252,6 +4267,17 @@ def _return_detail_has_over_limit_item(return_detail):
 def _return_detail_is_cash(return_detail):
     items = list(getattr(return_detail, "receipt_items", None) or [])
     return bool(items) and all(bool(item.is_cash) for item in items)
+
+
+def can_download_return_detail(return_detail, role=None):
+    """Allow an approved non-cash return PDF in the advance-payment system."""
+    role = _current_module_role() if role is None else role
+    return bool(
+        return_detail
+        and role != FINANCE_SYSTEM
+        and (getattr(return_detail, "status", None) or "").lower() == "ผ่านการตรวจสอบ"
+        and not _return_detail_is_cash(return_detail)
+    )
 
 
 def _redirect_with_limit_popup(location, message):
@@ -4324,7 +4350,7 @@ def _recalculate_borrowing_ticket_status(
     cumulative_total = totals["cumulative_total"]
     budget = totals["budget"]
 
-    budget_covered = float(cumulative_total) >= float(budget) and float(budget) > 0
+    budget_covered = cumulative_total >= budget and budget > 0
 
     new_status_id = old_status_id
 
@@ -4332,7 +4358,7 @@ def _recalculate_borrowing_ticket_status(
         new_status_id = _status_id("borrowing_ticket", code="CLOSED")
         borrowing_ticket.closed_date = datetime.now().date()
 
-    elif float(cumulative_total) > 0:
+    elif cumulative_total > 0:
         new_status_id = _status_id("borrowing_ticket", code="PARTIAL_RETURN")
 
     else:
@@ -4803,7 +4829,7 @@ def coordinator_dashboard():
         )
 
     today_date = datetime.now().date()
-    shadow_sum_debt = 0.0
+    shadow_sum_debt = Decimal("0.00")
     summary_days_remaining = None
     summary_overdue_days = None
     return_form_totals_by_ticket = {}
@@ -4821,9 +4847,9 @@ def coordinator_dashboard():
         ticket_remaining = totals["remaining_amount"]
         ticket.ticket_remaining = ticket_remaining
         return_form_totals = _calculate_return_form_group_totals(_ticket_group_ids(ticket.id))
-        return_form_budget = float(ticket.required_budget or 0)
-        return_form_submitted_total = float(
-            return_form_totals.get("allocated_by_ticket", {}).get(ticket.id, 0.0)
+        return_form_budget = _money_decimal(ticket.required_budget)
+        return_form_submitted_total = _money_decimal(
+            return_form_totals.get("allocated_by_ticket", {}).get(ticket.id)
         )
         return_form_totals_by_ticket[ticket.id] = {
             "budget": return_form_budget,
@@ -4833,7 +4859,7 @@ def coordinator_dashboard():
         ticket.has_rejected_followup = ticket.id in rejected_followup_ticket_ids
 
         if ticket.status_id not in _status_ids_for_record(ticket, ["CLOSED", "REJECTED", "PENDING", "IN_PROGRESS"]):
-            shadow_sum_debt += float(ticket_remaining if ticket_remaining > 0 else 0.0)
+            shadow_sum_debt += max(ticket_remaining, Decimal("0.00"))
 
             if ticket.due_date:
                 if today_date > ticket.due_date:
@@ -4859,9 +4885,9 @@ def coordinator_dashboard():
         ticket.submitted_return_total = ticket_display_totals["cumulative_total"]
         ticket.ticket_remaining = _calculate_ticket_return_totals(ticket.id)["remaining_amount"]
         return_form_totals = _calculate_return_form_group_totals(_ticket_group_ids(ticket.id))
-        return_form_budget = float(ticket.required_budget or 0)
-        return_form_submitted_total = float(
-            return_form_totals.get("allocated_by_ticket", {}).get(ticket.id, 0.0)
+        return_form_budget = _money_decimal(ticket.required_budget)
+        return_form_submitted_total = _money_decimal(
+            return_form_totals.get("allocated_by_ticket", {}).get(ticket.id)
         )
         return_form_totals_by_ticket[ticket.id] = {
             "budget": return_form_budget,
@@ -5662,8 +5688,8 @@ def tickets_view():
     near_due_count = 0
     overdue_count = 0
     shadow_sum_debt = sum(
-        (float(ticket.required_budget or 0.0) for ticket in unsettled_tickets),
-        0.0,
+        (_money_decimal(ticket.required_budget) for ticket in unsettled_tickets),
+        Decimal("0.00"),
     )
 
     for ticket in all_tickets:
@@ -5865,22 +5891,14 @@ def verification_view(ticket_id):
         {
             "ticket_id": ticket_id,
             "ticket_number": borrowing_ticket.number or f"#{ticket_id}",
-            "budget": float(borrowing_ticket.required_budget or 0),
-            "cumulative_total": 0.0,
-            "remaining_amount": float(borrowing_ticket.required_budget or 0),
+            "budget": _money_decimal(borrowing_ticket.required_budget),
+            "cumulative_total": Decimal("0.00"),
+            "remaining_amount": _money_decimal(borrowing_ticket.required_budget),
         },
     )
-    approved_ticket_total = float(summary["cumulative_total"] or 0)
-    submitted_ticket_total = float(
-        return_form_totals.get("allocated_by_ticket", {}).get(ticket_id, 0.0)
-    )
-    summary["pending_amount"] = max(
-        submitted_ticket_total - approved_ticket_total,
-        0.0,
-    )
-    summary["unsubmitted_amount"] = max(
-        float(summary["budget"] or 0) - submitted_ticket_total,
-        0.0,
+    summary = _with_pending_return_amounts(
+        summary,
+        return_form_totals.get("allocated_by_ticket", {}).get(ticket_id),
     )
     borrowing_ticket.submitted_return_total = summary["cumulative_total"]
     borrowing_ticket.ticket_remaining = summary["remaining_amount"]
@@ -6056,14 +6074,14 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     # Claim items are the source of truth for the amount. Older cat_6 claims
     # may already have their amount copied into total_amount, so adding the
     # cat_6 item on top of total_amount would count the return twice.
-    claim_total = 0.0
+    claim_total = Decimal("0.00")
     for claim in claims:
         claim_items = list(claim.items or [])
         claim_status_id = claim.status_id
         is_cash_return_only = (
             claim_items
             and all(int(item.category_type or 0) == 6 for item in claim_items)
-            and sum(float(item.amount or 0) for item in claim_items) > 0
+            and sum((_money_decimal(item.amount) for item in claim_items), Decimal("0.00")) > 0
         )
         if (
             is_cash_return_only
@@ -6096,17 +6114,17 @@ def _recalculate_fund_request_submission_status(fund_request_id):
             # step, so its submission time is also its approval time.
             claim.approved_at = claim.created_at or datetime.now()
         if claim_items:
-            claim_total += sum(float(item.amount or 0) for item in claim_items)
+            claim_total += sum((_money_decimal(item.amount) for item in claim_items), Decimal("0.00"))
         else:
             # Keep compatibility with old claims that have no item rows.
-            claim_total += float(claim.total_amount or 0)
+            claim_total += _money_decimal(claim.total_amount)
 
     # A full submission is not cleared until every payable claim has actually
     # been transferred. A cat_6-only claim is already a completed return and
     # therefore does not wait for a finance transfer.
     pending_claim_transfer = any(
         any(
-            int(item.category_type or 0) != 6 and float(item.amount or 0) > 0
+            int(item.category_type or 0) != 6 and _money_decimal(item.amount) > 0
             for item in claim.items
         )
         and claim.status_id not in _status_ids_for_record(claim, {"CASH_RETURNED", CASH_TRANSFER_CODE, "SETTLED"})
@@ -6122,8 +6140,8 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         )
         .all()
     )
-    parcel_total = sum(
-        float(parcel.amount_spent or 0)
+    parcel_total = sum((
+        _money_decimal(parcel.amount_spent)
         for parcel in parcel_returns
         if parcel.status_id in _status_ids_for_record(parcel, {
             "PENDING",
@@ -6134,7 +6152,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
             "CLOSING",
             "SETTLED",
         })
-    )
+    ), Decimal("0.00"))
     parcel_pending_transfer = any(
         parcel.status_id not in _status_ids_for_record(parcel, {
             CASH_TRANSFER_CODE,
@@ -6144,10 +6162,10 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         for parcel in parcel_returns
     )
 
-    combined_total = float(claim_total or 0) + float(parcel_total or 0)
-    target_total = float(fund_request.amount or 0)
+    combined_total = claim_total + parcel_total
+    target_total = _money_decimal(fund_request.amount)
 
-    if round(combined_total, 2) == round(target_total, 2) and target_total > 0:
+    if combined_total == target_total and target_total > 0:
         # A petty-cash parcel return is not complete until finance records the
         # transfer. While it is only received, keep the fund request at the
         # submission-complete stage, just like a petty-cash claim awaiting transfer.
@@ -6193,7 +6211,7 @@ def submit_parcel_return(ticket_id):
         )
 
     try:
-        parsed_amount = float(amount or 0)
+        parsed_amount = _parse_money_input(amount)
     except (TypeError, ValueError):
         return _validation_redirect_response(
             "กรุณาระบุจำนวนเงินให้ถูกต้อง",
@@ -6280,7 +6298,7 @@ def submit_fund_request_parcel_return(fund_request_id):
         )
 
     try:
-        parsed_amount = float(amount or 0)
+        parsed_amount = _parse_money_input(amount)
     except (TypeError, ValueError):
         return _validation_redirect_response(
             "กรุณาระบุจำนวนเงินให้ถูกต้อง",
@@ -6359,7 +6377,7 @@ def update_parcel_return(parcel_return_id):
         return _validation_error_response("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน")
 
     try:
-        parsed_amount = float(amount or 0)
+        parsed_amount = _parse_money_input(amount)
     except (TypeError, ValueError):
         return _validation_error_response("กรุณาระบุจำนวนเงินให้ถูกต้อง")
 
@@ -6676,7 +6694,7 @@ def submit_return_details():
         if not parcel_amount_raw or not parcel_items_description or not parcel_sent_date_raw:
             return _validation_error_response("กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุให้ครบถ้วน")
         try:
-            parcel_amount = float(parcel_amount_raw)
+            parcel_amount = _parse_money_input(parcel_amount_raw)
             parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
             if parcel_amount < 0:
                 raise ValueError
@@ -6706,7 +6724,7 @@ def submit_return_details():
         if not circular_amount_raw or not circular_items_description or not circular_sent_date_raw:
             return _validation_error_response("กรุณากรอกข้อมูลยอดการคืนที่ส่ง ว-119 / ว-5763 ให้ครบถ้วน")
         try:
-            circular_amount = float(circular_amount_raw)
+            circular_amount = _parse_money_input(circular_amount_raw)
             circular_sent_date = datetime.strptime(circular_sent_date_raw, "%Y-%m-%d").date()
             if circular_amount < 0:
                 raise ValueError
@@ -6728,7 +6746,7 @@ def submit_return_details():
         if not (cash_return_file and cash_return_file.filename) and not cash_return_existing_proof:
             return _validation_error_response("กรุณาแนบไฟล์หลักฐานการโอนเงินเหลือส่งใช้เงินยืม")
         try:
-            cash_return_amount = float(cash_return_amount_raw)
+            cash_return_amount = _parse_money_input(cash_return_amount_raw)
             cash_return_date = datetime.strptime(cash_return_date_raw, "%Y-%m-%d").date()
             if cash_return_amount < 0:
                 raise ValueError
@@ -6736,10 +6754,10 @@ def submit_return_details():
             return _validation_error_response("กรุณาระบุข้อมูลเงินเหลือส่งใช้เงินยืมให้ถูกต้อง")
     elif is_draft and has_cash_data:
         try:
-            cash_return_amount = float(cash_return_amount_raw or 0)
+            cash_return_amount = _parse_money_input(cash_return_amount_raw)
             cash_return_date = _coerce_date(cash_return_date_raw) if cash_return_date_raw else None
         except (TypeError, ValueError):
-            cash_return_amount = 0.0
+            cash_return_amount = Decimal("0.00")
 
     if (
         not is_draft
@@ -6866,7 +6884,7 @@ def submit_return_details():
     )
 
     parsed_rows = []
-    total_amount_spent = 0.0
+    total_amount_spent = Decimal("0.00")
     old_receipt_count = 0
 
     for i in range(len(receipt_dates)):
@@ -6886,13 +6904,13 @@ def submit_return_details():
             return _validation_error_response("ทุกแถวของรายการใบเสร็จต้องระบุวันที่ที่ถูกต้อง")
 
         try:
-            amt = float((amount_raw or "0").replace(",", ""))
+            amt = _parse_money_input(amount_raw)
             if amt < 0:
                 raise ValueError
         except (TypeError, ValueError):
             if not is_draft:
                 return _validation_error_response("ทุกแถวของรายการใบเสร็จต้องระบุจำนวนเงินที่ถูกต้อง")
-            amt = 0.0
+            amt = Decimal("0.00")
 
         if not is_draft and (not store_name or not description):
             return _validation_error_response(
@@ -7365,11 +7383,11 @@ def edit_receipt_item_inline(file_id):
 
         amount_str = request.form.get("amount")
         if amount_str:
-            parsed_item_amount = float(amount_str.replace(",", ""))
+            parsed_item_amount = _parse_money_input(amount_str)
             receipt_item.amount = parsed_item_amount
 
     if is_claim:
-        total_spent_for_claim = sum(float(i.amount or 0) for i in claim_detail.items)
+        total_spent_for_claim = sum((_money_decimal(i.amount) for i in claim_detail.items), Decimal("0.00"))
         if claim_detail.fund_request_id:
             fund_totals = _calculate_fund_request_totals(claim_detail.fund_request_id, exclude_claim_id=claim_detail.id)
             projected_total = fund_totals["cumulative_total"] + total_spent_for_claim
@@ -7384,7 +7402,7 @@ def edit_receipt_item_inline(file_id):
                     ),
                 )
     else:
-        total_spent_for_return = sum(float(i.amount or 0) for i in return_detail.receipt_items)
+        total_spent_for_return = sum((_money_decimal(i.amount) for i in return_detail.receipt_items), Decimal("0.00"))
         ticket_totals = _calculate_ticket_submission_totals_with_parcel(
             return_detail.ticket_id,
             exclude_return_id=return_detail.id,
@@ -7573,14 +7591,14 @@ def autosave_return_draft(ticket_id):
 
     # บันทึกรายการใบเสร็จใหม่
     existing_items = list(return_detail.receipt_items)
-    total_amount_spent = 0.0
+    total_amount_spent = Decimal("0.00")
     saved_proof_files = []
     for index, item in enumerate(items):
         r_date = _coerce_date(item.get("receipt_date"))
         try:
-            amt = float(str(item.get("amount") or 0.0).replace(",", ""))
+            amt = _parse_money_input(item.get("amount"))
         except (TypeError, ValueError):
-            amt = 0.0
+            amt = Decimal("0.00")
         total_amount_spent += amt
 
         receipt_obj = existing_items[index] if index < len(existing_items) else ReturnReceiptItem(
@@ -7626,9 +7644,9 @@ def autosave_return_draft(ticket_id):
 
     cash_date = _coerce_date(cash_return.get("receipt_date")) if cash_return.get("receipt_date") else None
     try:
-        cash_amount = float(cash_return.get("amount") or 0)
+        cash_amount = _parse_money_input(cash_return.get("amount"))
     except (TypeError, ValueError):
-        cash_amount = 0.0
+        cash_amount = Decimal("0.00")
     if cash_date is not None and cash_return.get("amount") not in (None, ""):
         cash_detail = existing_cash_draft or ReturnDetail(
             ticket_id=ticket_id,
@@ -8696,10 +8714,10 @@ def petty_cash_settings(_render_after_post=False):
                 summary = {
                     "setting": None,
                     "total_claims": 0,
-                    "total_spent": 0.0,
-                    "total_amount": 0.0,
-                    "remaining_budget": 0.0,
-                    "initial_budget": 0.0,
+                    "total_spent": Decimal("0.00"),
+                    "total_amount": Decimal("0.00"),
+                    "remaining_budget": Decimal("0.00"),
+                    "initial_budget": Decimal("0.00"),
                 }
             summary["setting"] = claim.setting
             dept_summary[setting_id] = summary
@@ -9142,7 +9160,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
 
             for petty in doc_petty_cash:
                 related_claim = _attach_petty_cash_claim_context(petty)
-                petty.amount = float(petty.total_amount or 0)
+                petty.amount = _money_decimal(petty.total_amount)
                 petty.department_name = (
                     petty.setting.department_name
                     if petty.setting
@@ -9632,7 +9650,7 @@ def staff_fund_request():
             balance_only=True,
         )
         if setting
-        else 0.0
+        else Decimal("0.00")
     )
     previous_carryover = (
         db.session.query(PettyCashFiscalYearCarryover)
@@ -9763,7 +9781,7 @@ def staff_fund_request():
                 )
             selected_borrowing_ticket = None
             requester_id = user.id
-            available_budget = float(ledger_running_balance or 0.0)
+            available_budget = _money_decimal(ledger_running_balance)
 
             if form_type in {
                 FUND_REQUEST_FORM_INTEREST,
@@ -9850,9 +9868,9 @@ def staff_fund_request():
                     form_url(form_type),
                 )
 
-            requested_amount = float(form.amount.data or 0.0)
+            requested_amount = _money_decimal(form.amount.data)
             if form_type == FUND_REQUEST_FORM_BORROWING_TICKET and selected_borrowing_ticket:
-                requested_amount = float(selected_borrowing_ticket.required_budget or 0.0)
+                requested_amount = _money_decimal(selected_borrowing_ticket.required_budget)
 
             if form_type not in {FUND_REQUEST_FORM_INTEREST, FUND_REQUEST_FORM_BORROWING_TICKET} and requested_amount > available_budget:
                 error_message = (
@@ -9938,7 +9956,7 @@ def staff_fund_request():
                     )
 
                     if desc:
-                        amt = float(amt_str) if amt_str else 0.0
+                        amt = _parse_money_input(amt_str) if amt_str else Decimal("0.00")
                         item_obj = FundRequestItem(
                             fund_request_id=new_request.id,
                             description=desc,
@@ -9949,7 +9967,7 @@ def staff_fund_request():
                         db.session.add(item_obj)
 
             if form_type == FUND_REQUEST_FORM_BORROWING_TICKET and selected_borrowing_ticket:
-                ticket_amount = float(selected_borrowing_ticket.required_budget or 0)
+                ticket_amount = _money_decimal(selected_borrowing_ticket.required_budget)
                 ticket_number = selected_borrowing_ticket.number or "-"
                 ticket_name = selected_borrowing_ticket.borrowing_ticket_purpose or "ใบยืมเงิน"
                 new_request.amount = ticket_amount
@@ -10370,7 +10388,7 @@ def staff_fund_request_history():
             balance_only=True,
         )
         if setting
-        else 0.0
+        else Decimal("0.00")
     )
     dept_summary["total_claims"] = len(history_items)
     dept_summary["history"] = history_items
@@ -10530,7 +10548,7 @@ def petty_cash_pending_approvals():
         claim_history=[],
         parcel_return_history=[],
         dept_summary={},
-        ledger_running_balance=0.0,
+        ledger_running_balance=Decimal("0.00"),
         can_import_legacy_fund_request=False,
     )
 
@@ -10822,7 +10840,11 @@ def export_ticket_return_pdf(return_id):
         abort(404)
     if _selected_system() == FINANCE_SYSTEM and return_detail.status_id == _status_id_for_record(return_detail, "DRAFT"):
         abort(404)
-    if not return_detail.approved_at:
+    if _selected_system() == FINANCE_SYSTEM:
+        can_download = bool(return_detail.approved_at)
+    else:
+        can_download = can_download_return_detail(return_detail)
+    if not can_download:
         abort(403)
 
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
@@ -11006,7 +11028,7 @@ def autosave_petty_cash_claim_draft():
             petty_cash_setting_id=setting.id if setting and setting.id else None,
             fund_request_id=normalized_fund_request_id,
             status_id=_status_id("petty_cash_claim"),
-            total_amount=0.0,
+            total_amount=Decimal("0.00"),
             created_at=datetime.now()
         )
         db.session.add(claim_detail)
@@ -11018,7 +11040,7 @@ def autosave_petty_cash_claim_draft():
         if setting and setting.id and not claim_detail.petty_cash_setting_id:
             claim_detail.petty_cash_setting_id = setting.id
             
-    total_amount = 0.0
+    total_amount = Decimal("0.00")
     desired_items = []
 
     # 4. บันทึกรายการเบิกสดย่อย (PettyCashClaimItem)
@@ -11028,9 +11050,9 @@ def autosave_petty_cash_claim_draft():
         cat_type_int = int(cat_type_str) if cat_type_str.isdigit() else 1
         
         try:
-            amt = float(str(item.get("amount") or 0.0).replace(",", ""))
+            amt = _parse_money_input(item.get("amount"))
         except (ValueError, TypeError):
-            amt = 0.0
+            amt = Decimal("0.00")
 
         # เงื่อนไขเฉพาะสำหรับหมวด 6 (โอนคืน) vs หมวด 1-5
         if cat_type_str == "6" or cat_type_int == 6:
@@ -11045,9 +11067,9 @@ def autosave_petty_cash_claim_draft():
 
     cash_return_date = _coerce_date(cash_return.get("receipt_date")) if cash_return.get("receipt_date") else None
     try:
-        cash_return_amount = float(cash_return.get("amount") or 0)
+        cash_return_amount = _parse_money_input(cash_return.get("amount"))
     except (TypeError, ValueError):
-        cash_return_amount = 0.0
+        cash_return_amount = Decimal("0.00")
     if cash_return_date is not None and cash_return.get("amount") not in (None, "") and not has_expense_items:
         desired_items.append((
             cash_return_date, "เงินโอนคงเหลือจากการยืมเงินสดย่อย", 6,
@@ -11482,7 +11504,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
                 )
             try:
-                parcel_amount = float(parcel_amount_raw)
+                parcel_amount = _parse_money_input(parcel_amount_raw)
                 parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
                 if parcel_amount < 0:
                     raise ValueError
@@ -11529,7 +11551,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
                 )
             try:
-                circular_amount = float(circular_amount_raw)
+                circular_amount = _parse_money_input(circular_amount_raw)
                 circular_sent_date = datetime.strptime(circular_sent_date_raw, "%Y-%m-%d").date()
                 if circular_amount < 0:
                     raise ValueError
@@ -11561,7 +11583,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 )
             try:
                 cash_return_date = datetime.strptime(cash_return_date_raw, "%Y-%m-%d").date()
-                cash_return_amount = float(cash_return_amount_raw)
+                cash_return_amount = _parse_money_input(cash_return_amount_raw)
                 if cash_return_amount < 0:
                     raise ValueError
             except (TypeError, ValueError):
@@ -11574,9 +11596,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             if cash_return_date is None:
                 return _validation_error_response("กรุณาระบุวันที่โอนเงินก่อนบันทึกร่าง")
             try:
-                cash_return_amount = float(cash_return_amount_raw or 0)
+                cash_return_amount = _parse_money_input(cash_return_amount_raw)
             except (TypeError, ValueError):
-                cash_return_amount = 0.0
+                cash_return_amount = Decimal("0.00")
 
         has_claim_item_data = any(
             value.strip()
@@ -11673,7 +11695,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             )
 
         parsed_items = []
-        total_claim_amount = 0.0
+        total_claim_amount = Decimal("0.00")
         old_receipt_count = 0
 
         for i in range(len(receipt_dates)):
@@ -11701,9 +11723,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 )
 
             try:
-                amt = float(str(amounts[i] or 0).replace(",", "")) if i < len(amounts) else 0.0
+                amt = _parse_money_input(amounts[i]) if i < len(amounts) else Decimal("0.00")
             except (ValueError, TypeError):
-                amt = 0.0
+                amt = Decimal("0.00")
 
             if not is_draft and amt > 20000 and cat_val_int != 6:
                 return _validation_redirect_response(
@@ -11831,7 +11853,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             not is_draft
             and submitted_items
             and all(int(item.get("category_type") or 0) == 6 for item in submitted_items)
-            and sum(float(item.get("amount") or 0) for item in submitted_items) > 0
+            and sum((_money_decimal(item.get("amount")) for item in submitted_items), Decimal("0.00")) > 0
         )
 
         next_status = (
@@ -12167,7 +12189,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
 
     claim_history = []
     parcel_return_history = []
-    fund_request_total_info = {"request_amount": 0.0, "parcel_total": 0.0}
+    fund_request_total_info = {"request_amount": Decimal("0.00"), "parcel_total": Decimal("0.00")}
     if history_fund_request:
         fund_request_total_info = _calculate_fund_request_display_summary(
             history_fund_request.id,
@@ -12504,7 +12526,7 @@ def staff_parcel_return_edit(parcel_return_id):
         )
 
     try:
-        parsed_amount = float(amount or 0)
+        parsed_amount = _parse_money_input(amount)
     except (TypeError, ValueError):
         return _validation_redirect_response(
             "กรุณาระบุจำนวนเงินให้ถูกต้อง",
@@ -12798,9 +12820,9 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
         )
     
     # 1. ดึงงบประมาณตั้งต้นของหน่วยงาน
-    initial_budget = 0.0
+    initial_budget = Decimal("0.00")
     if current_setting:
-        initial_budget = float(current_setting.budget or 0)
+        initial_budget = _money_decimal(current_setting.budget or 0)
     department_org = getattr(current_setting, "org", None) if current_setting else None
     department_name = getattr(department_org, "name", None) or (current_setting.department_name if current_setting else None)
     account_number = (current_setting.account_number or "").strip() if current_setting else ""
@@ -12823,15 +12845,15 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
         created_at,
         description,
         doc_number=" ",
-        bank_income=0.0,
-        bank_expense=0.0,
-        cat_7=0.0,
-        cat_8=0.0,
-        cat_9=0.0,
-        cat_10=0.0,
-        cat_11=0.0,
+        bank_income=Decimal("0.00"),
+        bank_expense=Decimal("0.00"),
+        cat_7=Decimal("0.00"),
+        cat_8=Decimal("0.00"),
+        cat_9=Decimal("0.00"),
+        cat_10=Decimal("0.00"),
+        cat_11=Decimal("0.00"),
         custom_category=" ",
-        cat_12=0.0,
+        cat_12=Decimal("0.00"),
         submitted_date=None,
         is_fund_request=False,
         sort_order=0,
@@ -12878,7 +12900,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
                 receipt_date=top_up_transfer.transferred_at,
                 created_at=top_up_transfer.created_at,
                 description="เงินโอนจากการเพิ่มวงเงินตามปีงบประมาณ",
-                bank_income=float(top_up_transfer.transfer_amount),
+                bank_income=_money_decimal(top_up_transfer.transfer_amount),
             )
 
     # 2. ดึงข้อมูล Fund Request (การเบิก/ยืมเงิน) -> แยกยอดเงินตามหมวดหมู่
@@ -12900,9 +12922,9 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
         if getattr(fr, "is_legacy_import", False):
             # รายการเบิกเดิมเกิดก่อนวันที่ 1 ตุลาคมแล้ว ไม่หักซ้ำจากยอดยกมา
             continue
-        amt = float(fr.amount or 0)
+        amt = _money_decimal(fr.amount or 0)
         if str(fr.form_type) == FUND_REQUEST_FORM_BORROWING_TICKET and amt <= 0:
-            amt = float(getattr(fr.borrowing_ticket, "required_budget", 0) or 0)
+            amt = _money_decimal(getattr(fr.borrowing_ticket, "required_budget", 0) or 0)
         ticket_label = f"({fr.ticket_number or '-'})"
 
         if str(fr.form_type) == FUND_REQUEST_FORM_INTEREST:
@@ -12939,12 +12961,12 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             continue
         
         # คำนวณจำแนกยอดเงินตามหมวดหมู่ที่เบิกไป (1-6)
-        cat_7 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "1")
-        cat_8 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "2")
-        cat_9 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "3")
-        cat_10 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "4")
-        cat_11 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "5")
-        cat_12 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "6")
+        cat_7 = sum(_money_decimal(item.amount or 0) for item in fr.items if str(item.category_type) == "1")
+        cat_8 = sum(_money_decimal(item.amount or 0) for item in fr.items if str(item.category_type) == "2")
+        cat_9 = sum(_money_decimal(item.amount or 0) for item in fr.items if str(item.category_type) == "3")
+        cat_10 = sum(_money_decimal(item.amount or 0) for item in fr.items if str(item.category_type) == "4")
+        cat_11 = sum(_money_decimal(item.amount or 0) for item in fr.items if str(item.category_type) == "5")
+        cat_12 = sum(_money_decimal(item.amount or 0) for item in fr.items if str(item.category_type) == "6")
         custom_category = " / ".join(
             dict.fromkeys(
                 item.description.strip()
@@ -12986,7 +13008,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             if not approved_at:
                 continue
 
-            borrow_amount = float(ticket.required_budget or 0)
+            borrow_amount = _money_decimal(ticket.required_budget or 0)
             _append_ledger_row(
                 receipt_date=approved_at.date(),
                 created_at=ticket.created_at,
@@ -13011,9 +13033,9 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             if not refund_date:
                 continue
             transaction_time = fr.cancel_at or fr.created_at or datetime.now()
-            refund_amount = float(fr.amount or 0)
+            refund_amount = _money_decimal(fr.amount or 0)
             if str(fr.form_type) == FUND_REQUEST_FORM_BORROWING_TICKET and refund_amount <= 0:
-                refund_amount = float(getattr(fr.borrowing_ticket, "required_budget", 0) or 0)
+                refund_amount = _money_decimal(getattr(fr.borrowing_ticket, "required_budget", 0) or 0)
             _append_ledger_row(
                 receipt_date=refund_date,
                 created_at=transaction_time,
@@ -13045,7 +13067,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             continue
         for item in claim.items:   
             if str(item.category_type) == "6":
-                item_amt = float(item.amount or 0)
+                item_amt = _money_decimal(item.amount or 0)
                 receipt_date = item.receipt_date or claim.transferred_at or claim.created_at.date()
                 if _legacy_transaction_before_fiscal_year(claim, receipt_date):
                     continue
@@ -13102,15 +13124,15 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             continue
 
         # ยอดรับเงินคืนเข้าบัญชีธนาคาร (คำนวณจากหมวด 1-5)
-        claim_total = float(
-            claim.total_amount or sum(float(i.amount or 0) for i in claim.items if str(i.category_type) != "6"))
+        claim_total = _money_decimal(
+            claim.total_amount or sum(_money_decimal(i.amount or 0) for i in claim.items if str(i.category_type) != "6"))
 
         # คำนวณยอดแยกตามหมวดหมู่เฉพาะของ Claim (หมวด 1-5)
-        cat_7 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "1")
-        cat_8 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "2")
-        cat_9 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "3")
-        cat_10 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "4")
-        cat_11 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "5")
+        cat_7 = sum(_money_decimal(i.amount or 0) for i in claim.items if str(i.category_type) == "1")
+        cat_8 = sum(_money_decimal(i.amount or 0) for i in claim.items if str(i.category_type) == "2")
+        cat_9 = sum(_money_decimal(i.amount or 0) for i in claim.items if str(i.category_type) == "3")
+        cat_10 = sum(_money_decimal(i.amount or 0) for i in claim.items if str(i.category_type) == "4")
+        cat_11 = sum(_money_decimal(i.amount or 0) for i in claim.items if str(i.category_type) == "5")
         custom_category = " / ".join(
             dict.fromkeys(
                 item.description.strip()
@@ -13137,7 +13159,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             cat_10=cat_10,
             cat_11=cat_11,
             custom_category=custom_category,
-            cat_12=0.0,  # กำหนด cat_12 ของ Row หลักให้เป็น 0
+            cat_12=Decimal("0.00"),  # กำหนด cat_12 ของ Row หลักให้เป็น 0
             submitted_date=claim.created_at.date(),
             is_fund_request=False,
             sort_order=0,
@@ -13159,7 +13181,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
         transferred_parcel_returns = []
 
     for parcel_return in transferred_parcel_returns:
-        amount = float(parcel_return.amount_spent or 0)
+        amount = _money_decimal(parcel_return.amount_spent or 0)
         created_at = parcel_return.created_at or datetime.now()
         fund_request = parcel_return.fund_request
         ticket_number = getattr(fund_request, "ticket_number", None) or "-"
@@ -13193,7 +13215,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             .first()
         )
         if carryover and carryover.custodian_bank_balance is not None:
-            opening_balance = float(carryover.custodian_bank_balance)
+            opening_balance = _money_decimal(carryover.custodian_bank_balance)
 
     # The carryover is already the balance as of 1 October. Historical
     # claim/return rows before the target fiscal year must not be added again.
@@ -13239,14 +13261,14 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             "description": opening_row_description,
             "doc_number": " ",
             "bank_income": opening_row_income,
-            "bank_expense": 0.0,
-            "cat_7": 0.0,
-            "cat_8": 0.0,
-            "cat_9": 0.0,
-            "cat_10": 0.0,
-            "cat_11": 0.0,
+            "bank_expense": Decimal("0.00"),
+            "cat_7": Decimal("0.00"),
+            "cat_8": Decimal("0.00"),
+            "cat_9": Decimal("0.00"),
+            "cat_10": Decimal("0.00"),
+            "cat_11": Decimal("0.00"),
             "custom_category": " ",
-            "cat_12": 0.0,
+            "cat_12": Decimal("0.00"),
             "submitted_date": selected_month_start,
             "is_fund_request": False,
             "sort_order": -1,

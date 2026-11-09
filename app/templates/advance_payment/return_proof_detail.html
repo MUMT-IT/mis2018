@@ -10,9 +10,11 @@
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ตรวจสอบหลักฐาน</p>
   <h1 class="fw-bold display-6 mb-2">รายละเอียดไฟล์หลักฐานเอกสารส่งใช้เงินยืม</h1>
 </header>
-{% with document=return_detail, pdf_export_url=url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id), pdf_reference_editable=False %}
-  {% include 'advance_payment/_pdf_reference_modal.html' %}
-{% endwith %}
+{% if can_download_return_detail(return_detail) %}
+  {% with document=return_detail, pdf_export_url=url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id), pdf_reference_editable=False %}
+    {% include 'advance_payment/_pdf_reference_modal.html' %}
+  {% endwith %}
+{% endif %}
 
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
   <div class="row align-items-center g-3">
@@ -52,10 +54,7 @@
         {% endif %}
       </div>
     </div>
-    {% if advance_payment_role != 'finance'
-          and return_detail.status == 'ผ่านการตรวจสอบ'
-          and return_detail.approved_at
-          and not return_detail_is_cash(return_detail) %}
+    {% if can_download_return_detail(return_detail) %}
       <div class="d-flex gap-2 justify-content-md-end mt-3">
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
