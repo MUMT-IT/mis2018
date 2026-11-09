@@ -6,7 +6,8 @@
 {% endblock %}
 {% block page_content %}
     <section class="section">
-        <div class="container" id="app">
+        <div class="container" id="app"
+             data-create-record-url="{{ url_for('staff.seminar_create_record', seminar_id=0) }}">
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
@@ -289,26 +290,14 @@
             if (!data) {
                 return;
             }
+            /* Previous behavior, retained in case the existing-seminar form
+               preview needs to be restored:
             const selectedSeminarId = document.querySelector('#selected-seminar-id');
-            if (selectedSeminarId) {
-                selectedSeminarId.value = data.id || '';
-            }
-            let topicInput = document.querySelector("[name='topic']");
-            if (topicInput) {
-                topicInput.value = data.topic || '';
-            }
-            let organizeInput = document.querySelector("input[name='organize_by']");
-            if (organizeInput) {
-                organizeInput.value = data.organize_by || '';
-            }
-            let locationInput = document.querySelector("input[name='location']");
-            if (locationInput) {
-                locationInput.value = data.location || '';
-            }
-            let topicTypeSelect = document.querySelector("select[name='topic_type']");
-            if (topicTypeSelect) {
-                topicTypeSelect.value = data.topic_type || '';
-            }
+            if (selectedSeminarId) selectedSeminarId.value = data.id || '';
+            document.querySelector("[name='topic']").value = data.topic || '';
+            document.querySelector("input[name='organize_by']").value = data.organize_by || '';
+            document.querySelector("input[name='location']").value = data.location || '';
+            document.querySelector("select[name='topic_type']").value = data.topic_type || '';
             if (data.start_datetime) {
                 const suggestedStart = new Date(data.start_datetime);
                 vm.startDateTime = suggestedStart;
@@ -318,17 +307,13 @@
             } else if (data.end_datetime) {
                 vm.endDateTime = new Date(data.end_datetime);
             }
-            let onlineCheckbox = document.querySelector("input[name='is_online']");
-            if (onlineCheckbox) {
-                onlineCheckbox.checked = !!data.is_online;
-            }
-            let list = document.getElementById("seminar-suggest-list");
-            if (list) {
-                list.innerHTML = "";
-            }
-            vm.$nextTick(() => {
-                selectedSeminarSnapshot = readSeminarFormValues();
-            });
+            document.querySelector("input[name='is_online']").checked = !!data.is_online;
+            document.getElementById("seminar-suggest-list").innerHTML = "";
+            vm.$nextTick(() => { selectedSeminarSnapshot = readSeminarFormValues(); });
+            */
+
+            const createRecordUrl = document.getElementById('app').dataset.createRecordUrl;
+            window.location.href = createRecordUrl.replace(/\/0(?=$|[?#])/, `/${data.id}`);
         }
         window.applySeminarSuggestion = applySeminarSuggestion;
     </script>
