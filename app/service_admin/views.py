@@ -11,6 +11,7 @@ import arrow
 import pandas
 from io import BytesIO
 from bahttext import bahttext
+from flask_principal import identity_changed, Identity
 from pytz import timezone
 from datetime import date, timedelta
 from base64 import b64decode
@@ -1426,7 +1427,8 @@ def download_file(key):
     outfile = BytesIO()
     s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
     outfile.seek(0)
-    return send_file(outfile, download_name=download_filename, as_attachment=True)
+    inline = request.args.get('inline') == '1'
+    return send_file(outfile, download_name=download_filename, as_attachment=not inline)
 
 
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
@@ -2324,12 +2326,14 @@ def menu():
 
 @service_admin.route('/customer/register/index')
 def customer_register_index():
-    return render_template('service_admin/customer_register_index.html')
+    user_type = session.get('user_type')
+    return render_template('service_admin/customer_register_index.html', user_type=user_type)
 
 
-@service_admin.route('/customer/register/search')
+@service_admin.route('/admin/register/search')
 @login_required
-def search_customer():
+def search_customer_for_admin():
+    is_admin = 'true'
     customer_name = request.args.get('customer_name', '').strip()
     customers = []
     if customer_name:
@@ -2347,15 +2351,39 @@ def search_customer():
             .all()
         )
     return render_template(
-        'service_admin/search_customer.html',
-        customers=customers,
+        'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
         customer_name=customer_name,
     )
 
 
+@service_admin.route('/customer/register/search')
+def search_customer_for_user():
+    is_admin = 'false'
+    customer_name = request.args.get('customer_name', '').strip()
+    customers = []
+    if customer_name:
+        search_term = f'%{customer_name}%'
+        customers = (
+            ServiceCustomerInfo.query
+            .filter(or_(
+                ServiceCustomerInfo.cus_name.ilike(search_term),
+                ServiceCustomerInfo.taxpayer_identification_no.ilike(search_term),
+                ServiceCustomerInfo.accounts.any(ServiceCustomerAccount.email.ilike(search_term)),
+                ServiceCustomerInfo.phone_number.ilike(search_term)
+            ))
+            .order_by(ServiceCustomerInfo.cus_name.asc())
+            .limit(100)
+            .all()
+        )
+    return render_template(
+        'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
+        customer_name=customer_name
+    )
+
+
 @service_admin.route('/customer/register/detail/<int:customer_id>')
-@login_required
 def customer_detail(customer_id):
+    is_admin = request.args.get('is_admin', 'false')
     customer = ServiceCustomerInfo.query.get(customer_id)
     # lab_payments = _build_customer_lab_payments(customer)
     overdue_invoices = _get_customer_overdue_invoices(customer)
@@ -2378,8 +2406,7 @@ def customer_detail(customer_id):
         .all()
     )
     return render_template(
-        'service_admin/customer_detail.html',
-        customer=customer,
+        'service_admin/customer_detail.html',is_admin=is_admin, customer=customer,
         overdue_invoices=overdue_invoices,
         latest_service_requests=latest_service_requests
     )
@@ -2462,14 +2489,17 @@ def _get_customer_overdue_invoices(customer):
 @service_admin.route('/external-lab/index')
 @login_required
 def external_lab_index():
+    is_admin = request.args.get('is_admin', 'false')
     customer_id = request.args.get('customer_id', type=int)
     labs = ServiceLab.query.filter_by(is_external=True)
-    return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id)
+    return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id,
+                           is_admin=is_admin)
 
 
 @service_admin.route('/request/external-lab/all/<int:sub_lab_id>')
 @login_required
 def external_lab_request_index(sub_lab_id):
+    is_admin = request.args.get('is_admin', 'false')
     customer_id = request.args.get('customer_id', type=int)
     sub_lab = ServiceSubLab.query.get(sub_lab_id)
 
@@ -2482,16 +2512,15 @@ def external_lab_request_index(sub_lab_id):
     )
 
     return render_template(
-        'service_admin/external_lab_request_index.html',
-        sub_lab=sub_lab,
-        customer_id=customer_id,
-        service_requests=service_requests,
+        'service_admin/external_lab_request_index.html', sub_lab=sub_lab, is_admin=is_admin,
+        customer_id=customer_id, service_requests=service_requests
     )
 
 
 @service_admin.route('/request/external-lab/add/<int:sub_lab_id>', methods=['GET', 'POST'])
 @login_required
 def create_request_id(sub_lab_id):
+    is_admin = request.args.get('is_admin', 'false')
     request_index = request.args.get('request_index')
     customer_id = request.args.get('customer_id', type=int)
     sub_lab = ServiceSubLab.query.get(sub_lab_id)
@@ -2507,21 +2536,23 @@ def create_request_id(sub_lab_id):
         resp = make_response()
         if request_index:
             resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_request_index', customer_id=customer_id,
-                                                  sub_lab_id=sub_lab_id)
+                                                  sub_lab_id=sub_lab_id, is_admin=is_admin)
         else:
-            resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_index', customer_id=customer_id)
+            resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_index', customer_id=customer_id,
+                                                  is_admin=is_admin)
         flash(f'สร้าง Request ID เลขที่ {service_request.request_no} สำเร็จ', 'success')
         return resp
-    return redirect(url_for('service_admin.external_lab_index', customer_id=customer_id))
+    return redirect(url_for('service_admin.external_lab_index', customer_id=customer_id, is_admin=is_admin))
 
 
 @service_admin.route('/customer/invoice/overdue/view/<int:invoice_id>')
 @login_required
 def view_overdue_invoice(invoice_id):
+    is_admin = request.args.get('is_admin', 'false')
     customer_id = request.args.get('customer_id', type=int)
     invoice = ServiceInvoice.query.get(invoice_id)
     return render_template('service_admin/view_overdue_invoice.html', invoice=invoice,
-                           customer_id=customer_id)
+                           is_admin=is_admin, customer_id=customer_id)
 
 
 @service_admin.route('/customer/index')
@@ -2564,19 +2595,24 @@ def view_customer(customer_id):
                            central_admin_academic_service_permission=central_admin_academic_service_permission)
 
 
-@service_admin.route('/customer/add', methods=['GET', 'POST'])
-@service_admin.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-def create_customer(customer_id=None):
+@service_admin.route('/admin/customer/add', methods=['GET', 'POST'])
+@service_admin.route('/admin/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
+@login_required
+def create_customer_for_admin(customer_id=None):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    source = request.args.get('source', 'academic_service')
+    is_admin = request.args.get('is_admin', 'true')
     user_type = session.get('user_type')
     customer = None
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
+        old_email = account.email
         form = ServiceCustomerInfoForm(obj=customer)
     else:
         account = None
+        old_email = None
         form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
         if customer_id is None:
@@ -2612,7 +2648,8 @@ def create_customer(customer_id=None):
                 flash(error, 'danger')
             return render_template(
                 'service_admin/create_customer.html', customer_id=customer_id,
-                form=form, account=account, tab=tab, user_type=user_type,
+                form=form, account=account, tab=tab, user_type=user_type, source=source,
+                is_admin=is_admin,
                 document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
                 required_document_attachments=_required_document_attachments(customer)
             )
@@ -2668,49 +2705,443 @@ def create_customer(customer_id=None):
             cus_account = ServiceCustomerAccount.query.filter_by(email=email).first()
             if cus_account:
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
-                return redirect(url_for('service_admin.create_customer', custoemr_id=customer_id, tab=tab))
+                return redirect(url_for('service_admin.create_customer_for_admin', custoemr_id=customer_id, tab=tab))
             else:
-                account = ServiceCustomerAccount(email=email, customer_info=customer,
-                                                 verify_datetime=arrow.now('Asia/Bangkok').datetime)
+                account = ServiceCustomerAccount(email=email, customer_info=customer)
         else:
-            account.email = email
+            if old_email != email:
+                account.email = email
+                account.verify_datetime = None
             if customer.is_document_verified is None:
                 customer.is_document_verified = None
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
+
+        if account and not account.verify_datetime:
+            source_system_names = {
+                'academic_service': 'ระบบบริการตรวจวิเคราะห์',
+                'registration': 'ระบบขึ้นทะเบียนผู้รับบริการ',
+            }
+            system_name = source_system_names.get(source, 'ระบบบริการตรวจวิเคราะห์')
+            scheme = 'http' if current_app.debug else 'https'
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+            token = serializer.dumps({'email': account.email})
+            link = url_for(
+                'service_admin.verify_email', is_admin=is_admin, customer_id=customer.id, token=token,
+                _external=True, _scheme=scheme
+            )
+            title = f'ยืนยันอีเมล{system_name} คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
+            html_message = f"""
+                <!DOCTYPE html>
+                <html lang="th">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>{title}</title>
+                        <style>
+                            body {{
+                                font-family: Arial, sans-serif;
+                                background-color: #f4f4f4;
+                                margin: 0;
+                                padding: 20px;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                min-height: 100vh;
+                            }}
+                            .container {{
+                                background-color: #ffffff;
+                                border: 1px solid #e0e0e0;
+                                border-radius: 5px;
+                                max-width: 600px;
+                                width: 100%;
+                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                text-align: center;
+                                padding: 40px;
+                                box-sizing: border-box;
+                            }}
+                            .header {{
+                                margin-bottom: 30px;
+                            }}
+                            .header h1 {{
+                                font-size: 2.5em;
+                                color: #444;
+                                margin: 0;
+                            }}
+                            .header p {{
+                                font-size: 1.2em;
+                                color: #666;
+                                margin-top: 5px;
+                            }}
+                            .content {{
+                                margin-bottom: 30px;
+                                color: #555;
+                                line-height: 1.6;
+                            }}
+                            .content h3 {{
+                                text-align: left;
+                            }}
+                            .content p {{
+                                margin: 0 0 15px 0;
+                                font-size: 1.1em;
+                                text-align: left;
+                            }}
+                            .confirm-button {{
+                                display: inline-block;
+                                background-color: #008000; 
+                                padding: 15px 30px;
+                                text-decoration: none; 
+                                border-radius: 5px;
+                                font-size: 1.2em;
+                                font-weight: bold;
+                                margin-bottom: 0;
+                                transition: background-color 0.3s ease, transform 0.2s ease;
+                                color: #ffffff !important;
+                            }}
+                            .link-validity {{
+                                margin-top: 12px;
+                                font-size: 0.9em;
+                                color: #888;
+                                text-align: left;
+                            }}
+                            .footer {{
+                                margin-top: 40px;
+                                font-size: 0.8em;
+                            color: #aaa;
+                            }}
+                        </style>
+                    </head>
+                    <body style="margin:0; padding:20px; background-color:#f4f4f4; font-family:Arial,sans-serif;">
+                        <div style="max-width:600px; margin:0 auto; padding:40px; box-sizing:border-box; text-align:center;
+                            background-color:#ffffff; border:1px solid #e0e0e0; border-radius:5px;">
+                            <div style="margin-bottom:30px;">
+                                 <h1 style="margin:0; color:#444; font-size:2em;">{system_name}</h1>
+                            </div>
+                            <hr style="border:0; border-top:1px solid #e0e0e0; margin:20px 0;">
+                            <div style="margin-bottom:30px; color:#555; line-height:1.6; text-align:left;">
+                                <h3>เรียน ผู้ใช้บริการ</h3>
+                                <p>ขอบคุณสำหรับการลงทะเบียนใช้งาน{system_name}<br>
+                                    กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
+                                </p>
+                                <div style="text-align: center; margin-top: 12px;">
+                                    <a href="{link}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
+                                </div>
+                                <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 24 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
+                            </div>
+                            <div class="footer">
+                                <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล {system_name}</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                """
+            if not current_app.debug:
+                send_mail([account.email], title=title, message=None, html=html_message)
+            else:
+                print('message', html_message)
+
         if customer_id:
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
             flash('เพิ่มลูกค้าสำเร็จ', 'success')
+
+        if menu:
+            return redirect(url_for('service_admin.request_index', menu=menu))
+        elif source == 'registration':
+            return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
+        else:
+            return redirect(url_for('service_admin.customer_index', tab=tab))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template(
+        'service_admin/create_customer.html', customer_id=customer_id,
+        form=form, account=account, tab=tab, user_type=user_type, source=source,
+        is_admin=is_admin,
+        document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+        required_document_attachments=_required_document_attachments(customer) if customer else {}
+    )
+
+
+@service_admin.route('/customer/add', methods=['GET', 'POST'])
+def create_customer_for_user():
+    email = request.args.get('email')
+    is_admin = request.args.get('is_admin', 'false')
+    user_type = session.get('user_type')
+    customer = None
+    if email:
+        account = ServiceCustomerAccount.query.filter_by(email=email).first()
+        customer = ServiceCustomerInfo.query.filter_by(id=account.customer_info_id).first()
+        form = ServiceCustomerInfoForm(obj=customer)
+        old_is_document_verified = customer.is_document_verified if customer else None
+    else:
+        account = None
+        old_is_document_verified = None
+        form = ServiceCustomerInfoForm()
+    if form.validate_on_submit():
+        if email is None:
+            customer = ServiceCustomerInfo()
+
+        required_documents = _required_customer_documents(form.type.data)
+        type_changed = customer is not None and customer.type_id != form.type.data.id
+        if type_changed and customer.required_attachments:
+            customer.required_attachments.clear()
+
+        document_errors = []
+        required_attachments = _required_document_attachments(customer)
+        document_uploads = []
+        for document in required_documents:
+            field_name = f"required_document_{document['key']}"
+            uploaded_file = request.files.get(field_name)
+            has_upload = uploaded_file and uploaded_file.filename
+            attachment = required_attachments.get(document['key'])
+
+            if has_upload:
+                if not allowed_file(uploaded_file.filename):
+                    document_errors.append(
+                        f"ไฟล์{document['label']}ต้องเป็นไฟล์ประเภท {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+                    )
+                    continue
+                document_uploads.append((document, uploaded_file, attachment))
+
+            if not has_upload and (attachment is None or not attachment.attachment):
+                document_errors.append(f"กรุณาแนบ{document['label']}")
+
+        if document_errors:
+            for error in document_errors:
+                flash(error, 'danger')
+            return render_template(
+                'service_admin/create_customer.html', email=email,
+                customer_id=customer.id if customer else None, source='registration',
+                form=form, account=account,
+                is_admin=is_admin, user_type=user_type,
+                document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                required_document_attachments=_required_document_attachments(customer)
+            )
+
+        uploaded_required_documents = []
+        for document, uploaded_file, attachment in document_uploads:
+            file_name = uploaded_file.filename
+            s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=uploaded_file.stream.read(),
+                ContentType=uploaded_file.mimetype
+            )
+            uploaded_required_documents.append((document, attachment, file_name))
+        if form.other_attachments:
+            for item in form.other_attachments:
+                file = item.file_upload.data
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    file_name = file.filename
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
+                    item.attachment.data = file_name
+        form.populate_obj(customer)
+
+        for document, attachment, file_name in uploaded_required_documents:
+            if attachment is None:
+                attachment = ServiceCustomerRequiredAttachment(customer=customer)
+                required_attachments[document['key']] = attachment
+            attachment.file_name = document['label']
+            attachment.attachment = file_name
+
+        for document, attachment in required_attachments.items():
+            attachment.file_name = next(
+                item['label'] for item in CUSTOMER_DOCUMENT_DEFINITIONS if item['key'] == document
+            )
+            attachment.customer = customer
+            if attachment not in customer.required_attachments:
+                customer.required_attachments.append(attachment)
+            db.session.add(attachment)
+
+        cus_email = request.form.get('email')
+        if not email:
+            customer.is_document_verified = None
+            if current_user.is_authenticated and user_type and user_type == 'staff':
+                customer.creator_id = current_user.id
+            cus_account = ServiceCustomerAccount.query.filter_by(email=cus_email).first()
+            if cus_account:
+                flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว', 'danger')
+                return redirect(url_for('service_admin.create_customer_for_user'))
+            else:
+                account = ServiceCustomerAccount(email=cus_email, customer_info=customer)
+        else:
+            if email != cus_email:
+                account.email = cus_email
+                account.verify_datetime = None
+            if customer.is_document_verified is None or customer.is_document_verified is False:
+                customer.is_document_verified = None
+        db.session.add(account)
+        db.session.add(customer)
+        db.session.commit()
+
+        scheme = 'http' if current_app.debug else 'https'
         central_admin_accounts = get_central_admin_academic_service()
-        if not customer_id and central_admin_accounts:
-            scheme = 'http' if current_app.debug else 'https'
+        if not email and central_admin_accounts:
             link = url_for("service_admin.view_customer", tab='pending', customer_id=customer.id, _external=True,
                            _scheme=scheme)
             title = f'''แจ้งเตือนการลงทะเบียนผู้รับบริการใหม่'''
             message = f'''เรียน แอดมินส่วนกลาง\n\n'''
             message += f'''มีผู้รับบริการที่ดำเนินการลงทะเบียนเพื่อรับบริการเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
-            message += f'''ระบบงานงานบริการวิชาการ'''
+            message += f'''ระบบขึ้นทะเบียนผู้รับบริการ'''
             if not current_app.debug:
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
-        if menu:
-            return redirect(url_for('service_admin.request_index', menu=menu))
-        else:
-            if current_user.is_authenticated and user_type and user_type == 'staff':
-                return redirect(url_for('service_admin.customer_index', tab=tab))
+        elif old_is_document_verified == False and central_admin_accounts:
+            link = url_for("service_admin.view_customer", tab='pending', customer_id=account.customer_info_id,
+                           _external=True, _scheme=scheme)
+            title = f'''แจ้งเตือนการแก้ไขข้อมูลผู้รับบริการ'''
+            message = f'''เรียน แอดมินส่วนกลาง\n\n'''
+            message += f'''มีผู้รับบริการดำเนินการแก้ไขข้อมูลตามที่แจ้งเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ระบบขึ้นทะเบียนผู้รับบริการ'''
+            if not current_app.debug:
+                send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
-                return redirect(url_for('service_admin.closing_page'))
+                print('message', message)
+
+        if account and not account.verify_datetime:
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+            token = serializer.dumps({'email': account.email})
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for('service_admin.verify_email', is_admin=is_admin, customer_id=customer.id,
+                           token=token, _external=True, _scheme=scheme)
+            title = 'ยืนยันอีเมลระบบขึ้นทะเบียนผู้รับบริการ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
+            html_message = f"""
+            <!DOCTYPE html>
+            <html lang="th">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>{title}</title>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        background-color: #f4f4f4;
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                    }}
+                    .container {{
+                        background-color: #ffffff;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 5px;
+                        max-width: 600px;
+                        width: 100%;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        text-align: center;
+                        padding: 40px;
+                        box-sizing: border-box;
+                    }}
+                    .header {{
+                        margin-bottom: 30px;
+                    }}
+                    .header h1 {{
+                        font-size: 2.5em;
+                        color: #444;
+                        margin: 0;
+                    }}
+                    .header p {{
+                        font-size: 1.2em;
+                        color: #666;
+                        margin-top: 5px;
+                    }}
+                    .content {{
+                        margin-bottom: 30px;
+                        color: #555;
+                        line-height: 1.6;
+                    }}
+                    .content h3 {{
+                        text-align: left;
+                    }}
+                    .content p {{
+                        margin: 0 0 15px 0;
+                        font-size: 1.1em;
+                        text-align: left;
+                    }}
+                    .confirm-button {{
+                        display: inline-block;
+                        background-color: #008000; 
+                        padding: 15px 30px;
+                        text-decoration: none; 
+                        border-radius: 5px;
+                        font-size: 1.2em;
+                        font-weight: bold;
+                        margin-bottom: 0;
+                        transition: background-color 0.3s ease, transform 0.2s ease;
+                        color: #ffffff !important;
+                    }}
+                    .link-validity {{
+                        margin-top: 12px;
+                        font-size: 0.9em;
+                        color: #888;
+                        text-align: left;
+                    }}
+                    .footer {{
+                        margin-top: 40px;
+                        font-size: 0.8em;
+                        color: #aaa;
+                    }}
+                </style>
+            </head>
+            <body style="margin:0; padding:20px; background-color:#f4f4f4; font-family:Arial,sans-serif;">
+                <div style="max-width:600px; margin:0 auto; padding:40px; box-sizing:border-box; text-align:center;
+                            background-color:#ffffff; border:1px solid #e0e0e0; border-radius:5px;">
+                    <div style="margin-bottom:30px;">
+                        <h1 style="margin:0; color:#444; font-size:2em;">ระบบขึ้นทะเบียนผู้รับบริการ</h1>
+                    </div>
+                    <hr style="border:0; border-top:1px solid #e0e0e0; margin:20px 0;">
+                    <div style="margin-bottom:30px; color:#555; line-height:1.6; text-align:left;">
+                        <h3>เรียน ผู้ใช้บริการ</h3>
+                        <p>ขอบคุณสำหรับการลงทะเบียนใช้งานระบบขึ้นทะเบียนผู้รับบริการ<br>
+                            กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
+                        </p>
+                        <div style="text-align: center; margin-top: 12px;">
+                            <a href="{link}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
+                        </div>
+                        <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 24 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
+                    </div>
+                    <div class="footer">
+                        <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ระบบขึ้นทะเบียนผู้รับบริการ</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            if not current_app.debug:
+                send_mail([account.email], title, message=None,
+                          html=html_message)
+            else:
+                print('message', html_message)
+
+        if email:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+            return redirect(url_for('service_admin.customer_detail', customer_id=customer.id, is_admin=is_admin))
+        else:
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
+            return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template(
-        'service_admin/create_customer.html', customer_id=customer_id,
-        form=form, account=account, tab=tab, user_type=user_type,
-        document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+        'service_admin/create_customer.html', email=email,
+        customer_id=customer.id if customer else None, source='registration',
+        form=form, account=account,
+        is_admin=is_admin, user_type=user_type, document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
         required_document_attachments=_required_document_attachments(customer) if customer else {}
     )
 
@@ -2803,7 +3234,7 @@ def approve_document_customer(customer_id):
     message += f'''ช่องทางที่กำหนด\n\n'''
     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message += f'''ขอขอบพระคุณที่ใช้บริการ\n\n'''
-    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''ระบบขึ้นทะเบียนผู้รับบริการ\n'''
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([account.email for account in customer.accounts], title, message)
     resp = make_response()
@@ -2823,7 +3254,8 @@ def disapprove_document_customer(customer_id):
     scheme = 'http' if current_app.debug else 'https'
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     token = serializer.dumps({'email': customer.accounts[0].email})
-    link = url_for("academic_services.login_by_token", token=token, _external=True, _scheme=scheme)
+    link = url_for("service_admin.verify_customer_token", token=token, _external=True, _scheme=scheme,
+                   is_seven_days='true')
     title_prefix = 'คุณ' if customer.type.type == 'บุคคล' else ''
     title = f'''แจ้งผลการตรวจสอบข้อมูลการลงทะเบียน'''
     message = f'''เรียน {title_prefix}{customer.cus_name}\n\n'''
@@ -2832,12 +3264,80 @@ def disapprove_document_customer(customer_id):
     message += f'โดยท่านสามารถแก้ไขข้อมูลได้ที่ลิงก์ด้านล่าง\n\n{link}\n\n'
     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message += f'''ขอแสดงความนับถือ\n'''
-    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''ระบบขึ้นทะเบียนผู้รับบริการ\n'''
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([account.email for account in customer.accounts], title, message)
     resp = make_response()
     resp.headers['HX-Redirect'] = url_for('service_admin.view_customer', tab=tab, customer_id=customer_id)
     return resp
+
+
+@service_admin.route('/customer/email-verification', methods=['GET', 'POST'])
+def verify_email():
+    token = request.args.get('token')
+    is_admin = request.args.get('is_admin', 'false')
+    customer_id = request.args.get('customer_id', type=int)
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token, max_age=86400)
+    except:
+        return 'รหัสสำหรับทำการยืนยันอีเมลหมดอายุหรือไม่ถูกต้อง'
+    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
+    if not user:
+        flash('ไม่พบชื่อบัญชีผู้ใช้งาน กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
+        return redirect(url_for('service_admin.customer_register_index'))
+    elif user.verify_datetime:
+        flash('ได้รับการยืนยันอีเมลแล้ว', 'info')
+        return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
+    else:
+        user.verify_datetime = arrow.now('Asia/Bangkok').datetime
+        db.session.add(user)
+        db.session.commit()
+        flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
+        return render_template('service_admin/confirm_email_page.html', customer_id=customer_id, is_admin=is_admin)
+
+
+@service_admin.route('/customer/email/send', methods=['GET', 'POST'])
+def send_email_customer():
+    is_admin = request.args.get('is_admin', 'false')
+    customer_id = request.args.get('customer_id', type=int)
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    flash('ส่งคำขอแก้ไขข้อมูลสำเร็จ กรุณาตรวจสอบอีเมลเพื่อดำเนินการแก้ไขข้อมูล', 'success')
+    scheme = 'http' if current_app.debug else 'https'
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    token = serializer.dumps({'email': customer.email})
+    link = url_for("service_admin.verify_customer_token", token=token, _external=True, _scheme=scheme,
+                   is_seven_days='false')
+    title_prefix = 'คุณ' if customer.type.type == 'บุคคล' else ''
+    title = f'''แจ้งขอแก้ไขข้อมูลผู้รับบริการ'''
+    message = f'''เรียน {title_prefix}{customer.cus_name}\n\n'''
+    message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอแก้ไขข้อมูลการลงทะเบียนผู้รับบริการกับคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+    message += f'''ท่านสามารถดำเนินการแก้ไขข้อมูลได้ที่ลิงก์ด้านล่างภายใน 24 ชั่วโมงนับจากได้รับอีเมลฉบับนี้\n\n'''
+    message += f'{link}\n\n'
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ระบบขึ้นทะเบียนผู้รับบริการ\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([customer.email], title, message)
+    return redirect(url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin))
+
+
+@service_admin.route('/verify_customer_token', methods=['GET', 'POST'])
+def verify_customer_token():
+    token = request.args.get('token')
+    is_seven_days = request.args.get('is_seven_days', 'false')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        max_age = 604800 if is_seven_days else 86400
+        token_data = serializer.loads(token, max_age=max_age)
+    except:
+        return 'รหัสหมดอายุหรือไม่ถูกต้อง'
+    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
+    if not user:
+        flash('ไม่พบชื่อผู้รับบริการในฐานข้อมูล')
+        return redirect(url_for('service_admin.search_customer_for_user'))
+    else:
+        return redirect(url_for('service_admin.create_customer_for_user', email=token_data.get('email')))
 
 
 @service_admin.route('/customer/register/closing-page')
@@ -5953,7 +6453,7 @@ def create_customer_detail(request_id):
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
     customer = ServiceCustomerInfo.query.get(service_request.customer.customer_info_id) if service_request.customer.customer_info_id else None
     if not customer:
-        return redirect(url_for('service_admin.create_customer', customer_id=service_request.customer_id))
+        return redirect(url_for('service_admin.create_customer_for_admin', customer_id=service_request.customer_id))
     cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
     if not cus_contact:
         form = ServiceCustomerContactForm()

@@ -1075,23 +1075,29 @@ def get_committee_staff():
 
 @complaint_tracker.route('/')
 def index():
-    categories = ComplaintCategory.query.all()
+    categories = ComplaintCategory.query.filter(ComplaintCategory.no.notin_([1, 5]))
     return render_template('complaint_tracker/index.html', categories=categories)
 
 
 @complaint_tracker.route('/request/index')
 def repair_request_landing():
-    topics = ComplaintTopic.query.filter(ComplaintTopic.code.in_(['room', 'runied'])).all()
-    topic_ids = {topic.code: topic.id for topic in topics}
-    room_id = topic_ids.get('room')
-    procurement_id = topic_ids.get('runied')
-    return render_template('complaint_tracker/repair_request_landing.html', room_id=room_id,
-                           procurement_id=procurement_id)
+    category = ComplaintCategory.query.filter_by(no=1).first()
+    topics = []
+    damaged_equipment_topic = None
+    if category:
+        topics = ComplaintTopic.query.filter_by(category_id=category.id).all()
+        for topic in topics:
+            if topic.code == 'runied':
+                damaged_equipment_topic = topic
+                break
+    return render_template('complaint_tracker/repair_request_landing.html',
+                           category=category, topics=topics, damaged_equipment_topic=damaged_equipment_topic)
 
 
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
-    topic = ComplaintTopic.query.get_or_404(topic_id)
+    topic = ComplaintTopic.query.get(topic_id)
+    has_procurement = request.values.get('has_procurement', 'false')
     ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
     room_number = request.values.get('number')
@@ -1101,7 +1107,7 @@ def new_record(topic_id, room=None, procurement=None):
     erp_code = request.values.get('erp_code')
     channel_receive = request.values.get('channel_receive')
     is_admin = False
-    if not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด':
+    if (not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด' and has_procurement == 'true'):
         return redirect(url_for('auth.login'))
     if current_user.is_authenticated:
         is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user, topic_id=topic_id).first() else False
@@ -1119,10 +1125,11 @@ def new_record(topic_id, room=None, procurement=None):
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
-        if topic.code == 'runied' and not procurement:
+        if topic.code == 'runied' and has_procurement == 'true' and not procurement:
             flash('กรุณาเพิ่มข้อมูลครุภัณฑ์ โดยสแกน QR Code หรือกรอกเลขครุภัณฑ์', 'danger')
             resp = make_response()
-            resp.headers['HX-Redirect'] = url_for('comp_tracker.new_record', topic_id=topic_id)
+            resp.headers['HX-Redirect'] = url_for('comp_tracker.new_record', topic_id=topic_id,
+                                                  has_procurement=has_procurement)
             return resp
         file = form.file_upload.data
         record.topic = topic
@@ -1185,7 +1192,7 @@ def new_record(topic_id, room=None, procurement=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
-                           is_admin=is_admin, procurement=procurement)
+                           is_admin=is_admin, procurement=procurement, has_procurement=has_procurement)
 
 
 @complaint_tracker.route('issue/closing-page')
@@ -1495,9 +1502,29 @@ def scan_qr_code_complaint(code):
     cat = request.args.get('cat')
     tab = request.args.get('tab')
     record_id = request.args.get('record_id', type=int)
+    has_procurement = request.args.get('has_procurement', 'false')
     topic = ComplaintTopic.query.filter_by(code=code).first()
     return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic_id=topic.id, cat=cat,
-                           tab=tab, record_id=record_id)
+                           tab=tab, record_id=record_id, has_procurement=has_procurement)
+
+
+@complaint_tracker.route('/add-procurement-number/complaint/<code>', methods=['GET', 'POST'])
+def add_procurement_number(code):
+    cat = request.args.get('cat')
+    tab = request.args.get('tab')
+    record_id = request.args.get('record_id', type=int)
+    has_procurement = request.values.get('has_procurement', 'false')
+    topic = ComplaintTopic.query.filter_by(code=code).first()
+    if request.method == 'POST':
+        pro_number = request.form.get('pro_number')
+        if cat and cat == 'admin':
+            return redirect(url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id,
+                                    pro_number=pro_number))
+        else:
+            return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, pro_number=pro_number,
+                                    has_procurement=has_procurement))
+    return render_template('complaint_tracker/add_procurement_number.html', code=code, topic_id=topic.id,
+                           cat=cat, tab=tab, record_id=record_id, has_procurement=has_procurement)
 
 
 @complaint_tracker.route('/issue/comment/add/<int:record_id>', methods=['GET', 'POST'])
@@ -2002,23 +2029,6 @@ def view_record_complaint_for_admin(record_id):
         file_url = None
     return render_template('complaint_tracker/view_record_complaint_for_admin.html', file_url=file_url,
                            record=record, menu=menu, statuses=statuses)
-
-
-@complaint_tracker.route('/add-procurement-number/complaint/<code>', methods=['GET', 'POST'])
-def add_procurement_number(code):
-    cat = request.args.get('cat')
-    tab = request.args.get('tab')
-    record_id = request.args.get('record_id', type=int)
-    topic = ComplaintTopic.query.filter_by(code=code).first()
-    if request.method == 'POST':
-        pro_number = request.form.get('pro_number')
-        if cat and cat == 'admin':
-            return redirect(url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id,
-                                    pro_number=pro_number))
-        else:
-            return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, pro_number=pro_number))
-    return render_template('complaint_tracker/add_procurement_number.html', code=code, topic_id=topic.id,
-                           cat=cat, tab=tab, record_id=record_id)
 
 
 @complaint_tracker.route('/admin/record-complaint-summary')

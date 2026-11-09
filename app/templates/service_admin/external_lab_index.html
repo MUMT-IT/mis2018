@@ -18,7 +18,7 @@
                 </div>
                 <div class="buttons mb-0 external-lab-heading-actions">
                     <a class="button external-lab-back"
-                       href="{{ url_for('service_admin.customer_detail', customer_id=customer_id) }}">
+                       href="{{ url_for('service_admin.customer_detail', customer_id=customer_id, is_admin=is_admin) }}">
                         <span class="icon"><i class="fas fa-arrow-left"></i></span>
                         <span>กลับ</span>
                     </a>
@@ -64,8 +64,8 @@
                                         <div class="external-service-action-buttons">
                                             <button type="button"
                                                     class="external-service-create-button"
-                                                    hx-post="{{ url_for('service_admin.create_request_id', customer_id=customer_id,
-                                                    sub_lab_id=sub_lab.id) }}"
+                                                    hx-post="{{ url_for('service_admin.create_request_id',
+                                                    customer_id=customer_id, sub_lab_id=sub_lab.id, is_admin=is_admin) }}"
                                                     hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
                                                     hx-confirm="ท่านต้องการสร้าง Request ID ของบริการนี้ใช่หรือไม่">
                                                 <i class="fas fa-plus"></i>
@@ -80,7 +80,7 @@
                                             </button>
                                             <a class="external-service-all-request-button"
                                                href="{{ url_for('service_admin.external_lab_request_index',
-                                               sub_lab_id=sub_lab.id, customer_id=customer_id) }}">
+                                               sub_lab_id=sub_lab.id, customer_id=customer_id, is_admin=is_admin) }}">
                                                 <span class="icon"><i class="fas fa-list"></i></span>
                                                 <span>Request ทั้งหมด</span>
                                             </a>

@@ -26,7 +26,8 @@
                                 {% if cat == 'admin' %}
                                     href="{{ url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id) }}"
                                 {% else %}
-                                    href="{{ url_for('comp_tracker.new_record', topic_id=topic_id) }}"
+                                    href="{{ url_for('comp_tracker.new_record', topic_id=topic_id,
+                                    has_procurement=has_procurement) }}"
                                 {% endif %}
                             >
                                 back
