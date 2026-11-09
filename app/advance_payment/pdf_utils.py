@@ -8,6 +8,7 @@ from decimal import Decimal
 from io import BytesIO
 from datetime import datetime
 from pathlib import Path
+from .date_utils import reference_date_long, thai_long_date
 from bahttext import bahttext
 
 from reportlab.lib.pagesizes import A4
@@ -186,11 +187,7 @@ def get_department_info_from_api(dept_name):
 def get_thai_month_year(date_obj):
     if not date_obj:
         return PDF_BLANK
-    th_months = [
-        "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-        "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-    ]
-    return f"{date_obj.day} {th_months[date_obj.month - 1]} {date_obj.year + 543}"
+    return thai_long_date(date_obj)
 
 
 def _format_fiscal_year_for_pdf(value):
@@ -2025,7 +2022,7 @@ def generate_petty_claim(claim, claim_type="1"):
     fiscal_year_label = _format_fiscal_year_for_pdf(getattr(claim, "fiscal_year", None))
     reference_number = getattr(claim, "reference_number", None) or PDF_BLANK
     reference_date = getattr(claim, "reference_date", None)
-    reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
+    reference_date_label = reference_date_long(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(claim, "product_code", None), "id", None) or PDF_BLANK
     cost_center_label = getattr(getattr(claim, "cost_center", None), "id", None) or PDF_BLANK
     mission_label = getattr(getattr(claim, "iocode", None), "id", None) or PDF_BLANK

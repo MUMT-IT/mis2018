@@ -2,7 +2,18 @@ from flask import current_app
 from wtforms import DateField, DecimalField, Form, PasswordField, SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired, NumberRange, Optional, ValidationError, Length
 from datetime import date
+from .date_utils import coerce_date
 from .models import db, StaffAccount
+
+
+class AdvanceDateField(DateField):
+    """Date field accepting ISO dates and numeric Gregorian/Buddhist dates."""
+
+    def process_formdata(self, valuelist):
+        raw = valuelist[0] if valuelist else ""
+        self.data = coerce_date(raw)
+        if raw and self.data is None:
+            raise ValueError("Not a valid date value.")
 
 
 class RegistrationForm(Form):
@@ -34,14 +45,14 @@ class BorrowingTicketForm(Form):
         "อนุมัติในหลักการ (เลขที่หนังสือ)",
         validators=[DataRequired(message="กรุณากรอกเลขที่หนังสืออนุมัติในหลักการ")],
     )
-    aip_ref_date = DateField(
+    aip_ref_date = AdvanceDateField(
         "วันที่หนังสือได้รับการอนุมัติ",
         validators=[DataRequired(message="กรุณาระบุวันที่หนังสือได้รับการอนุมัติ")],
     )
     required_budget = DecimalField("ยอดเงินยืม", validators=[DataRequired(message="กรุณาระบุยอดเงินยืมที่ถูกต้อง")])
     account_number = StringField("เลขที่บัญชี", validators=[DataRequired(message="กรุณากรอกเลขที่บัญชี")])
-    borrowing_ticket_start_date = DateField("วันที่เริ่มต้นโครงการ", validators=[DataRequired(message="กรุณาระบุวันที่เริ่มต้นโครงการ")])
-    borrowing_ticket_end_date = DateField("วันที่สิ้นสุดโครงการ", validators=[DataRequired(message="กรุณาระบุวันที่สิ้นสุดโครงการ")])
+    borrowing_ticket_start_date = AdvanceDateField("วันที่เริ่มต้นโครงการ", validators=[DataRequired(message="กรุณาระบุวันที่เริ่มต้นโครงการ")])
+    borrowing_ticket_end_date = AdvanceDateField("วันที่สิ้นสุดโครงการ", validators=[DataRequired(message="กรุณาระบุวันที่สิ้นสุดโครงการ")])
     submit = SubmitField("ส่งสัญญาเงินยืม")
 
     def validate_borrowing_ticket_end_date(self, field):
@@ -63,7 +74,7 @@ class FundRequestForm(Form):
     account_number = StringField("เลขบัญชีหน่วยงาน")
     
     ticket_number = StringField("เลขที่ใบเบิกเงิน") 
-    request_date = DateField(
+    request_date = AdvanceDateField(
         "วันที่เบิกเงิน",
         format="%Y-%m-%d",
         validators=[Optional()],
@@ -92,7 +103,7 @@ class BankAccountInfoForm(Form):
     submit = SubmitField("บันทึกข้อมูล")
 
 class PettyCashClaimItemForm(Form):
-    receipt_date = DateField("วันที่ตามใบเสร็จ", validators=[DataRequired(message="กรุณาระบุวันที่")])
+    receipt_date = AdvanceDateField("วันที่ตามใบเสร็จ", validators=[DataRequired(message="กรุณาระบุวันที่")])
     description = StringField("รายการ", validators=[DataRequired(message="กรุณากรอกรายการ")])
     amount = DecimalField(
         "จำนวนเงิน",

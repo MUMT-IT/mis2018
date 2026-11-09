@@ -89,13 +89,18 @@
           const text = String(value || "").trim();
           if (!text) return "";
 
+          function gregorianYear(value) {
+            const year = Number(value);
+            return year >= 2400 ? year - 543 : year;
+          }
+
           let match = text.match(isoDatePattern);
           if (match) {
-            const year = Number(match[1]);
+            const year = gregorianYear(match[1]);
             const month = Number(match[2]);
             const day = Number(match[3]);
             return isValidDateParts(year, month, day)
-              ? `${match[1]}-${match[2]}-${match[3]}`
+              ? `${String(year).padStart(4, "0")}-${match[2]}-${match[3]}`
               : "";
           }
 
@@ -104,7 +109,7 @@
 
           const day = Number(match[1]);
           const month = Number(match[2]);
-          const year = Number(match[3]);
+          const year = gregorianYear(match[3]);
           if (!isValidDateParts(year, month, day)) return "";
 
           return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;

@@ -1183,7 +1183,7 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     transferred_at = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     reference_number = Column(String(255), nullable=True)
-    reference_date = Column(Date, nullable=True)
+    reference_date = Column(String, nullable=True)
     product_code_id = Column(String(12), ForeignKey("product_codes.id"), nullable=True)
     cost_center_id = Column(String(12), ForeignKey("cost_centers.id"), nullable=True)
     iocode_id = Column(String(16), ForeignKey("iocodes.id"), nullable=True)

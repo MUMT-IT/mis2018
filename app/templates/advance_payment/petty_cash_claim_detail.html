@@ -291,7 +291,7 @@
     <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
       <h3 class="h5 fw-bold mb-3">หนังสืออนุมัติในหลักการ</h3>
       {% if claim_detail.reference_number %}
-        <p class="mb-2"><strong>เลขที่:</strong> {{ claim_detail.reference_number }}{% if claim_detail.reference_date %} <span class="ms-3"><strong>วันที่:</strong> {{ claim_detail.reference_date|thai_date }}</span>{% endif %}</p>
+        <p class="mb-2"><strong>เลขที่:</strong> {{ claim_detail.reference_number }}{% if claim_detail.reference_date %} <span class="ms-3"><strong>วันที่:</strong> {{ claim_detail.reference_date|claim_reference_date }}</span>{% endif %}</p>
       {% endif %}
       {% if claim_detail.reference_files %}
         <div class="d-flex flex-wrap gap-2">

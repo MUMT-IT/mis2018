@@ -50,6 +50,12 @@ from .email_utils import (
     latest_rejection_comment,
 )
 from . import advance_payment as bp, thai_date
+from .date_utils import (
+    coerce_date as _coerce_date,
+    normalize_reference_date,
+    parse_date,
+    parse_datetime,
+)
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
 from app.staff.models import StaffHeadPosition, StaffPersonalInfo
@@ -2298,20 +2304,6 @@ def recheck_overdue_and_upcoming_statuses():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-
-def _coerce_date(value):
-    if isinstance(value, date):
-        return value
-    if isinstance(value, str):
-        value = value.strip()
-        if not value:
-            return None
-        try:
-            return datetime.strptime(value, "%Y-%m-%d").date()
-        except ValueError:
-            return None
-    return None
-
 
 def _normalize_ledger_row_dates(receipt_date, created_at):
     """Return comparable dates for a ledger row, or None when it is undated."""
@@ -5269,7 +5261,7 @@ def finance_bank_account_registry(_render_after_post=False):
         if not value:
             return None
         try:
-            return datetime.strptime(value[:10], "%Y-%m-%d")
+            return parse_datetime(value[:10])
         except ValueError:
             return None
 
@@ -6230,7 +6222,7 @@ def submit_parcel_return(ticket_id):
             ),
         )
 
-    sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
+    sent_date = parse_date(sent_date_str)
 
     try:
         _create_parcel_return_record(
@@ -6331,7 +6323,7 @@ def submit_fund_request_parcel_return(fund_request_id):
             ),
         )
 
-    sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
+    sent_date = parse_date(sent_date_str)
 
     _create_parcel_return_record(
         fund_request_id=fund_request.id,
@@ -6411,7 +6403,7 @@ def update_parcel_return(parcel_return_id):
 
     parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
-    parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
+    parcel_return.sent_date = parse_date(sent_date_str)
     parcel_return.status_id = _status_id_for_record(parcel_return, "PENDING")
     parcel_return.approved_at = None
     parcel_return.settled_at = None
@@ -6519,7 +6511,7 @@ def mark_parcel_return_transferred(parcel_return_id):
         return _validation_error_response("กรุณาระบุวันที่โอนเงินสดย่อย")
 
     try:
-        transferred_at = datetime.strptime(transferred_date_str, "%Y-%m-%d").date()
+        transferred_at = parse_date(transferred_date_str)
     except (TypeError, ValueError):
         return _validation_error_response("กรุณาระบุวันที่โอนเงินสดย่อยให้ถูกต้อง")
 
@@ -6695,7 +6687,7 @@ def submit_return_details():
             return _validation_error_response("กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุให้ครบถ้วน")
         try:
             parcel_amount = _parse_money_input(parcel_amount_raw)
-            parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
+            parcel_sent_date = parse_date(parcel_sent_date_raw)
             if parcel_amount < 0:
                 raise ValueError
         except (TypeError, ValueError):
@@ -6725,7 +6717,7 @@ def submit_return_details():
             return _validation_error_response("กรุณากรอกข้อมูลยอดการคืนที่ส่ง ว-119 / ว-5763 ให้ครบถ้วน")
         try:
             circular_amount = _parse_money_input(circular_amount_raw)
-            circular_sent_date = datetime.strptime(circular_sent_date_raw, "%Y-%m-%d").date()
+            circular_sent_date = parse_date(circular_sent_date_raw)
             if circular_amount < 0:
                 raise ValueError
         except (TypeError, ValueError):
@@ -6747,7 +6739,7 @@ def submit_return_details():
             return _validation_error_response("กรุณาแนบไฟล์หลักฐานการโอนเงินเหลือส่งใช้เงินยืม")
         try:
             cash_return_amount = _parse_money_input(cash_return_amount_raw)
-            cash_return_date = datetime.strptime(cash_return_date_raw, "%Y-%m-%d").date()
+            cash_return_date = parse_date(cash_return_date_raw)
             if cash_return_amount < 0:
                 raise ValueError
         except (TypeError, ValueError):
@@ -7767,11 +7759,11 @@ def approve_borrowing_ticket(ticket_id):
     if not approval_ref_no:
         return _validation_error_response("กรุณาระบุเลขที่อว.อนุมัติยืมเงิน")
     try:
-        approval_date = datetime.strptime(raw_approval_date, "%Y-%m-%d").date()
+        approval_date = parse_date(raw_approval_date)
     except ValueError:
         return _validation_error_response("กรุณาระบุวันที่อนุมัติให้ถูกต้อง")
     try:
-        approved_at = datetime.strptime(raw_approved_at, "%Y-%m-%d")
+        approved_at = parse_datetime(raw_approved_at)
     except ValueError:
         return _validation_error_response("กรุณาระบุวันที่อนุมัติจ่ายเงินให้ถูกต้อง")
 
@@ -8912,9 +8904,7 @@ def petty_cash_fiscal_year_top_up_transfers():
             else:
                 raw_transferred_at = (request.form.get("transferred_at") or "").strip()
                 try:
-                    transferred_at = (
-                        date.fromisoformat(raw_transferred_at) if raw_transferred_at else None
-                    )
+                    transferred_at = parse_date(raw_transferred_at) if raw_transferred_at else None
                 except ValueError as exc:
                     raise ValueError("วันที่โอนเงินสำเร็จไม่ถูกต้อง") from exc
                 if transfer_type == PETTY_CASH_TRANSFER_NONE and transferred_at is not None:
@@ -9205,7 +9195,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
     if request.method == "POST" and not _render_after_post:
         document_number = request.form.get("document_number", "").strip()
         try:
-            filing_date = datetime.strptime(request.form.get("filing_date", ""), "%Y-%m-%d").date()
+            filing_date = parse_date(request.form.get("filing_date", ""))
             selections = [
                 (ReturnDetail, {int(value) for value in request.form.getlist("return_ids[]")}),
                 (ParcelReturnDetail, {int(value) for value in request.form.getlist("parcel_return_ids[]")}),
@@ -10321,7 +10311,7 @@ def cancel_fund_request(request_id):
 
     transferred_at_raw = (request.form.get("transferred_at") or "").strip()
     try:
-        cancel_transferred_at = datetime.strptime(transferred_at_raw, "%Y-%m-%d").date()
+        cancel_transferred_at = parse_date(transferred_at_raw)
     except ValueError:
         return _validation_error_response("กรุณาระบุวันที่นำเงินกลับเข้าสู่ระบบให้ถูกต้อง")
 
@@ -10592,7 +10582,7 @@ def staff_legacy_fund_request():
             if not form_values["request_date"]:
                 raise ValueError("กรุณาระบุวันที่เบิกเงิน")
             try:
-                request_date = datetime.strptime(form_values["request_date"], "%Y-%m-%d").date()
+                request_date = parse_date(form_values["request_date"])
             except ValueError:
                 raise ValueError("รูปแบบวันที่เบิกเงินไม่ถูกต้อง")
             if request_date >= target_fiscal_year_start:
@@ -10766,11 +10756,13 @@ def _save_pdf_reference_data(document, borrowing_ticket=None, *, require_referen
         abort(400, description="กรุณากรอกข้อมูลอ้างอิงสำหรับเอกสาร PDF ให้ครบถ้วน")
     if not require_reference:
         parsed_date = None
+    elif isinstance(document, PettyCashClaimDetail):
+        parsed_date = normalize_reference_date(reference_date)
     elif isinstance(reference_date, date):
         parsed_date = reference_date
     else:
         try:
-            parsed_date = datetime.strptime(reference_date, "%Y-%m-%d").date()
+            parsed_date = parse_date(reference_date)
         except ValueError:
             abort(400, description="รูปแบบวันที่หนังสือไม่ถูกต้อง")
     try:
@@ -11118,11 +11110,8 @@ def autosave_petty_cash_claim_draft():
     claim_detail.total_amount = claim_detail.amount
     claim_detail.note = note
     if reference_number and reference_date_raw:
-        try:
-            claim_detail.reference_date = datetime.strptime(reference_date_raw, "%Y-%m-%d").date()
-            claim_detail.reference_number = reference_number
-        except ValueError:
-            pass
+        claim_detail.reference_date = normalize_reference_date(reference_date_raw)
+        claim_detail.reference_number = reference_number
     elif not reference_number and not reference_date_raw:
         claim_detail.reference_number = None
         claim_detail.reference_date = None
@@ -11466,13 +11455,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     "กรุณากรอกเลขที่อนุมัติในหลักการและวันที่หนังสือให้ครบถ้วน หรือเว้นว่างทั้งสองช่อง",
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
                 )
-            try:
-                reference_date = datetime.strptime(reference_date_raw, "%Y-%m-%d").date()
-            except ValueError:
-                return _validation_redirect_response(
-                    "รูปแบบวันที่หนังสืออนุมัติไม่ถูกต้อง",
-                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
-                )
+            reference_date = normalize_reference_date(reference_date_raw)
 
         existing_reference_files = [
             (path, existing_reference_names[index] if index < len(existing_reference_names) else "reference")
@@ -11505,7 +11488,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 )
             try:
                 parcel_amount = _parse_money_input(parcel_amount_raw)
-                parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
+                parcel_sent_date = parse_date(parcel_sent_date_raw)
                 if parcel_amount < 0:
                     raise ValueError
             except (TypeError, ValueError):
@@ -11552,7 +11535,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 )
             try:
                 circular_amount = _parse_money_input(circular_amount_raw)
-                circular_sent_date = datetime.strptime(circular_sent_date_raw, "%Y-%m-%d").date()
+                circular_sent_date = parse_date(circular_sent_date_raw)
                 if circular_amount < 0:
                     raise ValueError
             except (TypeError, ValueError):
@@ -11582,7 +11565,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
                 )
             try:
-                cash_return_date = datetime.strptime(cash_return_date_raw, "%Y-%m-%d").date()
+                cash_return_date = parse_date(cash_return_date_raw)
                 cash_return_amount = _parse_money_input(cash_return_amount_raw)
                 if cash_return_amount < 0:
                     raise ValueError
@@ -12564,7 +12547,7 @@ def staff_parcel_return_edit(parcel_return_id):
 
     parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
-    parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
+    parcel_return.sent_date = parse_date(sent_date_str)
     parcel_return.status_id = _status_id_for_record(parcel_return, "PENDING")
     parcel_return.approved_at = None
     parcel_return.settled_at = None
@@ -12677,7 +12660,7 @@ def mark_petty_claim_transferred(claim_id):
         return _validation_error_response("กรุณาระบุวันที่หน่วยงานได้รับเงิน/วันที่โอนเงิน")
 
     claim.status_id = _status_id_for_record(claim, "CASH_TRANSFER_COMPLETED")
-    claim.transferred_at = datetime.strptime(transferred_date_str, "%Y-%m-%d").date()
+    claim.transferred_at = parse_date(transferred_date_str)
     fund_req = db.session.query(FundRequest).get(claim.fund_request_id)
     if fund_req:
         _recalculate_fund_request_submission_status(fund_req.id)

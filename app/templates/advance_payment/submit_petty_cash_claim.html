@@ -382,11 +382,11 @@
             <label class="form-label small fw-semibold">เลขที่อนุมัติในหลักการ เช่น อว.78.04/1</label>
             <input class="form-control form-control-sm reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
           </div>
-          <div class="col-md-2">
-            <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ</label>
-            <input type="text" class="form-control form-control-sm reference-info-input app-date-picker" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}" placeholder="dd/mm/yyyy">
-          </div>
           <div class="col-md-3">
+            <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ เช่น 19 ตุลาคม 2569</label>
+            <input type="text" class="form-control form-control-sm reference-info-input" name="reference_date" value="{{ claim_detail.reference_date|claim_reference_date_form if claim_detail and claim_detail.reference_date else '' }}">
+          </div>
+          <div class="col-md-2">
             <label class="form-label small fw-semibold">ไฟล์เอกสารอ้างอิง</label>
             <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
           </div>
@@ -1519,7 +1519,7 @@ function autoSavePettyCashDraft(includeFiles = false) {
       },
       announcements,
       reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
-      reference_date: window.appDateToISO(claimForm.querySelector('[name="reference_date"]')?.value || ''),
+      reference_date: claimForm.querySelector('[name="reference_date"]')?.value.trim() || '',
       note: claimForm.querySelector('[name="note"]')?.value.trim() || '',
     };
     const uploads = rows.map((row, index) => {
