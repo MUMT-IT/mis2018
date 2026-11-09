@@ -714,6 +714,7 @@
             }
         </style>
     {% endblock %}
+    {% include "components/holiday_theme.html" %}
 </head>
 <body class="{% if config.get('TEST_SERVER') %}is-test-server{% endif %}">
 {% if config.get('TEST_SERVER') %}

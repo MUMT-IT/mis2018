@@ -362,6 +362,39 @@ def _approved_half_day_leave_period(staff_account, target_date):
     return None
 
 
+def get_home_attendance_badges(staff_account, today):
+    snapshots = staff_account.daily_attendance.filter(
+        StaffDailyAttendance.attendance_date < today,
+        StaffDailyAttendance.status.in_(('present', 'absent')),
+    ).order_by(StaffDailyAttendance.attendance_date.desc()).limit(20).all()
+    if len(snapshots) < 20:
+        return []
+
+    complete_days = 0
+    punctual_days = 0
+    for snapshot in snapshots:
+        checkin = _to_bangkok(snapshot.first_checkin_at)
+        checkout = _to_bangkok(snapshot.last_checkout_at)
+        if snapshot.status != 'present' or not checkin or not checkout or checkout <= checkin:
+            continue
+        if checkin.date() != snapshot.attendance_date:
+            continue
+        complete_days += 1
+        half_day = _approved_half_day_leave_period(staff_account, snapshot.attendance_date)
+        latest_arrival = datetime.strptime('13:00' if half_day == 'morning' else '09:00', '%H:%M').time()
+        earliest_departure = datetime.strptime('12:00' if half_day == 'afternoon' else '16:30', '%H:%M').time()
+        departure_cutoff = tz.localize(datetime.combine(snapshot.attendance_date, earliest_departure))
+        if checkin.time() <= latest_arrival and checkout >= departure_cutoff:
+            punctual_days += 1
+
+    badges = []
+    if complete_days >= 19:
+        badges.append('double-tap')
+    if punctual_days == 20:
+        badges.append('clockwork')
+    return badges
+
+
 def _build_login_quota_summary(staff_personal_info):
     quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
         staff_personal_info=staff_personal_info
@@ -3745,14 +3778,15 @@ def hr_daily_attendance_report():
             StaffPersonalInfo.academic_staff.is_(False),
             StaffPersonalInfo.academic_staff.is_(None),
         )
+    staff_filters = list(_active_staff_filters())
+    if selected_org_id:
+        staff_filters.append(StaffPersonalInfo.org_id == selected_org_id)
+    if staff_type_filter is not None:
+        staff_filters.append(staff_type_filter)
     snapshot_filters = [
         StaffDailyAttendance.attendance_date.between(start_date, end_date),
-        *_active_staff_filters(),
+        *staff_filters,
     ]
-    if selected_org_id:
-        snapshot_filters.append(StaffPersonalInfo.org_id == selected_org_id)
-    if staff_type_filter is not None:
-        snapshot_filters.append(staff_type_filter)
 
     grouped_rows = (
         db.session.query(
@@ -3807,14 +3841,18 @@ def hr_daily_attendance_report():
         .all()
     )
     staff_rows_by_id = {}
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
     for snapshot, personal_info in staff_snapshot_rows:
         row = staff_rows_by_id.setdefault(snapshot.staff_id, {
             'staff_id': snapshot.staff_id,
             'name': personal_info.fullname,
+            'quota_limit': _current_login_quota_period(end_date, personal_info)[2],
             'normal_checkin': 0,
             'approved_request': 0,
             'hr_manual': 0,
             'other_present': 0,
+            'late_checkins': 0,
+            'short_hours_days': 0,
             'absent': 0,
             'leave': 0,
             'work_from_home': 0,
@@ -3831,6 +3869,14 @@ def hr_daily_attendance_report():
         if half_day_period and snapshot.status not in ('holiday', 'weekend'):
             row['leave'] += 0.5
         if snapshot.status == 'present':
+            checkin = _to_bangkok(snapshot.first_checkin_at)
+            checkout = _to_bangkok(snapshot.last_checkout_at)
+            if checkin and checkin.time() > office_start_time and half_day_period != 'morning':
+                row['late_checkins'] += 1
+            worked_hours = _calculate_work_hours(checkin, checkout)
+            required_hours = 3.5 if half_day_period else 8.0
+            if worked_hours is not None and worked_hours < required_hours:
+                row['short_hours_days'] += 1
             if snapshot.source == 'approved_request':
                 row['approved_request'] += 1
             elif snapshot.source == 'hr_manual':
@@ -3846,6 +3892,31 @@ def hr_daily_attendance_report():
             row[snapshot.status] += 1
 
     staff_rows = sorted(staff_rows_by_id.values(), key=lambda row: row['name'])
+    range_start = tz.localize(datetime.combine(start_date, datetime.min.time()))
+    range_end = tz.localize(datetime.combine(end_date, datetime.max.time()))
+    location_records = (
+        db.session.query(
+            StaffWorkLogin.staff_id,
+            StaffWorkLogin.record_source,
+            StaffWorkLogin.note,
+            StaffWorkLogin.start_datetime,
+            StaffWorkLogin.end_datetime,
+            StaffWorkLogin.num_scans,
+        )
+        .join(StaffAccount, StaffWorkLogin.staff_id == StaffAccount.id)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(StaffWorkLogin.start_datetime.between(range_start, range_end), *staff_filters)
+        .all()
+    )
+    location_checkins = sorted(
+        (
+            location for location in _login_location_frequencies(
+                location_records, {record.staff_id for record in location_records}, start_date, end_date
+            )
+            if location['checkins']
+        ),
+        key=lambda location: (-location['checkins'], location['name']),
+    )
     active_org_ids = [
         org_id for (org_id,) in (
             db.session.query(StaffPersonalInfo.org_id)
@@ -3908,6 +3979,7 @@ def hr_daily_attendance_report():
         total_worked_minutes=total_worked_minutes,
         staff_rows=staff_rows,
         daily_rows=daily_rows,
+        location_checkins=location_checkins,
     )
 
 
@@ -5057,12 +5129,14 @@ def _build_missing_checkin_reminder_flex(cutoff_dt):
 
 
 def _get_holiday_for_date(target_date):
-    return Holidays.query.filter(cast(Holidays.holiday_date, Date) == target_date).first()
+    local_holiday = func.timezone('Asia/Bangkok', Holidays.holiday_date)
+    return Holidays.query.filter(cast(local_holiday, Date) == target_date).first()
 
 
 def refresh_daily_attendance(target_date, staff_ids=None):
     """Rebuild the derived attendance status for one local calendar date."""
-    target_date = target_date if isinstance(target_date, date) else target_date.date()
+    if isinstance(target_date, datetime):
+        target_date = _to_bangkok(target_date).date()
     active_accounts = StaffAccount.get_active_accounts()
     if staff_ids is not None:
         staff_ids = set(staff_ids)
@@ -5072,14 +5146,18 @@ def refresh_daily_attendance(target_date, staff_ids=None):
         return {'date': target_date.isoformat(), 'processed_count': 0, 'absent_count': 0}
 
     account_ids = {account.id for account in active_accounts}
+    day_start = tz.localize(datetime.combine(target_date, datetime.min.time()))
+    day_end = day_start + timedelta(days=1)
+    # A paired checkout belongs to the day its check-in started.
+    record_time = func.coalesce(StaffWorkLogin.start_datetime, StaffWorkLogin.end_datetime)
     records = StaffWorkLogin.query.filter(
-        StaffWorkLogin.date_id == target_date.strftime('%Y%m%d'),
+        record_time >= day_start,
+        record_time < day_end,
         StaffWorkLogin.staff_id.in_(account_ids),
     ).all()
     records_by_staff = defaultdict(list)
     for record in records:
-        if record.start_datetime is not None or record.end_datetime is not None:
-            records_by_staff[record.staff_id].append(record)
+        records_by_staff[record.staff_id].append(record)
 
     # Compare local calendar dates after converting timestamps to Bangkok.
     # This avoids relying on the production PostgreSQL/session timezone when
@@ -5143,7 +5221,7 @@ def refresh_daily_attendance(target_date, staff_ids=None):
             default=None,
         )
         worked_hours = (
-            _calculate_work_hours(first_record.start_datetime, last_checkout)
+            _calculate_work_hours(_to_bangkok(first_record.start_datetime), _to_bangkok(last_checkout))
             if first_record and last_checkout else None
         )
         worked_minutes = round(worked_hours * 60) if worked_hours is not None else None
@@ -5228,11 +5306,9 @@ def refresh_daily_attendance(target_date, staff_ids=None):
 
 
 def _refresh_daily_attendance_after_record(record):
-    attendance_datetime = record.start_datetime
+    attendance_datetime = _to_bangkok(record.start_datetime or record.end_datetime)
     if attendance_datetime is None:
         return
-    if attendance_datetime.tzinfo is not None:
-        attendance_datetime = attendance_datetime.astimezone(tz)
     refresh_daily_attendance(attendance_datetime.date(), staff_ids=[record.staff_id])
     db.session.commit()
 

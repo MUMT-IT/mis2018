@@ -116,18 +116,28 @@
         margin-top: 0.85rem;
     }
 
+    .daily-attendance-report-dashboard {
+        margin-top: 1.5rem;
+    }
+
+    .daily-attendance-report-dashboard-title {
+        color: var(--theme-navy-deep);
+        font-size: 1rem;
+        font-weight: 800;
+        margin: 0 0 0.75rem;
+    }
+
     .daily-attendance-report-summary {
         display: grid;
         gap: 0.75rem;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        margin-top: 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
     }
 
     .daily-attendance-report-stat {
         background: rgba(255, 255, 255, 0.8);
         border: 1px solid rgba(18, 39, 84, 0.08);
         border-radius: 16px;
-        padding: 1rem;
+        padding: 0.75rem 1rem;
     }
 
     .daily-attendance-report-stat-label {
@@ -145,6 +155,42 @@
         margin-top: 0.25rem;
     }
 
+    .daily-attendance-location-chart {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid var(--theme-border);
+        border-radius: 16px;
+        margin-top: 0.75rem;
+        padding: 1rem;
+    }
+
+    .daily-attendance-location-chart ul {
+        display: grid;
+        gap: 0.65rem;
+        margin: 0.75rem 0 0;
+    }
+
+    .daily-attendance-location-label {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+    }
+
+    .daily-attendance-location-track {
+        background: var(--theme-navy-soft);
+        border-radius: 999px;
+        display: block;
+        height: 0.55rem;
+        margin-top: 0.25rem;
+        overflow: hidden;
+    }
+
+    .daily-attendance-location-bar {
+        background: var(--theme-navy);
+        border-radius: inherit;
+        display: block;
+        height: 100%;
+    }
+
     .daily-attendance-report-table-wrap {
         margin-top: 1.5rem;
         overflow-x: auto;
@@ -156,7 +202,7 @@
         border-collapse: separate;
         border-radius: 14px;
         border-spacing: 0;
-        min-width: 54rem;
+        min-width: 64rem;
         overflow: hidden;
         width: 100%;
     }
@@ -185,13 +231,26 @@
         font-size: 0.82rem;
     }
 
+    .daily-attendance-report-table .has-attendance-alert {
+        background: color-mix(in srgb, #fff8e8, #ffd8d8 var(--attendance-alert-intensity));
+    }
+
+    .daily-attendance-report-table .attendance-alert-count {
+        background: color-mix(in srgb, #fce8ca, #f8b4b4 var(--attendance-alert-intensity));
+        border-radius: 999px;
+        color: #783b13;
+        display: inline-block;
+        font-weight: 800;
+        padding: 0.15rem 0.55rem;
+    }
+
     .daily-attendance-report-table tr:last-child td {
         border-bottom: 0;
     }
 
-    @media (max-width: 700px) {
+    @media (max-width: 480px) {
         .daily-attendance-report-summary {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 </style>
@@ -247,16 +306,51 @@
             <i class="fas fa-arrow-left" aria-hidden="true"></i> กลับหน้าสรุปการเข้าออกงาน
         </a>
 
-        <div class="daily-attendance-report-summary">
-            <div class="daily-attendance-report-stat">
-                <span class="daily-attendance-report-stat-label">จำนวนวัน</span>
-                <strong class="daily-attendance-report-stat-value">{{ daily_rows|length }}</strong>
+        {% set selected_org = organizations|selectattr('id', 'equalto', selected_org_id)|first|default(none) %}
+        {% set summary_stats = [
+            ('ช่วงวันที่เลือก (วัน)', daily_rows|length),
+            ('บุคลากรที่พบใน snapshot (คน)', staff_count),
+            ('ลงเวลาเข้างาน (คน-วัน)', totals.get('present', 0)),
+            ('เข้างานสาย (คน-วัน)', staff_rows|sum(attribute='late_checkins')),
+            ('ทำงานไม่ครบเวลา (คน-วัน)', staff_rows|sum(attribute='short_hours_days')),
+            ('ไม่พบการลงเวลา (คน-วัน)', totals.get('absent', 0)),
+        ] %}
+        <section class="daily-attendance-report-dashboard" aria-labelledby="dailyAttendanceDashboardTitle">
+            <h2 class="daily-attendance-report-dashboard-title" id="dailyAttendanceDashboardTitle">
+                ภาพรวม · {{ selected_org.display_name if selected_org else ('หน่วยงานที่เลือก' if selected_org_id else 'ทุกหน่วยงาน') }}
+            </h2>
+            <div class="daily-attendance-report-summary">
+                {% for label, value in summary_stats %}
+                    <div class="daily-attendance-report-stat">
+                        <span class="daily-attendance-report-stat-label">{{ label }}</span>
+                        <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(value) }}</strong>
+                    </div>
+                {% endfor %}
             </div>
-            <div class="daily-attendance-report-stat">
-                <span class="daily-attendance-report-stat-label">บุคลากรที่พบใน snapshot</span>
-                <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(staff_count) }}</strong>
-            </div>
-        </div>
+            <section class="daily-attendance-location-chart" aria-labelledby="dailyAttendanceLocationTitle">
+                <h3 class="daily-attendance-report-dashboard-title" id="dailyAttendanceLocationTitle">
+                    จำนวนการสแกนเข้างานแยกตามสถานที่
+                </h3>
+                {% if location_checkins %}
+                    <ul>
+                        {% for location in location_checkins %}
+                            <li>
+                                <div class="daily-attendance-location-label">
+                                    <span>{{ location.name }}</span>
+                                    <strong>{{ '{:,}'.format(location.checkins) }} ครั้ง</strong>
+                                </div>
+                                <span class="daily-attendance-location-track" aria-hidden="true">
+                                    <span class="daily-attendance-location-bar"
+                                          style="width: {{ 100 * location.checkins / location_checkins[0].checkins }}%"></span>
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="daily-attendance-report-subtitle">ไม่พบการสแกนเข้างานตามเงื่อนไขที่เลือก</p>
+                {% endif %}
+            </section>
+        </section>
 
         <div class="daily-attendance-report-table-wrap">
             <table class="daily-attendance-report-table">
@@ -267,16 +361,19 @@
                         <th>อนุมัติคำขอ</th>
                         <th>บันทึกโดย HR</th>
                         <th>อื่น ๆ</th>
+                        <th>เข้างานสาย (วัน)</th>
+                        <th>ทำงานไม่ครบเวลา (วัน)</th>
                         <th>ไม่พบการลงเวลา</th>
                         <th>ลา (วัน)</th>
                         <th>ทำงานที่บ้าน</th>
                         <th>วันหยุด</th>
-                        <th>รวม</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in staff_rows %}
-                        <tr>
+                        {% set highest_alert_count = [row.late_checkins, row.short_hours_days]|max %}
+                        <tr{% if highest_alert_count %} class="has-attendance-alert"
+                            style="--attendance-alert-intensity: {{ [100, 100 * highest_alert_count / row.quota_limit]|min }}%"{% endif %}>
                             <td>
                                 <a href="{{ url_for('staff.hr_daily_attendance_staff_detail', staff_id=row.staff_id, start=start_date.isoformat(), end=end_date.isoformat()) }}">
                                     {{ row.name }}
@@ -286,21 +383,34 @@
                             <td>{{ '{:,}'.format(row.approved_request) }}</td>
                             <td>{{ '{:,}'.format(row.hr_manual) }}</td>
                             <td>{{ '{:,}'.format(row.other_present) }}</td>
+                            {% for count in [row.late_checkins, row.short_hours_days] %}
+                                <td>
+                                    <span{% if count %} class="attendance-alert-count"
+                                          style="--attendance-alert-intensity: {{ [100, 100 * count / row.quota_limit]|min }}%"
+                                          title="โควตาต่อรอบ {{ row.quota_limit }} วัน"{% endif %}>{{ '{:,}'.format(count) }}</span>
+                                </td>
+                            {% endfor %}
                             <td>{{ '{:,}'.format(row.absent) }}</td>
                             <td>{{ '{:g}'.format(row.leave) }}</td>
                             <td>{{ '{:,}'.format(row.work_from_home) }}</td>
                             <td>{{ '{:,}'.format(row.holiday) }}</td>
-                            <td>{{ '{:,}'.format(row.total) }}</td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="10">ไม่พบข้อมูล snapshot ตามเงื่อนไขที่เลือก</td></tr>
+                        <tr><td colspan="11">ไม่พบข้อมูล snapshot ตามเงื่อนไขที่เลือก</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         <p class="daily-attendance-report-subtitle">
             การลาครึ่งวันนับเป็น 0.5 วัน และอาจมีการลงเวลาในวันเดียวกัน
-            ยอดรวมคือจำนวนวันที่มีข้อมูล snapshot ไม่ใช่ผลรวมของทุกคอลัมน์
+        </p>
+        <p class="daily-attendance-report-subtitle">
+            เข้างานสายคือการลงเวลาเข้าหลัง 09:00 น. ยกเว้นวันที่ได้รับอนุมัติลาครึ่งวันช่วงเช้า
+            ทำงานไม่ครบเวลานับเฉพาะวันที่มีเวลาเข้าและออก และทำงานน้อยกว่า 8 ชั่วโมง
+            หรือ 3 ชั่วโมง 30 นาทีในวันที่ได้รับอนุมัติลาครึ่งวัน
+        </p>
+        <p class="daily-attendance-report-subtitle">
+            สีจะเข้มขึ้นตามสัดส่วนจำนวนวันในช่วงที่เลือกเทียบกับโควตาต่อรอบของบุคลากรแต่ละคน
         </p>
     </div>
 </section>
