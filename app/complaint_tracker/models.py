@@ -196,6 +196,8 @@ class ComplaintRecord(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     tags = db.relationship(ComplaintTag, secondary=complaint_record_tag_assoc, backref=db.backref('records'))
+    issue_id = db.Column('issue_id', db.ForeignKey('complaint_issues.id'))
+    issue = db.relationship(ComplaintIssue, backref=db.backref('complaints'))
     cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
     cost_center = db.relationship(CostCenter, backref=db.backref('complaints'))
     io_code_id = db.Column('io_code_id', db.ForeignKey('iocodes.id'))
