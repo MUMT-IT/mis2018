@@ -6282,6 +6282,8 @@ def seminar_add_approval(attend_id):
         attends.transaction_fee = form.get('transaction_fee') or None
         db.session.add(attends)
         db.session.commit()
+        if attends.start_datetime:
+            get_seminar_yearly_budget(attends.staff_account_id, attends.start_datetime)
 
         if form.get('approval') == 'True':
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติเรียบร้อยแล้ว' \
