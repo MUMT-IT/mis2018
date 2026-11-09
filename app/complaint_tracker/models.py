@@ -141,6 +141,16 @@ class ComplaintType(db.Model):
         return self.type
 
 
+class ComplaintIssue(db.Model):
+    __tablename__ = 'complaint_issues'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    issue = db.Column('issue', db.String())
+    icon = db.Column('icon', db.String())
+
+    def __str__(self):
+        return self.issue
+
+
 class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
