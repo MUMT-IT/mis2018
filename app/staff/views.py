@@ -362,6 +362,39 @@ def _approved_half_day_leave_period(staff_account, target_date):
     return None
 
 
+def get_home_attendance_badges(staff_account, today):
+    snapshots = staff_account.daily_attendance.filter(
+        StaffDailyAttendance.attendance_date < today,
+        StaffDailyAttendance.status.in_(('present', 'absent')),
+    ).order_by(StaffDailyAttendance.attendance_date.desc()).limit(20).all()
+    if len(snapshots) < 20:
+        return []
+
+    complete_days = 0
+    punctual_days = 0
+    for snapshot in snapshots:
+        checkin = _to_bangkok(snapshot.first_checkin_at)
+        checkout = _to_bangkok(snapshot.last_checkout_at)
+        if snapshot.status != 'present' or not checkin or not checkout or checkout <= checkin:
+            continue
+        if checkin.date() != snapshot.attendance_date:
+            continue
+        complete_days += 1
+        half_day = _approved_half_day_leave_period(staff_account, snapshot.attendance_date)
+        latest_arrival = datetime.strptime('13:00' if half_day == 'morning' else '09:00', '%H:%M').time()
+        earliest_departure = datetime.strptime('12:00' if half_day == 'afternoon' else '16:30', '%H:%M').time()
+        departure_cutoff = tz.localize(datetime.combine(snapshot.attendance_date, earliest_departure))
+        if checkin.time() <= latest_arrival and checkout >= departure_cutoff:
+            punctual_days += 1
+
+    badges = []
+    if complete_days >= 19:
+        badges.append('double-tap')
+    if punctual_days == 20:
+        badges.append('clockwork')
+    return badges
+
+
 def _build_login_quota_summary(staff_personal_info):
     quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
         staff_personal_info=staff_personal_info

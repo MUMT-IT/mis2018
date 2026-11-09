@@ -970,6 +970,7 @@ def index():
     central_admin, assistant = get_homepage_role_flags(current_user)
     today_calendar = None
     today_checkin_status = None
+    attendance_badges = None
     if current_user.is_authenticated:
         dashboard_context = get_homepage_dashboard_context(current_user, now)
         today_calendar = build_home_today_calendar(
@@ -979,6 +980,8 @@ def index():
             tz=timezone('Asia/Bangkok'),
         )
         today_checkin_status = get_home_checkin_status(current_user, now)
+        if today_checkin_status and isinstance(current_user, StaffAccount):
+            attendance_badges = get_home_attendance_badges(current_user, now.date())
     return render_template(
         'index.html',
         assistant=assistant,
@@ -987,6 +990,7 @@ def index():
         recent_docs_query_documents=recent_docs_query_documents,
         today_calendar=today_calendar,
         today_checkin_status=today_checkin_status,
+        attendance_badges=attendance_badges,
     )
 
 
@@ -1596,7 +1600,7 @@ admin.add_views(StaffLeaveRequestModelView(StaffLeaveRequest,
                                            db.session,
                                            category='Staff'))
 
-from app.staff.views import LoginDataUploadView
+from app.staff.views import LoginDataUploadView, get_home_attendance_badges
 
 admin.add_view(LoginDataUploadView(
     name='Upload login data',

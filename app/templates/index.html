@@ -538,6 +538,24 @@
             width: 100%;
         }
 
+        .home-checkin-profile {
+            align-items: center;
+            display: flex;
+            flex-shrink: 0;
+            gap: 0.2rem;
+        }
+
+        .home-attendance-badge {
+            display: block;
+            height: 2rem;
+            width: 2rem;
+        }
+
+        .home-attendance-badge.is-unearned {
+            filter: grayscale(1);
+            opacity: 0.5;
+        }
+
         .home-checkin-panel.is-missing .home-checkin-icon {
             color: #9a7610;
         }
@@ -1440,13 +1458,28 @@
                         {% if today_checkin_status %}
                             <div class="home-checkin-panel{% if not today_checkin_status.checked_in %} is-missing{% endif %}">
                                 <div class="home-checkin-content">
-                                    <span class="home-checkin-avatar">
-                                        {% if today_checkin_status.avatar_url %}
-                                            <img src="{{ today_checkin_status.avatar_url }}" alt="Employee avatar">
-                                        {% else %}
-                                            {{ today_checkin_status.avatar_initials }}
+                                    <div class="home-checkin-profile">
+                                        <span class="home-checkin-avatar">
+                                            {% if today_checkin_status.avatar_url %}
+                                                <img src="{{ today_checkin_status.avatar_url }}" alt="Employee avatar">
+                                            {% else %}
+                                                {{ today_checkin_status.avatar_initials }}
+                                            {% endif %}
+                                        </span>
+                                        {% if attendance_badges is not none %}
+                                            {% for badge, name in [
+                                                ('double-tap', 'Double Tap · ลงเวลาเข้า–ออกครบถ้วน'),
+                                                ('clockwork', 'Clockwork · เข้างานและออกงานตรงเวลา'),
+                                            ] %}
+                                                {% set earned = badge in attendance_badges %}
+                                                {% set label = name if earned else name ~ ' (ยังไม่ได้รับ)' %}
+                                                <img class="home-attendance-badge{% if not earned %} is-unearned{% endif %}"
+                                                     width="32" height="32"
+                                                     src="{{ url_for('static', filename='img/attendance/' ~ badge ~ '.svg') }}"
+                                                     alt="{{ label }}" title="{{ label }}">
+                                            {% endfor %}
                                         {% endif %}
-                                    </span>
+                                    </div>
                                     <div>
                                         <p class="home-checkin-label">Today's check-in</p>
                                         {% if today_checkin_status.checked_in %}
