@@ -7583,7 +7583,7 @@ def show_seminar_info_each_person(record_id):
         )
     else:
         pdf_budget_text = 'รวมทั้งสิ้น {} บาท '.format(budget)
-    approver = seminar_attend.lower_level_approver.personal_info if seminar_attend.lower_level_approver else ''
+    approver = seminar_attend.lower_level_approver.fullname_with_full_position if seminar_attend.lower_level_approver else ''
     document_approver = StaffSeminarDocumentApprover.query.filter_by(seminar_attend=seminar_attend).first()
     approver_position = document_approver.position.position if document_approver else ''
     idp_value = ''
@@ -7720,8 +7720,8 @@ def download_seminar_request_docx(record_id):
     end_time = time_text(end_date)
     signature_names = ' '.join(f'{idx}) {name}' for idx, name in enumerate(attendee_names, 1)) \
         if len(attendee_names) > 1 else (attendee_names[0] if attendee_names else '-')
-    signer = attend.lower_level_approver.personal_info if attend.lower_level_approver else None
-    signer_name = signer.fullname if signer else ''
+    signer = attend.lower_level_approver if attend.lower_level_approver else None
+    signer_name = signer.fullname_with_full_position if signer else ''
     doc_approver = StaffSeminarDocumentApprover.query.filter_by(seminar_attend=attend).first()
     signer_position = doc_approver.position.position if doc_approver and doc_approver.position else ''
     _, END_FISCAL_DATE = get_fiscal_date(attend.start_datetime)
