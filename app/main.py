@@ -151,6 +151,7 @@ def create_app():
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['TEST_SERVER'] = _env_flag('TEST_SERVER', False)
+    app.config['HOLIDAY_THEME'] = _env_flag('HOLIDAY_THEME')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['LINE_CLIENT_ID'] = os.environ.get('LINE_CLIENT_ID')
     app.config['LINE_CLIENT_SECRET'] = os.environ.get('LINE_CLIENT_SECRET')
