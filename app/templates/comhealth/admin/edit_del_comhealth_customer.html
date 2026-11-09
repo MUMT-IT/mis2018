@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+{% from "comhealth/admin/_page_header.html" import admin_page_header %}
+<style>
+    .customer-admin { background: #f4f7fb; min-height: 80vh; }
+    .customer-admin .admin-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 28px; }
+    .customer-admin .admin-heading .title { color: #19365d; margin-bottom: 10px; }
+    .customer-admin .admin-muted { color: #64748b; }
+    .customer-admin .admin-panel { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 5px 20px rgba(25,54,93,.04); }
+    .customer-admin .panel-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    .customer-admin .panel-heading-row h2 { margin: 0; color: #19365d; }
+    .customer-admin .location-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 12px; margin-top: 16px; }
+    .customer-admin .location-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 18px; border: 1px solid #dce4ef; border-radius: 12px; background: #fff; color: #19365d; text-align: left; font: inherit; cursor: pointer; }
+    .customer-admin .location-card:hover { background: #f4f8ff; border-color: #93b4df; }
+    .customer-admin .location-card.is-selected { background: #edf4ff; border-color: #3273dc; box-shadow: inset 3px 0 #3273dc; }
+    .customer-admin .location-card:focus-visible { outline: 3px solid #93b4df; outline-offset: 2px; }
+    .customer-admin .location-card:disabled { cursor: wait; opacity: .6; }
+    .customer-admin .location-name { flex: 1; overflow-wrap: anywhere; }
+    .customer-admin .empty-state { text-align: center; padding: 32px 16px; color: #64748b; background: #f8fafc; border-radius: 12px; margin-top: 16px; }
+    .customer-admin .customer-toolbar { display: flex; gap: 24px; justify-content: space-between; align-items: flex-start; margin: 24px 0; }
+    .customer-admin .customer-toolbar > .field { flex: 1; max-width: 520px; }
+    .customer-admin .delete-group { max-width: 360px; }
+    .customer-admin .table th { color: #52647d; background: #f8fafc; }
+    .customer-admin .table td { vertical-align: middle; }
+    @media (max-width: 768px) {
+        .customer-admin .admin-heading, .customer-admin .panel-heading-row, .customer-admin .customer-toolbar { flex-direction: column; align-items: stretch; }
+        .customer-admin .admin-panel { padding: 18px; }
+        .customer-admin .location-grid { grid-template-columns: 1fr; }
+    }
+</style>
+<section class="section customer-admin" id="app">
+    <div class="container">
+        {{ admin_page_header('จัดการผู้รับบริการ', 'ค้นหาหน่วยงานเพื่อจัดการข้อมูลผู้รับบริการที่ไม่มีประวัติ Checked In') }}
+        <p v-if="message" class="notification" :class="error ? 'is-danger' : 'is-success'" role="status"><% message %></p>
+        <div class="admin-panel">
+        <div class="panel-heading-row"><h2 class="title is-5">1. ค้นหาและเลือกหน่วยงาน</h2><span class="tag is-info is-light">Location</span></div>
+        <form @submit.prevent="searchLocations">
+        <label class="label" for="location-search">ค้นหา Location / หน่วยงาน</label>
+        <div class="field has-addons">
+            <div class="control is-expanded">
+            <input id="location-search" class="input" v-model="locationQuery" :disabled="busy" placeholder="ชื่อหน่วยงานของผู้รับบริการ">
+            </div>
+            <div class="control"><button type="submit" class="button is-link" :disabled="busy"><span class="icon"><i class="fas fa-search" aria-hidden="true"></i></span><span>ค้นหา</span></button></div>
+        </div>
+        <p class="help admin-muted">เว้นว่างแล้วกดค้นหาเพื่อแสดงหน่วยงานทั้งหมด</p>
+        </form>
+        <template v-if="hasSearched">
+            <p class="mt-4 admin-muted" role="status">พบ <% filteredLocations.length %> หน่วยงาน<template v-if="searchedQuery"> สำหรับ “<% searchedQuery %>”</template></p>
+            <div class="location-grid">
+                <button v-for="location in filteredLocations" :key="location.id" type="button" class="location-card" :class="{'is-selected': selectedId === location.id}" :aria-pressed="selectedId === location.id" :disabled="busy" @click="selectLocation(location)">
+                    <span class="icon"><i class="fas fa-building" aria-hidden="true"></i></span><span class="location-name"><% location.location || 'ไม่ระบุชื่อหน่วยงาน' %></span><span class="icon"><i :class="selectedId === location.id ? 'fas fa-check-circle' : 'fas fa-chevron-right'" aria-hidden="true"></i></span>
+                </button>
+            </div>
+            <p v-if="!filteredLocations.length" class="empty-state">ไม่พบหน่วยงานที่ตรงกับคำค้นหา กรุณาลองใช้คำค้นหาอื่น</p>
+        </template>
+        <p v-else class="empty-state">พิมพ์ชื่อหน่วยงาน แล้วกด “ค้นหา” เพื่อเริ่มต้น</p>
+        </div>
+        <div v-if="selectedId" class="admin-panel">
+            <div class="panel-heading-row"><div><h2 class="title is-5">2. ผู้รับบริการ · <% selectedLocation.location %></h2><p class="admin-muted mt-2">ไม่มีประวัติ Checked In ในการตรวจครั้งใด รวมผู้ที่ยังไม่เคยลงทะเบียนตรวจ</p></div><span class="tag is-info is-light is-medium"><% customers.length %> คน</span></div>
+            <div class="customer-toolbar">
+            <div class="field">
+                <label class="label" for="customer-search">ค้นหาชื่อ นามสกุล</label>
+                <input id="customer-search" class="input" v-model="query" :disabled="busy" placeholder="ชื่อหรือนามสกุล">
+            </div>
+            <div class="delete-group"><button type="button" class="button is-danger is-light" :disabled="busy || needsReload || !customers.length" @click="deleteCustomers(customers)"><span class="icon"><i class="fas fa-trash-alt" aria-hidden="true"></i></span><span>ลบรอบนี้ <% Math.min(customers.length, 500) %> คน</span></button>
+            <p class="help admin-muted">สูงสุด 500 คนต่อรอบ แบ่งส่งครั้งละ 20 คน ครอบคลุมทุกหน้า รวมคนที่ไม่ตรงคำค้นหา เหลือสำหรับรอบถัดไป <% Math.max(0, customers.length - 500) %> คน</p></div>
+            </div>
+            <div v-if="deleteTotal" class="notification is-info is-light" role="status" aria-live="polite">
+                <p><strong><% deleting ? 'กำลังดำเนินการลบ' : 'ผลการลบรอบล่าสุด' %></strong> — ยืนยันลบสำเร็จ <% deleteDone %> / <% deleteTotal %> คน</p>
+                <progress class="progress is-info mt-3" :value="deleteDone" :max="deleteTotal"><% deleteDone %> / <% deleteTotal %></progress>
+                <p v-if="deleting">กำลังประมวลผลชุดถัดไป กรุณาเปิดหน้านี้ไว้จนเสร็จ</p>
+                <p v-else-if="!needsReload">คงเหลือในรายการ <% customers.length %> คน สามารถกดลบรอบถัดไปได้สูงสุด <% Math.min(customers.length, 500) %> คน</p>
+            </div>
+            <p v-if="needsReload" class="notification is-warning">ยังยืนยันผลชุดล่าสุดไม่ได้ กรุณาเลือกหน่วยงานอีกครั้งเพื่อโหลดข้อมูลล่าสุดก่อนลบต่อ</p>
+            <b-table :data="filteredCustomers" paginated :per-page="20" :current-page.sync="page" :loading="busy">
+                <template slot-scope="props">
+                    <b-table-column field="hn" label="HN"><% props.row.hn %></b-table-column>
+                    <b-table-column field="title" label="คำนำหน้า">
+                        <input v-if="editing && editing.id === props.row.id" class="input" v-model="editing.title" :form="'edit-customer-' + props.row.id" aria-label="คำนำหน้า" maxlength="32" :disabled="busy">
+                        <span v-else><% props.row.title %></span>
+                    </b-table-column>
+                    <b-table-column field="firstname" label="ชื่อ">
+                        <input v-if="editing && editing.id === props.row.id" class="input" v-model="editing.firstname" :form="'edit-customer-' + props.row.id" aria-label="ชื่อ" maxlength="255" required :disabled="busy">
+                        <span v-else><% props.row.firstname %></span>
+                    </b-table-column>
+                    <b-table-column field="lastname" label="นามสกุล">
+                        <input v-if="editing && editing.id === props.row.id" class="input" v-model="editing.lastname" :form="'edit-customer-' + props.row.id" aria-label="นามสกุล" maxlength="255" required :disabled="busy">
+                        <span v-else><% props.row.lastname %></span>
+                    </b-table-column>
+                    <b-table-column label="แก้ไข">
+                        <form v-if="editing && editing.id === props.row.id" :id="'edit-customer-' + props.row.id" @submit.prevent="saveCustomer">
+                            <div class="buttons">
+                                <button class="button is-success is-small" type="submit" :disabled="busy" :class="{'is-loading': busy}">บันทึก</button>
+                                <button class="button is-small" type="button" :disabled="busy" @click="editing = null">ยกเลิก</button>
+                            </div>
+                            <p v-if="error && message" class="help is-danger" role="alert"><% message %></p>
+                        </form>
+                        <button v-else type="button" class="button is-info is-light" :disabled="busy" @click="editing = Object.assign({}, props.row); message = ''; error = false">แก้ไข</button>
+                    </b-table-column>
+                    <b-table-column label="ลบ"><button type="button" class="button is-danger is-light" :disabled="busy || needsReload" @click="deleteCustomers([props.row])">ลบ</button></b-table-column>
+                </template>
+                <template slot="empty"><p class="has-text-centered">ไม่พบผู้รับบริการที่เข้าเงื่อนไข</p></template>
+            </b-table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+new Vue({
+    el: '#app', delimiters: ['<%', '%>'],
+    data() { return {locations: {{ locations|tojson }}, locationQuery: '', searchedQuery: '', hasSearched: false, selectedId: '', customers: [], query: '', page: 1, editing: null, busy: false, message: '', error: false, deleting: false, deleteTotal: 0, deleteDone: 0, needsReload: false}; },
+    computed: {
+        filteredLocations() { const q = this.searchedQuery.toLowerCase(); return this.locations.filter(l => l.location.toLowerCase().includes(q)); },
+        selectedLocation() { return this.locations.find(l => l.id === this.selectedId); },
+        filteredCustomers() { const terms = this.query.trim().toLowerCase().split(/\s+/); return this.customers.filter(c => terms.every(t => (c.firstname + ' ' + c.lastname).toLowerCase().includes(t))); }
+    },
+    watch: {query() { this.page = 1; }},
+    methods: {
+        searchLocations() {
+            if (this.busy) return;
+            this.searchedQuery = this.locationQuery.trim();
+            this.hasSearched = true;
+            this.selectedId = ''; this.customers = []; this.editing = null; this.message = ''; this.query = ''; this.page = 1;
+        },
+        selectLocation(location) {
+            if (this.busy) return;
+            this.selectedId = location.id;
+            this.loadCustomers();
+        },
+        async readResponse(response) {
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'ไม่สามารถดำเนินการได้');
+            return result;
+        },
+        showError(error) { this.error = true; this.message = error instanceof SyntaxError ? 'ไม่สามารถดำเนินการได้ กรุณาตรวจสอบการเข้าสู่ระบบแล้วลองใหม่' : error.message; },
+        async loadCustomers() {
+            this.deleteTotal = 0; this.deleteDone = 0; this.needsReload = true;
+            this.customers = []; this.editing = null; this.page = 1; this.query = ''; this.message = ''; this.error = false;
+            if (!this.selectedLocation) return;
+            this.busy = true;
+            try { this.customers = await this.readResponse(await fetch(this.selectedLocation.url, {headers: {'Accept': 'application/json'}})); this.needsReload = false; }
+            catch (error) { this.showError(error); }
+            finally { this.busy = false; }
+        },
+        async submit(data) {
+            return this.readResponse(await fetch(this.selectedLocation.url, {method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRFToken': {{ csrf_token()|tojson }}}, body: JSON.stringify(data)}));
+        },
+        async saveCustomer() {
+            if (this.busy) return;
+            this.busy = true; this.message = ''; this.error = false;
+            try {
+                const result = await this.submit(Object.assign({}, this.editing, {action: 'edit', ids: [this.editing.id]}));
+                Object.assign(this.customers.find(c => c.id === result.id), {title: result.title, firstname: result.firstname, lastname: result.lastname});
+                this.editing = null; this.message = result.message;
+            } catch (error) { this.showError(error); }
+            finally { this.busy = false; }
+        },
+        async deleteCustomers(customers) {
+            if (this.busy || this.needsReload || !customers.length) return;
+            const targets = customers.slice(0, 500).map(c => c.id);
+            const label = targets.length === 1 ? customers[0].firstname + ' ' + customers[0].lastname : targets.length + ' คนในรอบนี้ (จาก ' + customers.length + ' คน)';
+            if (!window.confirm('ยืนยันลบผู้รับบริการ ' + label + ' ถาวร รวมข้อมูลส่วนตัวและรายการตรวจที่ผูกกับบุคคลเหล่านี้ในทุก Location? ระบบจะห้ามลบหากพบประวัติ Checked In')) return;
+            this.busy = true; this.message = ''; this.error = false;
+            this.deleting = true; this.deleteTotal = targets.length; this.deleteDone = 0;
+            try {
+                for (let offset = 0; offset < targets.length; offset += 20) {
+                    const result = await this.submit({action: 'delete', ids: targets.slice(offset, offset + 20)});
+                    this.customers = this.customers.filter(c => !result.ids.includes(c.id));
+                    if (this.editing && result.ids.includes(this.editing.id)) this.editing = null;
+                    this.deleteDone += result.ids.length;
+                    this.page = Math.min(this.page, Math.max(1, Math.ceil(this.filteredCustomers.length / 20)));
+                }
+                this.message = 'ลบรอบนี้สำเร็จ ' + this.deleteDone + ' คน คงเหลือ ' + this.customers.length + ' คน';
+            } catch (error) {
+                this.showError(error);
+                this.message = 'หยุดการลบ ยืนยันสำเร็จแล้ว ' + this.deleteDone + ' คน — ' + this.message + ' กรุณาโหลดหน่วยงานใหม่เพื่อตรวจผลชุดล่าสุดก่อนลบต่อ';
+                this.needsReload = true;
+            }
+            finally { this.deleting = false; this.busy = false; }
+        }
+    }
+});
+</script>
+{% endblock %}

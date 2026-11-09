@@ -1850,6 +1850,7 @@ def documents_data():
             or_(
                 DocsQueryDocument.document_title.ilike(pattern, escape='\\'),
                 DocsQueryDocument.filename.ilike(pattern, escape='\\'),
+                DocsQueryDocument.drive_file_id.ilike(pattern, escape='\\'),
                 DocsQueryDocument.status.ilike(pattern, escape='\\'),
                 DocsQueryDocument.document_type.ilike(pattern, escape='\\'),
                 DocsQueryDocument.tags.any(DocsQueryTag.name.ilike(pattern, escape='\\')),
@@ -1894,9 +1895,10 @@ def documents_data():
         rows.append({
             'title': document.document_title or document.filename or 'ไม่ทราบชื่อเอกสาร',
             'summary': document.summary or '',
+            'drive_file_id': document.drive_file_id,
             'document_type': document.document_type or 'ไม่ระบุประเภท',
             'note': document.note or '',
-            'url': 'https://drive.google.com/file/d/{}/view'.format(document.drive_file_id),
+            'url': document.drive_view_url,
             'status': status_label,
             'status_class': status_class,
         })

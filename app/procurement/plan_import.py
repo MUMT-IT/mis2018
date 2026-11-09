@@ -60,8 +60,19 @@ def parse_procurement_plan_workbook(file_obj, fiscal_year):
 
     if DATA_SHEET not in excel_file.sheet_names:
         raise ProcurementPlanImportError(u'ไม่พบชีต "{}"'.format(DATA_SHEET))
-    frame = pd.read_excel(excel_file, sheet_name=DATA_SHEET, header=1, dtype=object)
-    columns = {_normalise_header(column): column for column in frame.columns}
+    frame = pd.read_excel(excel_file, sheet_name=DATA_SHEET, header=None, dtype=object)
+    required = {_normalise_header(label) for label in REQUIRED_COLUMNS.values()}
+    columns = {}
+    header_index = None
+    for index, record in frame.iterrows():
+        candidate = {_normalise_header(_clean_text(value)): column
+                     for column, value in record.items() if not pd.isna(value)}
+        if len(required.intersection(candidate)) > len(required.intersection(columns)):
+            columns = candidate
+        if required.issubset(candidate):
+            columns = candidate
+            header_index = index
+            break
 
     missing = [label for label in REQUIRED_COLUMNS.values() if _normalise_header(label) not in columns]
     if missing:
@@ -73,8 +84,8 @@ def parse_procurement_plan_workbook(file_obj, fiscal_year):
 
     rows = []
     errors = []
-    for index, record in frame.iterrows():
-        row_number = index + 3
+    for index, record in frame.loc[header_index + 1:].iterrows():
+        row_number = index + 1
         item = _clean_text(column_value(record, REQUIRED_COLUMNS['item']))
         if not item:
             continue

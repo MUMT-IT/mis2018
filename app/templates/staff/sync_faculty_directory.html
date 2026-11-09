@@ -1,6 +1,25 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 
+{% block title %}ซิงค์ข้อมูลกับเว็บคณะ{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<style>
+    .organization-select-wrapper.is-searchable::after { display: none; }
+    .organization-select-wrapper .select2-container { width: 100% !important; }
+    .organization-select-wrapper .select2-selection--single {
+        align-items: center;
+        border-color: #dbdbdb;
+        display: flex;
+        height: 2.5em;
+    }
+    .organization-select-wrapper .select2-selection__rendered { padding-left: 0.75em; }
+    .organization-select-wrapper .select2-selection__arrow { height: 2.5em; }
+</style>
+{% endblock %}
+
 {% block page_content %}
 <section class="section">
     {% include "messages.html" %}
@@ -13,13 +32,13 @@
         <form method="post" enctype="multipart/form-data" class="box">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="field">
-            <label class="label" for="org_id">หน่วยงาน</label>
+                <label class="label" for="org_id">หน่วยงาน</label>
                 <div class="control">
-                    <div class="select is-fullwidth">
+                    <div class="select is-fullwidth organization-select-wrapper is-searchable">
                         <select id="org_id" name="org_id" required>
                             <option value="">-- เลือกหน่วยงาน --</option>
-                            {% for org in organizations %}
-                            <option value="{{ org.id }}" {% if selected_org_id == org.id %}selected{% endif %}>{{ org.display_name }}</option>
+                            {% for org, depth in organization_options %}
+                            <option value="{{ org.id }}" data-depth="{{ depth }}" {% if selected_org_id == org.id %}selected{% endif %}>{{ '— ' * depth }}{{ org.display_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -38,4 +57,32 @@
         </form>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(function () {
+        function formatOrganization(organization) {
+            if (!organization.id) return organization.text;
+            var depth = Number($(organization.element).data('depth')) || 0;
+            return $('<span>').css('padding-left', (depth * 1.25) + 'rem').text(organization.text.replace(/^(— )+/, ''));
+        }
+
+        $('#org_id').select2({
+            width: '100%',
+            minimumResultsForSearch: 0,
+            placeholder: '-- เลือกหน่วยงาน --',
+            templateResult: formatOrganization,
+            templateSelection: function (organization) {
+                return organization.text.replace(/^(— )+/, '');
+            },
+            language: {
+                noResults: function () { return 'ไม่พบหน่วยงาน'; },
+                searching: function () { return 'กำลังค้นหา…'; }
+            }
+        });
+    });
+</script>
 {% endblock %}

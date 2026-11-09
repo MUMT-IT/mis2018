@@ -65,6 +65,36 @@ def test_jobs_registers_weekday_checkin_reminder(monkeypatch):
     assert scheduler.started is True
 
 
+def test_jobs_registers_two_weekday_checkout_reminder_rounds(monkeypatch):
+    jobs = _import_jobs(monkeypatch)
+    rounds = [kwargs for func, _, kwargs in jobs.scheduler.added_jobs
+              if func is jobs.send_checkout_reminder]
+
+    assert [(item['hour'], item['minute'], item['kwargs']['round_time'])
+            for item in rounds] == [('16', '30', '16:30'), ('17', '00', '17:00')]
+    assert all(item['day_of_week'] == 'mon-fri' for item in rounds)
+    assert all(item['timezone'] == 'Asia/Bangkok' for item in rounds)
+
+
+def test_send_checkout_reminder_posts_tokenized_round(monkeypatch):
+    monkeypatch.setenv('JOB_TOKEN', 'test-job-token')
+    monkeypatch.setenv('JOBS_BASE_URL', 'https://example.test')
+    captured = {}
+
+    def request(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(status_code=200, url=kwargs['url'], text='ok')
+
+    jobs = _import_jobs(monkeypatch, requests_module=_module(
+        'requests', request=request, HTTPError=RuntimeError,
+    ))
+    jobs.send_checkout_reminder('16:30')
+
+    assert captured['method'] == 'POST'
+    assert captured['url'] == 'https://example.test/staff/admin/line-remind-missing-checkout'
+    assert captured['params'] == {'round': '16:30', 'job_token': 'test-job-token'}
+
+
 def test_jobs_registers_daily_overdue_checkin_request_reminder(monkeypatch):
     jobs = _import_jobs(monkeypatch)
 

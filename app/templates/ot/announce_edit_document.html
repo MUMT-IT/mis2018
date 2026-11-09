@@ -166,6 +166,7 @@
 </section>
 {% endblock %}
 {% block scripts %}
+{% include "ot/partials/staff_options.html" %}
 {{ super() }}
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -209,6 +210,7 @@
     function initializeEmployeeSearch(scope) {
         $(scope).find('select.employee-search').each(function() {
             const select = $(this);
+            loadOtStaffOptions(select);
             if (select.hasClass('select2-hidden-accessible')) {
                 return;
             }

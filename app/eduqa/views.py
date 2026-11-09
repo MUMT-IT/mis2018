@@ -9,7 +9,7 @@ import json
 
 import arrow
 from psycopg2.extras import DateTimeRange
-from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response, send_file
+from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response, send_file, abort
 from flask_login import current_user, login_required
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
@@ -20,18 +20,20 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Image, TableStyle, Table, KeepTogether, Spacer
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy.orm import make_transient
+from sqlalchemy.orm import make_transient, selectinload, joinedload
 from sqlalchemy import extract, or_, func
 
 from . import eduqa_bp as edu
 from app.eduqa.forms import *
 from app.room_scheduler.models import EventCategory
-from app.staff.models import StaffPersonalInfo
+from app.staff.models import StaffAccount, StaffPersonalInfo
 from app.roles import education_permission
 from app.dynamic_forms.forms import create_assignment_form
 from app.dynamic_forms.models import (DynamicForm, DynamicFormAssignment,
                                       DynamicFormVersion, DynamicFormSubmission,
                                       DynamicFormAnswer)
+from app.dynamic_forms.scoring import score_is_in_range
+from app.eduqa.student_evidence import get_or_create_student_evidence
 
 from pytz import timezone
 
@@ -60,6 +62,11 @@ def criteria1_index():
     return render_template('eduqa/QA/mtc/criteria1.html')
 
 
+# TODO(student-outcome): Support multiple evaluation results for each student.
+# TODO(student-outcome): Record repeated evaluation results and provide browsable
+# attempt history for students who fail an evaluation.
+# TODO(student-outcome): Add a dashboard summarizing each student's performance
+# for each skill.
 @edu.route('/qa/student-outcome-monitoring')
 @login_required
 def student_outcome_monitoring():
@@ -157,6 +164,113 @@ def edit_student_outcome_yearly_outcome(revision_id, yearly_outcome_id):
                            form=form, revision=revision, yearly_outcome=yearly_outcome)
 
 
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/yearly-outcomes/<int:yearly_outcome_id>/dashboard')
+@login_required
+def student_outcome_yearly_outcome_dashboard(revision_id, yearly_outcome_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    yearly_outcome = EduQAYearLearningOutcome.query.filter_by(
+        id=yearly_outcome_id, revision_id=revision.id).first_or_404()
+    skills = sorted(
+        yearly_outcome.skills, key=lambda skill: (skill.code or '', skill.id))
+
+    academic_years = sorted({
+        clo.course.academic_year for skill in skills for clo in skill.clos
+        if clo.course.academic_year
+    }, reverse=True)
+    requested_academic_year = request.args.get('academic_year', '').strip()
+    if requested_academic_year and requested_academic_year not in academic_years:
+        abort(404)
+    academic_year = (requested_academic_year or
+                     (academic_years[0] if academic_years else None))
+
+    course_ids = {
+        clo.course_id for skill in skills for clo in skill.clos
+        if clo.course_id is not None
+        and clo.course.academic_year == academic_year
+    }
+    enrollments = []
+    if course_ids:
+        enrollments = EduQAEnrollment.query.filter(
+            EduQAEnrollment.course_id.in_(list(course_ids))
+        ).all()
+    student_ids_by_course = defaultdict(set)
+    course_ids_by_student = defaultdict(set)
+    for enrollment in enrollments:
+        student_ids_by_course[enrollment.course_id].add(enrollment.student_id)
+        course_ids_by_student[enrollment.student_id].add(enrollment.course_id)
+
+    evidence = [item for skill in skills for item in skill.evidence]
+    evidence_ids = [item.id for item in evidence]
+    student_evidence = []
+    if evidence_ids:
+        student_evidence = EduQAStudentSkillEvidence.query.filter(
+            EduQAStudentSkillEvidence.evidence_id.in_(evidence_ids)
+        ).all()
+    endorsed_by_evidence_and_student = defaultdict(bool)
+    for record in student_evidence:
+        if record.endorsed:
+            endorsed_by_evidence_and_student[
+                (record.evidence_id, record.student_id)] = True
+
+    skill_stats = []
+    for skill in skills:
+        skill_course_ids = {clo.course_id for clo in skill.clos
+                            if clo.course_id is not None
+                            and clo.course.academic_year == academic_year}
+        skill_student_ids = set().union(*(
+            student_ids_by_course[course_id]
+            for course_id in skill_course_ids
+        )) if skill_course_ids else set()
+        applicable_evidence = [
+            item for item in skill.evidence
+            if item.clo.course.academic_year == academic_year
+        ]
+        passing_count = 0
+        partial_count = 0
+        not_passing_count = 0
+        for student_id in skill_student_ids:
+            expected_evidence = [
+                item for item in applicable_evidence
+                if item.clo.course_id in course_ids_by_student[student_id]
+            ]
+            endorsed_count = sum(
+                1 for item in expected_evidence
+                if endorsed_by_evidence_and_student[(item.id, student_id)]
+            )
+            if expected_evidence and endorsed_count == len(expected_evidence):
+                passing_count += 1
+            elif endorsed_count:
+                partial_count += 1
+            else:
+                not_passing_count += 1
+        total_students = len(skill_student_ids)
+        skill_stats.append({
+            'skill': skill,
+            'course_count': len(skill_course_ids),
+            'evidence_count': len(applicable_evidence),
+            'total_students': total_students,
+            'passing_count': passing_count,
+            'partial_count': partial_count,
+            'not_passing_count': not_passing_count,
+            'passing_percent': (
+                passing_count / total_students * 100 if total_students else 0),
+            'partial_percent': (
+                partial_count / total_students * 100 if total_students else 0),
+        })
+
+    return render_template(
+        'eduqa/QA/staff/student_outcome_yearly_outcome_dashboard.html',
+        revision=revision, yearly_outcome=yearly_outcome,
+        skill_stats=skill_stats, academic_years=academic_years,
+        academic_year=academic_year,
+        total_student_skill_results=sum(
+            stat['total_students'] for stat in skill_stats),
+        total_passing=sum(stat['passing_count'] for stat in skill_stats),
+        total_partial=sum(stat['partial_count'] for stat in skill_stats),
+        total_not_passing=sum(
+            stat['not_passing_count'] for stat in skill_stats))
+
+
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills')
 @login_required
 def manage_student_outcome_skills(revision_id):
@@ -177,9 +291,313 @@ def view_student_outcome_skill(revision_id, skill_id):
         skill.clos,
         key=lambda clo: (clo.course.en_code or '', clo.number or 0, clo.id),
     )
+    academic_years = sorted({
+        clo.course.academic_year for clo in clos
+        if clo.course.academic_year
+    }, reverse=True)
     return render_template('eduqa/QA/staff/student_outcome_skill.html',
                            revision=revision, skill=skill,
-                           ylos=ylos, clos=clos)
+                           ylos=ylos, clos=clos,
+                           academic_years=academic_years)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/students')
+@login_required
+def student_outcome_skill_students(revision_id, skill_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(
+        id=skill_id, revision_id=revision.id).first_or_404()
+    academic_year = request.args.get('academic_year', '').strip()
+    related_courses = {
+        clo.course.id: clo.course for clo in skill.clos
+        if clo.course.academic_year == academic_year
+    }
+    if not academic_year or not related_courses:
+        abort(404)
+
+    enrollments = EduQAEnrollment.query.options(
+        joinedload(EduQAEnrollment.student),
+        joinedload(EduQAEnrollment.course),
+    ).filter(
+        EduQAEnrollment.course_id.in_(list(related_courses))
+    ).join(EduQAStudent).order_by(
+        EduQAStudent.student_id.asc(), EduQAEnrollment.course_id.asc()
+    ).all()
+    students_by_id = {}
+    student_ids_by_course = defaultdict(set)
+    for enrollment in enrollments:
+        student_ids_by_course[enrollment.course_id].add(enrollment.student_id)
+        entry = students_by_id.setdefault(enrollment.student_id, {
+            'student': enrollment.student,
+            'courses': [],
+        })
+        if enrollment.course not in entry['courses']:
+            entry['courses'].append(enrollment.course)
+    for entry in students_by_id.values():
+        entry['courses'].sort(key=lambda course: (
+            course.en_code or '', course.semester or '', course.id))
+
+    student_rows = list(students_by_id.values())
+    related_clo_ids = {
+        clo.id for clo in skill.clos
+        if clo.course.academic_year == academic_year
+    }
+    related_evidence = [
+        evidence for evidence in skill.evidence
+        if evidence.clo_id in related_clo_ids
+    ]
+    student_evidence_records = []
+    if related_evidence and students_by_id:
+        student_evidence_records = EduQAStudentSkillEvidence.query.options(
+            joinedload(EduQAStudentSkillEvidence.evidence)
+            .joinedload(EduQASkillEvidence.clo)
+            .joinedload(EduQACourseLearningOutcome.course)
+        ).filter(
+            EduQAStudentSkillEvidence.evidence_id.in_([
+                evidence.id for evidence in related_evidence
+            ]),
+            EduQAStudentSkillEvidence.student_id.in_(list(students_by_id)),
+        ).all()
+        student_evidence_records = [
+            record for record in student_evidence_records
+            if record.student_id in student_ids_by_course[
+                record.evidence.clo.course_id]
+        ]
+
+    student_evidence_by_id = {
+        record.id: record for record in student_evidence_records
+    }
+    latest_submission_by_student = {}
+    latest_by_evaluation_student = {}
+    submissions = []
+    if student_evidence_by_id:
+        submissions = DynamicFormSubmission.query.options(
+            selectinload(DynamicFormSubmission.answers)
+            .joinedload(DynamicFormAnswer.field),
+            joinedload(DynamicFormSubmission.version)
+            .joinedload(DynamicFormVersion.form),
+        ).filter(
+            DynamicFormSubmission.subject_type == 'eduqa_student_skill_evidence',
+            DynamicFormSubmission.subject_id.in_(list(student_evidence_by_id)),
+        ).order_by(
+            DynamicFormSubmission.submitted_at.desc(),
+            DynamicFormSubmission.id.desc(),
+        ).all()
+        for submission in submissions:
+            record = student_evidence_by_id[submission.subject_id]
+            latest_submission_by_student.setdefault(record.student_id, {
+                'submission': submission,
+                'student_evidence': record,
+            })
+            latest_by_evaluation_student.setdefault(
+                (record.evidence_id, submission.version_id, record.student_id),
+                submission)
+
+    for row in student_rows:
+        row['latest'] = latest_submission_by_student.get(row['student'].id)
+
+    evaluated_count = len(latest_submission_by_student)
+    evidence_by_id = {evidence.id: evidence for evidence in related_evidence}
+    assignments = []
+    if evidence_by_id:
+        assignments = DynamicFormAssignment.query.options(
+            joinedload(DynamicFormAssignment.version)
+            .joinedload(DynamicFormVersion.form)
+        ).filter(
+            DynamicFormAssignment.subject_type == 'eduqa_skill_evidence',
+            DynamicFormAssignment.subject_id.in_(list(evidence_by_id)),
+        ).all()
+
+    evaluation_stats_by_key = {}
+    for assignment in assignments:
+        evidence = evidence_by_id[assignment.subject_id]
+        key = (evidence.id, assignment.version_id)
+        evaluation_stats_by_key.setdefault(key, {
+            'evidence': evidence,
+            'version': assignment.version,
+            'submissions': [],
+            'total_students': len(student_ids_by_course[evidence.clo.course_id]),
+        })
+    for (evidence_id, version_id, _student_id), submission in \
+            latest_by_evaluation_student.items():
+        key = (evidence_id, version_id)
+        evidence = evidence_by_id[evidence_id]
+        stat = evaluation_stats_by_key.setdefault(key, {
+            'evidence': evidence,
+            'version': submission.version,
+            'submissions': [],
+            'total_students': len(student_ids_by_course[evidence.clo.course_id]),
+        })
+        stat['submissions'].append(submission)
+
+    evaluation_stats = []
+    for stat in evaluation_stats_by_key.values():
+        scored = [submission for submission in stat['submissions']
+                  if submission.maximum_score]
+        stat['evaluated_count'] = len(stat['submissions'])
+        stat['waiting_count'] = max(
+            stat['total_students'] - stat['evaluated_count'], 0)
+        stat['average_score'] = (
+            sum(submission.weighted_score for submission in scored) /
+            len(scored) if scored else None)
+        stat['average_maximum'] = (
+            sum(submission.maximum_score for submission in scored) /
+            len(scored) if scored else None)
+        classified = [submission for submission in stat['submissions']
+                      if submission.passed is not None]
+        stat['passing_percentage'] = stat['version'].passing_percentage
+        stat['passed_count'] = sum(
+            1 for submission in classified if submission.passed)
+        stat['failed_count'] = len(classified) - stat['passed_count']
+        stat['pass_rate'] = (
+            stat['passed_count'] / len(classified) * 100
+            if classified else None)
+        stat['completion_percent'] = (
+            min(stat['evaluated_count'] / stat['total_students'] * 100, 100)
+            if stat['total_students'] else 0)
+        evaluation_stats.append(stat)
+    evaluation_stats.sort(key=lambda stat: (
+        stat['evidence'].clo.course.en_code or '',
+        stat['evidence'].title or '', stat['version'].form.name or ''))
+
+    return render_template(
+        'eduqa/QA/staff/student_outcome_skill_students.html',
+        revision=revision, skill=skill, academic_year=academic_year,
+        student_rows=student_rows, evaluated_count=evaluated_count,
+        evaluation_stats=evaluation_stats)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/students/<int:student_id>')
+@login_required
+def student_outcome_skill_student_summary(revision_id, skill_id, student_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(
+        id=skill_id, revision_id=revision.id).first_or_404()
+    academic_year = request.args.get('academic_year', '').strip()
+    related_courses = {
+        clo.course.id: clo.course for clo in skill.clos
+        if clo.course.academic_year == academic_year
+    }
+    if not academic_year or not related_courses:
+        abort(404)
+
+    enrollments = EduQAEnrollment.query.options(
+        joinedload(EduQAEnrollment.course)
+    ).filter(
+        EduQAEnrollment.student_id == student_id,
+        EduQAEnrollment.course_id.in_(list(related_courses)),
+    ).all()
+    if not enrollments:
+        abort(404)
+    student = EduQAStudent.query.get_or_404(student_id)
+    enrolled_course_ids = {enrollment.course_id for enrollment in enrollments}
+    enrolled_courses = sorted(
+        {enrollment.course_id: enrollment.course
+         for enrollment in enrollments}.values(),
+        key=lambda course: (course.en_code or '', course.semester or '', course.id))
+
+    related_evidence = [
+        evidence for evidence in skill.evidence
+        if evidence.clo.course_id in enrolled_course_ids
+        and evidence.clo.course.academic_year == academic_year
+    ]
+    evidence_by_id = {evidence.id: evidence for evidence in related_evidence}
+    student_evidence_records = []
+    if evidence_by_id:
+        student_evidence_records = EduQAStudentSkillEvidence.query.options(
+            joinedload(EduQAStudentSkillEvidence.evidence)
+            .joinedload(EduQASkillEvidence.clo)
+            .joinedload(EduQACourseLearningOutcome.course),
+            joinedload(EduQAStudentSkillEvidence.endorsed_by)
+            .joinedload(StaffAccount.personal_info),
+        ).filter(
+            EduQAStudentSkillEvidence.student_id == student.id,
+            EduQAStudentSkillEvidence.evidence_id.in_(list(evidence_by_id)),
+        ).all()
+    student_evidence_by_id = {
+        record.id: record for record in student_evidence_records
+    }
+    student_evidence_by_evidence_id = {
+        record.evidence_id: record for record in student_evidence_records
+    }
+
+    submissions = []
+    if student_evidence_by_id:
+        submissions = DynamicFormSubmission.query.options(
+            selectinload(DynamicFormSubmission.answers)
+            .joinedload(DynamicFormAnswer.field),
+            joinedload(DynamicFormSubmission.version)
+            .joinedload(DynamicFormVersion.form),
+        ).filter(
+            DynamicFormSubmission.subject_type == 'eduqa_student_skill_evidence',
+            DynamicFormSubmission.subject_id.in_(list(student_evidence_by_id)),
+        ).order_by(
+            DynamicFormSubmission.submitted_at.desc(),
+            DynamicFormSubmission.id.desc(),
+        ).all()
+
+    assignments = []
+    if evidence_by_id:
+        assignments = DynamicFormAssignment.query.options(
+            joinedload(DynamicFormAssignment.version)
+            .joinedload(DynamicFormVersion.form)
+        ).filter(
+            DynamicFormAssignment.subject_type == 'eduqa_skill_evidence',
+            DynamicFormAssignment.subject_id.in_(list(evidence_by_id)),
+        ).all()
+
+    summaries_by_key = {}
+    for assignment in assignments:
+        evidence = evidence_by_id[assignment.subject_id]
+        summaries_by_key.setdefault((evidence.id, assignment.version_id), {
+            'evidence': evidence,
+            'version': assignment.version,
+            'latest_submission': None,
+            'result_count': 0,
+        })
+    for submission in submissions:
+        record = student_evidence_by_id[submission.subject_id]
+        key = (record.evidence_id, submission.version_id)
+        summary = summaries_by_key.setdefault(key, {
+            'evidence': record.evidence,
+            'version': submission.version,
+            'latest_submission': None,
+            'result_count': 0,
+        })
+        summary['result_count'] += 1
+        if summary['latest_submission'] is None:
+            summary['latest_submission'] = submission
+
+    evaluation_summaries = sorted(summaries_by_key.values(), key=lambda item: (
+        item['evidence'].clo.course.en_code or '',
+        item['evidence'].title or '', item['version'].form.name or ''))
+    evidence_groups_by_id = {}
+    for item in evaluation_summaries:
+        group = evidence_groups_by_id.setdefault(item['evidence'].id, {
+            'evidence': item['evidence'],
+            'student_evidence': student_evidence_by_evidence_id.get(
+                item['evidence'].id),
+            'evaluations': [],
+        })
+        group['evaluations'].append(item)
+    evidence_groups = list(evidence_groups_by_id.values())
+    evaluated_count = sum(
+        1 for item in evaluation_summaries if item['latest_submission'])
+    passed_count = sum(
+        1 for item in evaluation_summaries
+        if item['latest_submission'] and item['latest_submission'].passed is True)
+    failed_count = sum(
+        1 for item in evaluation_summaries
+        if item['latest_submission'] and item['latest_submission'].passed is False)
+
+    return render_template(
+        'eduqa/QA/staff/student_outcome_skill_student_summary.html',
+        revision=revision, skill=skill, student=student,
+        academic_year=academic_year, enrolled_courses=enrolled_courses,
+        evaluation_summaries=evaluation_summaries,
+        evidence_groups=evidence_groups,
+        evaluated_count=evaluated_count, passed_count=passed_count,
+        failed_count=failed_count)
 
 
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/add',
@@ -238,13 +656,9 @@ def add_student_skill_evidence(revision_id, skill_id, clo_id, evidence_id):
         if request.method == 'GET':
             form.student.data = selected_student
     if form.validate_on_submit():
-        student_evidence = EduQAStudentSkillEvidence(
-            evidence=evidence,
-            student=form.student.data,
-            url=form.url.data,
-            created_by=current_user,
-        )
-        db.session.add(student_evidence)
+        student_evidence = get_or_create_student_evidence(
+            evidence, form.student.data, current_user)
+        student_evidence.url = form.url.data
         db.session.commit()
         flash(u'บันทึกหลักฐานของนักศึกษาเรียบร้อย', 'success')
         return redirect(url_for('eduqa.manage_student_outcome_skill_evidence',
@@ -295,18 +709,29 @@ def student_skill_evidence_students(revision_id, skill_id, clo_id, evidence_id, 
     submissions = DynamicFormSubmission.query.filter_by(
         version_id=assignment.version_id,
         subject_type='eduqa_student_skill_evidence',
+    ).options(
+        selectinload(DynamicFormSubmission.answers)
+        .joinedload(DynamicFormAnswer.field)
     ).filter(DynamicFormSubmission.subject_id.in_([
         item.id for item in student_evidence.values()
-    ] or [-1])).all()
-    submissions_by_student = {
-        next((student_id for student_id, item in student_evidence.items()
-              if item.id == submission.subject_id), None): submission
-        for submission in submissions
+    ] or [-1])).order_by(
+        DynamicFormSubmission.submitted_at.desc(),
+        DynamicFormSubmission.id.desc()).all()
+    student_id_by_evidence_id = {
+        item.id: student_id for student_id, item in student_evidence.items()
     }
+    submissions_by_student = {}
+    submission_counts = defaultdict(int)
+    for submission in submissions:
+        student_id = student_id_by_evidence_id.get(submission.subject_id)
+        if student_id is not None:
+            submission_counts[student_id] += 1
+            submissions_by_student.setdefault(student_id, submission)
     return render_template('eduqa/QA/staff/student_outcome_skill_evidence_students.html',
                            revision=revision, skill=skill, clo=clo,
                            evidence=evidence, assignment=assignment,
                            students=students, submissions_by_student=submissions_by_student,
+                           submission_counts=submission_counts,
                            student_evidence=student_evidence)
 
 
@@ -330,37 +755,30 @@ def fill_student_skill_evidence_form(revision_id, skill_id, clo_id, evidence_id,
     student_evidence = EduQAStudentSkillEvidence.query.filter_by(
         evidence_id=evidence.id, student_id=student.id).first()
     if student_evidence is None and request.method == 'POST':
-        student_evidence = EduQAStudentSkillEvidence(
-            evidence=evidence, student=student, created_by=current_user,
-            created_at=db.func.now())
-        db.session.add(student_evidence)
-        db.session.flush()
+        student_evidence = get_or_create_student_evidence(
+            evidence, student, current_user)
 
-    submission = None
-    if student_evidence:
-        submission = DynamicFormSubmission.query.filter_by(
-            version_id=assignment.version_id,
-            subject_type='eduqa_student_skill_evidence', subject_id=student_evidence.id,
-        ).first()
     if request.method == 'POST':
         missing = [field.label for field in assignment.version.fields
                    if field.required and not request.form.getlist('field_{}'.format(field.id))]
+        invalid_scores = []
+        for field in assignment.version.fields:
+            values = request.form.getlist('field_{}'.format(field.id))
+            value = values[0] if values else None
+            if value not in (None, '') and not score_is_in_range(value, field.config):
+                invalid_scores.append(field.label)
         if missing:
             flash('กรุณากรอกข้อมูล: {}'.format(', '.join(missing)), 'warning')
+        elif invalid_scores:
+            flash('คะแนนต้องเป็นตัวเลขระหว่าง 0 และคะแนนดิบสูงสุด: {}'.format(
+                ', '.join(invalid_scores)), 'warning')
         else:
-            if submission is None:
-                submission = DynamicFormSubmission(
-                    version=assignment.version,
-                    respondent_type='staff_account', respondent_id=current_user.id,
-                    subject_type='eduqa_student_skill_evidence', subject_id=student_evidence.id,
-                    status='Submitted', submitted_at=db.func.now())
-                db.session.add(submission)
-            else:
-                submission.respondent_type = 'staff_account'
-                submission.respondent_id = current_user.id
-                submission.status = 'Submitted'
-                submission.submitted_at = db.func.now()
-                submission.answers.clear()
+            submission = DynamicFormSubmission(
+                version=assignment.version,
+                respondent_type='staff_account', respondent_id=current_user.id,
+                subject_type='eduqa_student_skill_evidence', subject_id=student_evidence.id,
+                status='Submitted', submitted_at=db.func.now())
+            db.session.add(submission)
             for field in assignment.version.fields:
                 values = request.form.getlist('field_{}'.format(field.id))
                 if field.field_type == 'multiselect':
@@ -377,11 +795,84 @@ def fill_student_skill_evidence_form(revision_id, skill_id, clo_id, evidence_id,
                                     clo_id=clo.id, evidence_id=evidence.id,
                                     assignment_id=assignment.id))
 
-    existing_answers = {answer.field_id: answer.value for answer in submission.answers} if submission else {}
     return render_template('eduqa/QA/staff/student_outcome_skill_evidence_form_fill.html',
                            revision=revision, skill=skill, clo=clo, evidence=evidence,
                            assignment=assignment, student=student,
-                           existing_answers=existing_answers)
+                           existing_answers={})
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/submissions/<int:submission_id>/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_student_skill_evidence_submission(revision_id, skill_id, clo_id,
+                                           evidence_id, student_id,
+                                           submission_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(
+        id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    student = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAStudent.id == student_id,
+        EduQAEnrollment.course_id == clo.course.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+
+    student_evidence = EduQAStudentSkillEvidence.query.filter_by(
+        evidence_id=evidence.id, student_id=student.id).first_or_404()
+    submission = DynamicFormSubmission.query.filter_by(
+        id=submission_id,
+        subject_type='eduqa_student_skill_evidence',
+        subject_id=student_evidence.id).first_or_404()
+    assignment = DynamicFormAssignment.query.filter_by(
+        version_id=submission.version_id,
+        subject_type='eduqa_skill_evidence',
+        subject_id=evidence.id).first_or_404()
+
+    if request.method == 'POST':
+        missing = [field.label for field in submission.version.fields
+                   if field.required and not request.form.getlist(
+                       'field_{}'.format(field.id))]
+        invalid_scores = []
+        for field in submission.version.fields:
+            values = request.form.getlist('field_{}'.format(field.id))
+            value = values[0] if values else None
+            if value not in (None, '') and not score_is_in_range(
+                    value, field.config):
+                invalid_scores.append(field.label)
+        if missing:
+            flash('กรุณากรอกข้อมูล: {}'.format(', '.join(missing)), 'warning')
+        elif invalid_scores:
+            flash('คะแนนต้องเป็นตัวเลขระหว่าง 0 และคะแนนดิบสูงสุด: {}'.format(
+                ', '.join(invalid_scores)), 'warning')
+        else:
+            submission.answers.clear()
+            for field in submission.version.fields:
+                values = request.form.getlist('field_{}'.format(field.id))
+                if field.field_type == 'multiselect':
+                    value = values
+                elif field.field_type == 'boolean':
+                    value = bool(values and values[0] == 'true')
+                else:
+                    value = values[0] if values else None
+                submission.answers.append(DynamicFormAnswer(
+                    field=field, value=value))
+            db.session.commit()
+            flash('แก้ไขผลการประเมินเรียบร้อย', 'success')
+            return redirect(url_for(
+                'eduqa.view_student_skill_evidence_results',
+                revision_id=revision.id, skill_id=skill.id, clo_id=clo.id,
+                evidence_id=evidence.id, student_id=student.id))
+
+    existing_answers = {
+        answer.field_id: answer.value for answer in submission.answers
+    }
+    return render_template(
+        'eduqa/QA/staff/student_outcome_skill_evidence_form_fill.html',
+        revision=revision, skill=skill, clo=clo, evidence=evidence,
+        assignment=assignment, student=student,
+        existing_answers=existing_answers, editing_submission=submission)
 
 
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/results')
@@ -400,15 +891,95 @@ def view_student_skill_evidence_results(revision_id, skill_id, clo_id, evidence_
     student_evidence = EduQAStudentSkillEvidence.query.filter_by(
         evidence_id=evidence.id, student_id=student.id).first()
     submissions = []
+    evaluator_names = {}
     if student_evidence:
         submissions = DynamicFormSubmission.query.filter_by(
             subject_type='eduqa_student_skill_evidence',
             subject_id=student_evidence.id,
         ).order_by(DynamicFormSubmission.submitted_at.desc()).all()
+        evaluator_ids = {
+            submission.respondent_id for submission in submissions
+            if submission.respondent_type == 'staff_account'
+        }
+        if evaluator_ids:
+            evaluators = StaffAccount.query.options(
+                joinedload(StaffAccount.personal_info)
+            ).filter(StaffAccount.id.in_(evaluator_ids)).all()
+            evaluator_names = {
+                evaluator.id: (
+                    evaluator.personal_info.fullname
+                    if evaluator.personal_info
+                    else (evaluator.email or 'Staff #{}'.format(evaluator.id))
+                )
+                for evaluator in evaluators
+            }
+    related_bundles = EduQAEvaluationBundle.query.filter_by(course_id=clo.course_id).order_by(
+        EduQAEvaluationBundle.id.desc()).all()
+    related_bundles = [bundle for bundle in related_bundles if any(
+        item.assignment.subject_type == 'eduqa_skill_evidence'
+        and item.assignment.subject_id == evidence.id for item in bundle.items)]
+    requested_bundle_id = request.args.get('bundle_id', type=int)
+    return_bundle = next((bundle for bundle in related_bundles
+                          if bundle.id == requested_bundle_id), None)
+    if return_bundle is None and related_bundles:
+        return_bundle = related_bundles[0]
+    back_url = (url_for('eduqa.evaluation_bundle_students', bundle_id=return_bundle.id)
+                if return_bundle else url_for('eduqa.manage_student_outcome_skill_evidence',
+                    revision_id=revision.id, skill_id=skill.id, clo_id=clo.id))
     return render_template('eduqa/QA/staff/student_outcome_skill_evidence_results.html',
                            revision=revision, skill=skill, clo=clo, evidence=evidence,
                            student=student, student_evidence=student_evidence,
-                           submissions=submissions)
+                           submissions=submissions,
+                           evaluator_names=evaluator_names, back_url=back_url)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/submissions/<int:submission_id>/delete',
+           methods=['POST'])
+@login_required
+def delete_student_skill_evidence_submission(revision_id, skill_id, clo_id,
+                                             evidence_id, student_id, submission_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    student = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAStudent.id == student_id,
+        EduQAEnrollment.course_id == clo.course.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    student_evidence = EduQAStudentSkillEvidence.query.filter_by(
+        evidence_id=evidence.id, student_id=student.id).first_or_404()
+    submission = DynamicFormSubmission.query.filter_by(
+        id=submission_id, subject_type='eduqa_student_skill_evidence',
+        subject_id=student_evidence.id).first_or_404()
+    session_results = EduQAEvaluationSessionResult.query.filter_by(
+        submission_id=submission.id).all()
+    session_ids = {result.session_id for result in session_results}
+    try:
+        for result in session_results:
+            db.session.delete(result)
+        # Remove references before deleting the submission and its answers.
+        db.session.flush()
+        db.session.delete(submission)
+        student_evidence.endorsed = False
+        student_evidence.endorsed_by = None
+        student_evidence.endorsed_at = None
+        db.session.flush()
+        for session_id in session_ids:
+            if not EduQAEvaluationSessionResult.query.filter_by(session_id=session_id).first():
+                evaluation = EduQAEvaluationSession.query.get(session_id)
+                if evaluation:
+                    db.session.delete(evaluation)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    flash('ลบผลการประเมินเรียบร้อย กรุณาตรวจสอบผลที่เหลือก่อนรับรองอีกครั้ง', 'success')
+    return redirect(url_for('eduqa.view_student_skill_evidence_results',
+                            revision_id=revision.id, skill_id=skill.id, clo_id=clo.id,
+                            evidence_id=evidence.id, student_id=student.id,
+                            bundle_id=request.args.get('bundle_id', type=int)))
 
 
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/endorse',
@@ -464,9 +1035,11 @@ def manage_student_outcome_skill_evidence(revision_id, skill_id, clo_id):
     available_form_versions = DynamicFormVersion.query.join(DynamicForm).filter(
         DynamicForm.status != 'Archived').order_by(
         DynamicForm.name.asc(), DynamicFormVersion.version.desc()).all()
+    bundles = EduQAEvaluationBundle.query.filter_by(course_id=clo.course_id).order_by(
+        EduQAEvaluationBundle.id.desc()).all()
     return render_template('eduqa/QA/staff/student_outcome_skill_evidence.html',
                            revision=revision, skill=skill, clo=clo, evidence=evidence,
-                           assignments_by_evidence=assignments_by_evidence,
+                           assignments_by_evidence=assignments_by_evidence, bundles=bundles,
                            assignment_form=assignment_form,
                            available_form_versions=available_form_versions)
 
@@ -3057,3 +3630,142 @@ def withdraw_enrollment(course_id, student_id):
     else:
         resp = make_response()
         return resp, 400
+
+
+# Bundles group existing evidence assignments; submissions retain their skill links.
+from app.eduqa.models import (EduQAEvaluationBundle, EduQAEvaluationBundleItem,
+                             EduQAEvaluationSession, EduQAEvaluationSessionResult)
+from app.eduqa.evaluation_bundles import bundle_answers
+
+
+def _evaluation_bundle_sections(bundle):
+    sections = []
+    for item in bundle.items:
+        assignment = item.assignment
+        if assignment.subject_type != 'eduqa_skill_evidence':
+            abort(404)
+        evidence = EduQASkillEvidence.query.get_or_404(assignment.subject_id)
+        if (evidence.clo.course_id != bundle.course_id
+                or evidence.skill.revision_id != bundle.course.revision_id
+                or evidence.clo not in evidence.skill.clos):
+            abort(404)
+        sections.append((assignment, evidence))
+    if len(sections) < 2:
+        abort(404)
+    return sections
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/bundles/<int:bundle_id>/edit', methods=['GET', 'POST'], endpoint='edit_evaluation_bundle')
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/bundles/add', methods=['GET', 'POST'])
+@login_required
+def create_evaluation_bundle(revision_id, skill_id, clo_id, bundle_id=None):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    bundle = (EduQAEvaluationBundle.query.filter_by(
+        id=bundle_id, course_id=clo.course_id).first_or_404()
+        if bundle_id is not None else None)
+    evidence = EduQASkillEvidence.query.join(EduQACourseLearningOutcome).filter(
+        EduQACourseLearningOutcome.course_id == clo.course_id).all()
+    evidence_by_id = {e.id: e for e in evidence
+                      if e.skill.revision_id == revision.id and e.clo in e.skill.clos}
+    assignments = DynamicFormAssignment.query.filter_by(subject_type='eduqa_skill_evidence').filter(
+        DynamicFormAssignment.subject_id.in_(list(evidence_by_id))).all()
+    selected = (set(request.form.getlist('assignments')) if request.method == 'POST'
+                else {str(item.assignment_id) for item in bundle.items} if bundle else set())
+    if request.method == 'POST':
+        chosen = [a for a in assignments if str(a.id) in selected]
+        name = request.form.get('name', '').strip()
+        chosen_evidence = [evidence_by_id[a.subject_id] for a in chosen]
+        valid = (name and len(name) <= 255 and len(chosen) == len(selected)
+                 and len(chosen) >= 2
+                 and len({e.skill_id for e in chosen_evidence}) == len(chosen)
+                 and (bundle is not None or any(e.skill_id == skill.id and e.clo_id == clo.id for e in chosen_evidence)))
+        if not valid:
+            flash('กรุณาระบุชื่อและเลือกแบบประเมินอย่างน้อย 2 ทักษะ โดยมีทักษะปัจจุบันและเลือกหนึ่งแบบต่อทักษะ', 'warning')
+        else:
+            if bundle is None:
+                bundle = EduQAEvaluationBundle(name=name, course_id=clo.course_id, created_by_id=current_user.id)
+            bundle.name = name
+            # Retain existing items to avoid duplicate assignment constraints.
+            for item in list(bundle.items):
+                if str(item.assignment_id) not in selected:
+                    bundle.items.remove(item)
+            existing_ids = {item.assignment_id for item in bundle.items}
+            for assignment in chosen:
+                if assignment.id not in existing_ids:
+                    bundle.items.append(EduQAEvaluationBundleItem(assignment=assignment))
+            db.session.add(bundle)
+            db.session.commit()
+            flash('บันทึกชุดแบบประเมินเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.evaluation_bundle_students', bundle_id=bundle.id))
+    return render_template('eduqa/QA/staff/evaluation_bundle_create.html', revision=revision,
+                           skill=skill, clo=clo, assignments=assignments,
+                           evidence_by_id=evidence_by_id, selected=selected, bundle=bundle)
+
+
+@edu.route('/qa/student-outcome-monitoring/bundles/<int:bundle_id>/students')
+@login_required
+def evaluation_bundle_students(bundle_id):
+    bundle = EduQAEvaluationBundle.query.get_or_404(bundle_id)
+    sections = _evaluation_bundle_sections(bundle)
+    students = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAEnrollment.course_id == bundle.course_id).distinct().order_by(EduQAStudent.student_id).all()
+    sessions = EduQAEvaluationSession.query.filter_by(bundle_id=bundle.id).order_by(
+        EduQAEvaluationSession.created_at.desc(), EduQAEvaluationSession.id.desc()).all()
+    latest = {}
+    for evaluation in sessions:
+        latest.setdefault(evaluation.student_id, evaluation)
+    evaluator_ids = {evaluation.created_by_id for evaluation in latest.values()}
+    evaluator_names = {}
+    if evaluator_ids:
+        evaluators = StaffAccount.query.options(
+            joinedload(StaffAccount.personal_info)
+        ).filter(StaffAccount.id.in_(evaluator_ids)).all()
+        evaluator_names = {
+            evaluator.id: (evaluator.personal_info.fullname
+                           if evaluator.personal_info
+                           else (evaluator.email or 'Staff #{}'.format(evaluator.id)))
+            for evaluator in evaluators
+        }
+    return render_template('eduqa/QA/staff/evaluation_bundle_students.html',
+                           bundle=bundle, sections=sections, students=students, latest=latest,
+                           evaluator_names=evaluator_names)
+
+
+@edu.route('/qa/student-outcome-monitoring/bundles/<int:bundle_id>/students/<int:student_id>', methods=['GET', 'POST'])
+@login_required
+def fill_evaluation_bundle(bundle_id, student_id):
+    bundle = EduQAEvaluationBundle.query.get_or_404(bundle_id)
+    sections = _evaluation_bundle_sections(bundle)
+    student = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAStudent.id == student_id, EduQAEnrollment.course_id == bundle.course_id).first_or_404()
+    if request.method == 'POST':
+        answers, errors = bundle_answers(sections, request.form)
+        if errors:
+            for error in errors:
+                flash(error, 'warning')
+        else:
+            try:
+                evaluation = EduQAEvaluationSession(bundle_id=bundle.id, student_id=student.id,
+                                                   created_by_id=current_user.id)
+                db.session.add(evaluation)
+                for assignment, evidence, fields in answers:
+                    student_evidence = get_or_create_student_evidence(
+                        evidence, student, current_user)
+                    submission = DynamicFormSubmission(version=assignment.version,
+                        respondent_type='staff_account', respondent_id=current_user.id,
+                        subject_type='eduqa_student_skill_evidence', subject_id=student_evidence.id,
+                        status='Submitted', submitted_at=db.func.now())
+                    submission.answers = [DynamicFormAnswer(field=field, value=value) for field, value in fields]
+                    evaluation.results.append(EduQAEvaluationSessionResult(submission=submission))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                raise
+            flash('บันทึกผลประเมินทุกทักษะเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.evaluation_bundle_students', bundle_id=bundle.id))
+    return render_template('eduqa/QA/staff/evaluation_bundle_fill.html',
+                           bundle=bundle, sections=sections, student=student)

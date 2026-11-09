@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Students · {{ skill.code }} | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">Students · {{ skill.code }}</h1>
+                    <p class="subtitle">{{ skill.name }} · ปีการศึกษา {{ academic_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light"
+                   href="{{ url_for('eduqa.view_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="columns is-multiline">
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">นักศึกษาทั้งหมด</p>
+                    <p class="title has-text-info">{{ student_rows|length }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">มีผลประเมิน</p>
+                    <p class="title has-text-success">{{ evaluated_count }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">รอประเมิน</p>
+                    <p class="title has-text-warning">{{ student_rows|length - evaluated_count }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">แบบประเมิน</p>
+                    <p class="title has-text-link">{{ evaluation_stats|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <h2 class="title is-5">สถิติแยกตามแบบประเมิน</h2>
+            {% if evaluation_stats %}
+            <div class="columns is-multiline">
+                {% for stat in evaluation_stats %}
+                <div class="column is-half">
+                    <article class="message is-info is-light">
+                        <div class="message-header">
+                            <p>{{ stat.version.form.name }}</p>
+                            <span class="tag is-white">{{ stat.evaluated_count }} / {{ stat.total_students }}</span>
+                        </div>
+                        <div class="message-body">
+                            <p class="has-text-weight-semibold">{{ stat.evidence.title }}</p>
+                            <p class="is-size-7 has-text-grey mb-3">{{ stat.evidence.clo.course.en_code }} · CLO{{ stat.evidence.clo.number }} · v{{ stat.version.version }}</p>
+                            <div class="columns is-mobile has-text-centered mb-2">
+                                <div class="column">
+                                    <p class="heading">ประเมินแล้ว</p>
+                                    <p class="title is-5">{{ stat.evaluated_count }}</p>
+                                </div>
+                                <div class="column">
+                                    <p class="heading">รอประเมิน</p>
+                                    <p class="title is-5">{{ stat.waiting_count }}</p>
+                                </div>
+                                <div class="column">
+                                    <p class="heading">คะแนนเฉลี่ย</p>
+                                    <p class="title is-5">{% if stat.average_score is not none %}{{ '%.2f'|format(stat.average_score) }}{% else %}-{% endif %}</p>
+                                    {% if stat.average_maximum is not none %}<p class="is-size-7 has-text-grey">/ {{ '%.2f'|format(stat.average_maximum) }}</p>{% endif %}
+                                </div>
+                            </div>
+                            <progress class="progress is-success" value="{{ stat.completion_percent }}" max="100">{{ '%.0f'|format(stat.completion_percent) }}%</progress>
+                            <p class="is-size-7 has-text-right">ครอบคลุม {{ '%.0f'|format(stat.completion_percent) }}%</p>
+                            {% if stat.passing_percentage is not none %}
+                            <hr>
+                            <p class="is-size-7 has-text-grey mb-2">เกณฑ์ผ่าน {{ '%.2f'|format(stat.passing_percentage) }}%</p>
+                            <div class="columns is-mobile has-text-centered mb-0">
+                                <div class="column">
+                                    <p class="heading">ผ่าน</p>
+                                    <p class="title is-5 has-text-success">{{ stat.passed_count }}</p>
+                                </div>
+                                <div class="column">
+                                    <p class="heading">ไม่ผ่าน</p>
+                                    <p class="title is-5 has-text-danger">{{ stat.failed_count }}</p>
+                                </div>
+                                <div class="column">
+                                    <p class="heading">อัตราผ่าน</p>
+                                    <p class="title is-5 has-text-link">{% if stat.pass_rate is not none %}{{ '%.0f'|format(stat.pass_rate) }}%{% else %}-{% endif %}</p>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="notification is-warning is-light is-size-7 mt-3 mb-0">ยังไม่ได้กำหนดเกณฑ์ผ่านสำหรับแบบประเมินนี้</div>
+                            {% endif %}
+                        </div>
+                    </article>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีแบบประเมินที่เชื่อมโยงกับทักษะนี้</p>
+            {% endif %}
+        </div>
+
+        <div class="box">
+            <h2 class="title is-5">รายชื่อนักศึกษา</h2>
+            {% if student_rows %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead>
+                    <tr><th>รหัสนักศึกษา</th><th>ชื่อ</th><th>รายวิชาที่ลงทะเบียน</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for row in student_rows %}
+                    <tr>
+                        <td>{{ row.student.student_id }}</td>
+                        <td>
+                            <a class="has-text-weight-semibold" href="{{ url_for('eduqa.student_outcome_skill_student_summary', revision_id=revision.id, skill_id=skill.id, student_id=row.student.id, academic_year=academic_year) }}">
+                                {{ row.student.th_name }}
+                            </a>
+                        </td>
+                        <td>
+                            {% for course in row.courses %}
+                            <span class="tag is-info is-light mb-1">{{ course.en_code }} · ภาคเรียน {{ course.semester or '-' }}</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ไม่พบนักศึกษาที่ลงทะเบียนในรายวิชาที่เชื่อมโยงสำหรับปีการศึกษานี้</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

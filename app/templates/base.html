@@ -768,9 +768,41 @@
                             DEBUG MODE
                         </div>
                         <div class="message-body">
-                            <strong>Template file:</strong> {{ self._TemplateReference__context.name }}
+                            <strong>Template file:</strong> <span id="debug-template-file">{{ self._TemplateReference__context.name }}</span>
+                            <button type="button" class="button is-small is-white" id="copy-template-file"
+                                    title="Copy template filename" aria-label="Copy template filename">
+                                <span class="icon"><i class="fas fa-copy" aria-hidden="true"></i></span>
+                            </button>
+                            <span id="copy-template-status" class="help" role="status"></span>
                         </div>
                     </article>
+                    <script>
+                        document.getElementById('copy-template-file').addEventListener('click', async function () {
+                            const filename = document.getElementById('debug-template-file').textContent;
+                            const status = document.getElementById('copy-template-status');
+                            try {
+                                if (navigator.clipboard && window.isSecureContext) {
+                                    await navigator.clipboard.writeText(filename);
+                                } else {
+                                    const input = document.createElement('textarea');
+                                    input.value = filename;
+                                    input.style.position = 'fixed';
+                                    input.style.opacity = '0';
+                                    document.body.appendChild(input);
+                                    input.select();
+                                    try {
+                                        if (!document.execCommand('copy')) throw new Error('Copy failed');
+                                    } finally {
+                                        input.remove();
+                                        this.focus();
+                                    }
+                                }
+                                status.textContent = 'Copied!';
+                            } catch (error) {
+                                status.textContent = 'Unable to copy. Please select and copy the filename.';
+                            }
+                        });
+                    </script>
                 {% endif %}
             </div>
         </div>

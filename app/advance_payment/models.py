@@ -2,12 +2,13 @@ from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, text
+from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, inspect, select, text
 from flask import g, has_request_context
 from sqlalchemy import event
 from sqlalchemy.orm import Session, declared_attr, object_session, relationship
 from app.main import db
 from app.staff.models import StaffAccount
+from app.docs_query.models import DocsQueryDocument
 
 
 MONEY_DEFAULT = Decimal("0.00")
@@ -84,31 +85,6 @@ def _session_get(session, model, primary_key):
     return session.query(model).get(primary_key)
 
 
-def _query_related_list(parent, model, fk_column_name):
-    session = object_session(parent)
-    parent_id = getattr(parent, "id", None)
-    if session is None or parent_id is None:
-        return []
-
-    fk_column = getattr(model, fk_column_name)
-    return session.query(model).filter(fk_column == parent_id).order_by(model.id.asc()).all()
-
-
-def _query_many_to_many_list(parent, association_table, parent_fk_name, model):
-    session = object_session(parent)
-    parent_id = getattr(parent, "id", None)
-    if session is None or parent_id is None:
-        return []
-
-    return (
-        session.query(model)
-        .join(association_table, model.id == association_table.c.document_id)
-        .filter(association_table.c[parent_fk_name] == parent_id)
-        .order_by(model.id.asc())
-        .all()
-    )
-
-
 class FinanceEditMixin:
     """Latest finance edit, persisted in the same transaction as the change."""
 
@@ -117,6 +93,13 @@ class FinanceEditMixin:
     @declared_attr
     def last_edited_by_id(cls):
         return Column(Integer, ForeignKey("staff_account.id"), nullable=True)
+
+    @declared_attr
+    def last_edited_by(cls):
+        return relationship(
+            StaffAccount,
+            foreign_keys=lambda: [cls.last_edited_by_id],
+        )
 
 
 @event.listens_for(Session, "before_flush")
@@ -135,8 +118,48 @@ def _stamp_finance_edits(session, flush_context, instances):
             record.last_edited_by_id = actor_id
 
 
+class AdvancePaymentStatus(db.Model):
+    """Status catalog referenced by advance-payment workflow records."""
+
+    __tablename__ = "advance_payment_statuses"
+    __table_args__ = (
+        UniqueConstraint(
+            "status_group",
+            "code",
+            name="uq_advance_payment_statuses_group_code",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    status_group = Column(String(64), nullable=False, index=True)
+    code = Column(String(64), nullable=False)
+    name = Column(String(255), nullable=False)
+
+    def __str__(self):
+        return self.name
+
+
+def status_name_for_record(record):
+    """Return the catalog name, including after a status_id change in this session."""
+    if record.status_id is None:
+        return None
+    status_ref = record.status_ref
+    if status_ref is not None and status_ref.id == record.status_id:
+        return status_ref.name
+    session = object_session(record) or db.session
+    status_ref = _session_get(session, AdvancePaymentStatus, record.status_id)
+    return status_ref.name if status_ref else None
+
+
 class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
+    __table_args__ = (
+        Index(
+            "ix_cash_advance_borrowing_tickets_settled_approved",
+            "settled_at",
+            "approved_at",
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     number = Column(String, nullable=True)
@@ -144,8 +167,13 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     borrowing_approval_date = Column(Date, nullable=True)
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     borrower_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
-    status = Column(String(64), nullable=False, default="กำลังส่งคำขอ")
-    borrowing_ticket_purpose = Column(String(255), nullable=False)
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=False, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id], lazy="selectin")
+
+    @property
+    def status(self):
+        return status_name_for_record(self)
+    borrowing_ticket_purpose = Column(String, nullable=False)
     required_budget = Column(Numeric(12, 2, asdecimal=True), nullable=False)
     account_number = Column(String(100), nullable=False)
     bank_account_info_id = Column(Integer, ForeignKey("cash_mng_bank_account_infos.id"), nullable=True)
@@ -156,6 +184,8 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     closed_date = Column(DateTime, nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
+    reject_approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(1000), nullable=True)
     finance_note = Column(String(2000), nullable=True)
     aip_ref_no = Column(String(255), nullable=False)
@@ -163,38 +193,25 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     last_notified_type = Column(String(50), nullable=True)
     last_notified_date = Column(Date, nullable=True)
 
-    @property
-    def bank_account_info(self):
-        cached_account = getattr(self, "_bank_account_info", None)
-        if cached_account is not None:
-            return cached_account
-        return _session_get(object_session(self), BankAccountInfo, self.bank_account_info_id)
-
-    @bank_account_info.setter
-    def bank_account_info(self, value):
-        self._bank_account_info = value
-
-    @property
-    def creator_user(self):
-        cached_user = getattr(self, "_creator_user", None)
-        if cached_user is not None:
-            return cached_user
-        return _session_get(object_session(self), StaffAccount, self.creator_id)
-
-    @creator_user.setter
-    def creator_user(self, value):
-        self._creator_user = value
-
-    @property
-    def borrower_user(self):
-        cached_user = getattr(self, "_borrower_user", None)
-        if cached_user is not None:
-            return cached_user
-        return _session_get(object_session(self), StaffAccount, self.borrower_id)
-
-    @borrower_user.setter
-    def borrower_user(self, value):
-        self._borrower_user = value
+    bank_account_info = relationship(
+        "BankAccountInfo",
+        foreign_keys=[bank_account_info_id],
+    )
+    creator_user = relationship(
+        StaffAccount,
+        foreign_keys=[creator_id],
+    )
+    borrower_user = relationship(
+        StaffAccount,
+        foreign_keys=[borrower_id],
+    )
+    notification = relationship(
+        "CashManagementNotifications",
+        back_populates="ticket",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     @property
     def borrower_name(self):
@@ -232,54 +249,78 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     def borrower_email(self, value):
         self._borrower_email = value
 
-    @property
-    def borrowing_ticket_name(self):
-        return self.borrowing_ticket_purpose
-
-    @borrowing_ticket_name.setter
-    def borrowing_ticket_name(self, value):
-        self.borrowing_ticket_purpose = value
-
 BorrowingTicket = CashAdvanceBorrowingTicket
 
 class CashManagementNotifications(db.Model):
     __tablename__ = "cash_mng_notifications"
 
     id = Column(Integer, primary_key=True)
-    ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=False, unique=True)
+    ticket_id = Column(
+        Integer,
+        ForeignKey("cash_advance_borrowing_tickets.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
     borrower_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
 
-    @property
-    def ticket(self):
-        cached_ticket = getattr(self, "_ticket", None)
-        if cached_ticket is not None:
-            return cached_ticket
-        return _session_get(object_session(self), CashAdvanceBorrowingTicket, self.ticket_id)
-
-    @ticket.setter
-    def ticket(self, value):
-        self._ticket = value
+    ticket = relationship(
+        "CashAdvanceBorrowingTicket",
+        back_populates="notification",
+        foreign_keys=[ticket_id],
+    )
+    borrower = relationship(
+        StaffAccount,
+        foreign_keys=[borrower_id],
+    )
 
 
 Notifications = CashManagementNotifications
 
 
 document_return_association = Table(
-    "cash_mng_document_return_association",
+    "cash_mng_docs_query_return_association",
     db.metadata,
-    Column("document_id", Integer, ForeignKey("cash_mng_documents.id"), primary_key=True),
-    Column("return_id", Integer, ForeignKey("cash_advance_return_details.id"), primary_key=True),
+    Column(
+        "document_id",
+        Integer,
+        ForeignKey("docs_query_documents.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "return_id",
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
-class Document(FinanceEditMixin, db.Model):
-    __tablename__ = "cash_mng_documents"
+# A return ticket may settle receipts from more than one borrowing ticket.
+# ``ReturnDetail.ticket_id`` is kept for backwards compatibility and stores the
+# first/primary ticket; this table is the source of the additional links.
+return_borrowing_ticket_association = Table(
+    "cash_advance_return_borrowing_ticket_association",
+    db.metadata,
+    Column(
+        "return_id",
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
+)
 
-    id = Column(Integer, primary_key=True)
-    title = Column(String(255), nullable=False)
-    file_path = Column(String(500), nullable=False, default="#")
-    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
-
+parcel_borrowing_ticket_association = Table(
+    "cash_advance_parcel_borrowing_ticket_association",
+    db.metadata,
+    Column(
+        "parcel_return_id",
+        Integer,
+        ForeignKey("cash_mng_parcel_return_details.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
+)
 
 class ClosingDocumentRecordMixin(FinanceEditMixin):
     """Current association and history come from links, never copied document names."""
@@ -290,6 +331,8 @@ class ClosingDocumentRecordMixin(FinanceEditMixin):
             "ClosingDocumentLink",
             foreign_keys="ClosingDocumentLink." + cls._closing_fk,
             back_populates=cls._closing_record,
+            cascade="all, delete-orphan",
+            passive_deletes=True,
             order_by="ClosingDocumentLink.id",
         )
 
@@ -346,9 +389,18 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
     amount_spent = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     proof_reference = Column(String(255), nullable=False, default="")
-    status = Column(String(32), nullable=False, default="รอตรวจสอบ")
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=False, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id], lazy="selectin")
+
+    @property
+    def status(self):
+        return status_name_for_record(self)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
+    approved_at = Column(DateTime, nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
+    reject_approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
+    note = Column(String(2000), nullable=True)
     reference_number = Column(String(255), nullable=True)
     reference_date = Column(Date, nullable=True)
     product_code_id = Column(String(12), ForeignKey("product_codes.id"), nullable=True)
@@ -358,21 +410,67 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     product_code = relationship("ProductCode")
     cost_center = relationship("CostCenter")
     iocode = relationship("IOCode")
+    borrowing_ticket = relationship(
+        "CashAdvanceBorrowingTicket",
+        foreign_keys=[ticket_id],
+    )
+    creator = relationship(
+        StaffAccount,
+        foreign_keys=[creator_id],
+    )
+    linked_borrowing_tickets = relationship(
+        "CashAdvanceBorrowingTicket",
+        secondary=return_borrowing_ticket_association,
+        passive_deletes=True,
+        order_by="CashAdvanceBorrowingTicket.id",
+    )
+    receipt_items = relationship(
+        "ReturnReceiptItem",
+        back_populates="return_detail",
+        foreign_keys="ReturnReceiptItem.return_detail_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ReturnReceiptItem.id",
+    )
+    proof_files = relationship(
+        "ReturnProofFile",
+        back_populates="return_detail",
+        foreign_keys="ReturnProofFile.return_detail_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ReturnProofFile.id",
+    )
+    documents = relationship(
+        "DocsQueryDocument",
+        secondary=document_return_association,
+        passive_deletes=True,
+        order_by="DocsQueryDocument.id",
+    )
 
     @property
-    def borrowing_ticket(self):
-        cached_ticket = getattr(self, "_borrowing_ticket", None)
-        if cached_ticket is not None:
-            return cached_ticket
-        return _session_get(object_session(self), CashAdvanceBorrowingTicket, self.ticket_id)
-
-    @borrowing_ticket.setter
-    def borrowing_ticket(self, value):
-        self._borrowing_ticket = value
-
-    @property
-    def receipt_items(self):
-        return _query_related_list(self, ReturnReceiptItem, "return_detail_id")
+    def borrowing_tickets(self):
+        """All borrowing tickets settled by this return, including legacy data."""
+        session = object_session(self)
+        if session is None or self.id is None:
+            return [self.borrowing_ticket] if self.borrowing_ticket else []
+        tickets = []
+        if self.ticket_id:
+            ticket = _session_get(session, CashAdvanceBorrowingTicket, self.ticket_id)
+            if ticket:
+                tickets.append(ticket)
+        linked = (
+            session.query(CashAdvanceBorrowingTicket)
+            .join(
+                return_borrowing_ticket_association,
+                CashAdvanceBorrowingTicket.id == return_borrowing_ticket_association.c.ticket_id,
+            )
+            .filter(return_borrowing_ticket_association.c.return_id == self.id)
+            .order_by(CashAdvanceBorrowingTicket.id.asc())
+            .all()
+        )
+        seen = {ticket.id for ticket in tickets}
+        tickets.extend(ticket for ticket in linked if ticket.id not in seen)
+        return tickets
 
     @property
     def closing_amount(self):
@@ -381,90 +479,189 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
         if not items:
             return Decimal(str(self.amount_spent or 0))
         return sum(
-            (Decimal(str(item.amount or 0)) for item in items if not item.is_cash),
+            (
+                Decimal(str(item.amount or 0))
+                for item in items
+                if not item.is_cash
+                and not (
+                    (item.store_name or "").strip() == "-"
+                    and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
+                )
+            ),
             Decimal("0"),
         )
-
-    @property
-    def documents(self):
-        return _query_many_to_many_list(self, document_return_association, "return_id", Document)
-
 
 class ReturnReceiptItem(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_receipt_items"
 
     id = Column(Integer, primary_key=True)
-    return_detail_id = Column(Integer, ForeignKey("cash_advance_return_details.id"), nullable=False)
+    return_detail_id = Column(
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     receipt_date = Column(Date, nullable=False)
     store_name = Column(String(255), nullable=False, default="")
-    description = Column(String(255), nullable=False, default="")
+    description = Column(String, nullable=False, default="")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     is_cash = Column(Boolean, nullable=False, default=False, server_default=text("false"))
 
-    @property
-    def proof_files(self):
-        return _query_related_list(self, ReturnProofFile, "return_receipt_item_id")
+    return_detail = relationship(
+        "ReturnDetail",
+        back_populates="receipt_items",
+        foreign_keys=[return_detail_id],
+    )
+    proof_files = relationship(
+        "ReturnProofFile",
+        back_populates="receipt_item",
+        foreign_keys="ReturnProofFile.return_receipt_item_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ReturnProofFile.id",
+    )
+
+
+def _validate_return_receipt_item_cash_type(existing_types, is_cash):
+    """Reject mixed cash and non-cash items within one ReturnDetail."""
+    expected_type = bool(is_cash)
+    if any(bool(existing_type) != expected_type for existing_type in existing_types):
+        raise ValueError(
+            "ReturnReceiptItem rows in one ReturnDetail must all have the same is_cash value"
+        )
+
+
+@event.listens_for(Session, "before_flush")
+def _enforce_return_receipt_item_cash_invariant(session, flush_context, instances):
+    tracked_items = {
+        item
+        for item in set(session.new).union(session.dirty).union(session.deleted)
+        if isinstance(item, ReturnReceiptItem)
+    }
+    if not tracked_items:
+        return
+
+    affected_detail_ids = {
+        item.return_detail_id
+        for item in tracked_items
+        if item.return_detail_id is not None
+    }
+    for item in tracked_items:
+        history = inspect(item).attrs.return_detail_id.history
+        affected_detail_ids.update(
+            detail_id for detail_id in history.deleted if detail_id is not None
+        )
+
+    tracked_item_ids = {
+        item.id for item in tracked_items if item.id is not None
+    }
+    for return_detail_id in affected_detail_ids:
+        statement = select(ReturnReceiptItem.is_cash).where(
+            ReturnReceiptItem.return_detail_id == return_detail_id
+        )
+        if tracked_item_ids:
+            statement = statement.where(
+                ReturnReceiptItem.id.notin_(tracked_item_ids)
+            )
+
+        item_types = [row[0] for row in session.execute(statement)]
+        item_types.extend(
+            item.is_cash
+            for item in tracked_items
+            if item not in session.deleted
+            and item.return_detail_id == return_detail_id
+        )
+        if item_types:
+            _validate_return_receipt_item_cash_type(
+                item_types[1:],
+                item_types[0],
+            )
 
 
 class ReturnProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_proof_files"
 
     id = Column(Integer, primary_key=True)
-    return_detail_id = Column(Integer, ForeignKey("cash_advance_return_details.id"), nullable=False)
-    return_receipt_item_id = Column(Integer, ForeignKey("cash_advance_return_receipt_items.id"), nullable=True)
+    return_detail_id = Column(
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    return_receipt_item_id = Column(
+        Integer,
+        ForeignKey("cash_advance_return_receipt_items.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     proof_reference = Column(String(255), nullable=False)
     filename = Column(String(255), nullable=False, default="")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
-    @property
-    def receipt_item(self):
-        cached_item = getattr(self, "_receipt_item", None)
-        if cached_item is not None:
-            return cached_item
-        return _session_get(object_session(self), ReturnReceiptItem, self.return_receipt_item_id)
-
-    @receipt_item.setter
-    def receipt_item(self, value):
-        self._receipt_item = value
+    return_detail = relationship(
+        "ReturnDetail",
+        back_populates="proof_files",
+        foreign_keys=[return_detail_id],
+    )
+    receipt_item = relationship(
+        "ReturnReceiptItem",
+        back_populates="proof_files",
+        foreign_keys=[return_receipt_item_id],
+    )
 
 
 class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     _closing_fk = "parcel_return_id"
     _closing_record = "parcel_return"
     __tablename__ = "cash_mng_parcel_return_details"
+    __table_args__ = (
+        CheckConstraint(
+            "type IS NULL OR type IN (1, 5)",
+            name="ck_cash_mng_parcel_return_details_type",
+        ),
+        CheckConstraint(
+            "(ticket_id IS NOT NULL AND fund_request_id IS NULL) OR "
+            "(ticket_id IS NULL AND fund_request_id IS NOT NULL)",
+            name="ck_cash_mng_parcel_return_details_exactly_one_parent",
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
-    fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=True)
+    fund_request_id = Column(
+        Integer,
+        ForeignKey("petty_cash_fund_requests.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     amount_spent = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     items_description = Column(String(1000), nullable=False)
     sent_date = Column(Date, nullable=False)
-    status = Column(String(32), nullable=False, default="รอตรวจสอบ")
+    type = Column(Integer, nullable=True)
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=False, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id], lazy="selectin")
+
+    @property
+    def status(self):
+        return status_name_for_record(self)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
+    approved_at = Column(DateTime, nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
+    transferred_at = Column(Date, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
 
-    @property
-    def borrowing_ticket(self):
-        cached_ticket = getattr(self, "_borrowing_ticket", None)
-        if cached_ticket is not None:
-            return cached_ticket
-        return _session_get(object_session(self), CashAdvanceBorrowingTicket, self.ticket_id)
-
-    @borrowing_ticket.setter
-    def borrowing_ticket(self, value):
-        self._borrowing_ticket = value
-
-    @property
-    def fund_request(self):
-        cached_request = getattr(self, "_fund_request", None)
-        if cached_request is not None:
-            return cached_request
-        return _session_get(object_session(self), FundRequest, self.fund_request_id)
-
-    @fund_request.setter
-    def fund_request(self, value):
-        self._fund_request = value
+    borrowing_ticket = relationship(
+        "CashAdvanceBorrowingTicket",
+        foreign_keys=[ticket_id],
+    )
+    fund_request = relationship(
+        "FundRequest",
+        back_populates="parcel_returns",
+        foreign_keys=[fund_request_id],
+    )
+    linked_borrowing_tickets = relationship(
+        "CashAdvanceBorrowingTicket",
+        secondary=parcel_borrowing_ticket_association,
+        passive_deletes=True,
+        order_by="CashAdvanceBorrowingTicket.id",
+    )
 
 
 class ClosingDocument(FinanceEditMixin, db.Model):
@@ -478,7 +675,13 @@ class ClosingDocument(FinanceEditMixin, db.Model):
     settled_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
-    links = relationship("ClosingDocumentLink", back_populates="document", order_by="ClosingDocumentLink.id")
+    links = relationship(
+        "ClosingDocumentLink",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ClosingDocumentLink.id",
+    )
 
     @property
     def is_settled(self):
@@ -503,10 +706,27 @@ class ClosingDocumentLink(FinanceEditMixin, db.Model):
     )
 
     id = Column(Integer, primary_key=True)
-    document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=False, index=True)
-    ticket_return_id = Column(Integer, ForeignKey("cash_advance_return_details.id"), nullable=True)
-    parcel_return_id = Column(Integer, ForeignKey("cash_mng_parcel_return_details.id"), nullable=True)
-    claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=True)
+    document_id = Column(
+        Integer,
+        ForeignKey("cash_mng_closing_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    ticket_return_id = Column(
+        Integer,
+        ForeignKey("cash_advance_return_details.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    parcel_return_id = Column(
+        Integer,
+        ForeignKey("cash_mng_parcel_return_details.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    claim_id = Column(
+        Integer,
+        ForeignKey("petty_cash_claim_details.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     document = relationship("ClosingDocument", back_populates="links")
@@ -538,21 +758,26 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
     valid = Column(Boolean, nullable=False, default=True)
     custodian_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True)
 
-    @property
-    def department_name(self):
-        from app.models import Org
-        org = _session_get(object_session(self), Org, self.org_id)
-        return getattr(org, "name", None)
+    org = relationship(
+        "Org",
+        foreign_keys=[org_id],
+    )
+    bank_account_info = relationship(
+        "BankAccountInfo",
+        foreign_keys=[bank_account_info_id],
+    )
+    custodian = relationship(
+        StaffAccount,
+        foreign_keys=[custodian_id],
+    )
 
     @property
-    def org(self):
-        from app.models import Org
-        return _session_get(object_session(self), Org, self.org_id)
+    def department_name(self):
+        return getattr(self.org, "name", None)
 
     @property
     def custodian_name(self):
-        custodian = _session_get(object_session(self), StaffAccount, self.custodian_id)
-        return getattr(custodian, "name", None) or getattr(custodian, "fullname", None)
+        return getattr(self.custodian, "name", None) or getattr(self.custodian, "fullname", None)
 
     @property
     def account_number(self):
@@ -573,16 +798,131 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
                 return account.account_number
         return None
 
-    @property
-    def bank_account_info(self):
-        cached_account = getattr(self, "_bank_account_info", None)
-        if cached_account is not None:
-            return cached_account
-        return _session_get(object_session(self), BankAccountInfo, self.bank_account_info_id)
 
-    @bank_account_info.setter
-    def bank_account_info(self, value):
-        self._bank_account_info = value
+class PettyCashFiscalYearTopUpTransfer(FinanceEditMixin, db.Model):
+    """Finance record for a petty-cash budget top-up between fiscal years."""
+
+    __tablename__ = "petty_cash_fiscal_year_top_up_transfers"
+    __table_args__ = (
+        UniqueConstraint(
+            "petty_cash_setting_id",
+            name="uq_petty_cash_top_up_transfer_setting",
+        ),
+        Index(
+            "ix_petty_cash_top_up_transfer_setting_id",
+            "petty_cash_setting_id",
+        ),
+        CheckConstraint(
+            "(transfer_type = 0 AND transfer_amount = 0) OR "
+            "(transfer_type IN (1, 2) AND transfer_amount > 0)",
+            name="ck_petty_cash_transfer_type_amount",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    petty_cash_setting_id = Column(
+        Integer,
+        ForeignKey("petty_cash_settings.id"),
+        nullable=False,
+    )
+    transfer_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    transfer_type = Column(Integer, nullable=False)
+    fund_request_id = Column(
+        Integer,
+        ForeignKey("petty_cash_fund_requests.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    transferred_at = Column(Date, nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    setting = relationship(
+        "PettyCashSetting",
+        foreign_keys=[petty_cash_setting_id],
+    )
+    fund_request = relationship("FundRequest", foreign_keys=[fund_request_id])
+
+
+class CashManagementFinanceState(FinanceEditMixin, db.Model):
+    """Singleton switch controlling external petty-cash claim submissions."""
+
+    __tablename__ = "cash_mng_finance_states"
+
+    id = Column(Integer, primary_key=True, default=1)
+    is_open = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
+    """ข้อมูลยกยอดเงินสดย่อยที่กรอกโดยฝ่ายการเงิน."""
+
+    __tablename__ = "petty_cash_fiscal_year_carryovers"
+    __table_args__ = (
+        UniqueConstraint(
+            "org_id", "source_fiscal_year", "target_fiscal_year",
+            name="uq_petty_cash_carryover_org_years",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    org_id = Column(Integer, ForeignKey("orgs.id"), nullable=False, index=True)
+    source_fiscal_year = Column(Integer, nullable=False)
+    target_fiscal_year = Column(Integer, nullable=False)
+    finance_budget = Column(Numeric(12, 2), nullable=True)
+    finance_pending_transfer = Column(Numeric(12, 2), nullable=True)
+    custodian_bank_balance = Column(Numeric(12, 2), nullable=True)
+    custodian_cash_on_hand = Column(Numeric(12, 2), nullable=True)
+    custodian_pending_budget = Column(Numeric(12, 2), nullable=True)
+    finance_updated_at = Column(DateTime(timezone=True), nullable=True)
+    custodian_updated_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    org = relationship(
+        "Org",
+        foreign_keys=[org_id],
+    )
+
+    @property
+    def department_name(self):
+        return getattr(self.org, "name", None)
+
+    @property
+    def is_complete(self):
+        return all(
+            value is not None
+            for value in (
+                self.finance_budget,
+                self.finance_pending_transfer,
+                self.custodian_bank_balance,
+                self.custodian_cash_on_hand,
+                self.custodian_pending_budget,
+            )
+        )
+
+    @property
+    def reconciliation_amount(self):
+        if not self.is_complete:
+            return None
+        return (
+            self.finance_budget
+            - (
+                self.custodian_bank_balance
+                + self.custodian_cash_on_hand
+                + self.custodian_pending_budget
+                + self.finance_pending_transfer
+            )
+        )
 
 
 class BankAccountInfo(FinanceEditMixin, db.Model):
@@ -606,10 +946,56 @@ class BankAccountInfo(FinanceEditMixin, db.Model):
     account_number = Column(String(10), nullable=False)
     closed_at = Column(DateTime, nullable=True)
 
+    org = relationship(
+        "Org",
+        foreign_keys=[org_id],
+    )
+
     @property
-    def org(self):
-        from app.models import Org
-        return _session_get(object_session(self), Org, self.org_id)
+    def cash_advance_managers(self):
+        return [
+            link.staff
+            for link in self.cash_advance_manager_links
+            if link.staff is not None
+        ]
+
+
+class CashAdvanceAccountManager(db.Model):
+    """Staff accounts allowed to manage an organization's cash-advance account."""
+
+    __tablename__ = "cash_advance_account_managers"
+    __table_args__ = (
+        UniqueConstraint(
+            "bank_account_info_id",
+            "staff_account_id",
+            name="uq_cash_advance_account_manager",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    bank_account_info_id = Column(
+        Integer,
+        ForeignKey("cash_mng_bank_account_infos.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    staff_account_id = Column(
+        Integer,
+        ForeignKey("staff_account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    bank_account = relationship(
+        "BankAccountInfo",
+        backref=db.backref(
+            "cash_advance_manager_links",
+            cascade="all, delete-orphan",
+            order_by="CashAdvanceAccountManager.id",
+        ),
+    )
+    staff = relationship(StaffAccount)
 
 
 class FundRequest(FinanceEditMixin, db.Model):
@@ -619,39 +1005,73 @@ class FundRequest(FinanceEditMixin, db.Model):
     requester_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
     org_id = Column(Integer, ForeignKey("orgs.id"), nullable=True, index=True)
+    petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=True, index=True)
     borrowing_ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
     form_type = Column(String(10), nullable=False)
     ticket_number = Column(String(64), nullable=True)
-    request_date = Column(Date, nullable=False)
-    receive_interest = Column(Date, nullable=True)
-    withdraw_intrest = Column(Date, nullable=True)
-    status = Column(String(64), nullable=False, default="อนุมัติแล้ว")
+    request_date = Column(Date, nullable=True)
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=False, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id], lazy="selectin")
+
+    @property
+    def status(self):
+        return status_name_for_record(self)
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
+    is_legacy_import = Column(Boolean, nullable=False, default=False, server_default=text("false"), index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
-    purpose = Column(String(1000), nullable=True)
+    confirmed_at = Column(DateTime, nullable=True)
+    confirmed_by_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
+    approved_at = Column(DateTime, nullable=True)
+    approved_by_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
+    cancel_at = Column(DateTime, nullable=True)
+    cancel_transferred_at = Column(Date, nullable=True)
+    rejection_comment = Column(String(4000), nullable=True)
+    purpose = Column(String, nullable=True)
+    personal_note = Column(String(2000), nullable=True)
     period_year = Column(String(10), nullable=True)
     withdrawal_proof_reference = Column(String(500), nullable=True)
     withdrawal_proof_filename = Column(String(255), nullable=True)
 
-    @property
-    def borrowing_ticket(self):
-        cached_ticket = getattr(self, "_borrowing_ticket", None)
-        if cached_ticket is not None:
-            return cached_ticket
-        return _session_get(object_session(self), CashAdvanceBorrowingTicket, self.borrowing_ticket_id)
-
-    @borrowing_ticket.setter
-    def borrowing_ticket(self, value):
-        self._borrowing_ticket = value
-
-    @property
-    def items(self):
-        return _query_related_list(self, FundRequestItem, "fund_request_id")
-
-    @property
-    def org(self):
-        from app.models import Org
-        return _session_get(object_session(self), Org, self.org_id)
+    requester = relationship(StaffAccount, foreign_keys=[requester_id])
+    creator = relationship(StaffAccount, foreign_keys=[creator_id])
+    confirmed_by = relationship(StaffAccount, foreign_keys=[confirmed_by_id])
+    approved_by = relationship(StaffAccount, foreign_keys=[approved_by_id])
+    org = relationship(
+        "Org",
+        foreign_keys=[org_id],
+    )
+    petty_cash_setting = relationship(
+        "PettyCashSetting",
+        foreign_keys=[petty_cash_setting_id],
+    )
+    borrowing_ticket = relationship(
+        "CashAdvanceBorrowingTicket",
+        foreign_keys=[borrowing_ticket_id],
+    )
+    items = relationship(
+        "FundRequestItem",
+        back_populates="fund_request",
+        foreign_keys="FundRequestItem.fund_request_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="FundRequestItem.id",
+    )
+    claims = relationship(
+        "PettyCashClaimDetail",
+        back_populates="fund_request",
+        foreign_keys="PettyCashClaimDetail.fund_request_id",
+        cascade="all, delete",
+        passive_deletes=True,
+        order_by="PettyCashClaimDetail.id",
+    )
+    parcel_returns = relationship(
+        "ParcelReturnDetail",
+        back_populates="fund_request",
+        foreign_keys="ParcelReturnDetail.fund_request_id",
+        cascade="all, delete",
+        passive_deletes=True,
+        order_by="ParcelReturnDetail.id",
+    )
 
     @property
     def department_name(self):
@@ -660,22 +1080,16 @@ class FundRequest(FinanceEditMixin, db.Model):
 
     @property
     def requester_name(self):
-        requester = _session_get(object_session(self), StaffAccount, self.requester_id)
         ticket = self.borrowing_ticket
         return (
             getattr(ticket, "borrower_name", None)
-            or getattr(requester, "name", None)
-            or getattr(requester, "fullname", None)
+            or getattr(self.requester, "name", None)
+            or getattr(self.requester, "fullname", None)
         )
 
     @property
     def requester_position(self):
-        requester = _session_get(object_session(self), StaffAccount, self.requester_id)
-        return getattr(requester, "position", None)
-
-    @property
-    def creator(self):
-        return _session_get(object_session(self), StaffAccount, self.creator_id)
+        return getattr(self.requester, "position", None)
 
     @property
     def account_number(self):
@@ -702,31 +1116,42 @@ class FundRequest(FinanceEditMixin, db.Model):
             return getattr(setting, "account_number", None)
         return None
 
-    @property
-    def fund_in_date(self):
-        return self.receive_interest
-
-    @property
-    def withdrawal_date(self):
-        return self.withdraw_intrest
-
-
 class FundRequestItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_request_items"
 
     id = Column(Integer, primary_key=True)
-    fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=False)
-    description = Column(String(255), nullable=False)
+    fund_request_id = Column(
+        Integer,
+        ForeignKey("petty_cash_fund_requests.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    description = Column(String, nullable=False)
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     category_type = Column(Integer, nullable=False, default=1) # use id instead
 
+    fund_request = relationship(
+        "FundRequest",
+        back_populates="items",
+        foreign_keys=[fund_request_id],
+    )
+
 
 document_petty_claim_association = Table(
-    "cash_mng_document_petty_claim_association",
+    "cash_mng_docs_query_petty_claim_association",
     db.metadata,
-    Column("document_id", Integer, ForeignKey("cash_mng_documents.id"), primary_key=True),
-    Column("claim_id", Integer, ForeignKey("petty_cash_claim_details.id"), primary_key=True),
+    Column(
+        "document_id",
+        Integer,
+        ForeignKey("docs_query_documents.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "claim_id",
+        Integer,
+        ForeignKey("petty_cash_claim_details.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -738,11 +1163,23 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     claim_number = Column("Claim_number", String(255), nullable=True)
-    status = Column(String(32), nullable=False, default="ฉบับร่าง")
+    status_id = Column(Integer, ForeignKey("advance_payment_statuses.id"), nullable=False, index=True)
+    status_ref = relationship("AdvancePaymentStatus", foreign_keys=[status_id], lazy="selectin")
+
+    @property
+    def status(self):
+        return status_name_for_record(self)
     petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=False)
-    fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=True)
+    fund_request_id = Column(
+        Integer,
+        ForeignKey("petty_cash_fund_requests.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     total_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
+    approved_at = Column(DateTime, nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
+    note = Column(String(2000), nullable=True)
     transferred_at = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     reference_number = Column(String(255), nullable=True)
@@ -754,25 +1191,41 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     product_code = relationship("ProductCode")
     cost_center = relationship("CostCenter")
     iocode = relationship("IOCode")
-
-    @property
-    def fund_request(self):
-        cached_request = getattr(self, "_fund_request", None)
-        if cached_request is not None:
-            return cached_request
-        return _session_get(object_session(self), FundRequest, self.fund_request_id)
-
-    @fund_request.setter
-    def fund_request(self, value):
-        self._fund_request = value
-
-    @property
-    def items(self):
-        return _query_related_list(self, PettyCashClaimItem, "claim_id")
-
-    @property
-    def documents(self):
-        return _query_many_to_many_list(self, document_petty_claim_association, "claim_id", Document)
+    user = relationship(
+        StaffAccount,
+        foreign_keys=[user_id],
+    )
+    petty_cash_setting = relationship(
+        "PettyCashSetting",
+        foreign_keys=[petty_cash_setting_id],
+    )
+    fund_request = relationship(
+        "FundRequest",
+        back_populates="claims",
+        foreign_keys=[fund_request_id],
+    )
+    items = relationship(
+        "PettyCashClaimItem",
+        back_populates="claim",
+        foreign_keys="PettyCashClaimItem.claim_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="PettyCashClaimItem.id",
+    )
+    proof_files = relationship(
+        "PettyCashClaimProofFile",
+        back_populates="claim",
+        foreign_keys="PettyCashClaimProofFile.claim_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="PettyCashClaimProofFile.id",
+    )
+    documents = relationship(
+        "DocsQueryDocument",
+        secondary=document_petty_claim_association,
+        passive_deletes=True,
+        order_by="DocsQueryDocument.id",
+    )
 
     @property
     def reference_files(self):
@@ -795,35 +1248,114 @@ class PettyCashClaimItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_items"
 
     id = Column(Integer, primary_key=True)
-    claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=False)
+    claim_id = Column(
+        Integer,
+        ForeignKey("petty_cash_claim_details.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     receipt_date = Column(Date, nullable=False)
-    description = Column(String(255), nullable=False, default="")
+    description = Column(String, nullable=False, default="")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     category_type = Column(Integer, nullable=False, default=1)
 
-    @property
-    def proof_files(self):
-        return _query_related_list(self, PettyCashClaimProofFile, "claim_item_id")
+    claim = relationship(
+        "PettyCashClaimDetail",
+        back_populates="items",
+        foreign_keys=[claim_id],
+    )
+    proof_files = relationship(
+        "PettyCashClaimProofFile",
+        back_populates="claim_item",
+        foreign_keys="PettyCashClaimProofFile.claim_item_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="PettyCashClaimProofFile.id",
+    )
+
+
+def _validate_petty_cash_claim_item_category_group(existing_categories, category_type):
+    """Reject mixing category 6 with ordinary items in one claim."""
+    is_cash_return = int(category_type or 0) == 6
+    if any((int(category or 0) == 6) != is_cash_return for category in existing_categories):
+        raise ValueError(
+            "PettyCashClaimItem rows in one PettyCashClaimDetail must be all "
+            "category 6 or all non-category 6"
+        )
+
+
+@event.listens_for(Session, "before_flush")
+def _enforce_petty_cash_claim_item_category_invariant(session, flush_context, instances):
+    tracked_items = {
+        item
+        for item in set(session.new).union(session.dirty).union(session.deleted)
+        if isinstance(item, PettyCashClaimItem)
+    }
+    if not tracked_items:
+        return
+
+    affected_claim_ids = {
+        item.claim_id
+        for item in tracked_items
+        if item.claim_id is not None
+    }
+    for item in tracked_items:
+        history = inspect(item).attrs.claim_id.history
+        affected_claim_ids.update(
+            claim_id for claim_id in history.deleted if claim_id is not None
+        )
+
+    tracked_item_ids = {
+        item.id for item in tracked_items if item.id is not None
+    }
+    for claim_id in affected_claim_ids:
+        statement = select(PettyCashClaimItem.category_type).where(
+            PettyCashClaimItem.claim_id == claim_id
+        )
+        if tracked_item_ids:
+            statement = statement.where(
+                PettyCashClaimItem.id.notin_(tracked_item_ids)
+            )
+
+        category_types = [row[0] for row in session.execute(statement)]
+        category_types.extend(
+            item.category_type
+            for item in tracked_items
+            if item not in session.deleted
+            and item.claim_id == claim_id
+        )
+        if category_types:
+            _validate_petty_cash_claim_item_category_group(
+                category_types[1:],
+                category_types[0],
+            )
 
 
 class PettyCashClaimProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_proof_files"
 
     id = Column(Integer, primary_key=True)
-    claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=False)
-    claim_item_id = Column(Integer, ForeignKey("petty_cash_claim_items.id"), nullable=True)
+    claim_id = Column(
+        Integer,
+        ForeignKey("petty_cash_claim_details.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    claim_item_id = Column(
+        Integer,
+        ForeignKey("petty_cash_claim_items.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     proof_reference = Column(String(255), nullable=False)
     filename = Column(String(255), nullable=False, default="")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
-    @property
-    def claim_item(self):
-        cached_item = getattr(self, "_claim_item", None)
-        if cached_item is not None:
-            return cached_item
-        return _session_get(object_session(self), PettyCashClaimItem, self.claim_item_id)
-
-    @claim_item.setter
-    def claim_item(self, value):
-        self._claim_item = value
+    claim = relationship(
+        "PettyCashClaimDetail",
+        back_populates="proof_files",
+        foreign_keys=[claim_id],
+    )
+    claim_item = relationship(
+        "PettyCashClaimItem",
+        back_populates="proof_files",
+        foreign_keys=[claim_item_id],
+    )

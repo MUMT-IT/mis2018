@@ -52,7 +52,8 @@
                 <div class="field">
                     <label class="label">ผลการพัฒนา</label>
                     <div class="control">
-                        {{ form.result_detail(class="input", required=True) }}
+                        <textarea class="textarea" id="{{ form.result_detail.id }}"
+                                  name="{{ form.result_detail.name }}" rows="4" required>{{ form.result_detail.data or '' }}</textarea>
                     </div>
                 </div>
                 </div>

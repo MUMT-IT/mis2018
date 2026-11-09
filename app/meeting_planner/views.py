@@ -479,7 +479,39 @@ def detail_meeting(meeting_id):
 @login_required
 def detail_meeting_member(meeting_id):
     meeting = MeetingEvent.query.get(meeting_id)
-    return render_template('meeting_planner/meeting_detail_member.html', meeting=meeting)
+    agenda_ids = [agenda.id for agenda in meeting.agendas]
+    notes = MeetingAgendaNote.query.filter(
+        MeetingAgendaNote.staff_id == current_user.id,
+        MeetingAgendaNote.agenda_id.in_(agenda_ids)
+    ).all() if agenda_ids else []
+    private_notes = {note.agenda_id: note for note in notes}
+    return render_template(
+        'meeting_planner/meeting_detail_member.html',
+        meeting=meeting,
+        private_notes=private_notes
+    )
+
+
+@meeting_planner.route('/api/meeting_planner/topics/<int:topic_id>/private-note', methods=['POST'])
+@login_required
+def save_private_agenda_note(topic_id):
+    topic = MeetingAgenda.query.get_or_404(topic_id)
+    note = MeetingAgendaNote.query.filter_by(
+        agenda_id=topic.id,
+        staff_id=current_user.id
+    ).first()
+    if note is None:
+        note = MeetingAgendaNote(agenda=topic, staff=current_user)
+
+    note.note = request.form.get('note', '')
+    note.updated_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(note)
+    db.session.commit()
+    return render_template(
+        'meeting_planner/private_agenda_note.html',
+        topic=topic,
+        private_note=note
+    )
 
 
 @meeting_planner.route('/api/invitations/<int:invitation_id>/notify')

@@ -1,5 +1,62 @@
 <!doctype html>
 <html lang="th">
+  {# สถานะกลางของระบบ Advance Payment สำหรับใช้ร่วมกันทุกหน้า #}
+  {% macro status_badge_class(status) -%}
+    {% set status_colors = {
+      'ปฏิเสธ': 'danger',
+      'ยกเลิก': 'danger',
+      'ยกเลิกใบเบิก': 'danger',
+      'ใบเบิกถูกปฏิเสธ': 'danger',
+      'รอตรวจสอบ': 'warning',
+      'เอกสารตั้งฎีกา': 'info',
+      'รอยืนยันการแก้ไข': 'warning',
+      'กำลังตรวจสอบ': 'warning',
+      'ฉบับร่าง': 'secondary',
+      'รอการอนุมัติ': 'warning',
+      'ผ่านการตรวจสอบ': 'success',
+      'ล้างลูกหนี้เงินยืม': 'secondary',
+      'ฎีกาถูกตีกลับจากกองคลัง': 'danger',
+      'กำลังส่งคำขอ': 'warning',
+      'กำลังดำเนินการ': 'info',
+      'อนุมัติจ่ายเงิน': 'primary',
+      'มียอดคงค้าง': 'info',
+      'เคลียร์ยอดแล้ว': 'success',
+      'พัสดุกำลังดำเนินการ': 'info',
+      'ได้รับเอกสารแล้ว': 'success',
+      'ยืนยันการตรวจสอบ': 'success',
+      'ถูกปฏิเสธ': 'danger',
+      'อนุมัติแล้ว': 'primary',
+      'เบิกเงินแล้ว': 'success',
+      'ส่งเบิกครบแล้ว': 'info',
+      'เคลียร์ยอดสำเร็จ': 'success',
+      'โอนเงินสดย่อยสำเร็จ': 'success',
+      'โอนคืนเงินสดย่อย': 'success',
+      'เสร็จสิ้นกระบวนการ': 'secondary'
+    } %}
+    {% set color = status_colors.get((status or '')|trim, 'secondary') %}
+    bg-{{ color }} {% if color in ['warning', 'info'] %}text-dark{% else %}text-white{% endif %}
+  {%- endmacro %}
+
+  {% macro status_badge(status, label=None, extra_classes='') -%}
+    <span class="badge {{ status_badge_class(status) }} {{ extra_classes }}">{{ label if label is not none else (status or '-') }}</span>
+  {%- endmacro %}
+
+  {% macro parcel_return_type_badge(type_label, extra_classes='') -%}
+    {% if type_label == 'ว-119' %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle {{ extra_classes }}">
+        <i class="bi bi-file-earmark-text me-1"></i>{{ type_label }}
+      </span>
+    {% elif type_label == 'ว-5763' %}
+      <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle {{ extra_classes }}">
+        <i class="bi bi-file-earmark-text me-1"></i>{{ type_label }}
+      </span>
+    {% else %}
+      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle {{ extra_classes }}">
+        <i class="bi bi-box-seam me-1"></i>ส่งคืนพัสดุ
+      </span>
+    {% endif %}
+  {%- endmacro %}
+
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,9 +68,158 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/css/bootstrap-datepicker.min.css" rel="stylesheet">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/js/bootstrap-datepicker.min.js"></script>
+    <script>
+      (function () {
+        const isoDatePattern = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/;
+        const displayDatePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+
+        function isValidDateParts(year, month, day) {
+          const candidate = new Date(year, month - 1, day);
+          return candidate.getFullYear() === year
+            && candidate.getMonth() === month - 1
+            && candidate.getDate() === day;
+        }
+
+        function toISODate(value) {
+          const text = String(value || "").trim();
+          if (!text) return "";
+
+          let match = text.match(isoDatePattern);
+          if (match) {
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            return isValidDateParts(year, month, day)
+              ? `${match[1]}-${match[2]}-${match[3]}`
+              : "";
+          }
+
+          match = text.match(displayDatePattern);
+          if (!match) return "";
+
+          const day = Number(match[1]);
+          const month = Number(match[2]);
+          const year = Number(match[3]);
+          if (!isValidDateParts(year, month, day)) return "";
+
+          return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        }
+
+        function toDisplayDate(value) {
+          const isoDate = toISODate(value);
+          if (!isoDate) return String(value || "").trim();
+          const [year, month, day] = isoDate.split("-");
+          return `${day}/${month}/${year}`;
+        }
+
+        function parseDate(value) {
+          const isoDate = toISODate(value);
+          if (!isoDate) return null;
+          const [year, month, day] = isoDate.split("-").map(Number);
+          return new Date(year, month - 1, day);
+        }
+
+        window.appDateToISO = toISODate;
+        window.appDateToDisplay = toDisplayDate;
+        window.appParseDate = parseDate;
+
+        function initializeDatePicker(input) {
+          if (!(input instanceof HTMLInputElement) || input.dataset.datepickerInitialized === "true") {
+            return;
+          }
+
+          if (input.type !== "date" && !input.classList.contains("app-date-picker")) {
+            return;
+          }
+
+          const minDate = input.getAttribute("min");
+          const maxDate = input.getAttribute("max");
+          input.dataset.datepickerInitialized = "true";
+          input.type = "text";
+          input.classList.add("date", "app-date-picker");
+          input.value = toDisplayDate(input.value);
+          input.placeholder = "dd/mm/yyyy";
+          input.autocomplete = "off";
+          input.inputMode = "numeric";
+          input.setAttribute("pattern", String.raw`\d{2}/\d{2}/\d{4}`);
+          if (!input.getAttribute("title")) {
+            input.setAttribute("title", "กรุณากรอกวันที่ในรูปแบบ dd/mm/yyyy");
+          }
+          input.removeAttribute("min");
+          input.removeAttribute("max");
+
+          const options = {
+            format: "dd/mm/yyyy",
+            autoclose: true,
+            todayHighlight: true,
+            clearBtn: !input.required,
+            orientation: "auto",
+          };
+          if (minDate && toISODate(minDate)) options.startDate = toDisplayDate(minDate);
+          if (maxDate && toISODate(maxDate)) options.endDate = toDisplayDate(maxDate);
+
+          $(input).datepicker(options).on("changeDate clearDate", function () {
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+
+          input.addEventListener("blur", function () {
+            const normalized = toDisplayDate(input.value);
+            if (toISODate(normalized)) input.value = normalized;
+          });
+        }
+
+        function normalizeFormData(event) {
+          const form = event.currentTarget;
+          const dateInputs = Array.from(form.elements).filter(function (element) {
+            return element instanceof HTMLInputElement
+              && element.classList.contains("app-date-picker")
+              && element.name;
+          });
+          const names = [...new Set(dateInputs.map(input => input.name))];
+
+          names.forEach(function (name) {
+            event.formData.delete(name);
+            dateInputs.forEach(function (input) {
+              if (input.name !== name || input.disabled) return;
+              event.formData.append(name, toISODate(input.value) || input.value);
+            });
+          });
+        }
+
+        function initializeScope(scope) {
+          if (scope instanceof HTMLInputElement) initializeDatePicker(scope);
+          if (scope.querySelectorAll) {
+            scope.querySelectorAll('input[type="date"], input.app-date-picker').forEach(initializeDatePicker);
+          }
+
+          const forms = [];
+          if (scope instanceof HTMLFormElement) forms.push(scope);
+          if (scope.querySelectorAll) forms.push(...scope.querySelectorAll("form"));
+          forms.forEach(function (form) {
+            if (form.dataset.dateFormDataBound === "true") return;
+            form.dataset.dateFormDataBound = "true";
+            form.addEventListener("formdata", normalizeFormData);
+          });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+          initializeScope(document);
+          new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+              mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType === Node.ELEMENT_NODE) initializeScope(node);
+              });
+            });
+          }).observe(document.body, { childList: true, subtree: true });
+        });
+      })();
+    </script>
     <style>
       body {
         font-family: 'Sarabun', sans-serif;
@@ -32,8 +238,103 @@
       body, button, input, select, textarea {
         font-size: 1rem; 
       }
+      .interest-sort-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .interest-sort-button:hover,
+      .interest-sort-button:focus-visible {
+        color: var(--bs-primary);
+      }
+      .interest-sort-button i {
+        font-size: 0.75rem;
+        opacity: 0.7;
+      }
+      .datepicker {
+        z-index: 1080 !important;
+      }
       .rejected-followup-message {
         animation: rejected-followup-blink 1.2s ease-in-out infinite;
+      }
+      .circular-reference-tooltip {
+        position: relative;
+        display: inline-flex;
+        flex: 0 0 auto;
+      }
+      .circular-reference-tooltip__trigger {
+        width: auto;
+        min-height: 1.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.6rem;
+        border: 1px solid #dc3545;
+        border-radius: 999px;
+        background: #fff;
+        color: #dc3545;
+        line-height: 1;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .circular-reference-tooltip__trigger:hover,
+      .circular-reference-tooltip__trigger:focus-visible {
+        background: #dc3545;
+        color: #fff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.2);
+      }
+      .circular-reference-tooltip__panel {
+        position: absolute;
+        top: calc(100% + 0.6rem);
+        right: 0;
+        z-index: 1085;
+        width: min(24rem, calc(100vw - 3rem));
+        max-height: 22rem;
+        overflow-y: auto;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.75rem;
+        background: #fff;
+        color: #212529;
+        box-shadow: 0 0.75rem 1.75rem rgba(15, 23, 42, 0.18);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-0.3rem);
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+      }
+      .circular-reference-tooltip:hover .circular-reference-tooltip__panel,
+      .circular-reference-tooltip:focus-within .circular-reference-tooltip__panel {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .circular-reference-tooltip__panel::before {
+        content: "";
+        position: absolute;
+        top: -0.45rem;
+        right: 0.55rem;
+        width: 0.8rem;
+        height: 0.8rem;
+        border-top: 1px solid #dee2e6;
+        border-left: 1px solid #dee2e6;
+        background: #fff;
+        transform: rotate(45deg);
+      }
+      .circular-reference-tooltip__text {
+        white-space: pre-line;
+        overflow-wrap: anywhere;
       }
       @keyframes rejected-followup-blink {
         0%, 100% { opacity: 1; }
@@ -43,6 +344,98 @@
         .rejected-followup-message {
           animation: none;
         }
+      }
+      .header-actions {
+        flex-shrink: 0;
+        margin-left: auto;
+      }
+      .header-home-button,
+      .header-user-chip {
+        min-height: 42px;
+        border-radius: 999px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.07);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      }
+      .header-home-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 1rem 0.4rem 0.45rem;
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        color: #2563eb;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .header-home-button:hover,
+      .header-home-button:focus-visible {
+        border-color: #93c5fd;
+        background: #dbeafe;
+        color: #1d4ed8;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.16);
+        transform: translateY(-1px);
+      }
+      .header-mumt-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        min-height: 2.6rem;
+        padding: 0.65rem 1rem;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #1a3d7c, #10264c);
+        color: #ffffff;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: 0 4px 12px rgba(18, 39, 84, 0.14);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      }
+      .header-mumt-button:hover,
+      .header-mumt-button:focus-visible {
+        background: linear-gradient(135deg, #244a90, #16335e);
+        color: #ffffff;
+        box-shadow: 0 6px 16px rgba(18, 39, 84, 0.22);
+        transform: translateY(-1px);
+      }
+      .header-mumt-button:focus-visible {
+        outline: 3px solid rgba(26, 61, 124, 0.22);
+        outline-offset: 2px;
+      }
+      .header-action-icon,
+      .header-user-avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        flex-shrink: 0;
+        border-radius: 50%;
+      }
+      .header-action-icon {
+        background: #ffffff;
+        box-shadow: 0 2px 7px rgba(37, 99, 235, 0.12);
+      }
+      .header-user-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        max-width: 280px;
+        padding: 0.4rem 0.9rem 0.4rem 0.45rem;
+        border: 1px solid #e9d5ff;
+        background: linear-gradient(135deg, #faf5ff 0%, #fdf2f8 100%);
+        color: #6b21a8;
+        font-weight: 600;
+      }
+      .header-user-avatar {
+        background: linear-gradient(135deg, #8b5cf6, #ec4899);
+        color: #ffffff;
+        box-shadow: 0 3px 8px rgba(139, 92, 246, 0.24);
+      }
+      .header-user-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       /* สไตล์ตกแต่งภายใน Drawer (Offcanvas) */
       .drawer-navigation .nav-link {
@@ -71,6 +464,24 @@
       .drawer-navigation .nav-subitem {
         font-size: 0.9rem;
         padding-left: 28px;
+      }
+      .drawer-navigation .system-switch-form {
+        margin: 4px 0;
+      }
+      .drawer-navigation .system-switch-button {
+        width: 100%;
+        border: 0;
+        text-align: left;
+        color: #cbd5e1;
+        background: transparent;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      .drawer-navigation .system-switch-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
       }
       *, *::before, *::after {
         box-sizing: border-box;
@@ -257,16 +668,10 @@
       #tab-advance.active { border-bottom-color: #0d6efd !important; }
       #tab-petty.active { border-bottom-color: #198754 !important; }
       #tab-parcel.active { border-bottom-color: #ffc107 !important; }
-      .app-popup-modal .modal-content {
-        border-radius: 18px;
-        overflow: hidden;
-      }
-      .app-popup-modal .modal-header,
-      .app-popup-modal .modal-footer {
-        border: 0;
-      }
       .app-popup-message {
         white-space: pre-line;
+        overflow-wrap: anywhere;
+        line-height: 1.7;
       }
       .app-popup-field label {
         font-weight: 600;
@@ -288,6 +693,224 @@
       #tab-claim-history.active {
         border-bottom-color: #198754 !important;
       }
+
+      /* Cash-advance account manager settings */
+      .account-manager-table th {
+        white-space: nowrap;
+      }
+      .account-manager-settings-wrapper,
+      #accountManagerSettingsForm,
+      #accountManagerSettingsForm .table-responsive,
+      .account-manager-table {
+        width: 100%;
+        min-width: 0;
+      }
+      .manager-summary {
+        min-height: 2.4rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        background: #fff;
+        padding: 0.35rem 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .manager-summary:not(.is-disabled):hover,
+      .manager-summary:not(.is-disabled):focus-visible {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+        outline: 0;
+      }
+      .manager-summary.is-disabled {
+        border-color: #dee2e6;
+        background: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+      }
+      .manager-badge {
+        max-width: 15rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .staff-picker-list {
+        max-height: 24rem;
+        overflow-y: auto;
+      }
+      .staff-picker-item {
+        cursor: pointer;
+      }
+      .staff-picker-item:hover > * {
+        background: #f8fafc;
+      }
+      .staff-picker-item > td {
+        white-space: nowrap;
+      }
+      .staff-picker-item .form-check-input {
+        width: 1.15rem;
+        height: 1.15rem;
+      }
+      .document-input-row .announcement-input {
+        background-color: #fff !important;
+        color: #212529 !important;
+        border-color: #6c757d !important;
+      }
+      .document-input-row .announcement-input::placeholder {
+        color: #495057;
+        opacity: 1;
+      }
+
+      /* Revolving-fund dashboard cards */
+      .advance-fund-dashboard {
+        min-height: 370px;
+      }
+      .petty-fund-dashboard {
+        min-height: 240px;
+      }
+      .advance-fund-grid,
+      .petty-fund-grid {
+        display: grid;
+        gap: 48px 41px;
+        width: 100%;
+        margin: 0 auto;
+      }
+      .advance-fund-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-areas:
+          "initial lent requested cash remaining"
+          ". . closing . ."
+          ". . received . .";
+        max-width: 1320px;
+      }
+      .petty-fund-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-areas:
+          "initial transferred closing remaining"
+          ". . received .";
+        max-width: 1100px;
+      }
+      .advance-fund-card,
+      .petty-fund-card {
+        min-width: 0;
+        min-height: 94px;
+        padding: 14px 15px;
+        background: #f7f7f7;
+        border-radius: 24px;
+        box-shadow: 0 10px 8px rgba(15, 23, 42, 0.13);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .advance-fund-card-label,
+      .petty-fund-card-label {
+        margin-bottom: 8px;
+        color: #111111;
+        font-size: 0.9rem;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .advance-fund-card-amount,
+      .petty-fund-card-amount {
+        color: #050505;
+        font-size: clamp(1.05rem, 1.75vw, 1.5rem);
+        font-weight: 700;
+        line-height: 1.15;
+        white-space: nowrap;
+      }
+      .advance-fund-card--initial,
+      .petty-fund-card--initial { grid-area: initial; }
+      .advance-fund-card--lent { grid-area: lent; }
+      .advance-fund-card--requested { grid-area: requested; }
+      .advance-fund-card--cash { grid-area: cash; }
+      .advance-fund-card--remaining,
+      .petty-fund-card--remaining { grid-area: remaining; }
+      .advance-fund-card--closing,
+      .petty-fund-card--closing { grid-area: closing; }
+      .advance-fund-card--received,
+      .petty-fund-card--received { grid-area: received; }
+      .petty-fund-card--transferred { grid-area: transferred; }
+
+      @media (max-width: 991.98px) {
+        .advance-fund-grid,
+        .petty-fund-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 29px;
+        }
+        .advance-fund-grid {
+          grid-template-areas:
+            "initial remaining"
+            "lent cash"
+            "requested requested"
+            "closing closing"
+            "received received";
+        }
+        .petty-fund-grid {
+          grid-template-areas:
+            "initial remaining"
+            "transferred closing"
+            "received received";
+        }
+        .advance-fund-card--requested,
+        .advance-fund-card--closing,
+        .advance-fund-card--received,
+        .petty-fund-card--received {
+          width: calc(50% - 14.5px);
+          justify-self: center;
+        }
+        .account-manager-table {
+          min-width: 940px;
+        }
+      }
+
+      @media (max-width: 575.98px) {
+        .header-home-button {
+          padding-right: 0.45rem;
+        }
+        .header-home-label,
+        .header-mumt-label,
+        .header-user-name {
+          display: none;
+        }
+        .header-mumt-button {
+          padding-right: 0.8rem;
+          padding-left: 0.8rem;
+        }
+        .header-user-chip {
+          padding-right: 0.45rem;
+        }
+        .advance-fund-grid,
+        .petty-fund-grid {
+          grid-template-columns: 1fr;
+          gap: 22px;
+        }
+        .advance-fund-grid {
+          grid-template-areas:
+            "initial"
+            "lent"
+            "requested"
+            "closing"
+            "received"
+            "cash"
+            "remaining";
+        }
+        .petty-fund-grid {
+          grid-template-areas:
+            "initial"
+            "transferred"
+            "closing"
+            "received"
+            "remaining";
+        }
+        .advance-fund-card--requested,
+        .advance-fund-card--closing,
+        .advance-fund-card--received,
+        .petty-fund-card--received {
+          width: 100%;
+        }
+        .advance-fund-card-amount,
+        .petty-fund-card-amount {
+          font-size: 1.4rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -295,7 +918,7 @@
     <div class="main-content d-flex flex-column">
       {% if (advance_payment_user.id if advance_payment_user.is_authenticated else '') %}
       <header class="navbar navbar-expand navbar-light bg-white border-bottom shadow-sm px-4 py-3 sticky-top">
-        <button class="btn btn-outline-dark border-2 me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#appNavigationDrawer" aria-controls="appNavigationDrawer" style="border-radius: 8px;">
+        <button class="btn btn-outline-dark border-2 me-3 align-self-start" type="button" data-bs-toggle="offcanvas" data-bs-target="#appNavigationDrawer" aria-controls="appNavigationDrawer" style="border-radius: 8px;">
           <i class="bi bi-list fs-5 d-flex align-items-center"></i>
         </button>
         {% if session.get('advance_payment_system') == 'petty_cash' %}
@@ -312,13 +935,34 @@
           {% if session.get('advance_payment_system') == 'petty_cash' %}
             ระบบเงินสดย่อย
           {% elif session.get('advance_payment_system') == 'advance_payment' %}
-            ระบบทดรองจ่าย
+            ระบบเงินยืมทดรองจ่าย
           {% elif session.get('advance_payment_system') == 'finance' %}
-            ระบบจัดการเงินสดย่อยและเงินทดรองจ่าย
+            ระบบจัดการเงินสดย่อยและเงินยืมทดรองจ่าย
           {% else %}
             ระบบ Advance Payment
           {% endif %}
         </a>
+        <div class="header-actions d-flex align-items-center gap-2 ms-auto">
+          {% if request.endpoint == 'advance_payment.login' or session.get('advance_payment_system') not in ['petty_cash', 'advance_payment', 'finance'] %}
+          <a href="{{ url_for('index') }}" class="header-mumt-button" aria-label="กลับระบบ MUMT MIS">
+              <i class="bi bi-house-fill" aria-hidden="true"></i>
+              <span class="header-mumt-label">หน้าหลัก</span>
+          </a>
+          {% else %}
+              <a href="{{ url_for('advance_payment.logout') }}" class="header-home-button" aria-label="กลับหน้าเลือกระบบ">
+                <span class="header-action-icon">
+                  <i class="bi bi-house-door-fill" aria-hidden="true"></i>
+                </span>
+                <span class="header-home-label">หน้าหลัก</span>
+              </a>
+          {% endif %}
+          <div class="header-user-chip" title="{{ current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else '' }}">
+            <span class="header-user-avatar">
+              <i class="bi bi-person-fill" aria-hidden="true"></i>
+            </span>
+            <span class="header-user-name">{{ current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else '' }}</span>
+          </div>
+        </div>
       </header>
 
       <div class="offcanvas offcanvas-start drawer-navigation" tabindex="-1" id="appNavigationDrawer" aria-labelledby="appNavigationDrawerLabel" style="background: #1e293b; color: #f8fafc; max-width: 280px;">
@@ -329,7 +973,6 @@
         
         <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
           <ul class="nav nav-pills flex-column w-100">
-
             {% if session.get('advance_payment_system') == 'advance_payment' %}
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.coordinator_dashboard') }}" class="nav-link {% if request.endpoint in ['advance_payment.coordinator_dashboard', 'advance_payment.borrower_dashboard'] %}active{% endif %}">
@@ -345,7 +988,7 @@
                 </a>
               </li>
 
-              <li class="nav-section-title">ระบบเงินทดรองจ่าย</li>
+              <li class="nav-section-title">ระบบเงินยืมทดรองจ่าย</li>
               <li class="nav-item">
                 <a class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.tickets_view' %}active{% endif %}"
                   href="{{ url_for('advance_payment.tickets_view') }}">
@@ -355,9 +998,14 @@
               </li>
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.return_records_history') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.return_records_history' %}active{% endif %}">
-                  <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งใช้เงินยืมเงินทดรองจ่าย
+                  <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งใช้เงินยืมทดรองจ่าย
                 </a>
               </li>
+<!--              <li class="nav-item">-->
+<!--                <a href="{{ url_for('advance_payment.advance_payment_dashboard') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.advance_payment_dashboard' %}active{% endif %}">-->
+<!--                  <i class="bi bi-speedometer2 me-2"></i> Dashboard เงินยืมทดรองจ่าย-->
+<!--                </a>-->
+<!--              </li>-->
 
               <li class="nav-section-title">ระบบเงินสดย่อย</li>
               <li class="nav-item">
@@ -365,6 +1013,11 @@
                   <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งเบิกเงินสดย่อย
                 </a>
               </li>
+<!--              <li class="nav-item">-->
+<!--                <a href="{{ url_for('advance_payment.petty_cash_dashboard') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.petty_cash_dashboard' %}active{% endif %}">-->
+<!--                  <i class="bi bi-speedometer2 me-2"></i> Dashboard เงินสดย่อย-->
+<!--                </a>-->
+<!--              </li>-->
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.petty_cash_settings') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.petty_cash_settings' %}active{% endif %}">
                   <i class="bi bi-gear-fill me-2"></i> การจัดการงบประมาณเงินสดย่อย
@@ -376,9 +1029,15 @@
                   <i class="bi bi-file-earmark-plus-fill me-2"></i> จัดการตั้งฎีกา
                 </a>
               </li>
+              <li class="nav-section-title">ข้อมูลบัญชีธนาคาร</li>
               <li class="nav-item">
-                <a href="{{ url_for('advance_payment.finance_bank_account_registry') }}" class="nav-link {% if request.endpoint == 'advance_payment.finance_bank_account_registry' %}active{% endif %}">
-                  <i class="bi bi-bank me-2"></i> ข้อมูลบัญชีธนาคาร
+                <a href="{{ url_for('advance_payment.finance_bank_account_registry') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.finance_bank_account_registry' %}active{% endif %}">
+                  <i class="bi bi-bank me-2"></i> เพิ่มข้อมูลบัญชีธนาคาร
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{{ url_for('advance_payment.cash_advance_account_manager_settings') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.cash_advance_account_manager_settings' %}active{% endif %}">
+                  <i class="bi bi-people-fill me-2"></i> ตั้งค่าผู้จัดการบัญชีเงินยืม
                 </a>
               </li>
             {% endif %}
@@ -389,43 +1048,144 @@
                   <i class="bi bi-clock-history me-2"></i> รายการเงินสดย่อย
                 </a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('advance_payment.petty_cash_ledger') }}">
-                  <i class="bi bi-journal-bookmark-fill me-2"></i>
-                  <span>สมุดคุมบัญชีเงินสดย่อย</span>
-                </a>
-              </li>
+              {% if advance_payment_is_org_head %}
+                <li class="nav-item">
+                  <a href="{{ url_for('advance_payment.petty_cash_pending_approvals') }}" class="nav-link {% if request.endpoint == 'advance_payment.petty_cash_pending_approvals' %}active{% endif %}">
+                    <i class="bi bi-clipboard-check me-2"></i> รายการรออนุมัติ
+                  </a>
+                </li>
+              {% endif %}
+              {% if advance_payment_is_custodian or advance_payment_is_org_head %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('advance_payment.petty_cash_ledger') }}">
+                    <i class="bi bi-journal-bookmark-fill me-2"></i>
+                    <span>สมุดคุมบัญชีเงินสดย่อย</span>
+                  </a>
+                </li>
+              {% endif %}
+            {% endif %}
+            {% if petty_cash_settings|length > 1 %}
+              <li class="nav-section-title">เลือกบัญชีเงินสดย่อย</li>
+              {% for setting in petty_cash_settings %}
+                <li class="system-switch-form nav-subitem">
+                  <form method="post" action="{{ url_for('advance_payment.petty_cash_setting_selection') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="setting_id" value="{{ setting.id }}">
+                    <button type="submit" class="system-switch-button {% if selected_petty_cash_setting_id == setting.id %}active{% endif %}" title="{{ setting.account_number or '-' }}">
+                      <span class="d-inline-block text-sm" style="max-width: 195px;">
+                        {{ setting.department_name }}
+                      </span>
+                    </button>
+                  </form>
+                </li>
+              {% endfor %}
+            {% endif %}
+            {% if advance_payment_can_switch_systems %}
+              <li class="nav-section-title">สลับระบบ</li>
+              {% if session.get('advance_payment_system') == 'finance' %}
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="advance_payment">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-wallet2 me-2"></i> ไปยังระบบเงินยืมทดรองจ่าย
+                    </button>
+                  </form>
+                </li>
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="petty_cash">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-cash-coin me-2"></i> ไปยังระบบเงินสดย่อย
+                    </button>
+                  </form>
+                </li>
+              {% elif session.get('advance_payment_system') == 'advance_payment' %}
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="petty_cash">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-cash-coin me-2"></i> ไปยังระบบเงินสดย่อย
+                    </button>
+                  </form>
+                </li>
+                {% if advance_payment_can_use_finance %}
+                  <li class="nav-item system-switch-form">
+                    <form method="post" action="{{ url_for('advance_payment.login') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="system" value="finance">
+                      <button type="submit" class="system-switch-button">
+                        <i class="bi bi-clipboard-check me-2"></i> ไปยังระบบการเงิน
+                      </button>
+                    </form>
+                  </li>
+                {% endif %}
+              {% else %}
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="advance_payment">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-wallet2 me-2"></i> ไปยังระบบเงินยืมทดรองจ่าย
+                    </button>
+                  </form>
+                </li>
+                {% if advance_payment_can_use_finance %}
+                  <li class="nav-item system-switch-form">
+                    <form method="post" action="{{ url_for('advance_payment.login') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="system" value="finance">
+                      <button type="submit" class="system-switch-button">
+                        <i class="bi bi-clipboard-check me-2"></i> ไปยังระบบการเงิน
+                      </button>
+                    </form>
+                  </li>
+                {% endif %}
+              {% endif %}
             {% endif %}
           </ul>
 
-          <div class="p-3 border-top border-secondary bg-light-subtle text-dark rounded-3 mt-auto">
-            <div class="d-flex align-items-center mb-2">
-              <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px; flex-shrink: 0;">
-                <i class="bi bi-person-badge-fill"></i>
-              </div>
-              <div class="overflow-hidden">
-                <p class="mb-0 text-dark small fw-bold text-truncate" title="{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') }}">{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') }}</p>
-                <!-- แสดงข้อความสิทธิ์ผู้ใช้งานให้สอดคล้องกัน -->
-                <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
-                  {% if session.get('advance_payment_system') == 'finance' %}
-                    ฝ่ายการเงิน
-                  {% elif advance_payment_role == 'secretary' %}
-                    ผู้ดูแลเงินสดย่อย
-                  {% else %}
-                    ผู้ใช้งานทั่วไป
-                  {% endif %}
-                </span>
-              </div>
-            </div>
-            <a class="btn btn-primary btn-sm w-100 mt-2 fw-bold" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 8px;">
-              <i class="bi bi-box-arrow-right me-1"></i> ออกไปเมนูระบบ
-            </a>
-          </div>
+<!--          <div class="p-3 border-top border-secondary bg-light-subtle text-dark rounded-3 mt-auto">-->
+<!--            <div class="d-flex align-items-center mb-2">-->
+<!--              <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px; flex-shrink: 0;">-->
+<!--                <i class="bi bi-person-badge-fill"></i>-->
+<!--              </div>-->
+<!--              <div class="overflow-hidden">-->
+<!--                <p class="mb-0 text-dark small fw-bold text-truncate" title="{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') }}">{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') }}</p>-->
+<!--                &lt;!&ndash; แสดงข้อความสิทธิ์ผู้ใช้งานให้สอดคล้องกัน &ndash;&gt;-->
+<!--                <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">-->
+<!--                  {% if session.get('advance_payment_system') == 'finance' %}-->
+<!--                    ฝ่ายการเงิน-->
+<!--                  {% elif session.get('advance_payment_system') == 'advance_payment' and advance_payment_is_cash_advance_manager %}-->
+<!--                    ผู้จัดการบัญชีเงินยืม-->
+<!--                  {% elif advance_payment_is_custodian %}-->
+<!--                    ผู้ดูแลเงินสดย่อย-->
+<!--                  {% else %}-->
+<!--                    ผู้ใช้งานทั่วไป-->
+<!--                  {% endif %}-->
+<!--                </span>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <a class="btn btn-primary btn-sm w-100 mt-2 fw-bold" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 8px;">-->
+<!--              <i class="bi bi-box-arrow-right me-1"></i> ออกไปเมนูระบบ-->
+<!--            </a>-->
+<!--          </div>-->
         </div>
       </div>
       {% endif %}
 
       <main class="container-fluid p-4 p-md-5">
+        {% if not cash_mng_finance_open and session.get('advance_payment_system') == 'advance_payment' %}
+          <div class="alert alert-warning d-flex align-items-start mb-4" role="alert">
+            <i class="bi bi-eye-fill me-2 mt-1" aria-hidden="true"></i>
+            <div>
+              <strong>ระบบเงินยืมทดรองจ่ายอยู่ในโหมดดูข้อมูลเท่านั้น</strong>
+              <div class="small">สามารถดูประวัติและรายละเอียดได้ แต่ไม่สามารถเพิ่ม แก้ไข หรือส่งข้อมูลได้ในช่วงปิดปีงบประมาณ</div>
+            </div>
+          </div>
+        {% endif %}
         {# Flash Messages Layout #}
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -446,24 +1206,26 @@
       </main>
     </div>
 
-    <div class="modal fade app-popup-modal" id="appPopupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade text-start" id="appPopupModal" tabindex="-1" aria-labelledby="appPopupModalTitle" aria-describedby="appPopupModalMessage" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content border-0 shadow-lg" id="appPopupModalForm" method="post" data-ajax-validation="true">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="modal-header px-4 pt-4 pb-2">
+        <div class="modal-content">
+          <div class="modal-header">
             <h5 class="modal-title fw-bold text-dark" id="appPopupModalTitle"></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body px-4 py-3">
-            <div id="appPopupModalMessage" class="app-popup-message text-secondary"></div>
-            <div id="appPopupModalFieldWrap" class="app-popup-field mt-3"></div>
-            <div id="appPopupModalAcknowledgementWrap" class="app-popup-acknowledgement mt-3 d-none"></div>
-          </div>
-          <div class="modal-footer px-4 pb-4 pt-2">
-            <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
-            <button type="submit" class="btn fw-bold" id="appPopupModalConfirm">ยืนยัน</button>
-          </div>
-        </form>
+          <form id="appPopupModalForm" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-body">
+              <div id="appPopupModalMessage" class="app-popup-message text-dark"></div>
+              <div id="appPopupModalFieldWrap" class="app-popup-field mt-3"></div>
+              <div id="appPopupModalAcknowledgementWrap" class="app-popup-acknowledgement mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+              <button type="submit" class="btn fw-bold" id="appPopupModalConfirm">ยืนยัน</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -482,6 +1244,7 @@
         let lastTriggerElement = null;
         let currentPopupIsAlertOnly = false;
         let currentAcknowledgementCheckbox = null;
+        let currentAcknowledgementFieldName = "";
 
         function setConfirmButtonClass(className) {
           confirmButton.className = "btn fw-bold";
@@ -535,6 +1298,7 @@
           currentTargetFormId = "";
           currentPopupIsAlertOnly = false;
           currentAcknowledgementCheckbox = null;
+          currentAcknowledgementFieldName = "";
         }
 
         function openPopup(config) {
@@ -558,6 +1322,7 @@
           confirmButton.textContent = config.confirmText || "ยืนยัน";
           setConfirmButtonClass(config.confirmClass || "btn-primary");
           currentTargetFormId = config.targetFormId || "";
+          currentAcknowledgementFieldName = config.acknowledgementFieldName || "";
           lastTriggerElement = config.triggerElement || null;
           currentPopupIsAlertOnly = config.alertOnly === true;
           currentAcknowledgementCheckbox = config.requireAcknowledgement
@@ -588,6 +1353,17 @@
           if (currentAcknowledgementCheckbox) {
             currentAcknowledgementCheckbox.addEventListener("change", function () {
               confirmButton.disabled = !currentAcknowledgementCheckbox.checked;
+              const targetForm = currentTargetFormId
+                ? document.getElementById(currentTargetFormId)
+                : null;
+              if (targetForm && currentAcknowledgementFieldName) {
+                const field = targetForm.querySelector(
+                  `[name="${currentAcknowledgementFieldName}"]`
+                );
+                if (field) {
+                  field.value = currentAcknowledgementCheckbox.checked ? "1" : "0";
+                }
+              }
             });
           }
 
@@ -672,6 +1448,7 @@
             extraFieldsTemplateId: trigger.dataset.popupExtraFieldsTemplateId,
             requireAcknowledgement: trigger.dataset.popupRequireAcknowledgement === "true",
             acknowledgementLabel: trigger.dataset.popupAcknowledgementLabel,
+            acknowledgementFieldName: trigger.dataset.popupAcknowledgementFieldName,
             targetFormId: trigger.dataset.popupTargetFormId,
             alertOnly: trigger.dataset.popupAlertOnly === "true",
             triggerElement: trigger,
@@ -693,6 +1470,9 @@
       document.addEventListener("DOMContentLoaded", function () {
         document.querySelectorAll("form[data-ajax-validation='true']").forEach(function (form) {
           form.addEventListener("submit", async function (event) {
+            if (form.id === "claimForm" && event.defaultPrevented) {
+              return;
+            }
             // The borrowing-ticket form has an existing acknowledgement popup.
             // Never bypass it when this async handler is installed first.
             const requiresBorrowingConfirmation = form.id === "createBorrowingTicketForm";
@@ -707,7 +1487,9 @@
 
             event.preventDefault();
             form.dataset.ajaxSubmitting = "true";
-            const submitter = event.submitter || form.querySelector("button[type='submit']");
+            const submitter = event.submitter || (form.id === "claimForm"
+              ? form.querySelector("#claimSubmitFinalBtn")
+              : form.querySelector("button[type='submit']"));
             const originalSubmitterText = submitter ? submitter.innerHTML : "";
             if (submitter) {
               submitter.disabled = true;
@@ -718,6 +1500,9 @@
               // Use the literal form attribute. A form control named `action`
               // can shadow the DOM form.action property with a RadioNodeList.
               const formAction = form.getAttribute("action") || window.location.href;
+              if (form.id === "claimForm" && form.pendingDraftSave) {
+                await form.pendingDraftSave;
+              }
               const formData = new FormData(form);
               // Preserve the original submit-button flow (for example
               // action=draft versus action=submit).
@@ -761,6 +1546,7 @@
                   });
                   return;
                 }
+                form.dispatchEvent(new CustomEvent("app:ajax-success", { detail: payload }));
               } else if (response.ok) {
                 // Successful POST returns the newly created detail page as HTML.
                 document.open();
@@ -813,5 +1599,63 @@
       });
       {% endif %}
     </script>
-  </body>
+{% if not cash_mng_finance_open and session.get('advance_payment_system') == 'advance_payment' %}
+<style>
+  .cash-mng-finance-read-only-closed {
+    display: none !important;
+  }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const closeControl = (control) => {
+    if (control) control.classList.add('cash-mng-finance-read-only-closed');
+  };
+
+  const addClosedNotice = (form) => {
+    const isMainForm =
+      form.id === 'createBorrowingTicketForm' ||
+      /^returnForm_/.test(form.id || '') ||
+      form.querySelectorAll('input:not([type="hidden"]), select, textarea').length >= 4;
+    if (!isMainForm || form.previousElementSibling?.classList.contains('cash-mng-finance-closed-notice')) return;
+
+    const notice = document.createElement('div');
+    notice.className = 'alert alert-warning cash-mng-finance-closed-notice mb-0';
+    notice.setAttribute('role', 'status');
+    notice.innerHTML = '<i class="bi bi-lock-fill me-2" aria-hidden="true"></i>ส่วนบันทึกข้อมูลปิดใช้งานในช่วงปิดปีงบประมาณ';
+    form.parentNode.insertBefore(notice, form);
+  };
+
+  document.querySelectorAll('form').forEach(form => {
+    const method = (form.getAttribute('method') || 'GET').toUpperCase();
+    const isSystemSwitch = Boolean(form.querySelector('[name="system"]'));
+    const isSharedPopup = form.id === 'appPopupModalForm';
+    if (method === 'GET' || isSystemSwitch || isSharedPopup) return;
+
+    if (form.id) {
+      document.querySelectorAll(`[data-popup-target-form-id="${CSS.escape(form.id)}"]`).forEach(closeControl);
+    }
+
+    const modal = form.closest('.modal');
+    if (modal) {
+      if (modal.id) {
+        document.querySelectorAll(`[data-bs-target="#${CSS.escape(modal.id)}"]`).forEach(closeControl);
+      }
+      closeControl(modal);
+      return;
+    }
+
+    addClosedNotice(form);
+    closeControl(form);
+  });
+
+  document.querySelectorAll('a[href]').forEach(link => {
+    const href = link.getAttribute('href') || '';
+    if (/(?:\/|^)(?:new|create|edit|delete|cancel|submit|confirm|approve|reject|withdraw|autosave)(?:[/?#-]|$)/i.test(href)) {
+      closeControl(link);
+    }
+  });
+});
+</script>
+{% endif %}
+</body>
 </html>

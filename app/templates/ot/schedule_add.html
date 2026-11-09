@@ -6,6 +6,33 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <style>
+        .ot-schedule-layout .column {
+            min-width: 0;
+        }
+        #shift-table .select,
+        #shift-table .select select,
+        #shift-table .js-example-basic-multiple,
+        #shift-table .select2-container {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+        }
+        #shift-table .select select {
+            text-overflow: ellipsis;
+        }
+        #shift-table .table {
+            table-layout: fixed;
+        }
+        #shift-table .table th,
+        #shift-table .table td {
+            overflow-wrap: anywhere;
+        }
+        #shift-table .table th:last-child,
+        #shift-table .table td:last-child {
+            width: 2.5rem;
+        }
+    </style>
 {% endblock %}
 
 {% block page_content %}
@@ -33,7 +60,7 @@
                     <li><a href="{{ url_for('ot.view_documents', announcement_id=announcement_id) }}">รายการหนังสืออนุมัติหลักการ</a></li>
                 </ul>
             </div>
-            <div class="columns">
+            <div class="columns ot-schedule-layout">
                 <div class="column">
                     <div class="field">
                         <label class="label">Go to...</label>
@@ -70,6 +97,7 @@
     </section>
 {% endblock %}
 {% block scripts %}
+{% include "ot/partials/staff_options.html" %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -103,9 +131,13 @@
             ]
         });
         function initSelect2js() {
-            $('.js-example-basic-multiple').select2({
-                width: "100%",
-            })
+            $('.js-example-basic-multiple').each(function() {
+                const select = $(this);
+                loadOtStaffOptions(select);
+                if (!select.hasClass('select2-hidden-accessible')) {
+                    select.select2({width: '100%'});
+                }
+            });
         }
         document.addEventListener('initSelect2js', initSelect2js)
         document.addEventListener('clearSelection', ()=>{

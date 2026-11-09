@@ -447,6 +447,7 @@ class PAFunctionalCompetencyEvaluation(db.Model):
     pa_id = db.Column(db.ForeignKey('pa_agreements.id'))
     updated_at = db.Column(db.DateTime(timezone=True))
     confirm_at = db.Column(db.DateTime(timezone=True))
+    is_active = db.Column(db.Boolean(), default=True)
 
     def __str__(self):
         return "{}->{}".format(self.evaluator.email, self.staff.email)
@@ -456,7 +457,13 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     __tablename__ = 'pa_functional_competency_evaluation_indicators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     evaluation_id = db.Column(db.ForeignKey('pa_functional_competency_evaluations.id'))
-    evaluation = db.relationship(PAFunctionalCompetencyEvaluation, backref=db.backref('evaluation_eva_indicator'))
+    evaluation = db.relationship(
+        PAFunctionalCompetencyEvaluation,
+        backref=db.backref(
+            'evaluation_eva_indicator',
+            order_by='PAFunctionalCompetencyEvaluationIndicator.indicator_id'
+        )
+    )
     indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
     indicator = db.relationship(PAFunctionalCompetencyIndicator, backref=db.backref('indicator_eva_indicator'))
     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
@@ -481,6 +488,7 @@ class IDP(db.Model):
     accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
     approver_review = db.Column(db.String())
     achievement_percentage = db.Column(db.Float())
+    is_active = db.Column('is_active', db.Boolean(), default=True)
 
     @property
     def submitted(self):
@@ -559,4 +567,3 @@ class IDPLearningPlan(db.Model):
 
     def __str__(self):
         return f'{self.plan}'
-

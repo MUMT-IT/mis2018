@@ -1,0 +1,21 @@
+<script>
+    // OT relationships store account IDs, not personal-info IDs.
+    let otStaffOptionsRequest;
+    function loadOtStaffOptions(select) {
+        if (!otStaffOptionsRequest) {
+            otStaffOptionsRequest = $.getJSON({{ url_for('staff.get_staffid')|tojson }});
+            otStaffOptionsRequest.fail(function() { otStaffOptionsRequest = null; });
+        }
+        return otStaffOptionsRequest.then(function(staff) {
+            const selected = select.val();
+            const blankOptions = select.find('option[value="__None"], option[value=""]').clone();
+            select.empty().append(blankOptions);
+            staff.forEach(function(person) {
+                if (person.account_id != null) {
+                    select.append(new Option(person.fullname, person.account_id));
+                }
+            });
+            select.val(selected).trigger('change');
+        });
+    }
+</script>

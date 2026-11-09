@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}International Relations Participant Portal{% endblock %}
+
+{% block page_content %}
+<nav class="navbar is-link" aria-label="Participant portal navigation">
+  <div class="container">
+    <div class="navbar-brand">
+      <a class="navbar-item has-text-weight-bold" href="{{ url_for('international_relations.dashboard') }}">
+        <span class="icon mr-2"><i class="fa-solid fa-earth-asia"></i></span>
+        <span>International Relations</span>
+      </a>
+    </div>
+    <div class="navbar-menu is-active"><div class="navbar-end">
+      <a class="navbar-item" href="#profile">My profile</a>
+      <a class="navbar-item" href="#services">Services</a>
+      <a class="navbar-item" href="{{ url_for('international_relations.logout') }}">Sign out</a>
+    </div></div>
+  </div>
+</nav>
+
+<main class="section">
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="notification {% if category == 'danger' %}is-danger{% elif category == 'warning' %}is-warning{% else %}is-success{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <section class="box mb-5">
+      <div class="columns is-vcentered">
+        <div class="column is-narrow">
+          {% if current_user.profile_image_url %}
+            <figure class="image is-96x96"><img class="is-rounded" src="{{ current_user.profile_image_url }}" alt="Google profile photo"></figure>
+          {% else %}
+            <span class="icon is-large has-background-link-light has-text-link" style="border-radius:9999px;width:6rem;height:6rem"><i class="fa-solid fa-user fa-2x"></i></span>
+          {% endif %}
+        </div>
+        <div class="column">
+          <p class="has-text-link has-text-weight-semibold is-uppercase is-size-7">Participant portal</p>
+          <h1 class="title is-3 mb-2">Welcome, {{ current_user.display_name }}</h1>
+          <p class="subtitle is-6 mb-3">Keep your details current and follow your International Relations tasks here.</p>
+          <div class="tags">
+            <span class="tag is-success is-light"><span class="icon"><i class="fa-brands fa-google"></i></span><span>Google verified</span></span>
+            <span class="tag is-light">{{ current_user.email }}</span>
+          </div>
+        </div>
+        <div class="column is-3">
+          <p class="heading">Profile completion</p>
+          <p class="title is-4 mb-2">{{ current_user.profile_completion }}%</p>
+          <progress class="progress {% if current_user.profile_completion == 100 %}is-success{% else %}is-link{% endif %}" value="{{ current_user.profile_completion }}" max="100">{{ current_user.profile_completion }}%</progress>
+        </div>
+      </div>
+    </section>
+
+    {% if current_user.missing_profile_fields %}
+      <article class="message is-warning mb-5">
+        <div class="message-header"><p>Complete your profile</p></div>
+        <div class="message-body">
+          <p class="mb-2">The following information is still missing:</p>
+          <div class="tags">{% for label in current_user.missing_profile_fields %}<span class="tag is-warning is-light">{{ label }}</span>{% endfor %}</div>
+        </div>
+      </article>
+    {% endif %}
+
+    <section id="services" class="mb-6">
+      <h2 class="title is-4 mb-4">My services</h2>
+      <div class="columns is-multiline">
+        {% set services = [
+          ('fa-address-card', 'has-text-link', 'Personal profile', 'Contact, institution, research, and emergency information.', true),
+          ('fa-passport', 'has-text-info', 'Travel documents', 'Passport, visa, work permit, and supporting documents.', false),
+          ('fa-wallet', 'has-text-success', 'Financial requests', 'Salary, accommodation, withdrawal, and reimbursement records.', false),
+          ('fa-file-lines', 'has-text-warning', 'Reports', 'Submit scheduled progress and final reports for review.', false)
+        ] %}
+        {% for icon, tone, title, description, available in services %}
+          <div class="column is-6-tablet is-3-desktop">
+            <article class="box" style="height:100%">
+              <span class="icon is-large {{ tone }}"><i class="fa-solid {{ icon }} fa-2x"></i></span>
+              <h3 class="title is-5 mt-3 mb-2">{{ title }}</h3>
+              <p class="has-text-grey mb-4">{{ description }}</p>
+              {% if available %}<a class="button is-link is-light is-fullwidth" href="#profile">Review profile</a>{% else %}<button class="button is-light is-fullwidth" type="button" disabled>Coming next</button>{% endif %}
+            </article>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section id="profile" class="box">
+      <div class="columns">
+        <div class="column is-4">
+          <p class="has-text-link has-text-weight-semibold is-uppercase is-size-7">Participant information</p>
+          <h2 class="title is-4 mt-2">My profile</h2>
+          <p class="has-text-grey mb-4">Your name and email come from Google. The remaining fields can be updated here.</p>
+          <div class="content is-small">
+            <p><strong>Google name</strong><br>{{ current_user.full_name }}</p>
+            <p><strong>Google email</strong><br>{{ current_user.email }}</p>
+          </div>
+        </div>
+        <div class="column is-8">
+          <form method="post" action="{{ url_for('international_relations.update_profile') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="columns">
+              <div class="column"><label class="label" for="preferred_name">Preferred name</label><input id="preferred_name" class="input" name="preferred_name" maxlength="100" value="{{ current_user.preferred_name or '' }}" autocomplete="nickname"></div>
+              <div class="column"><label class="label" for="phone">Phone number</label><input id="phone" class="input" name="phone" maxlength="50" value="{{ current_user.phone or '' }}" autocomplete="tel"></div>
+            </div>
+            <div class="columns">
+              <div class="column"><label class="label" for="nationality">Nationality</label><input id="nationality" class="input" name="nationality" maxlength="100" value="{{ current_user.nationality or '' }}" autocomplete="country-name"></div>
+              <div class="column"><label class="label" for="home_institution">Home institution</label><input id="home_institution" class="input" name="home_institution" maxlength="255" value="{{ current_user.home_institution or '' }}"></div>
+            </div>
+            <div class="field"><label class="label" for="department">Department or faculty</label><input id="department" class="input" name="department" maxlength="255" value="{{ current_user.department or '' }}"></div>
+            <div class="field"><label class="label" for="research_topic">Research topic or area of interest</label><textarea id="research_topic" class="textarea" name="research_topic" maxlength="2000" rows="3">{{ current_user.research_topic or '' }}</textarea></div>
+            <h3 class="title is-6 mt-5">Emergency contact</h3>
+            <div class="columns">
+              <div class="column"><label class="label" for="emergency_contact_name">Contact name</label><input id="emergency_contact_name" class="input" name="emergency_contact_name" maxlength="200" value="{{ current_user.emergency_contact_name or '' }}"></div>
+              <div class="column"><label class="label" for="emergency_contact_phone">Contact phone</label><input id="emergency_contact_phone" class="input" name="emergency_contact_phone" maxlength="50" value="{{ current_user.emergency_contact_phone or '' }}" autocomplete="tel"></div>
+            </div>
+            <div class="field mt-5"><button class="button is-link" type="submit"><span class="icon"><i class="fa-solid fa-floppy-disk"></i></span><span>Save profile</span></button></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+{% endblock %}

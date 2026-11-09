@@ -23,9 +23,19 @@ class StaffSeminarForm(ModelForm):
 
 
 def create_seminar_attend_form(current_user):
+    def get_seminar_approvers():
+        active_approvers = StaffLeaveApprover.query.filter_by(
+            staff_account_id=current_user.id,
+            is_active=True
+        ).all()
+        if len(active_approvers) == 2:
+            return [approver for approver in active_approvers if approver.is_middle_level]
+        return active_approvers
+
     class StaffSeminarAttendForm(ModelForm):
         class Meta:
             model = StaffSeminarAttend
+            exclude = ['deduct_transfer']
 
         missions = QuerySelectMultipleField(u'เพื่อพัฒนาในด้าน', get_label='mission',
                                               query_factory=lambda: StaffSeminarMission.query.filter_by(is_active=True).all(),
@@ -37,8 +47,7 @@ def create_seminar_attend_form(current_user):
                                     get_label='approver_name',
                                     allow_blank=False,
                                     blank_text=u'กรุณาเลือก',
-                                    query_factory=lambda: StaffLeaveApprover.
-                                    query.filter_by(staff_account_id=current_user.id, is_active=True).all())
+                                    query_factory=get_seminar_approvers)
 
     return StaffSeminarAttendForm
 

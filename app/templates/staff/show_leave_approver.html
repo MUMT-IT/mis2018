@@ -39,6 +39,8 @@
                                {% else %}class="tag is-medium is-light" {% endif %}
                                href="{{ url_for('staff.staff_add_approver', approver_id=approver.account.id) }}">
                                     {{ approver.account.personal_info.fullname }}
+                                    {% if approver.is_lower_level %}(หัวหน้างาน){% endif %}
+                                    {% if approver.is_middle_level %}(หัวหน้าภาค/รอง){% endif %}
                             </a>
                             {% endfor %}
                             </div>

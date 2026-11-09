@@ -1034,7 +1034,7 @@ def show_ot_form_modal(_id=None):
     form = RecordForm()
     compensation_rates = get_compensation_rates_for_timeslot(timeslot)
     form.compensation.query = compensation_rates
-    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.get_active_accounts()]
+    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query.all()]
     if form.validate_on_submit():
         candidate_start = _bangkok_localize(shift.datetime.lower) if shift else _bangkok_localize(
             datetime.combine(start.date(), timeslot.start)
@@ -1082,7 +1082,8 @@ def show_ot_form_modal(_id=None):
                                form=form, slot_id=timeslot.id, timeslot=timeslot, records=records,
                                compensation_rates=compensation_rates)
     resp = make_response(template)
-    resp.headers['HX-Trigger-After-Swap'] = json.dumps({"initSelect2js": "",
+    # Wait until HTMX restores the new select's attributes before initializing Select2.
+    resp.headers['HX-Trigger-After-Settle'] = json.dumps({"initSelect2js": "",
                                                         "clearSelection": "",
                                                         "refetchEvents": ""})
     return resp
@@ -1113,7 +1114,7 @@ def get_compensation_rates(doc_id):
     entry_ = form.items.append_entry()
     entry_.compensation.choices = [(rate.id, rate) for rate in compensations]
     entry_.time_slots.choices = [(slot.id, slot) for slot in compensations[0].time_slots]
-    entry_.staff.choices = [(staff.id, staff.fullname) for staff in document.org.active_staff_accounts]
+    entry_.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query.all()]
     template = f'''
     <div class="field">
         <div class="select">
@@ -2398,36 +2399,10 @@ def _compute_work_minutes(record, shift_start, shift_end, pair):
             return None
     else:
         checkout = None
-    if record.compensation.per_period:
-        if pair.end is None:
-            return {
-                'checkin': checkin,
-                'checkout': checkout,
-                'checkin_late_minutes': 0,
-                'checkout_early_minutes': 0,
-                'total_work_minutes': None,
-                'total_pay': None,
-                'missing_checkout': True,
-            }
-        checkin_late_minutes = 0
-        checkout_early_minutes = 0
-        total_work_minutes = record.total_shift_minutes
-        total_pay = round(record.calculate_total_pay(total_work_minutes), 2)
-        return {
-            'checkin': checkin,
-            'checkout': checkout,
-            'checkin_late_minutes': checkin_late_minutes,
-            'checkout_early_minutes': checkout_early_minutes,
-            'total_work_minutes': total_work_minutes,
-            'total_pay': total_pay,
-            'missing_checkout': False,
-        }
-
     if pair.end:
         if pair.end < shift_end:
             delta_end = shift_end - pair.end
             end_delta_minutes = divmod(delta_end.total_seconds(), 60)
-            print('end_delta_minutes:', end_delta_minutes, delta_end)
         else:
             end_delta_minutes = (0, 0)
     else:
@@ -2435,18 +2410,22 @@ def _compute_work_minutes(record, shift_start, shift_end, pair):
 
     checkin_late_minutes = 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0]
     checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
-    if checkin_late_minutes > 0 or checkout_early_minutes > 0:
-        total_work_minutes = record.total_shift_minutes - checkin_late_minutes - checkout_early_minutes
+    if record.compensation.per_period:
+        checkin_late_minutes = 0
+        checkout_early_minutes = 0
+    total_work_minutes = None
+    total_pay = None
+    if pair.end is not None:
+        work_start = max(pair.start, shift_start)
+        work_end = min(pair.end, shift_end)
+        total_work_minutes = max(0, (work_end - work_start).total_seconds() // 60)
         total_pay = round(record.calculate_total_pay(total_work_minutes), 2)
-    else:
-        total_pay = round(record.calculate_total_pay(record.total_shift_minutes), 2)
-        total_work_minutes = record.total_shift_minutes
 
     if pair.end is None:
         return {
             'checkin': checkin,
             'checkout': checkout,
-            'checkin_late_minutes': 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0],
+            'checkin_late_minutes': checkin_late_minutes,
             'checkout_early_minutes': 0,
             'total_work_minutes': None,
             'total_pay': None,
@@ -2688,7 +2667,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                         if best_open_rank is None or selection_rank < best_open_rank:
                             best_open_rank = selection_rank
                             best_open = (_pair, attendance)
-                    elif total_work_minutes > 0:
+                    elif total_work_minutes > 0 or record.compensation.per_period:
                         if best_complete_rank is None or selection_rank < best_complete_rank:
                             best_complete_rank = selection_rank
                             best_complete = (_pair, attendance)
@@ -2702,7 +2681,10 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                     checkout_early_minutes = attendance['checkout_early_minutes']
                     total_work_minutes = attendance['total_work_minutes']
                     total_pay = attendance['total_pay']
-                    is_late_cutoff = checkin_late_minutes > MAX_LATE_MINUTES
+                    is_late_cutoff = bool(
+                        record.compensation.per_hour
+                        and checkin_late_minutes > MAX_LATE_MINUTES
+                    )
 
                     if total_work_minutes is None:
                         rec.update({
@@ -2729,7 +2711,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                             'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
                             'payment': 0.0 if is_late_cutoff else total_pay,
                             'work_minutes': total_work_minutes,
-                            'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes else None,
+                            'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes is not None else None,
                             'anchor_warning': anchor_warning,
                             'anchor_warning_display': 'May need a 00:00 anchor' if anchor_warning else None,
                         })

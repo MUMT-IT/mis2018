@@ -22,22 +22,41 @@
         <div class="box">
             <h2 class="title is-5">นักศึกษาที่ลงทะเบียนใน {{ clo.course.en_code }}</h2>
             {% if students %}
+            <div class="field mb-4">
+                <label class="label" for="student-search">ค้นหานักศึกษา</label>
+                <div class="control has-icons-left">
+                    <input class="input" id="student-search" type="search"
+                           placeholder="ค้นหาด้วยรหัสนักศึกษาหรือชื่อ"
+                           autocomplete="off">
+                    <span class="icon is-small is-left"><i class="fas fa-search"></i></span>
+                </div>
+            </div>
             <div class="table-container">
                 <table class="table is-fullwidth is-hoverable">
-                    <thead><tr><th>รหัสนักศึกษา</th><th>ชื่อ</th><th>สถานะ</th><th></th></tr></thead>
-                    <tbody>
+                    <thead><tr><th>รหัสนักศึกษา</th><th>ชื่อ</th><th>สถานะ</th><th>คะแนนรวม</th><th></th></tr></thead>
+                    <tbody id="student-table-body">
                     {% for student in students %}
-                    <tr>
+                    {% set submission = submissions_by_student.get(student.id) %}
+                    <tr class="student-row">
                         <td>{{ student.student_id }}</td>
-                        <td>{{ student.th_name }}</td>
-                        <td>{% if submissions_by_student.get(student.id) %}<span class="tag is-success is-light">ประเมินแล้ว</span>{% elif student_evidence.get(student.id) %}<span class="tag is-warning is-light">ยังไม่ประเมิน</span>{% endif %}</td>
+                        <td>
+                            <a href="{{ url_for('eduqa.view_student_skill_evidence_results', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, student_id=student.id) }}"
+                               title="ดูประวัติผลการประเมินของ {{ student.th_name }}">
+                                {{ student.th_name }}
+                            </a>
+                        </td>
+                        <td>{% if submission %}<span class="tag is-success is-light">ประเมินแล้ว {{ submission_counts.get(student.id, 0) }} ครั้ง</span>{% elif student_evidence.get(student.id) %}<span class="tag is-warning is-light">ยังไม่ประเมิน</span>{% endif %}</td>
+                        <td>{% if submission and submission.maximum_score %}<strong>{{ '%.2f'|format(submission.weighted_score) }}</strong> / {{ '%.2f'|format(submission.maximum_score) }}{% elif submission %}<span class="has-text-grey">ไม่มีข้อที่คิดคะแนน</span>{% else %}<span class="has-text-grey">-</span>{% endif %}</td>
                         <td class="has-text-right">
                             <a class="button is-small is-success" href="{{ url_for('eduqa.fill_student_skill_evidence_form', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, assignment_id=assignment.id, student_id=student.id) }}">
-                                <span class="icon"><i class="fas fa-edit"></i></span><span>{% if submissions_by_student.get(student.id) %}แก้ไขผลประเมิน{% else %}กรอกผลประเมิน{% endif %}</span>
+                                <span class="icon"><i class="fas fa-plus"></i></span><span>{% if submission %}เพิ่มผลประเมิน{% else %}กรอกผลประเมิน{% endif %}</span>
                             </a>
                         </td>
                     </tr>
                     {% endfor %}
+                    <tr id="student-search-empty" hidden>
+                        <td colspan="5" class="has-text-centered has-text-grey py-5">ไม่พบนักศึกษาที่ตรงกับคำค้นหา</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -47,4 +66,32 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('student-search');
+    const rows = Array.from(document.querySelectorAll('#student-table-body .student-row'));
+    const emptyRow = document.getElementById('student-search-empty');
+
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function () {
+        const query = searchInput.value.trim().toLocaleLowerCase();
+        let visibleCount = 0;
+
+        rows.forEach(function (row) {
+            const studentId = row.cells[0].textContent.toLocaleLowerCase();
+            const studentName = row.cells[1].textContent.toLocaleLowerCase();
+            const matches = !query || studentId.includes(query) || studentName.includes(query);
+            row.hidden = !matches;
+            if (matches) visibleCount += 1;
+        });
+
+        emptyRow.hidden = visibleCount !== 0;
+    });
+});
+</script>
 {% endblock %}

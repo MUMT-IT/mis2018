@@ -66,6 +66,10 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+                <p class="help mt-2">
+                    <span class="icon has-text-danger"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></span>
+                    ระยะเวลาทำงานน้อยกว่า 1 ชม. กรุณาตรวจสอบความถูกต้องของการแสกนเข้า-ออกงาน
+                </p>
                 <div class="buttons is-centered mt-5 mb-0">
                     <a class="button is-info is-medium is-rounded staff-login-records-button"
                        href="{{ url_for('staff.show_time_report_records') }}">
@@ -149,6 +153,12 @@
             },
             {
                 data: 'work_minutes_display',
+                render: function(data, type, row) {
+                    if (type === 'display' && row.work_minutes != null && row.work_minutes < 60) {
+                        return (data || '0m') + ' <span class="icon has-text-danger" title="ระยะเวลาทำงานน้อยกว่า 1 ชม. กรุณาตรวจสอบความถูกต้องของการแสกนเข้า-ออกงาน" role="img" aria-label="ระยะเวลาทำงานน้อยกว่า 1 ชม. กรุณาตรวจสอบความถูกต้องของการแสกนเข้า-ออกงาน"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></span>'
+                    }
+                    return data
+                },
             },
             {
                 data: 'payment',

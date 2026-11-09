@@ -1365,6 +1365,27 @@ def get_procurement_search_data():
         records_total = base_query.order_by(None).count()
         records_filtered = records_total
 
+    sortable_columns = {
+        'name': ProcurementDetail.name,
+        'procurement_no': ProcurementDetail.procurement_no,
+        'erp_code': ProcurementDetail.erp_code,
+        'budget_year': ProcurementDetail.budget_year,
+        'received_date': ProcurementDetail.received_date,
+        'available': ProcurementDetail.available,
+    }
+    ordering = []
+    order_index = 0
+    while f'order[{order_index}][column]' in request.args:
+        column_index = request.args.get(f'order[{order_index}][column]', type=int)
+        column_name = request.args.get(f'columns[{column_index}][data]')
+        column = sortable_columns.get(column_name)
+        if column is not None:
+            direction = request.args.get(f'order[{order_index}][dir]', 'asc')
+            ordering.append(column.desc() if direction == 'desc' else column.asc())
+        order_index += 1
+
+    # Break ties consistently so records do not move between pages.
+    query = query.order_by(None).order_by(*ordering, ProcurementDetail.id.asc())
     results = query.offset(start).limit(length).all()
 
     data = []
@@ -1379,6 +1400,12 @@ def get_procurement_search_data():
             'view': '<a href="{}"><i class="fas fa-search"></i></a>'.format(
                 url_for(
                     'procurement.view_procurement_for_mumt',
+                    procurement_no=item.procurement_no
+                )
+            ),
+            'check': '<a href="{}"><i class="far fa-check-circle"></i></a>'.format(
+                url_for(
+                    'procurement.view_procurement_on_scan',
                     procurement_no=item.procurement_no
                 )
             ),

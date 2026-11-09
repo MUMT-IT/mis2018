@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <h1 class="title has-text-centered">บันทึกการอบรม สัมมนา</h1>
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>
+                               <label class="label">ผู้ไปอบรม</label>
+                            </td>
+                            <td>
+                                {% if proposer_names and proposer_names|length > 1 %}
+                                    <ol>
+                                        {% for name in proposer_names %}
+                                            <li>{{ name }}</li>
+                                        {% endfor %}
+                                    </ol>
+                                {% else %}
+                                    <p class="is-size-5"><strong>{{ attend.staff.personal_info }}</strong></p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if attend.head_account_id %}
+                        <tr>
+                            <td>
+                               <label>ผู้บังคับบัญชา</label>
+                            </td>
+                            <td>
+                                {{ attend.head_account.personal_info }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td>
+                               <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                <p class="is-size-5"><strong>{{ attend.seminar.topic }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label>ระยะเวลางานสัมมนา</label>
+                            </td>
+                            <td>
+                                {{ attend.seminar.start_datetime|localdatetime }} -
+                                {{ attend.seminar.end_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ระยะเวลาเข้าร่วม</label>
+                            </td>
+                            <td>
+                                {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label>ประเภท</label>
+                            </td>
+                            <td>
+                                {{ attend.seminar.topic_type }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">บทบาท</label>
+                            </td>
+                            <td>
+                                {{ attend.role }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ด้าน</label>
+                            </td>
+                            <td>{% for mission in attend.missions %}
+                                {{ mission.mission }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ดำเนินการภายใต้</label>
+                            </td>
+                            <td>{% for obj in attend.objectives %}
+                                    {{ obj.objective }}
+                                    {% if "IDP" in obj.objective %}
+                                        <table>
+                                            <thead>
+                                            <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                                            <th>วิธีการพัฒนา</th>
+                                            </thead>
+                                            {% for item in attend.idp_items %}
+                                             <tr>
+
+                                                    <td>{{ item.plan }}</td>
+                                                    <td>{{ item.learning_type }}</td>
+
+                                             </tr>
+                                             {% endfor %}
+                                        </table>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">สถานที่</label>
+                            </td>
+                            <td>
+                                {{ attend.seminar.location }}
+                            </td>
+                        </tr>
+                        {% if attend.attend_online %}
+                        <tr>
+                            <td>
+
+                            </td>
+                            <td>
+                                เข้าร่วมแบบออนไลน์
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {#{% if attend.budget %}
+                        <tr>
+                            <td>
+                               <label class="label">ค่าใช้จ่าย</label>
+                            </td>
+                            <td>{% if attend.budget_type %}
+                                แหล่งงบประมาณ/เงินทุน: {{ attend.budget_type }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}#}
+                        {% if attend.registration_fee %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าลงทะเบียน: {{ "{:,.2f}".format(attend.registration_fee) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.accommodation_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าที่พัก: {{ "{:,.2f}".format(attend.accommodation_cost) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.fuel_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าน้ำมัน: {{ "{:,.2f}".format(attend.fuel_cost) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.train_ticket_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่ารถไฟ: {{ "{:,.2f}".format(attend.train_ticket_cost) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.taxi_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าTaxi: {{ "{:,.2f}".format(attend.taxi_cost) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.flight_ticket_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าตั๋วเครื่องบิน: {{ "{:,.2f}".format(attend.flight_ticket_cost) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.transaction_fee %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าธรรมเนียมการโอน: {{ "{:,.2f}".format(attend.transaction_fee) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.budget %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                รวมทั้งสิ้น {{ "{:,.2f}".format(attend.budget) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+{#                        {% if attend.lower_level_approver %}
+                        <tr>
+                            <td>
+                                การอนุมัติ
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if proposal %}
+                        {% for proposal in proposal %}
+                            <tr>
+                            <td>
+
+                            </td>
+                            <td>
+                                {{ proposal.proposer.personal_info }}
+                                {% if proposal.is_approved == True %}
+                                    อนุมัติ
+                                {% else %}
+                                    ไม่อนุมัติ เนื่องจาก {{ proposal.comment }}
+                                {% endif %}
+                                {{ proposal.approved_at|localdatetime }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if approval.approver %}
+                        <tr>
+                            <td>
+                                คณบดี/รักษาการฯ
+                            </td>
+                            <td>
+                                {{ approval.approver.personal_info }} {{ approval.updated_at|localdatetime }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endif %}
+                        {% if upload_file_url %}
+                        <tr>
+                            <td>
+                                หนังสือขออนุมัติ
+                            </td>
+                            <td>
+                                <a href="{{ upload_file_url }}">คลิกเพื่อดู</a>
+                            </td>
+                        </tr>
+                        {% endif %}#}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=attend.seminar.id) }}" class="button is-light">
+                        <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                            <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</section>
+{% endblock %}

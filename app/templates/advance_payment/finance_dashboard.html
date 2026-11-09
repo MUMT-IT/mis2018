@@ -6,6 +6,22 @@
   <header class="mb-4 pb-3 border-bottom">
     <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับฝ่ายการเงิน</p>
     <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
+    <form method="post" action="{{ url_for('advance_payment.toggle_cash_mng_finance_state') }}" class="d-flex align-items-center gap-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <span class="fw-bold">
+        สถานะ:
+        <span class="badge {{ 'bg-success' if cash_mng_finance_open else 'bg-danger' }}">
+          {{ 'เปิดปีงบประมาณ' if cash_mng_finance_open else 'ปิดปีงบประมาณ' }}
+        </span>
+      </span>
+      <button type="submit"
+              name="action"
+              value="{{ 'close' if cash_mng_finance_open else 'open' }}"
+              class="btn {{ 'btn-outline-danger' if cash_mng_finance_open else 'btn-outline-success' }} fw-bold">
+        <i class="bi {{ 'bi-lock-fill' if cash_mng_finance_open else 'bi-unlock-fill' }} me-1"></i>
+        {{ 'ปิดปีงบประมาณ' if cash_mng_finance_open else 'เปิดปีงบประมาณ' }}
+      </button>
+    </form>
   </header>
 
   <!-- Section กรองและค้นหาข้อมูลแบบ Row -->
@@ -26,6 +42,7 @@
         <select id="statusFilter" class="form-select style-select" onchange="filterTable()">
           <option value="all">แสดงสถานะทั้งหมด</option>
           <option value="รอตรวจสอบ">รอการตรวจสอบ</option>
+          <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
           <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
           <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ / รอการโอนคืน</option>
         </select>
@@ -58,7 +75,7 @@
           </li>
           <li class="nav-item" role="presentation">
             <button class="nav-item-tab nav-link py-3 fw-bold text-primary" id="tab-advance" type="button" onclick="switchSystemTab('advance')">
-              <i class="bi bi-cash-stack me-1 text-primary"></i> เงินทดรองจ่าย / ส่งใช้เงินยืม
+              <i class="bi bi-cash-stack me-1 text-primary"></i> เงินยืมทดรองจ่าย / ส่งใช้เงินยืม
               <span class="badge bg-primary rounded-pill ms-1" id="tab-badge-advance">0</span>
             </button>
           </li>
@@ -95,9 +112,9 @@
             <tbody id="ticketsTableBody">
               {% set state = namespace(has_pending=false) %}
 
-              <!-- 1. สัญญาเงินยืม (ticket status = pending / กำลังส่งคำขอ) -->
+              <!-- 1. สัญญาเงินยืมที่รอฝ่ายการเงินตรวจสอบหรือกำลังดำเนินการ -->
               {% for borrowing_ticket in borrowing_tickets %}
-                {% if borrowing_ticket.status|lower in ['กำลังส่งคำขอ', 'รอตรวจสอบ'] %}
+                {% if borrowing_ticket.status|lower in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'รอตรวจสอบ'] %}
                   {% set state.has_pending = true %}
                   <tr class="ticket-row" 
                       data-system="advance"
@@ -117,9 +134,15 @@
                     </td>
                     <td class="fw-semibold text-end">{{ "{:,.2f}".format(borrowing_ticket.required_budget|float) if borrowing_ticket.required_budget else '0.00' }}</td>
                     <td class="text-center">{{ borrowing_ticket.created_at|thai_date if borrowing_ticket.created_at else '-' }}</td>
-                    <td class="text-center"><span class="badge bg-warning text-dark">รออนุมัติสัญญา</span></td>
                     <td class="text-center">
-                      <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-primary fw-bold" style="border-radius:6px;">
+                      {% if borrowing_ticket.status|lower == 'กำลังดำเนินการ' %}
+                        {{ status_badge('กำลังดำเนินการ') }}
+                      {% else %}
+                        <span class="badge bg-warning text-dark">รออนุมัติสัญญา</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
                         ไปตรวจสอบ
                       </a>
                     </td>
@@ -151,13 +174,13 @@
                     <td class="text-center">{{ return_item.created_at|thai_date if return_item.created_at else '-' }}</td>
                     <td class="text-center">
                       {% if return_item.status|lower in ['รอตรวจสอบ'] %}
-                        <span class="badge bg-warning text-dark">รอตรวจเอกสาร</span>
+                        {{ status_badge('รอตรวจสอบ', 'รอตรวจเอกสาร') }}
                       {% else %}
-                        <span class="badge bg-info text-dark">กำลังตรวจสอบ</span>
+                        {{ status_badge('กำลังตรวจสอบ') }}
                       {% endif %}
                     </td>
                     <td class="text-center">
-                      <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_item.id) }}" class="btn btn-sm btn-primary fw-bold" style="border-radius:6px;">
+                      <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_item.id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
                         ไปตรวจสอบ
                       </a>
                     </td>
@@ -182,21 +205,19 @@
                       <td><strong>{{ parcel.display_ticket_number if parcel.display_ticket_number is defined else "-" }}</strong></td>
                       <td>{{ parcel.display_borrower_name if parcel.display_borrower_name is defined else "-" }}</td>
                       <td>
-                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1">
-                          <i class="bi bi-box me-1"></i>ส่งคืนพัสดุ
-                        </span>
+                        {{ parcel_return_type_badge(parcel.type_label, 'px-2.5 py-1') }}
                       </td>
                       <td class="fw-semibold text-end">{{ "{:,.2f}".format(parcel.amount_spent|float) if parcel.amount_spent else '0.00' }}</td>
                       <td class="text-center">{{ parcel.created_at|thai_date if parcel.created_at else '-' }}</td>
                       <td class="text-center">
                         {% if parcel.status|lower in ['รอตรวจสอบ'] %}
-                          <span class="badge bg-warning text-dark">รอตรวจสอบ</span>
+                          {{ status_badge('รอตรวจสอบ') }}
                         {% elif parcel.status|lower in ['พัสดุกำลังดำเนินการ', 'กำลังตรวจสอบ'] %}
-                          <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
+                          {{ status_badge('พัสดุกำลังดำเนินการ') }}
                         {% elif parcel.status|lower in ['ได้รับเอกสารแล้ว', 'ผ่านการตรวจสอบ'] %}
-                          <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
+                          {{ status_badge('ได้รับเอกสารแล้ว') }}
                         {% else %}
-                          <span class="badge bg-warning text-dark">{{ parcel.status }}</span>
+                          {{ status_badge(parcel.status) }}
                         {% endif %}
                       </td>
                       <td class="text-center">
@@ -243,11 +264,11 @@
                       <td class="text-center">{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
                       <td class="text-center">
                         {% if claim.status|lower in ['รอตรวจสอบ'] %}
-                          <span class="badge bg-warning text-dark">รอตรวจเอกสาร</span>
+                          {{ status_badge('รอตรวจสอบ', 'รอตรวจเอกสาร') }}
                         {% elif claim.status|lower in ['กำลังตรวจสอบ'] %}
-                          <span class="badge bg-info text-dark">กำลังตรวจสอบ</span>
+                          {{ status_badge('กำลังตรวจสอบ') }}
                         {% elif claim.status|lower in ['ผ่านการตรวจสอบ'] %}
-                          <span class="badge bg-success text-white">รอการโอนคืน</span>
+                          {{ status_badge('ผ่านการตรวจสอบ', 'รอการโอนคืน') }}
                         {% endif %}
                       </td>
                       <td class="text-center">
@@ -327,11 +348,14 @@
       if (["กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status)) {
         return "กำลังตรวจสอบ";
       }
-      if (["ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว"].includes(status)) {
+      if (["ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว", "ยืนยันการตรวจสอบ"].includes(status)) {
         return "ผ่านการตรวจสอบ";
       }
       if (["กำลังส่งคำขอ"].includes(status)) {
         return "รอตรวจสอบ";
+      }
+      if (["กำลังดำเนินการ"].includes(status)) {
+        return "กำลังดำเนินการ";
       }
 
       return status;
@@ -339,7 +363,7 @@
 
     function isPendingReviewStatus(rawStatus) {
       const status = (rawStatus || "").toLowerCase();
-      return ["กำลังส่งคำขอ", "รอตรวจสอบ", "กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status);
+      return ["กำลังส่งคำขอ", "กำลังดำเนินการ", "รอตรวจสอบ", "กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status);
     }
 
     function calculateSummaryCounts() {

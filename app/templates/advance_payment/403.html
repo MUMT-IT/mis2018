@@ -3,16 +3,22 @@
 {% block title %}ปฏิเสธการเข้าถึง | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
-  <section class="hero text-center py-4">
-    <p class="eyebrow text-danger fw-bold text-uppercase" style="letter-spacing: 0.1em;">ปฏิเสธการเข้าถึง</p>
-    <h1 class="fw-bold mb-3">คุณไม่มีสิทธิ์ในการเข้าถึงหรือดูหน้านี้</h1>
-    <p class="lead text-muted">
-      โปรดเข้าสู่ระบบด้วยบัญชีผู้ใช้ที่มีบทบาทถูกต้องเพื่อดำเนินการต่อ
-    </p>
+  <section class="d-flex align-items-center justify-content-center py-5 px-3" style="min-height: 60vh;">
+    <div class="text-center" style="max-width: 560px; width: 100%; border-radius: 20px;">
+      <div class="card-body p-4 p-md-5">
+        <div class="d-inline-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded-circle mb-4" style="width: 72px; height: 72px;">
+          <i class="bi bi-lock-fill fs-2" aria-hidden="true"></i>
+        </div>
+        <p class="text-danger fw-bold text-uppercase small mb-2" style="letter-spacing: 0.1em;">ปฏิเสธการเข้าถึง</p>
+        <h1 class="h3 fw-bold mb-3">คุณไม่มีสิทธิ์ดูหน้านี้</h1>
+        <p class="text-muted mb-4">
+          บัญชีของคุณไม่มีสิทธิ์ดูหน้านี้ หรือคุณอาจเลือกเมนูไม่ถูกต้อง
+          กรุณากลับไปเลือกเมนูใหม่อีกครั้ง
+        </p>
+        <a class="btn btn-primary btn-lg px-4" href="{{ url_for('advance_payment.login') }}" style="border-radius: 12px;">
+          <i class="bi bi-arrow-left me-2" aria-hidden="true"></i>กลับสู่หน้าเลือกระบบ
+        </a>
+      </div>
+    </div>
   </section>
-
-  <div class="button-row d-flex justify-content-center gap-2 mt-3">
-    <a class="btn btn-primary btn-lg px-4" href="{{ url_for('advance_payment.login') }}" style="border-radius: 12px;">กลับสู่หน้าเลือกบทบาท</a>
-    <a class="btn btn-outline-secondary btn-lg px-4" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 12px;">ล้างเซสชันของระบบนี้</a>
-  </div>
 {% endblock %}

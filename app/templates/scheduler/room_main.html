@@ -686,7 +686,12 @@
                             </a>
                         </div>
                     </div>
-                    <div id="room_calendar"></div>
+                    <div id="roomCalendarLoading" class="notification is-info is-light mb-3"
+                         role="status" aria-live="polite" hidden>
+                        <span class="icon" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span>
+                        <span>กำลังโหลดปฏิทิน...</span>
+                    </div>
+                    <div id="room_calendar" aria-busy="false"></div>
                 </div>
             </div>
         </div>
@@ -907,6 +912,10 @@
                     left: 'title',
                 },
                 events: '/room/api/events',
+                loading: function (isLoading) {
+                    document.getElementById('roomCalendarLoading').hidden = !isLoading;
+                    document.getElementById('room_calendar').setAttribute('aria-busy', String(isLoading));
+                },
                 eventLimit: false,
                 lazyFetching: true,
                 eventClick: function (calEvent, jsEvent, view) {

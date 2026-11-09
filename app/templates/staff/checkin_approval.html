@@ -56,14 +56,18 @@
                         <div class="has-text-centered">
                             <span>คำขอนี้ถูกอนุมัติเรียบร้อยแล้ว</span>
                         </div>
-                    {% elif not clock_request.cancelled_at %}
+                    {% elif not clock_request.cancelled_at and can_approve %}
                         <div class="control has-text-centered">
                             <a href="{{ url_for('staff.approved_for_clockin_clockout',
-                                request_id=clock_request.id, approver_id=current_user.id, approved='yes') }}"
+                                request_id=clock_request.id, approved='yes') }}"
                                class="button is-success">อนุมัติ</a>
                             <a href="{{ url_for('staff.approved_for_clockin_clockout',
-                                request_id=clock_request.id, approver_id=current_user.id, approved='no') }}"
+                                request_id=clock_request.id, approved='no') }}"
                                class="button is-danger">ไม่อนุมัติ</a>
+                        </div>
+                    {% elif not clock_request.cancelled_at %}
+                        <div class="has-text-centered">
+                            <span>คำขอนี้อยู่ระหว่างรอการอนุมัติ</span>
                         </div>
                     {% else %}
                         <div class="has-text-centered">

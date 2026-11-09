@@ -28,8 +28,9 @@
   </style>
 </head>
 <body class="email-page" style="margin:0; padding:0; background-color:#eef3f9; background-image:linear-gradient(#eef3f9,#eef3f9); color:#17345f; font-family:Tahoma, Arial, sans-serif;">
+  {% set is_partially_approved = email_state|default('complete') == 'partial' %}
   <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-    ผลการตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว ลิงก์มีอายุ 7 วัน
+    {% if is_partially_approved %}ผลการตรวจสุขภาพออนไลน์ของท่านได้รับการอนุมัติบางส่วนแล้ว ลิงก์มีอายุ 7 วัน{% else %}ผลการตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว ลิงก์มีอายุ 7 วัน{% endif %}
   </div>
   <table class="email-page" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#eef3f9" style="background-color:#eef3f9; background-image:linear-gradient(#eef3f9,#eef3f9);">
     <tr>
@@ -63,8 +64,13 @@
                 </tr>
               </table>
               <p style="margin:30px 0 8px; font-size:17px; line-height:1.8;">เรียน ท่านผู้รับการตรวจสุขภาพ</p>
-              <p style="margin:0 0 18px; font-size:17px; line-height:1.8;">ผลการตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณากดปุ่มด้านล่างและยืนยันอีเมลที่ลงทะเบียนไว้</p>
-              <p style="margin:0 0 26px; font-size:16px; line-height:1.75; color:#536b8e;">Dear customer, your online health examination results are now available. Open the notification and verify your registered email to continue.</p>
+              {% if is_partially_approved %}
+                <p style="margin:0 0 18px; font-size:17px; line-height:1.8;">ผลการตรวจสุขภาพออนไลน์ของท่านได้รับการอนุมัติแล้วบางส่วน ท่านสามารถกดปุ่มด้านล่างเพื่อเข้าดูผลตรวจที่พร้อมแสดงได้ และยืนยันอีเมลที่ลงทะเบียนไว้</p>
+                <p style="margin:0 0 26px; font-size:16px; line-height:1.75; color:#536b8e;">Dear customer, some of your online health examination results are now available. Open the notification and verify your registered email to view the results currently available.</p>
+              {% else %}
+                <p style="margin:0 0 18px; font-size:17px; line-height:1.8;">ผลการตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณากดปุ่มด้านล่างและยืนยันอีเมลที่ลงทะเบียนไว้</p>
+                <p style="margin:0 0 26px; font-size:16px; line-height:1.75; color:#536b8e;">Dear customer, your online health examination results are now available. Open the notification and verify your registered email to continue.</p>
+              {% endif %}
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>

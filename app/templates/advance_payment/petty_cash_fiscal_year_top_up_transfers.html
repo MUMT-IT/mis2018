@@ -1,0 +1,297 @@
+{% extends "advance_payment/base.html" %}
+
+{% from "advance_payment/_finance_last_edit.html" import last_edit with context %}
+
+{% macro transfer_rows(section_rows, empty_message) -%}
+  {% for row in section_rows %}
+  <tr class="transfer-row"
+      data-setting-id="{{ row.setting.id }}"
+      data-department-name="{{ row.setting.department_name or 'ไม่พบข้อมูลหน่วยงาน' }}"
+      data-transfer-type="{{ row.transfer_type }}"
+      data-transfer-amount="{{ row.transfer_amount or 0 }}"
+      data-transferred-at="{{ row.display_transferred_at.isoformat() if row.display_transferred_at else '' }}"
+      data-reduction-request-id="{{ row.reduction_request.id if row.reduction_request else '' }}"
+      data-reduction-ticket="{{ row.reduction_request.ticket_number if row.reduction_request and row.reduction_request.ticket_number else '' }}"
+      data-reduction-date="{{ row.reduction_request.request_date.isoformat() if row.reduction_request and row.reduction_request.request_date else '' }}">
+    <td class="fw-semibold">
+      {{ row.setting.department_name or 'ไม่พบข้อมูลหน่วยงาน' }}
+      {% if not row.setting.valid %}
+        <span class="badge bg-secondary ms-1">ปิดใช้งาน</span>
+      {% endif %}
+    </td>
+    <td class="text-end fw-bold text-primary">
+      {{ '{:,.2f}'.format(row.setting.budget or 0) }}
+    </td>
+    <td class="text-end">
+      {% if row.previous_carryover and row.previous_budget is not none %}
+        {{ '{:,.2f}'.format(row.previous_budget) }}
+      {% else %}
+        <span class="text-muted">0.00</span>
+        <div class="small text-muted">ไม่มีข้อมูลจากการยกยอดปีก่อน</div>
+      {% endif %}
+    </td>
+    <td>
+      <span class="d-block text-end fw-bold{% if row.transfer_type == 2 %} text-danger{% elif row.transfer_type == 1 %} text-success{% endif %}">
+        {{ '{:,.2f}'.format(row.transfer_amount or 0) }}
+      </span>
+    </td>
+    <td>
+      <span class="d-block text-center">
+        {{ row.display_transferred_at|thai_date if row.display_transferred_at else '-' }}
+      </span>
+      {% if row.transfer_type == 2 %}
+        <div class="small text-muted text-center">
+          {% if row.reduction_request %}
+            จากใบเบิก {{ row.reduction_request.ticket_number or '-' }}
+          {% else %}
+            ยังไม่พบใบเบิกลดวงเงิน
+          {% endif %}
+        </div>
+      {% endif %}
+    </td>
+    <td class="text-center">
+      <span class="small {% if row.transfer or row.reduction_recorded_by_request %}text-success{% else %}text-muted{% endif %}">
+        {% if row.transfer %}บันทึกแล้ว{% elif row.reduction_recorded_by_request %}บันทึกแล้ว (จากใบเบิก){% else %}ยังไม่บันทึก (ค่าแนะนำ){% endif %}
+      </span>
+    </td>
+    <td class="text-center">
+      <button type="button" class="btn btn-outline-primary btn-sm transfer-edit-button">แก้ไข</button>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="7" class="text-center text-muted py-4">{{ empty_message }}</td>
+  </tr>
+  {% endfor %}
+{%- endmacro %}
+
+{% block title %}บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณ | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+<style>
+  .transfer-budget-table {
+    table-layout: fixed;
+    min-width: 1150px;
+  }
+</style>
+
+<header class="mb-4 pb-3 border-bottom">
+  <a href="{{ url_for('advance_payment.petty_cash_settings') }}" title="กลับไปหน้าการจัดการเงินสดย่อย">
+    <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
+  </a>
+  <h1 class="fw-bold display-6 mb-2">บันทึกการโอนเพิ่มวงเงินตามปีงบประมาณ</h1>
+</header>
+
+  <section class="card shadow-sm border rounded-4 bg-white mb-4" id="budget-top-up-section">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h5 class="fw-bold text-primary mb-1">
+          <i class="bi bi-cash-coin me-2"></i>รายการโอนเพิ่มวงเงิน
+          <span class="badge bg-primary rounded-pill ms-1">{{ top_up_rows|length }}</span>
+        </h5>
+        {{ last_edit(transfer_records) }}
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 transfer-budget-table">
+        <colgroup>
+          <col style="width: 20%;">
+          <col style="width: 14%;">
+          <col style="width: 14%;">
+          <col style="width: 16%;">
+          <col style="width: 16%;">
+          <col style="width: 12%;">
+          <col style="width: 8%;">
+        </colgroup>
+        <thead class="table-light small fw-bold">
+          <tr>
+            <th>หน่วยงานเงินสดย่อย</th>
+            <th class="text-end">งบประมาณปีการศึกษา {{ current_fiscal_year + 543 }}</th>
+            <th class="text-end">งบประมาณปีการศึกษา {{ previous_fiscal_year + 543 }}</th>
+            <th class="text-end" style="min-width: 190px;">ส่วนต่าง (บาท)</th>
+            <th class="text-center" style="min-width: 190px;">วันที่โอนเงินสำเร็จ</th>
+            <th class="text-center">สถานะ</th>
+            <th class="text-center">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ transfer_rows(top_up_rows, 'ไม่มีรายการโอนเพิ่มวงเงิน') }}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border rounded-4 bg-white mb-4" id="reduction-section">
+    <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <h5 class="fw-bold text-danger mb-0">
+        <i class="bi bi-arrow-down-circle me-2"></i>รายการลดวงเงิน
+        <span class="badge bg-danger rounded-pill ms-1">{{ reduction_rows|length }}</span>
+      </h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 transfer-budget-table">
+        <colgroup>
+          <col style="width: 20%;">
+          <col style="width: 14%;">
+          <col style="width: 14%;">
+          <col style="width: 16%;">
+          <col style="width: 16%;">
+          <col style="width: 12%;">
+          <col style="width: 8%;">
+        </colgroup>
+        <thead class="table-light small fw-bold">
+          <tr>
+            <th>หน่วยงานเงินสดย่อย</th>
+            <th class="text-end">งบประมาณปีการศึกษา {{ current_fiscal_year + 543 }}</th>
+            <th class="text-end">งบประมาณปีการศึกษา {{ previous_fiscal_year + 543 }}</th>
+            <th class="text-end" style="min-width: 190px;">ส่วนต่าง (บาท)</th>
+            <th class="text-center" style="min-width: 190px;">วันที่เบิกเงิน</th>
+            <th class="text-center">สถานะ</th>
+            <th class="text-center">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ transfer_rows(reduction_rows, 'ไม่มีรายการลดวงเงิน') }}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+<div class="modal fade" id="transferEditModal" tabindex="-1" aria-labelledby="transferEditModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" id="transferEditForm" class="modal-content border-0 shadow">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="setting_id" id="transferSettingId">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title fw-bold" id="transferEditModalLabel">แก้ไขข้อมูลการปรับวงเงิน</h5>
+          <div class="small text-muted mt-1" id="transferDepartmentName"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="transferType" class="form-label fw-semibold">ประเภทการปรับวงเงิน</label>
+          <select name="transfer_type" id="transferType" class="form-select" required>
+            <option value="0">ไม่มีการโอน</option>
+            <option value="1">โอนเพิ่มวงเงิน</option>
+            <option value="2">ลดวงเงิน</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="transferAmount" class="form-label fw-semibold">ส่วนต่าง (บาท)</label>
+          <input type="text" name="transfer_amount" id="transferAmount" class="form-control text-end"
+                 inputmode="decimal" required>
+        </div>
+        <div class="mb-0">
+          <label for="transferDate" class="form-label fw-semibold" id="transferDateLabel">วันที่โอนเงินสำเร็จ</label>
+          <input type="date" name="transferred_at" id="transferDate" class="form-control">
+          <div class="form-text d-none" id="transferDateSource"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary px-4">บันทึกข้อมูล</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const modalElement = document.getElementById('transferEditModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const form = document.getElementById('transferEditForm');
+    const settingId = document.getElementById('transferSettingId');
+    const departmentName = document.getElementById('transferDepartmentName');
+    const type = document.getElementById('transferType');
+    const amount = document.getElementById('transferAmount');
+    const date = document.getElementById('transferDate');
+    const dateLabel = document.getElementById('transferDateLabel');
+    const dateSource = document.getElementById('transferDateSource');
+    let activeRow = null;
+    let previousType = '';
+    let manualDate = '';
+
+    function syncType() {
+      const noTransfer = type.value === '0';
+      const reduction = type.value === '2';
+      if (noTransfer) {
+        amount.value = '0.00';
+        date.value = '';
+      } else if (reduction) {
+        date.value = activeRow.dataset.reductionDate || '';
+      } else {
+        date.value = manualDate;
+      }
+      amount.readOnly = noTransfer;
+      date.disabled = noTransfer || reduction;
+      dateLabel.textContent = reduction ? 'วันที่เบิกเงิน' : 'วันที่โอนเงินสำเร็จ';
+      dateSource.classList.toggle('d-none', !reduction);
+      if (reduction) {
+        dateSource.textContent = activeRow.dataset.reductionRequestId
+          ? `วันที่จากใบเบิกลดวงเงิน ${activeRow.dataset.reductionTicket || ''}`
+          : 'ยังไม่พบใบเบิกลดวงเงินของหน่วยงานนี้';
+      }
+    }
+
+    document.querySelectorAll('.transfer-edit-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        activeRow = button.closest('.transfer-row');
+        settingId.value = activeRow.dataset.settingId;
+        departmentName.textContent = activeRow.dataset.departmentName;
+        type.value = activeRow.dataset.transferType;
+        amount.value = Number(activeRow.dataset.transferAmount || 0).toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+        date.value = activeRow.dataset.transferredAt || '';
+        manualDate = type.value === '1' ? date.value : '';
+        previousType = type.value;
+        type.setCustomValidity('');
+        amount.setCustomValidity('');
+        syncType();
+        modal.show();
+      });
+    });
+
+    type.addEventListener('change', () => {
+      if (previousType === '1') manualDate = date.value;
+      previousType = type.value;
+      type.setCustomValidity('');
+      syncType();
+    });
+    date.addEventListener('change', () => {
+      if (type.value === '1') manualDate = date.value;
+    });
+    amount.addEventListener('input', () => amount.setCustomValidity(''));
+    amount.addEventListener('blur', () => {
+      const rawValue = amount.value.replace(/,/g, '').trim();
+      if (!rawValue) return;
+      const parsed = Number(rawValue);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        amount.value = parsed.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+    });
+    form.addEventListener('submit', (event) => {
+      if (type.value === '2' && !activeRow.dataset.reductionRequestId) {
+        event.preventDefault();
+        type.setCustomValidity('ต้องมีใบเบิกลดวงเงินของหน่วยงานนี้เพียงหนึ่งใบ');
+        type.reportValidity();
+        return;
+      }
+      const parsed = Number(amount.value.replace(/,/g, '').trim());
+      if (!Number.isFinite(parsed) || (type.value !== '0' && parsed <= 0)) {
+        event.preventDefault();
+        amount.setCustomValidity('กรุณาระบุจำนวนเงินมากกว่า 0');
+        amount.reportValidity();
+        return;
+      }
+      amount.value = amount.value.replace(/,/g, '');
+    });
+  });
+</script>
+{% endblock %}

@@ -183,7 +183,12 @@ class StaffAccount(db.Model):
 
     @property
     def total_wfh_duration(self):
-        return sum([wfh.duration for wfh in self.wfh_requests if not wfh.cancelled_at and wfh.get_approved])
+        approved_requests = sum(
+            wfh.duration for wfh in self.wfh_requests
+            if not wfh.cancelled_at and wfh.get_approved
+        )
+        special_days = self.special_wfh_days.count()
+        return approved_requests + special_days
 
     @property
     def new_invitations(self):
@@ -237,18 +242,20 @@ class StaffPersonalInfo(db.Model):
 
     @property
     def fullname(self):
-        try:
-            academic_position = self.academic_positions[0]
-        except IndexError:
-            if self.academic_staff:
+        is_lecturer = (self.job_position is not None and
+                       self.job_position.th_title == u'อาจารย์')
+        if self.academic_staff and is_lecturer:
+            try:
+                academic_position = self.academic_positions[0]
+            except IndexError:
                 th_position = u'อ.'
                 en_position = u'Lect.'
             else:
-                th_position = None
-                en_position = None
+                th_position = academic_position.position.shortname_th
+                en_position = academic_position.position.shortname_en
         else:
-            th_position = academic_position.position.shortname_th
-            en_position = academic_position.position.shortname_en
+            th_position = None
+            en_position = None
 
         if self.th_firstname or self.th_lastname:
             if th_position:
@@ -754,6 +761,28 @@ class StaffWorkFromHomeRequest(db.Model):
         return [a for a in self.wfh_approvals if a.is_approved == False]
 
 
+staff_special_wfh_day_staff = db.Table(
+    'staff_special_wfh_day_staff',
+    db.Column('special_day_id', db.Integer(), db.ForeignKey('staff_special_wfh_days.id'), primary_key=True),
+    db.Column('staff_id', db.Integer(), db.ForeignKey('staff_account.id'), primary_key=True),
+)
+
+
+class StaffSpecialWorkFromHomeDay(db.Model):
+    __tablename__ = 'staff_special_wfh_days'
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    work_date = db.Column(db.Date(), nullable=False, unique=True)
+    name = db.Column(db.String(), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now)
+    created_by_id = db.Column(db.Integer(), db.ForeignKey('staff_account.id'), nullable=False)
+    created_by = db.relationship('StaffAccount', foreign_keys=[created_by_id])
+    staff = db.relationship(
+        'StaffAccount',
+        secondary=staff_special_wfh_day_staff,
+        backref=db.backref('special_wfh_days', lazy='dynamic'),
+    )
+
+
 class StaffWorkFromHomeJobDetail(db.Model):
     __tablename__ = 'staff_work_from_home_job_detail'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -827,7 +856,7 @@ class StaffSeminar(db.Model):
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String(),
                            info={'label': u'ประเภท',
-                                 'choices': [(c, c) for c in [u'อบรม', u'สัมมนา', u'ประชุม', u'ประชุมวิชาการ']]})
+                                 'choices': [(c, c) for c in [u'อบรม', u'สัมมนา', u'ประชุม', u'ประชุมวิชาการ', u'ศึกษาดูงาน', u'ปฏิบัติงานนอกสถานที่']]})
     topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
     organize_by = db.Column('organize_by', db.String(), info={'label': u'หน่วยงานที่จัด'})
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
@@ -900,7 +929,7 @@ class StaffSeminarAttend(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     role = db.Column('role', db.String(), info={'label': u'บทบาท', 'choices': [
-        (c, c) for c in [u'ผู้เข้าร่วม', u'อาจารย์พิเศษ', u'วิทยากร', u'ที่ปรึกษา', u'กรรมการ', u'นิเทศน์งาน']]})
+        (c, c) for c in [u'ผู้เข้าร่วม', u'ศึกษาดูงาน', u'ปฏิบัติงานนอกสถานที่']]})
     registration_fee = db.Column('registration_fee', db.Float(), info={'label': u'ค่าลงทะเบียน (บาท)'})
     invited_document_id = db.Column('document_id', db.String(), info={'label': u'เลขที่หนังสือเชิญ'})
     invited_organization = db.Column('invited_organization', db.String(), info={'label': u'หน่วยงานที่เชิญ'})
@@ -915,6 +944,7 @@ class StaffSeminarAttend(db.Model):
     budget_type = db.Column('budget_type', db.String(), info={'label': u'แหล่งทุน'})
     transaction_fee = db.Column('transaction_fee', db.Float(), info={'label': u'ค่าธรรมเนียมการโอน (บาท)'})
     budget = db.Column('budget', db.Float(), info={'label': u'ค่าใช้จ่ายรวมทั้งหมด (บาท)'})
+    deduct_transfer = db.Column('deduct_transfer', db.Boolean(), nullable=False, default=False)
     attend_online = db.Column('attend_online', db.Boolean(), default=False,
                               info={'label': u'เข้าร่วมผ่านช่องทาง online'})
     middle_level_approver_account_id = db.Column('middle_level_approver_account_id', db.ForeignKey('staff_account.id'))

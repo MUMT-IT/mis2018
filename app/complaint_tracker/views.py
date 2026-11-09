@@ -1104,6 +1104,8 @@ def new_record(topic_id, room=None, procurement=None):
     location = request.values.get('location')
     procurement_no = request.values.get('procurement_no')
     pro_number = request.values.get('pro_number')
+    erp_code = request.values.get('erp_code')
+    channel_receive = request.values.get('channel_receive')
     is_admin = False
     if (not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด' and has_procurement == 'true'):
         return redirect(url_for('auth.login'))
@@ -1111,9 +1113,15 @@ def new_record(topic_id, room=None, procurement=None):
         is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user, topic_id=topic_id).first() else False
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
-    elif procurement_no or pro_number:
+    if procurement_no or pro_number:
         procurement = ProcurementDetail.query.filter_by(
             procurement_no=procurement_no if procurement_no else pro_number).first()
+    elif erp_code:
+        procurement = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+    if request.method == 'GET' and topic.code == 'runied' and room:
+        form.procurement_location.data = room
+    if request.method == 'GET' and channel_receive == 'Website ของคณะเทคนิคการแพทย์':
+        form.channel_receive.data = channel_receive
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
@@ -1484,7 +1492,7 @@ def admin_index():
 
 @complaint_tracker.route('/topics/<code>')
 def scan_qr_code_room(code):
-    topic = ComplaintTopic.query.filter_by(code=code).first()
+    topic = ComplaintTopic.query.filter_by(code=code).first_or_404()
     return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, **request.args))
 
 

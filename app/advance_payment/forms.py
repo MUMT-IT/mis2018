@@ -63,12 +63,16 @@ class FundRequestForm(Form):
     account_number = StringField("เลขบัญชีหน่วยงาน")
     
     ticket_number = StringField("เลขที่ใบเบิกเงิน") 
-    # The view supplies today's date when this field is not part of the UI.
-    request_date = DateField("วันที่เบิกเงิน", format="%Y-%m-%d", validators=[Optional()])
+    request_date = DateField(
+        "วันที่เบิกเงิน",
+        format="%Y-%m-%d",
+        validators=[Optional()],
+    )
     
     amount = DecimalField("จำนวนเงิน", validators=[DataRequired(), NumberRange(min=0.01)], places=2)
     
     purpose = StringField("วัตถุประสงค์ในการเบิก", validators=[Optional()])
+    personal_note = StringField("หมายเหตุส่วนตัว", validators=[Optional()])
     items = StringField("รายการที่เบิก", validators=[Optional()])
     
     period_year = StringField("งวดวันที่ (เดือน/ปี)", validators=[Optional()])

@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}International Relations Administration{% endblock %}
+
+{% block page_content %}
+<nav class="navbar is-dark" aria-label="International Relations administration navigation">
+  <div class="container">
+    <div class="navbar-brand">
+      <a class="navbar-item has-text-weight-bold" href="{{ url_for('international_relations.admin_dashboard') }}">
+        <span class="icon mr-2"><i class="fa-solid fa-earth-asia"></i></span>
+        <span>International Relations Admin</span>
+      </a>
+    </div>
+    <div class="navbar-menu is-active">
+      <div class="navbar-end">
+        <a class="navbar-item" href="{{ url_for('international_relations.login') }}">Participant portal</a>
+        <a class="navbar-item" href="{{ url_for('index') }}">Main dashboard</a>
+        <a class="navbar-item" href="{{ url_for('auth.logout') }}">Sign out</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="section">
+  <div class="container">
+    <div class="level mb-5">
+      <div class="level-left">
+        <div>
+          <p class="has-text-link has-text-weight-semibold is-uppercase is-size-7">Administration</p>
+          <h1 class="title is-3 mb-2">Participant overview</h1>
+          <p class="subtitle is-6 has-text-grey">Google-authenticated accounts and their current access status.</p>
+        </div>
+      </div>
+      <div class="level-right">
+        <label class="field has-addons">
+          <span class="control">
+            <span class="button is-static" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+          </span>
+          <span class="control">
+            <input id="participant-search" class="input" type="search" placeholder="Search name or email">
+          </span>
+        </label>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="notification {% if category == 'danger' %}is-danger{% elif category == 'warning' %}is-warning{% else %}is-success{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if migration_required %}
+      <article class="message is-warning">
+        <div class="message-header"><p>Database migration required</p></div>
+        <div class="message-body">
+          The International Relations tables are not available. Apply migration
+          <code>d3e4f5a6b7c8</code> with <code>flask db upgrade</code>, then reload this page.
+        </div>
+      </article>
+    {% endif %}
+
+    <div class="columns is-multiline mb-4">
+      <div class="column is-6-tablet is-3-desktop">
+        <article class="box">
+          <p class="heading">Total participants</p>
+          <p class="title is-3">{{ summary.total }}</p>
+        </article>
+      </div>
+      <div class="column is-6-tablet is-3-desktop">
+        <article class="box">
+          <p class="heading">Active</p>
+          <p class="title is-3 has-text-success">{{ summary.active }}</p>
+        </article>
+      </div>
+      <div class="column is-6-tablet is-3-desktop">
+        <article class="box">
+          <p class="heading">Inactive</p>
+          <p class="title is-3 has-text-danger">{{ summary.inactive }}</p>
+        </article>
+      </div>
+      <div class="column is-6-tablet is-3-desktop">
+        <article class="box">
+          <p class="heading">Profiles named</p>
+          <p class="title is-3 has-text-link">{{ summary.complete_profiles }}</p>
+        </article>
+      </div>
+    </div>
+
+    <section class="box p-0" style="overflow: hidden">
+      <header class="p-5" style="border-bottom: 1px solid #e5e7eb">
+        <h2 class="title is-5 mb-1">Participants</h2>
+        <p class="is-size-7 has-text-grey">Accounts are created the first time a participant completes Google sign-in.</p>
+      </header>
+
+      <div class="table-container mb-0">
+        <table class="table is-fullwidth is-hoverable mb-0">
+          <thead>
+            <tr>
+              <th>Participant</th>
+              <th>Google identity</th>
+              <th>Created</th>
+              <th>Last sign-in</th>
+              <th>Status</th>
+              <th class="has-text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for participant in participants %}
+              <tr data-participant-row data-search="{{ (participant.full_name ~ ' ' ~ participant.email)|lower|e }}">
+                <td>
+                  <div class="is-flex is-align-items-center" style="gap: .75rem">
+                    {% if participant.profile_image_url %}
+                      <figure class="image is-32x32">
+                        <img class="is-rounded" src="{{ participant.profile_image_url }}" alt="">
+                      </figure>
+                    {% else %}
+                      <span class="tag is-link is-light is-medium"><i class="fa-solid fa-user"></i></span>
+                    {% endif %}
+                    <div>
+                      <strong>{{ participant.full_name }}</strong>
+                      <div class="is-size-7 has-text-grey">ID {{ participant.id }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ participant.email }}</td>
+                <td>{{ participant.created_at.strftime('%d %b %Y') if participant.created_at else '-' }}</td>
+                <td>
+                  {{ participant.last_login_at.strftime('%d %b %Y %H:%M') if participant.last_login_at else 'Not recorded' }}
+                </td>
+                <td>
+                  {% if participant.is_active %}
+                    <span class="tag is-success is-light">Active</span>
+                  {% else %}
+                    <span class="tag is-danger is-light">Inactive</span>
+                  {% endif %}
+                </td>
+                <td class="has-text-right">
+                  <form method="post" action="{{ url_for('international_relations.admin_participant_status', participant_id=participant.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% if participant.is_active %}
+                      <input type="hidden" name="action" value="deactivate">
+                      <button class="button is-small is-danger is-light" type="submit">Deactivate</button>
+                    {% else %}
+                      <input type="hidden" name="action" value="activate">
+                      <button class="button is-small is-success is-light" type="submit">Activate</button>
+                    {% endif %}
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr data-no-participants>
+                <td colspan="6" class="has-text-centered has-text-grey py-6">
+                  No participant accounts yet. Ask a participant to sign in through the participant portal first.
+                </td>
+              </tr>
+            {% endfor %}
+            <tr class="is-hidden" data-no-search-results>
+              <td colspan="6" class="has-text-centered has-text-grey py-6">No participants match your search.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  (() => {
+    const search = document.getElementById('participant-search');
+    const rows = [...document.querySelectorAll('[data-participant-row]')];
+    const empty = document.querySelector('[data-no-search-results]');
+    if (!search || !empty) return;
+    search.addEventListener('input', () => {
+      const query = search.value.trim().toLowerCase();
+      let visible = 0;
+      rows.forEach((row) => {
+        const matches = !query || row.dataset.search.includes(query);
+        row.classList.toggle('is-hidden', !matches);
+        if (matches) visible += 1;
+      });
+      empty.classList.toggle('is-hidden', visible !== 0 || rows.length === 0);
+    });
+  })();
+</script>
+{% endblock %}

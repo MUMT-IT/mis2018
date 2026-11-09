@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+{% from "comhealth/admin/_page_header.html" import admin_page_header %}
+<style>
+    .schedule-admin { background: #f4f7fb; min-height: 80vh; }
+    .schedule-admin .admin-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 28px; }
+    .schedule-admin .admin-heading .title { color: #19365d; margin-bottom: 10px; }
+    .schedule-admin .admin-muted { color: #64748b; }
+    .schedule-admin .admin-panel { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 5px 20px rgba(25,54,93,.04); }
+    .schedule-admin .table th { color: #52647d; background: #f8fafc; }
+    .schedule-admin .table td { vertical-align: middle; }
+    @media (max-width: 768px) {
+        .schedule-admin .admin-heading { flex-direction: column; align-items: stretch; }
+        .schedule-admin .admin-panel { padding: 18px; }
+    }
+</style>
+<section class="section schedule-admin" id="app">
+    <div class="container">
+        {{ admin_page_header('ปรับแก้วันออกตรวจ', 'แสดงเฉพาะวันออกตรวจที่ยังไม่มีผู้รับบริการ Checked In') }}
+        <p v-if="message" class="notification" :class="hasError ? 'is-danger' : 'is-success'" role="status"><% message %></p>
+        <div class="admin-panel">
+        <div class="field">
+            <label class="label" for="schedule-location">Search Location</label>
+            <div class="control">
+                <input id="schedule-location" class="input" v-model="query" placeholder="Type location...">
+            </div>
+        </div>
+        <b-table :data="filteredServices" paginated :per-page="10" :current-page.sync="currentPage">
+            <template slot-scope="props">
+                <b-table-column field="date" label="Date">
+                    <form v-if="editingId === props.row.id" @submit.prevent="saveDate(props.row)">
+                        <div class="field">
+                            <input type="date" class="input" v-model="editingDate" aria-label="วันออกตรวจ" required :disabled="saving">
+                        </div>
+                        <div class="buttons">
+                            <button type="submit" class="button is-small is-success" :disabled="saving" :class="{'is-loading': saving}">บันทึก</button>
+                            <button type="button" class="button is-small" :disabled="saving" @click="editingId = null">ยกเลิก</button>
+                        </div>
+                    </form>
+                    <div v-else>
+                        <span><% formatDate(props.row.date) %></span>
+                        <button type="button" class="button is-small is-info is-light" :disabled="saving" @click="editingId = props.row.id; editingDate = props.row.date || ''">
+                            <span class="icon"><i class="fas fa-edit" aria-hidden="true"></i></span>
+                            <span>แก้ไข</span>
+                        </button>
+                    </div>
+                </b-table-column>
+                <b-table-column field="location" label="Location">
+                    <form v-if="editingLocationId === props.row.id" @submit.prevent="saveLocation(props.row)">
+                        <div class="field"><input class="input" v-model="editingLocation" aria-label="ชื่อ Location" maxlength="255" required :disabled="saving"></div>
+                        <div class="buttons">
+                            <button type="submit" class="button is-small is-success" :disabled="saving">บันทึก</button>
+                            <button type="button" class="button is-small" :disabled="saving" @click="editingLocationId = null">ยกเลิก</button>
+                        </div>
+                        <p v-if="hasError && message" class="help is-danger" role="alert"><% message %></p>
+                    </form>
+                    <div v-else>
+                        <span><% props.row.location %></span>
+                        <button type="button" class="button is-small is-info is-light" :disabled="saving" @click="editingLocationId = props.row.id; editingLocation = props.row.location || ''; message = ''; hasError = false">
+                            <span class="icon"><i class="fas fa-edit" aria-hidden="true"></i></span><span>แก้ไข</span>
+                        </button>
+                    </div>
+                </b-table-column>
+                <b-table-column field="registered" label="Registered Customers" centered><% props.row.registered %></b-table-column>
+                <b-table-column label="ลบ" centered>
+                    <button type="button" class="button is-danger is-light" :disabled="saving" @click="deleteSchedule(props.row)">
+                        <span class="icon"><i class="fas fa-trash-alt" aria-hidden="true"></i></span>
+                        <span>ลบ</span>
+                    </button>
+                </b-table-column>
+            </template>
+            <template slot="empty"><p class="has-text-centered">ไม่พบข้อมูลวันออกตรวจ</p></template>
+        </b-table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                services: {{ services|tojson }}, query: '', currentPage: 1,
+                editingId: null, editingDate: '', editingLocationId: null, editingLocation: '', saving: false, message: '', hasError: false
+            };
+        },
+        computed: {
+            filteredServices() {
+                const query = this.query.trim().toLowerCase();
+                return this.services.filter(service => (service.location || '').toLowerCase().includes(query))
+                    .slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id);
+            }
+        },
+        watch: {query() { this.currentPage = 1; }},
+        methods: {
+            removeSchedule(service) {
+                if (this.editingLocationId === service.id) this.editingLocationId = null;
+                this.services = this.services.filter(row => row.id !== service.id);
+                if (this.editingId === service.id) this.editingId = null;
+                this.currentPage = Math.min(this.currentPage, Math.max(1, Math.ceil(this.filteredServices.length / 10)));
+            },
+            async deleteSchedule(service) {
+                if (this.saving) return;
+                if (!window.confirm('ยืนยันลบวันออกตรวจ ' + this.formatDate(service.date) + ' ณ ' + (service.location || '') + ' พร้อมรายการลงทะเบียน ' + service.registered + ' รายการและข้อมูลที่ผูกกับการตรวจครั้งนี้?')) return;
+                this.saving = true;
+                this.message = '';
+                this.hasError = false;
+                try {
+                    const form = new FormData();
+                    form.append('csrf_token', {{ csrf_token()|tojson }});
+                    const response = await fetch(service.delete_url, {
+                        method: 'POST', headers: {'Accept': 'application/json'}, body: form
+                    });
+                    const result = await response.json();
+                    if (result.checked_in) this.removeSchedule(service);
+                    if (!response.ok) throw new Error(result.message || 'ไม่สามารถลบวันออกตรวจได้');
+                    this.removeSchedule(service);
+                    this.message = result.message;
+                } catch (error) {
+                    this.hasError = true;
+                    this.message = error instanceof SyntaxError ? 'ไม่สามารถลบได้ กรุณาตรวจสอบการเข้าสู่ระบบแล้วลองอีกครั้ง' : error.message;
+                } finally {
+                    this.saving = false;
+                }
+            },
+            formatDate(value) {
+                if (!value) return '—';
+                return new Intl.DateTimeFormat('th-TH', {
+                    timeZone: 'Asia/Bangkok',
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                }).format(new Date(value + 'T00:00:00+07:00'));
+            },
+            async saveLocation(service) {
+                if (this.saving) return;
+                this.saving = true; this.message = ''; this.hasError = false;
+                try {
+                    const form = new FormData();
+                    form.append('csrf_token', {{ csrf_token()|tojson }});
+                    form.append('location', this.editingLocation);
+                    const response = await fetch(service.location_url, {method: 'POST', headers: {'Accept': 'application/json'}, body: form});
+                    const result = await response.json();
+                    if (result.checked_in) this.removeSchedule(service);
+                    if (!response.ok) throw new Error(result.message || 'ไม่สามารถบันทึก Location ได้');
+                    service.location = result.location;
+                    this.editingLocationId = null;
+                    // Keep the renamed row visible when its new name no longer matches the search.
+                    if (!this.filteredServices.some(row => row.id === service.id)) this.query = '';
+                    this.$nextTick(() => {
+                        this.currentPage = Math.floor(this.filteredServices.findIndex(row => row.id === service.id) / 10) + 1;
+                    });
+                    this.message = 'บันทึก Location เป็น “' + result.location + '” เรียบร้อยแล้ว';
+                } catch (error) {
+                    this.hasError = true;
+                    this.message = error instanceof SyntaxError ? 'ไม่สามารถบันทึกได้ กรุณาตรวจสอบการเข้าสู่ระบบแล้วลองอีกครั้ง' : error.message;
+                } finally { this.saving = false; }
+            },
+            async saveDate(service) {
+                if (this.saving) return;
+                this.saving = true;
+                this.message = '';
+                this.hasError = false;
+                try {
+                    const form = new FormData();
+                    form.append('csrf_token', {{ csrf_token()|tojson }});
+                    form.append('date', this.editingDate);
+                    const response = await fetch(service.edit_url, {
+                        method: 'POST', headers: {'Accept': 'application/json'}, body: form
+                    });
+                    const result = await response.json();
+                    if (result.checked_in) {
+                        this.services = this.services.filter(row => row.id !== service.id);
+                        this.editingId = null;
+                        this.currentPage = Math.min(this.currentPage, Math.max(1, Math.ceil(this.filteredServices.length / 10)));
+                    }
+                    if (!response.ok) throw new Error(result.message || 'ไม่สามารถบันทึกวันที่ได้');
+                    service.date = result.date;
+                    this.editingId = null;
+                    // Follow the edited row after sorting by its new date.
+                    this.currentPage = Math.floor(this.filteredServices.findIndex(row => row.id === service.id) / 10) + 1;
+                    this.message = 'บันทึกวันออกตรวจของ “' + (service.location || '') + '” เป็น ' + this.formatDate(result.date) + ' เรียบร้อยแล้ว';
+                } catch (error) {
+                    this.hasError = true;
+                    this.message = error instanceof SyntaxError ? 'ไม่สามารถบันทึกได้ กรุณาตรวจสอบการเข้าสู่ระบบแล้วลองอีกครั้ง' : error.message;
+                } finally {
+                    this.saving = false;
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

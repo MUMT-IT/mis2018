@@ -56,6 +56,53 @@ def email_local_part(email):
     return (email or '').strip().lower().split('@', 1)[0]
 
 
+def organization_ids_with_ancestors(organization_ids, parent_by_id):
+    """Include every ancestor of the supplied organization IDs."""
+    result = set(organization_ids)
+    pending_ids = list(result)
+    while pending_ids:
+        parent_id = parent_by_id.get(pending_ids.pop())
+        if parent_id is not None and parent_id not in result:
+            result.add(parent_id)
+            pending_ids.append(parent_id)
+    return result
+
+
+def organizations_in_hierarchy(organizations):
+    """Return ``(organization, depth)`` pairs in parent-before-child order."""
+    organizations = list(organizations)
+    organization_by_id = {organization.id: organization for organization in organizations}
+    children_by_parent_id = {}
+    for organization in organizations:
+        children_by_parent_id.setdefault(organization.parent_id, []).append(organization)
+
+    def sort_key(organization):
+        return ((organization.name or '').casefold(), organization.id)
+
+    ordered = []
+    visited_ids = set()
+
+    def add_branch(organization, depth):
+        if organization.id in visited_ids:
+            return
+        visited_ids.add(organization.id)
+        ordered.append((organization, depth))
+        for child in sorted(children_by_parent_id.get(organization.id, []), key=sort_key):
+            add_branch(child, depth + 1)
+
+    roots = [
+        organization for organization in organizations
+        if organization.parent_id not in organization_by_id
+    ]
+    for root in sorted(roots, key=sort_key):
+        add_branch(root, 0)
+
+    # Keep malformed cyclic records visible instead of silently dropping them.
+    for organization in sorted(organizations, key=sort_key):
+        add_branch(organization, 0)
+    return ordered
+
+
 class _PageParser(HTMLParser):
     """Collect visible text and links without assuming a site's CSS framework."""
 

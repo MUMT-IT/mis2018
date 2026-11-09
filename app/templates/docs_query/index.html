@@ -38,7 +38,7 @@
                             <div class="docs-query-recent-item">
                                 <i class="fas fa-file-lines" aria-hidden="true"></i>
                                 <div>
-                                    <a href="https://drive.google.com/file/d/{{ document.drive_file_id }}/view" target="_blank" rel="noopener noreferrer">
+                                    <a href="{{ document.drive_view_url }}" target="_blank" rel="noopener noreferrer">
                                         {{ document.document_title or document.filename or 'เอกสารไม่มีชื่อ' }}
                                     </a>
                                     <span class="docs-query-recent-description">{{ document_description|striptags|truncate(160) }}</span>
@@ -124,7 +124,7 @@
                                     <ol class="docs-query-popular-list">
                                         {% for document, click_count in statistics.popular_documents[:5] %}
                                             <li>
-                                                <a class="docs-query-popular-label" href="https://drive.google.com/file/d/{{ document.drive_file_id }}/view" target="_blank" rel="noopener noreferrer" title="{{ document.document_title or document.filename }}">
+                                                <a class="docs-query-popular-label" href="{{ document.drive_view_url }}" target="_blank" rel="noopener noreferrer" title="{{ document.document_title or document.filename }}">
                                                     {{ document.document_title or document.filename }}
                                                 </a>
                                                 <span class="tag is-info is-light">{{ click_count }} ครั้ง</span>

@@ -509,20 +509,6 @@ def register():
         if not occupation_choice:
             errors.append(texts.get('occupation_label', 'Please select or specify an occupation.'))
 
-        # Address validations
-        meaningful_addresses = []
-        for entry in address_entries:
-            has_content = bool(entry.get('line1'))
-            if has_content:
-                meaningful_addresses.append(entry)
-            if entry.get('type') == 'other' and has_content and not entry.get('type_other'):
-                errors.append(texts.get('address_type_other_prompt', 'Please specify address type for custom entries.'))
-            if entry.get('country_code') == 'OTHER' and has_content and not entry.get('country_other'):
-                errors.append(texts.get('address_country_other_prompt', 'Please specify country name.'))
-
-        if not meaningful_addresses:
-            errors.append(texts.get('address_required_message', 'Please provide at least one address.'))
-
         if username and CEMember.query.filter_by(username=username).first():
             errors.append(texts.get('register_error_exists', 'Username already exists.'))
         if email and CEMember.query.filter_by(email=email).first():
@@ -653,6 +639,7 @@ def register():
             full_name_th=full_name_th or None,
             full_name_en=full_name_en or None,
             phone_no=(request.form.get('phone_no') or None),
+            mt_license_no=(request.form.get('mt_license_no') or '').strip() or None,
             member_type_id=mt_id,
             age_range_id=ag_id,
             gender_id=g_id,
@@ -1385,9 +1372,10 @@ def account_update_profile():
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
     # Basic editable fields (legacy keys)
-    for field in ['email','full_name_en','full_name_th','phone_no','country','title_name_en','title_name_th']:
+    for field in ['email','full_name_en','full_name_th','phone_no','country','title_name_en','title_name_th',
+                  'mt_license_no']:
         if field in request.form:
-            setattr(user, field, request.form.get(field))
+            setattr(user, field, request.form.get(field).strip() or None)
     db.session.add(user)
     db.session.commit()
     flash(texts.get('profile_updated', 'Profile updated.'), 'success')

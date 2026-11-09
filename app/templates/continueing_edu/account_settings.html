@@ -323,6 +323,8 @@ endblock %}
                 value="{{ user.full_name_th or '' }}"></div>
             <div class="field"><label class="label">Phone</label><input class="input" name="phone_no"
                 value="{{ user.phone_no or '' }}"></div>
+            <div class="field"><label class="label">เลขที่ใบอนุญาตประกอบวิชาชีพเทคนิคการแพทย์ (ท.น.)</label><input class="input"
+                name="mt_license_no" value="{{ user.mt_license_no or '' }}"></div>
             <div class="columns">
               <div class="column">
                 <label class="label">{{ texts.get('country', 'ประเทศ' if TH else 'Country') }}</label>

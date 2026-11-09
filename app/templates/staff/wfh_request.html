@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
+<style>
+    .wfh-approver-panel { display: flex; justify-content: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .wfh-approver { display: inline-flex; align-items: center; gap: .55rem; padding: .4rem .75rem .4rem .4rem; border-radius: 999px; background: #f5f7fb; border: 1px solid #dce3ef; }
+    .wfh-approver-image, .wfh-approver-fallback { width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; }
+    .wfh-approver-fallback { display: inline-flex; align-items: center; justify-content: center; color: #fff; background: #3273dc; font-weight: 700; }
+    .wfh-approver-details { display: flex; flex-direction: column; line-height: 1.2; }
+    .wfh-approver-role { color: #6b7280; font-size: .75rem; }
+</style>
 <section class="section">
     <div class="container" id="app">
         <div class="columns">
@@ -41,11 +49,29 @@
                                placeholder="เบอร์โทรศัพท์" required>
                         </b-input>
                     </b-field>
+                {% if approvers %}
+                    <div class="wfh-approver-panel" aria-label="ผู้อนุมัติ WFH">
+                        {% for approver in approvers %}
+                            {% set approver_name = approver.account.personal_info.fullname %}
+                            <div class="wfh-approver" title="ผู้อนุมัติ WFH: {{ approver_name }}">
+                                {% if approver.account.personal_info.image_url %}
+                                    <img class="wfh-approver-image" src="{{ approver.account.personal_info.image_url }}" alt="{{ approver_name }}">
+                                {% else %}
+                                    <span class="wfh-approver-fallback" aria-hidden="true">{{ approver_name[:1] }}</span>
+                                {% endif %}
+                                <span class="wfh-approver-details">
+                                    <span>{{ approver_name }}</span>
+                                    <span class="wfh-approver-role">ผู้อนุมัติ</span>
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
                     <div class="field">
                         <b-checkbox true-value="yes"
                                     false-value="no"
                                     v-model="notifiedByLine"
-                                    name="notified_by_line">ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้า
+                                    name="notified_by_line">ส่งข้อความเตือนใน Line เมื่อได้รับอนุมัติ
                         </b-checkbox>
                     </div>
                     <div class="field is-grouped is-grouped-centered">

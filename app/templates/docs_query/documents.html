@@ -53,6 +53,15 @@
             max-width: 32rem;
         }
 
+        .docs-query-table-drive-id {
+            color: #9ca3af;
+            display: block;
+            font-family: monospace;
+            font-size: 0.68rem;
+            line-height: 1.35;
+            margin-top: 0.2rem;
+        }
+
         .docs-query-documents-shell .table-container {
             border: 0;
             border-radius: 0;
@@ -91,7 +100,8 @@
                             var summary = row.summary
                                 ? '<span class="docs-query-table-subtitle">' + escapeHtml(row.summary) + '</span>'
                                 : '';
-                            return '<div><a href="' + escapeHtml(row.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(data) + '</a>' + summary + '</div>';
+                            var driveId = '<span class="docs-query-table-drive-id">Drive ID: ' + escapeHtml(row.drive_file_id) + '</span>';
+                            return '<div><a href="' + escapeHtml(row.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(data) + '</a>' + summary + driveId + '</div>';
                         }
                     },
                     {

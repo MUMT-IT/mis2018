@@ -1,0 +1,32 @@
+<div class="private-note box has-background-light" id="private-note-{{ topic.id }}">
+    <form hx-post="{{ url_for('meeting_planner.save_private_agenda_note', topic_id=topic.id) }}"
+          hx-target="#private-note-{{ topic.id }}"
+          hx-swap="outerHTML">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+            <label class="label" for="private-note-input-{{ topic.id }}">
+                บันทึกส่วนตัว
+            </label>
+            <div class="control">
+                <textarea class="textarea"
+                          id="private-note-input-{{ topic.id }}"
+                          name="note"
+                          placeholder="บันทึกนี้มีเพียงคุณเท่านั้นที่มองเห็น">{{ private_note.note if private_note else '' }}</textarea>
+            </div>
+            <p class="help">บันทึกนี้มีเพียงคุณเท่านั้นที่มองเห็น</p>
+        </div>
+        <div class="field is-grouped is-align-items-center">
+            <div class="control">
+                <button class="button is-small is-info" type="submit">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                    <span>บันทึก</span>
+                </button>
+            </div>
+            {% if private_note and private_note.updated_at %}
+                <p class="help has-text-grey">
+                    บันทึกล่าสุด: {{ private_note.updated_at|localdatetime }}
+                </p>
+            {% endif %}
+        </div>
+    </form>
+</div>

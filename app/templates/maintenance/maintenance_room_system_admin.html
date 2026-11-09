@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}ตั้งค่าระบบห้อง | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .room-admin-page { padding: 2rem 0 3rem; }
+        .room-admin-shell { background: #fff; border: 1px solid rgba(18,39,84,.1); border-radius: 24px; box-shadow: 0 18px 42px rgba(18,39,84,.08); overflow: hidden; }
+        .room-admin-head { background: radial-gradient(circle at 90% 15%, rgba(220,177,72,.3), transparent 28%), linear-gradient(135deg,#14294f,#294b88); color: #fff; padding: 1.5rem; }
+        .room-admin-title { font-size: 1.6rem; font-weight: 800; margin: 0; }
+        .room-admin-subtitle { color: rgba(255,255,255,.78); margin: .4rem 0 0; }
+        .room-admin-content { padding: 1.5rem; }
+        .room-admin-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .room-admin-card { border: 1px solid rgba(18,39,84,.11); border-radius: 20px; color: inherit; display: flex; flex-direction: column; min-height: 245px; padding: 1.25rem; text-decoration: none; transition: box-shadow .16s ease, transform .16s ease; }
+        .room-admin-card:hover { box-shadow: 0 14px 28px rgba(18,39,84,.12); color: inherit; transform: translateY(-3px); }
+        .room-admin-card.systems { background: linear-gradient(145deg,#f4f7ff,#fff); border-top: 5px solid #3f5bd0; }
+        .room-admin-card.equipment { background: linear-gradient(145deg,#edfaf6,#fff); border-top: 5px solid #16856c; }
+        .room-admin-icon { align-items: center; border-radius: 16px; display: inline-flex; height: 52px; justify-content: center; width: 52px; }
+        .systems .room-admin-icon { background: #e8efff; color: #3f5bd0; }
+        .equipment .room-admin-icon { background: #e3f6ef; color: #16856c; }
+        .room-admin-card-title { color: #1d355e; font-size: 1.08rem; font-weight: 800; line-height: 1.4; margin: 1rem 0 .45rem; }
+        .room-admin-card-description { color: #71809a; font-size: .9rem; line-height: 1.55; margin: 0; }
+        .room-admin-card-action { align-items: center; color: #3e58c5; display: inline-flex; font-size: .86rem; font-weight: 800; gap: .45rem; margin-top: auto; padding-top: 1rem; }
+        .equipment .room-admin-card-action { color: #16856c; }
+        @media screen and (max-width: 768px) { .room-admin-grid { grid-template-columns: 1fr; } }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section room-admin-page">
+        <div class="container is-max-desktop">
+            <div class="room-admin-shell">
+                <header class="room-admin-head">
+                    <h1 class="room-admin-title">ตั้งค่าระบบห้อง</h1>
+                    <p class="room-admin-subtitle">เมนูสำหรับผู้ดูแลระบบตรวจเช็คห้องเรียน ห้องประชุม และห้องบรรยาย</p>
+                </header>
+                <div class="room-admin-content">
+                    <div class="room-admin-grid">
+                        <a class="room-admin-card systems" href="{{ url_for('maintenance.maintenance_room_system_setting') }}">
+                            <span class="room-admin-icon"><i class="fa-solid fa-sliders fa-lg"></i></span>
+                            <h2 class="room-admin-card-title">ตั้งค่าระบบหลักสำหรับตรวจเช็คห้อง</h2>
+                            <p class="room-admin-card-description">จัดการระบบหลัก กลุ่มอุปกรณ์หรือหมวดตรวจเช็ค และข้อความ checklist ที่ใช้ตรวจในแต่ละระบบ</p>
+                            <span class="room-admin-card-action"><span>เข้าสู่หน้าตั้งค่า</span><i class="fa-solid fa-arrow-right"></i></span>
+                        </a>
+                        <a class="room-admin-card equipment" href="{{ url_for('maintenance.edit_maintenance_room_system_item') }}">
+                            <span class="room-admin-icon"><i class="fa-solid fa-door-open fa-lg"></i></span>
+                            <h2 class="room-admin-card-title">ตั้งค่าห้องและครุภัณฑ์ภายในห้องสำหรับตรวจเช็ค</h2>
+                            <p class="room-admin-card-description">เลือกห้อง ดูครุภัณฑ์ที่อยู่ภายในห้อง และผูกครุภัณฑ์เข้ากับระบบหรือกลุ่มอุปกรณ์สำหรับตรวจเช็ค</p>
+                            <span class="room-admin-card-action"><span>เข้าสู่หน้าตั้งค่า</span><i class="fa-solid fa-arrow-right"></i></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

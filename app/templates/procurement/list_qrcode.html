@@ -208,8 +208,20 @@
                 });
             });
 
-            $('#print_qrcode_form').on('submit', function () {
+            $('#print_qrcode_form').on('submit', function (event) {
+                event.preventDefault();
                 const form = this;
+                if ($('#selected_items tr[data-item-id]').length === 0) {
+                    alert('กรุณาเลือกรายการอย่างน้อย 1 รายการ');
+                    return;
+                }
+                const printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    alert('กรุณาอนุญาตให้เปิดหน้าต่างใหม่เพื่อพิมพ์ QR Code');
+                    return;
+                }
+                printWindow.document.title = 'Print QR Code';
+                printWindow.document.body.textContent = 'กำลังสร้าง QR Code สำหรับพิมพ์...';
                 $(form).find('input.dynamic-selected-item').remove();
                 $('#selected_items tr[data-item-id]').each(function () {
                     const itemId = $(this).data('item-id');
@@ -219,6 +231,53 @@
                         .attr('value', itemId)
                         .addClass('dynamic-selected-item')
                         .appendTo(form);
+                });
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    credentials: 'same-origin'
+                }).then(function (response) {
+                    if (!response.ok || !(response.headers.get('Content-Type') || '').includes('application/pdf')) {
+                        throw new Error('ไม่สามารถสร้าง PDF ได้ กรุณาลองอีกครั้ง');
+                    }
+                    return response.blob();
+                }).then(function (pdf) {
+                    if (printWindow.closed) {
+                        return;
+                    }
+                    const pdfUrl = URL.createObjectURL(pdf);
+                    const doc = printWindow.document;
+                    doc.body.textContent = '';
+                    doc.body.style.margin = '0';
+                    const printButton = doc.createElement('button');
+                    printButton.textContent = 'พิมพ์ QR Code';
+                    printButton.style.cssText = 'margin: 12px; padding: 8px 16px; cursor: pointer';
+                    const hint = doc.createElement('span');
+                    hint.textContent = 'หากหน้าต่างสั่งพิมพ์ไม่เปิดอัตโนมัติ ให้กดปุ่มพิมพ์';
+                    const frame = doc.createElement('iframe');
+                    frame.title = 'QR Code PDF';
+                    frame.style.cssText = 'display: block; width: 100%; height: calc(100vh - 64px); border: 0';
+                    const printPdf = function () {
+                        try {
+                            frame.contentWindow.focus();
+                            frame.contentWindow.print();
+                        } catch (error) {
+                            hint.textContent = 'กรุณาใช้ปุ่มพิมพ์ในแถบเครื่องมือ PDF';
+                        }
+                    };
+                    printButton.addEventListener('click', printPdf);
+                    frame.addEventListener('load', function () {
+                        printWindow.setTimeout(printPdf, 500);
+                    }, {once: true});
+                    doc.body.append(printButton, hint, frame);
+                    frame.src = pdfUrl;
+                    printWindow.addEventListener('unload', function () {
+                        URL.revokeObjectURL(pdfUrl);
+                    }, {once: true});
+                }).catch(function (error) {
+                    if (!printWindow.closed) {
+                        printWindow.document.body.textContent = error.message;
+                    }
                 });
             });
         });

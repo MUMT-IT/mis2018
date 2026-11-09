@@ -5,7 +5,7 @@
     <div class="container">
         <div class="table-container">
             <h4 class="subtitle">รายการขอทำงานที่บ้านของ
-              {{ requester[0].staff.personal_info }}
+              {{ requester_staff.personal_info }}
             </h4>
             <h4>*หากต้องการแก้ไขสถานะการอนุมัติโปรดติดต่อ หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ ต่อ 2824(ศาลายา)</h4>
             <table class="table is-fullwidth is-striped">
@@ -55,6 +55,20 @@
                         </td>
                     </tr>
                 {% endif %}
+                {% endfor %}
+                {% for special_day in special_wfh_days %}
+                    <tr>
+                        <td>{{ special_day.work_date|localdate }}</td>
+                        <td>{{ special_day.work_date|localdate }}</td>
+                        <td>1</td>
+                        <td>{{ special_day.name }}</td>
+                        <td>
+                            <span class="icon">
+                                <i class="fas fa-check-circle has-text-success"></i>
+                            </span>
+                            กำหนดโดย {{ special_day.created_by.personal_info }}
+                        </td>
+                    </tr>
                 {% endfor %}
                 </tbody>
                 {% for cal_duration in request.duration %}

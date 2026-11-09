@@ -1,0 +1,6 @@
+{% macro admin_page_header(title, description) %}
+<div class="admin-heading">
+    <div><h1 class="title is-3">{{ title }}</h1><p class="admin-muted">{{ description }}</p></div>
+    <a class="button is-white" href="{{ url_for('comhealth.admin_menu') }}"><span class="icon"><i class="fas fa-arrow-left" aria-hidden="true"></i></span><span>กลับเมนู Admin</span></a>
+</div>
+{% endmacro %}

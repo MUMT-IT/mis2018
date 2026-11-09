@@ -973,7 +973,7 @@ def create_request(pa_id):
         db.session.add(new_request)
         db.session.commit()
         req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, new_request.for_,
             url_for("pa.view_request", request_id=new_request.id, _external=True, _scheme='https'))
         req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
@@ -1056,7 +1056,7 @@ def respond_request(request_id):
         flash('ดำเนินการเรียบร้อยแล้ว', 'success')
 
         req_msg = '{} {}คำขอ{}ในระบบ PA ท่านแล้ว รายละเอียดกรุณาคลิก link {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, req.status, req.for_,
             url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True, _scheme='https'))
         req_title = 'แจ้งผลคำขอ PA' + req.for_
@@ -2195,10 +2195,15 @@ def pa_detail(round_id, pa_id):
     for idp in IDP.query.filter_by(staff_account_id=pa.staff_account_id).join(PAFunctionalCompetencyRound).all():
         if idp.round.start.year >= pa.round.start.year and idp.round.start.year <= pa.round.start.year+1:
             relate_idp.append(idp)
+    relate_fc = []
+    for evaluation in PAFunctionalCompetencyEvaluation.query.filter_by(
+            staff_account_id=pa.staff_account_id).join(PAFunctionalCompetencyRound).all():
+        if evaluation.round.start.year >= pa.round.start.year and evaluation.round.start.year <= pa.round.start.year + 1:
+            relate_fc.append(evaluation)
     return render_template('staff/HR/PA/pa_detail.html',
                            pa_round=pa_round,
                            pa=pa,
-                           categories=categories, relate_idp=relate_idp)
+                           categories=categories, relate_idp=relate_idp, relate_fc=relate_fc)
 
 
 @pa.route('/rounds/<int:round_id>/<int:pa_id>/<int:idp_id>/change-head-idp')
@@ -2216,6 +2221,26 @@ def change_head_idp(round_id,pa_id,idp_id):
             flash('ไม่พบ idp ที่ค้นหา', 'danger')
         else:
             flash('ไม่พบรอบ pa กรุณาติดต่อ it', 'danger')
+    return redirect(url_for('pa.pa_detail', round_id=round_id, pa_id=pa_id))
+
+
+@pa.route('/rounds/<int:round_id>/<int:pa_id>/<int:evaluation_id>/change-head-fc')
+@login_required
+def change_head_fc_evaluator(round_id, pa_id, evaluation_id):
+    pa = PAAgreement.query.get(pa_id)
+    evaluation = PAFunctionalCompetencyEvaluation.query.get(evaluation_id)
+    if pa and evaluation and evaluation.staff_account_id == pa.staff_account_id:
+        if pa.head_committee_staff_account:
+            evaluation.evaluator = pa.head_committee_staff_account
+            db.session.add(evaluation)
+            db.session.commit()
+            flash('เปลี่ยนผู้ประเมิน FC รอบ {}({}) เรียบร้อยแล้ว'.format(
+                evaluation.round.desc, evaluation.round
+            ), 'success')
+        else:
+            flash('ไม่พบประธาน PA กรุณากำหนดประธานก่อนเปลี่ยนผู้ประเมิน FC', 'danger')
+    else:
+        flash('ไม่พบข้อมูล FC ที่สัมพันธ์กับบุคลากรในรอบ PA นี้', 'danger')
     return redirect(url_for('pa.pa_detail', round_id=round_id, pa_id=pa_id))
 
 
@@ -2503,7 +2528,10 @@ def fc_all_evaluation():
 @login_required
 def fc_current_evaluation():
     all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).join(
-        PAFunctionalCompetencyRound).filter(PAFunctionalCompetencyRound.is_closed != True).all()
+        PAFunctionalCompetencyRound).filter(
+            PAFunctionalCompetencyRound.is_closed != True,
+            PAFunctionalCompetencyEvaluation.is_active.is_not(False),
+        ).all()
 
     return render_template('PA/fc_current_evaluation.html', all_evaluation=all_evaluation)
 
@@ -2545,7 +2573,7 @@ def evaluate_fc(evaluation_id):
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
     else:
-        flash('กรุณาประเมินให้ครบทุกข้อ ก่อนบันทึกผล', 'warning')
+        flash('ไม่สามารถบันทึกผลการประเมินได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง', 'warning')
     return render_template('PA/fc_evaluate_performance.html', form=form, criteria=criteria, evaluation=evaluation,
                            emp_period=emp_period, org_head=org_head)
 
@@ -2563,7 +2591,15 @@ def evaluate_fc_confirm(evaluation_id):
 @pa.route('/pa/fc/all-subordinators')
 @login_required
 def fc_all_subordinators():
-    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).all()
+    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(
+        evaluator_account_id=current_user.id
+    ).join(PAFunctionalCompetencyEvaluation.staff).join(
+        StaffAccount.personal_info
+    ).filter(
+        StaffPersonalInfo.resignation_date.is_(None),
+        StaffPersonalInfo.retirement_date.is_(None),
+        or_(StaffPersonalInfo.retired.is_(False), StaffPersonalInfo.retired.is_(None)),
+    ).all()
 
     grouped_subordinators = {}
     for evaluation in all_evaluation:
@@ -2724,11 +2760,53 @@ def fc_evaluator():
     return render_template(
         'staff/HR/PA/fc_evaluator.html',
         fc_evaluator=fc_evaluator,
+        evaluator_accounts=[account for account in StaffAccount.query.all()
+                            if account.personal_info and account.is_active],
         sel_dep=org_id,
         round=round_id,
         departments=[{'id': d.id, 'name': d.name} for d in departments],
         rounds=[{'id': r.id, 'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime('%d/%m/%Y')} for r in rounds]
     )
+
+
+@pa.route('/hr/fc/evaluator/<int:evaluation_id>/update', methods=['POST'])
+@login_required
+@hr_permission.require()
+def update_fc_evaluator(evaluation_id):
+    evaluation = PAFunctionalCompetencyEvaluation.query.get_or_404(evaluation_id)
+    evaluator_id = request.form.get('evaluator_account_id', type=int)
+    evaluator = StaffAccount.query.get(evaluator_id) if evaluator_id else None
+    if not evaluator or not evaluator.personal_info or not evaluator.is_active:
+        flash('กรุณาเลือกผู้ประเมินที่เป็นบุคลากรปัจจุบัน', 'danger')
+        return redirect(request.referrer or url_for('pa.fc_evaluator'))
+
+    evaluation.evaluator_account_id = evaluator.id
+    db.session.commit()
+    flash('แก้ไขผู้ประเมินเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer or url_for('pa.fc_evaluator'))
+
+
+@pa.route('/hr/fc/evaluator/<int:evaluation_id>/delete', methods=['POST'])
+@login_required
+@hr_permission.require()
+def delete_fc_evaluator(evaluation_id):
+    evaluation = PAFunctionalCompetencyEvaluation.query.get(evaluation_id)
+    for indicator_result in evaluation.evaluation_eva_indicator:
+        db.session.delete(indicator_result)
+
+    email_title = 'ยกเลิกข้อมูลผู้ประเมิน FC เรียบร้อยแล้ว'
+    email_msg = u'{} ได้ยกเลิกข้อมูล FC รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว' \
+                u'\n\n\nคณะเทคนิคการแพทย์'. \
+        format(current_user.personal_info.fullname, evaluation.round.desc, evaluation.staff.fullname, evaluation.evaluator.fullname)
+    if not current_app.debug:
+        send_mail([current_user.email + "@mahidol.ac.th"], email_title, email_msg)
+    else:
+        print(evaluation.round.desc, email_title, email_msg)
+    evaluation.is_active = False
+    db.session.add(evaluation)
+    db.session.commit()
+    flash('ยกเลิก FC รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว '.format(evaluation.round.desc, evaluation.staff.fullname, evaluation.evaluator.fullname), 'success')
+    return redirect(request.referrer or url_for('pa.fc_evaluator'))
 
 
 @pa.route('/hr/fc/evaluator/<int:evaluation_id>')
@@ -3035,7 +3113,7 @@ def idp_send_request(idp_id):
         db.session.commit()
 
         req_msg = '{}ส่งคำ{} IDP ในระบบ MIS กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                     idp.staff.fullname, new_request.for_, url_for("pa.idp_all_requests"
                                                                   , _external=True, _scheme='https'))
         req_title = 'แจ้งการส่ง IDP'
@@ -3059,7 +3137,7 @@ def idp_delete_request(req_id):
     db.session.commit()
     idp = IDP.query.filter_by(id=idp_req.idp_id).first()
     req_msg = '{}ยกเลิกคำ{} IDP แล้ว' \
-              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(idp.staff.fullname, idp_req.for_)
+              '\n\n\nคณะเทคนิคการแพทย์'.format(idp.staff.fullname, idp_req.for_)
     req_title = 'แจ้งการส่ง IDP'
     if not current_app.debug:
         send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -3138,7 +3216,7 @@ def idp_respond_request(request_id):
         db.session.commit()
 
         req_msg = '{} {}คำขอ{}ของท่านในระบบ IDP' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                     current_user.personal_info.fullname, req.status,req.for_)
         req_title = 'แจ้งผลคำขอ IDP'
         if not current_app.debug:
@@ -3176,7 +3254,7 @@ def idp_review(idp_id):
 
         req_msg = 'ผู้บังคับบัญชาขั้นต้นได้ประเมินผล IDP ของท่านเรียบร้อยแล้ว ' \
                   'กรุณากดรับทราบผลการประเมิน IDP ในระบบ {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
                    url_for("pa.idp_details", idp_id=idp_id, _external=True, _scheme='https'))
         req_title = 'แจ้งการประเมิน IDP กรุณาดำเนินการ'
         if not current_app.debug:
@@ -3203,13 +3281,17 @@ def idp_accept_result(idp_id):
 @pa.route('/idp/results')
 @login_required
 def idp_all_results():
-    all_idp = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
+    all_idp = IDP.query.filter_by(approver=current_user).filter(
+        IDP.is_active.is_not(False)
+    ).join(PAFunctionalCompetencyRound).filter(
         PAFunctionalCompetencyRound.is_closed != True).all()
     rounds = PAFunctionalCompetencyRound.query.all()
     round_id = request.args.get('roundid', type=int)
     if round_id:
         print('round_id')
-        all_idp = IDP.query.filter_by(approver=current_user, round_id=round_id).join(PAFunctionalCompetencyRound).filter(
+        all_idp = IDP.query.filter_by(approver=current_user, round_id=round_id).filter(
+            IDP.is_active.is_not(False)
+        ).join(PAFunctionalCompetencyRound).filter(
             PAFunctionalCompetencyRound.is_closed != True).all()
 
     return render_template('PA/idp_all_results.html', all_idp=all_idp, round=round_id,
@@ -3293,9 +3375,120 @@ def hr_all_idp():
                            sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
                            round=round_id,
+                           approver_accounts=[account for account in StaffAccount.query.all()
+                                              if account.personal_info and account.is_active],
                            rounds=[{'id': r.id,
                                     'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
                                         '%d/%m/%Y')} for r in rounds])
+
+
+@pa.route('/idp/details/<int:idp_id>/for-hr', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def idp_details_for_hr(idp_id):
+    idp = IDP.query.filter_by(id=idp_id).first()
+    is_support_staff = True if not idp.staff.personal_info.academic_staff else False
+    idp_items = IDPItem.query.filter_by(idp_id=idp_id).all()
+    budget = 0
+    for item in idp_items:
+        if item.budget:
+            budget += item.budget
+    if idp.staff.personal_info.academic_staff:
+        over_budget = True if budget > 15000 else False
+    else:
+        over_budget = True if budget > 10000 else False
+    return render_template('staff/HR/PA/edit_idp_detail_for_hr.html',
+                           idp_items=idp_items, idp=idp, over_budget=over_budget, is_support_staff=is_support_staff)
+
+
+@pa.route('/idp/deleted-request/<int:req_id>/by-hr', methods=['DELETE'])
+@login_required
+def idp_delete_request_by_hr(req_id):
+    idp_req = IDPRequest.query.get(req_id)
+    flash('ลบคำ{} เรียบร้อย'.format(idp_req.for_), 'success')
+    idp_req.idp.submitted_at = None
+    idp = IDP.query.filter_by(id=idp_req.idp_id).first()
+    if idp.evaluated_at:
+        evaluated_at_local = idp.evaluated_at
+        if evaluated_at_local.tzinfo is None:
+            evaluated_at_local = tz.localize(evaluated_at_local)
+        evaluated_at_local = evaluated_at_local.astimezone(tz).strftime('%d/%m/%Y %X')
+        req_msg = '{} ได้ลบคำ{} IDP และวันที่ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา {} รอบ{} ของ{} แล้ว' \
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
+            current_user.personal_info.fullname, idp_req.for_, evaluated_at_local, idp.round.desc, idp.staff.fullname)
+        idp.evaluated_at = None
+        if idp.accepted_at:
+            accepted_at_local = idp.accepted_at
+            if accepted_at_local.tzinfo is None:
+                accepted_at_local = tz.localize(accepted_at_local)
+            accepted_at_local = accepted_at_local.astimezone(tz).strftime('%d/%m/%Y %X')
+            req_msg = '{} ได้ลบคำ{} IDP วันที่ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา{}และ วันที่รับทราบผลการพัฒนา{} รอบ{} ของ{} แล้ว' \
+                      '\n\n\nคณะเทคนิคการแพทย์'.format(
+                current_user.personal_info.fullname, idp_req.for_, evaluated_at_local, accepted_at_local, idp.round.desc, idp.staff.fullname)
+            idp.accepted_at = None
+        db.session.add(idp)
+    else:
+        req_msg = '{} ได้ลบคำ{} IDP รอบ{} ของ{} แล้ว' \
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
+            current_user.personal_info.fullname, idp_req.for_, idp.round.desc, idp.staff.fullname)
+    db.session.delete(idp_req)
+    db.session.commit()
+    req_title = 'แจ้งการแก้ไขคำขอ IDP'
+    recipients = []
+    for account in (current_user, idp.approver, idp.staff):
+        email = (account.email or '').strip() if account else ''
+        if email and '@' not in email:
+            email = email + '@mahidol.ac.th'
+        if email and email not in recipients:
+            recipients.append(email)
+    if not current_app.debug:
+        if recipients:
+            send_mail(recipients, req_title, req_msg)
+    else:
+        print(recipients, req_title, req_msg)
+    resp = make_response()
+    return resp
+
+
+@pa.route('/hr/idp/<int:idp_id>/approver', methods=['POST'])
+@login_required
+@hr_permission.require()
+def hr_update_idp_approver(idp_id):
+    idp = IDP.query.get_or_404(idp_id)
+
+    approver_account_id = request.form.get('approver_account_id', type=int)
+    new_approver = StaffAccount.query.get(approver_account_id) if approver_account_id else None
+    if not new_approver or not new_approver.personal_info or not new_approver.is_active:
+        flash('กรุณาเลือกผู้อนุมัติที่เป็นบุคลากรปัจจุบัน', 'danger')
+        return redirect(request.referrer or url_for('pa.hr_all_idp'))
+
+    idp.approver_account_id = new_approver.id
+    db.session.commit()
+    flash('แก้ไขผู้อนุมัติ IDP เรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer or url_for('pa.hr_all_idp'))
+
+
+@pa.route('/hr/idp/<int:idp_id>/delete', methods=['POST'])
+@login_required
+@hr_permission.require()
+def hr_delete_idp(idp_id):
+    idp = IDP.query.get(idp_id)
+    idp.is_active = False
+    db.session.add(idp)
+    db.session.commit()
+
+    email_title = 'ยกเลิกข้อมูล IDP เรียบร้อยแล้ว'
+    email_msg = u'{} ได้ยกเลิกข้อมูล IDP รอบ {} ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว' \
+              u'\n\n\nคณะเทคนิคการแพทย์'. \
+        format(current_user.personal_info.fullname, idp.round, idp.staff.fullname, idp.approver.fullname)
+
+
+    if not current_app.debug:
+        send_mail([current_user.email + "@mahidol.ac.th"], email_title, email_msg)
+    else:
+        print(idp.round, email_title, email_msg)
+    flash('ยกเลิกข้อมูล IDP ผู้รับการประเมิน {} ผู้ประเมิน {} เรียบร้อยแล้ว '.format(idp.staff.fullname, idp.approver.fullname), 'success')
+    return redirect(request.referrer or url_for('pa.hr_all_idp'))
 
 
 @pa.route('/hr/idp/detail/<int:idp_id>')

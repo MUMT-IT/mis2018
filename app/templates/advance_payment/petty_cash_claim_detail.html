@@ -7,7 +7,7 @@
 {% block content %}
 <header class="mb-4 pb-2 border-bottom text-start">
   {% if session.get('advance_payment_system') == 'petty_cash' %}
-  <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
+  <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=claim_detail.fund_request_id) }}" title="กลับไปยังแบบฟอร์มส่งเบิกเงินสดย่อย">
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
   {% endif %}
@@ -24,66 +24,52 @@
   <div class="row align-items-center g-3">
     <div class="col-md-12">
       <div class="row g-2">
-        <!-- ยอดรวมเบิก -->
+        {% set cash_return_total = namespace(amount=0) %}
+        {% for item in claim_detail.items %}
+          {% if item.category_type|string == '6' %}
+            {% set cash_return_total.amount = cash_return_total.amount + (item.amount or 0) %}
+          {% endif %}
+        {% endfor %}
+
+        <!-- เลขที่ใบเบิก -->
         <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">ยอดรวมที่ขอเบิก</span>
+          <span class="text-muted small d-block">เลขที่ใบเบิก</span>
+          <strong class="text-dark">
+            {% if claim_detail.fund_request_id and claim_detail.fund_request and claim_detail.fund_request.ticket_number %}
+              {{ claim_detail.fund_request.ticket_number }}
+            {% else %}
+              {{ claim_detail.claim_number or '-' }}
+            {% endif %}
+          </strong>
+        </div>
+
+        {% if advance_payment_role != 'finance' %}
+        <!-- ยอดที่อนุมัติ -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">ยอดที่อนุมัติ</span>
+          <strong class="text-dark">
+            {{ "{:,.2f}".format(claim_detail.fund_request.amount if claim_detail.fund_request and claim_detail.fund_request.amount else 0) }} บาท
+          </strong>
+        </div>
+        {% endif %}
+
+        <!-- ยอดรวมเบิก -->
+        {% if not cash_return_total.amount%}
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">ยอดที่ขอเบิก</span>
           <strong class="text-success fs-5">{{ "{:,.2f}".format(claim_detail.total_amount or 0) }} บาท</strong>
         </div>
-          {% if advance_payment_role != 'finance' %}
-          <!-- ยอดเงินในคำขออนุมัติ -->
-            <div class="col-12 col-sm-6 col-lg-2">
-              <span class="text-muted small d-block">ยอดที่อนุมัติ</span>
-              <strong class="text-dark">
-                {{ "{:,.2f}".format(claim_detail.fund_request.amount if claim_detail.fund_request and claim_detail.fund_request.amount else 0) }} บาท
-              </strong>
-            </div>
-          {% endif %}
+        {% endif %}
 
-        <!-- เลขที่บัญชี -->
+        {% if advance_payment_role != 'finance' %}
+        <!-- ยอดที่คืนเงินสด -->
         <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">เลขที่บัญชี</span>
-          <strong class="text-dark">{{ claim_detail.setting.account_number if claim_detail.setting and claim_detail.setting.account_number else '-' }}</strong>
+          <span class="text-muted small d-block">ยอดที่คืนเงินสด</span>
+          <strong class="text-dark">{{ "{:,.2f}".format(cash_return_total.amount) }} บาท</strong>
         </div>
+        {% endif %}
 
-        <!-- วันที่ส่งเอกสาร -->
-        <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">วันที่ส่งเอกสาร</span>
-          <strong class="text-dark">{{ claim_detail.created_at|thai_date if claim_detail.created_at else '-' }}</strong>
-        </div>
-
-        <!-- สถานะปัจจุบัน -->
-        <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">สถานะปัจจุบัน</span>
-          {% set c_badge = 'bg-secondary text-white' %}
-          {% set c_status = claim_detail.status %}
-          
-          {% if claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'กำลังส่งคำขอ'] %}
-            {% set c_badge = 'bg-warning text-dark' %}
-            {% set c_status = 'รอตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'กำลังตรวจสอบ' %}
-            {% set c_badge = 'bg-warning text-dark' %}
-            {% set c_status = 'กำลังตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'ผ่านการตรวจสอบ' %}
-            {% set c_badge = 'bg-info text-dark' %}
-            {% set c_status = 'ผ่านการตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
-            {% set c_badge = 'bg-primary text-white' %}
-            {% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
-          {% elif claim_detail.status|lower == 'เอกสารตั้งฎีกา' %}
-            {% set c_badge = 'bg-primary text-white' %}
-            {% set c_status = 'เอกสารตั้งฎีกา' %}
-          {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
-            {% set c_badge = 'bg-success text-white' %}
-            {% set c_status = 'ได้รับเงินสดย่อยแล้ว' %}
-          {% elif claim_detail.status|lower in ['ปฏิเสธ'] %}
-            {% set c_badge = 'bg-danger text-white' %}
-            {% set c_status = 'ปฏิเสธ' %}
-          {% endif %}
-          
-          <span class="badge {{ c_badge }} mt-1 px-2 py-1">{{ c_status }}</span>
-        </div>
-
-        <!-- วันที่โอนเงินสดย่อย / หมายเลขฎีกา -->
+        <!-- วันที่ได้รับคืนเงินสดย่อย -->
         <div class="col-12 col-sm-6 col-lg-2">
           {% if claim_detail.transferred_at %}
             <span class="text-muted small d-block">วันที่ได้รับคืนเงินสดย่อย</span>
@@ -92,6 +78,47 @@
           {% endif %}
         </div>
 
+        <!-- สถานะปัจจุบัน -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">สถานะปัจจุบัน</span>
+          {% set c_status = claim_detail.status %}
+          
+          {% if claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'กำลังส่งคำขอ'] %}
+            {% set c_status = 'รอตรวจสอบ' %}
+          {% elif claim_detail.status|lower == 'กำลังตรวจสอบ' %}
+            {% set c_status = 'กำลังตรวจสอบ' %}
+          {% elif claim_detail.status|lower == 'ผ่านการตรวจสอบ' %}
+            {% set c_status = 'ผ่านการตรวจสอบ' %}
+          {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
+            {% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
+          {% elif claim_detail.status|lower == 'โอนคืนเงินสดย่อย' %}
+            {% set c_status = 'โอนคืนเงินสดย่อย' %}
+          {% elif claim_detail.status|lower == 'เอกสารตั้งฎีกา' %}
+            {% set c_status = 'เอกสารตั้งฎีกา' %}
+          {% elif claim_detail.status|lower in ['ปฏิเสธ'] %}
+            {% set c_status = 'ปฏิเสธ' %}
+          {% endif %}
+          {% if claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+            {% set c_status = 'รอยืนยันการแก้ไข' %}
+          {% endif %}
+          
+          <span class="badge {{ status_badge_class(claim_detail.status) }} mt-1 px-2 py-1">{{ c_status }}</span>
+        </div>
+
+        <!-- วันที่ส่งเอกสาร -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">วันที่ส่งเอกสาร</span>
+          <strong class="text-dark">{{ claim_detail.created_at|thai_date if claim_detail.created_at else '-' }}</strong>
+        </div>
+
+        {% if advance_payment_role == 'finance' %}
+        <!-- เลขที่บัญชี -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">เลขที่บัญชี</span>
+          <strong class="text-dark">{{ claim_detail.setting.account_number if claim_detail.setting and claim_detail.setting.account_number else '-' }}</strong>
+        </div>
+
+        <!-- หมายเลขฎีกา -->
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">หมายเลขฎีกา</span>
           <strong class="text-dark">{{ claim_detail.closing_document_name or '-' }}</strong>
@@ -99,25 +126,31 @@
             <span class="text-muted small d-block">(เลขเก่า: {{ claim_detail.old_document_number }})</span>
           {% endif %}
         </div>
+        {% endif %}
 
-        <!-- ประวัติการบันทึกสาเหตุการปฏิเสธ -->
         {% if claim_detail.rejection_comment %}
         <div class="col-12 mt-3">
-            <h6 class="fw-bold text-danger">ประวัติบันทึกข้อเสนอแนะ/สาเหตุการปฏิเสธ:</h6>
-            {% set rejection_history = claim_detail.rejection_comment.split('ครั้งที่ ')|reject('equalto', '')|list|reverse %}
-            {% for comment in rejection_history %}
-              <p style="white-space: pre-line;" class="mb-2 p-3 rounded border {% if loop.first and claim_detail.status|lower == 'ปฏิเสธ' %}text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small bg-light border-secondary-subtle{% endif %}">ครั้งที่ {{ comment }}</p>
-            {% endfor %}
+            <h6 class="fw-bold text-danger">ข้อเสนอแนะ/สาเหตุการปฏิเสธล่าสุด:</h6>
+            <p style="white-space: pre-line;" class="mb-2 p-3{% if claim_detail.status|lower == 'ปฏิเสธ' %} rounded border text-dark bg-danger-subtle border-danger-subtle{% else %} text-muted small{% endif %}">{{ claim_detail.rejection_comment|latest_rejection_comment }}</p>
         </div>
         {% endif %}
       </div>
     </div>
     
-    {% if advance_payment_role != 'finance' and claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+    {% if can_edit_claim %}
+    <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
+      <a class="btn btn-outline-warning btn-sm fw-bold px-3 py-2"
+         href="{{ url_for('advance_payment.submit_petty_cash_claim', edit_claim_id=claim_detail.id) }}#pettyCashClaimFormPanel">
+        <i class="bi bi-pencil-square me-1"></i>แก้ไขข้อมูลเอกสาร
+      </a>
+    </div>
+    {% endif %}
+
+    {% if advance_payment_role != 'finance' and can_manage_claim and claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
       <form method="POST" action="{{ url_for('advance_payment.confirm_petty_claim_edit', claim_id=claim_detail.id) }}" class="m-0">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-2"><i class="bi bi-check2-circle me-1"></i>ยืนยันการแก้ไข</button>
+        <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-2"><i class="bi bi-check2-circle me-1"></i>ยืนยันการแก้ไขข้อมูล</button>
       </form>
     </div>
     {% endif %}
@@ -226,7 +259,7 @@
                                 </p>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold text-dark small">วันที่หน่วยงานได้รับเงิน / โอนสำเร็จ <span class="text-danger">*</span></label>
-                                    <input type="date" name="transferred_at" class="form-control" required value="{{ claim_detail.transferred_at or '' }}">
+                                    <input type="text" name="transferred_at" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required value="{{ claim_detail.transferred_at or '' }}">
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -240,7 +273,7 @@
         {% endif %}
     </div>
     {% endif %}
-      {% if advance_payment_role != 'finance' and claim_detail.status|lower == 'ผ่านการตรวจสอบ'%}
+      {% if can_download_claim_pdf %}
         <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดบันทึกขออนุมัติเบิก
@@ -253,6 +286,25 @@
   {% include 'advance_payment/_pdf_reference_modal.html' %}
 {% endwith %}
 
+{% if advance_payment_role != 'finance' %}
+    {% if claim_detail.reference_number or claim_detail.reference_files %}
+    <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
+      <h3 class="h5 fw-bold mb-3">หนังสืออนุมัติในหลักการ</h3>
+      {% if claim_detail.reference_number %}
+        <p class="mb-2"><strong>เลขที่:</strong> {{ claim_detail.reference_number }}{% if claim_detail.reference_date %} <span class="ms-3"><strong>วันที่:</strong> {{ claim_detail.reference_date|thai_date }}</span>{% endif %}</p>
+      {% endif %}
+      {% if claim_detail.reference_files %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for reference_file in claim_detail.reference_files %}
+            <a href="{{ reference_file.proof_reference|advance_payment_file_url }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+              <i class="bi bi-paperclip me-1"></i>{{ reference_file.filename }}
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+    {% endif %}
+{% endif %}
 <!-- Section ตารางแสดงรายการเบิกเงินสดย่อย / ใบเสร็จหลักฐาน -->
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
   <h3 class="h5 fw-bold mb-4">รายการใบเสร็จหลักฐานที่แนบมา</h3>
@@ -261,13 +313,14 @@
     {% set visible_items = visible_items|rejectattr('category_type', 'equalto', 6)|list %}
   {% endif %}
   {% if visible_items %}
+    {% if claim_detail.note %}<span class="text-danger">หมายเหตุ: {{claim_detail.note}}</span>{% endif %}
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
             <tr>
                 <th scope="col" style="width: 60px;">ลำดับ</th>
                 <th scope="col">วันที่ในใบเสร็จ</th>
-                <th scope="col">รายการรายละเอียด</th>
+                <th scope="col" style="width: 20%;">รายการรายละเอียด</th>
                 <th scope="col">จำนวนเงิน</th>
                 <th scope="col">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่อัปโหลด</th>
@@ -289,7 +342,7 @@
                     {{ item.receipt_date|thai_date if item.receipt_date else '-' }}
                 </td>
                 
-                <td>
+                <td style="width: 20%;">
                     {{ item.description or '-' }}
                 </td>
                 
@@ -302,7 +355,7 @@
                     <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ proof_file.filename }}">
                     {% set proof_filename = proof_file.filename or proof_file.proof_reference or '' %}
                     {% if proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
-                        <img src="{{ url_for('static', filename=proof_file.proof_reference) }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{ proof_file.proof_reference|advance_payment_file_url }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
                     {% else %}
                         <i class="bi bi-file-earmark fs-2 text-primary"></i>
                     {% endif %}
@@ -318,7 +371,7 @@
                 
                 <td>
                     {% if proof_file and proof_file.proof_reference %}
-                    <a href="{{ url_for('static', filename=proof_file.proof_reference) }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
+                    <a href="{{ proof_file.proof_reference|advance_payment_file_url }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
                         <i class="bi bi-box-arrow-up-right me-1"></i> เปิดไฟล์เต็ม
                     </a>
                     {% else %}
@@ -327,16 +380,16 @@
                 </td>
                 
                 <td class="text-end">
-                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
+                    {% if can_edit_claim %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ item.id }}">
-                        <i class="bi bi-pencil-square"></i> แก้ไข
+                        <i class="bi bi-pencil-square"></i> แก้ไขข้อมูลรายการ
                     </button>
                     {% endif %}
                 </td>
                 </tr>
 
                 <!-- Modal สำหรับแก้ไขรายการแบบ Inline (สำหรับผู้ขอเบิก) -->
-                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
+                {% if can_edit_claim %}
                 <div class="modal fade text-start" id="editModalInRow{{ item.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ item.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">
@@ -353,7 +406,7 @@
                         <div class="mb-3">
                           <label class="form-label fw-bold text-secondary small">วันที่ในใบเสร็จ</label>
                           <!-- เพิ่ม class modal-receipt-date-input -->
-                          <input type="date" name="receipt_date" class="form-control modal-receipt-date-input" value="{{ item.receipt_date or '' }}" required>
+                          <input type="text" name="receipt_date" class="form-control modal-receipt-date-input app-date-picker" value="{{ item.receipt_date or '' }}" placeholder="dd/mm/yyyy" required>
                           
                           <!-- แท็กแสดงข้อความแจ้งเตือนเมื่อเกิน 10 วัน -->
                           <small class="text-danger d-none modal-receipt-age-warning mt-1 d-block small"></small>
@@ -398,23 +451,6 @@
   {% endif %}
 </section>
 
-{% if claim_detail.reference_number or claim_detail.reference_files %}
-<section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
-  <h3 class="h5 fw-bold mb-3">หนังสืออนุมัติในหลักการ</h3>
-  {% if claim_detail.reference_number %}
-    <p class="mb-2"><strong>เลขที่:</strong> {{ claim_detail.reference_number }}{% if claim_detail.reference_date %} <span class="ms-3"><strong>วันที่:</strong> {{ claim_detail.reference_date|thai_date }}</span>{% endif %}</p>
-  {% endif %}
-  {% if claim_detail.reference_files %}
-    <div class="d-flex flex-wrap gap-2">
-      {% for reference_file in claim_detail.reference_files %}
-        <a href="{{ url_for('static', filename=reference_file.proof_reference) }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
-          <i class="bi bi-paperclip me-1"></i>{{ reference_file.filename }}
-        </a>
-      {% endfor %}
-    </div>
-  {% endif %}
-</section>
-{% endif %}
 
 <!-- Section แสดงเอกสารประกาศ/ไฟล์แนบประกอบ -->
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
@@ -423,8 +459,8 @@
       <i class="bi bi-file-earmark-text text-primary me-2"></i>ประกาศที่เกี่ยวข้อง
     </h3>
     {% if claim_detail.documents %}
-      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="downloadAllAnnouncements()">
-        <i class="bi bi-download me-1"></i> ดาวน์โหลดทั้งหมด
+      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="openAllAnnouncements()">
+        <i class="bi bi-box-arrow-up-right me-1"></i> เปิดเอกสารทั้งหมด
       </button>
     {% endif %}
   </div>
@@ -452,9 +488,8 @@
                     </div>
                   </div>
                   <div>
-                    {% if doc.download_url or doc.url or doc.file_path %}
-                      <a href="{{ doc.download_url or doc.url or doc.file_path }}"
-                         download="{{ doc.title }}.pdf"
+                    {% if doc.url or doc.view_url or doc.file_path %}
+                      <a href="{{ doc.url or doc.view_url or doc.file_path }}"
                          target="_blank" rel="noopener"
                          class="btn btn-sm btn-outline-primary fw-semibold px-3 announcement-download-btn">
                         <i class="bi bi-download me-1"></i> ดาวน์โหลด
@@ -472,21 +507,9 @@
     </div>
 
     <script>
-      function downloadAllAnnouncements() {
-        const downloadButtons = document.querySelectorAll('.announcement-download-btn');
-        if (downloadButtons.length === 0) return;
-
-        downloadButtons.forEach((btn, index) => {
-          setTimeout(() => {
-            const link = document.createElement('a');
-            link.href = btn.getAttribute('href');
-            link.download = btn.getAttribute('download') || 'announcement.pdf';
-            link.target = '_blank';
-            link.rel = 'noopener';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }, index * 400);
+      function openAllAnnouncements() {
+        document.querySelectorAll('.announcement-download-btn').forEach((link) => {
+          window.open(link.href, '_blank', 'noopener');
         });
       }
     </script>
@@ -506,8 +529,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function checkModalReceiptAge(receiptDateValue) {
   if (!receiptDateValue) return "";
 
-  const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
-  if (Number.isNaN(receiptDate.getTime())) return "";
+  const receiptDate = window.appParseDate(receiptDateValue);
+  if (!receiptDate) return "";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

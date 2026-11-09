@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% include 'eduqa/QA/nav.html' %}
+{% block page_content %}
+<section class="section"><div class="container">
+<h1 class="title">{{ bundle.name }}</h1>
+<p class="subtitle">{{ bundle.course.en_code }} · ประเมินหลายทักษะในครั้งเดียว</p>
+<div class="field">
+    <button type="button" class="button is-info is-light" id="share-bundle" data-share-url="{{ url_for('eduqa.evaluation_bundle_students', bundle_id=bundle.id, _external=True) }}">
+        <span class="icon"><i class="fas fa-share-alt" aria-hidden="true"></i></span>
+        <span>แชร์ลิงก์</span>
+    </button>
+    <p class="help" id="share-bundle-status" role="status" aria-live="polite"></p>
+</div>
+{% include 'messages.html' %}
+<div class="box">{% for assignment, evidence in sections %}<p>{{ evidence.skill.name }} — {{ assignment.version.form.name }} · v{{ assignment.version.version }}</p>{% endfor %}</div>
+<div class="field">
+    <label class="label" for="student-search">ค้นหานักศึกษา</label>
+    <div class="control has-icons-left">
+        <input class="input is-large is-rounded" type="search" id="student-search" placeholder="ค้นหาด้วยชื่อหรือรหัสนักศึกษา" aria-controls="bundle-students">
+        <span class="icon is-large is-left"><i class="fas fa-search" aria-hidden="true"></i></span>
+    </div>
+</div>
+<table id="bundle-students" class="table is-fullwidth"><thead><tr><th>นักศึกษา</th><th></th><th>ประเมินล่าสุด</th></tr></thead><tbody>
+{% for student in students %}<tr data-student-row><td data-student-search>{{ student.student_id }} — {{ student.th_name }}</td>
+<td><a class="button is-info is-small" href="{{ url_for('eduqa.fill_evaluation_bundle', bundle_id=bundle.id, student_id=student.id) }}">ประเมิน</a>
+</td>
+<td><div>{% if latest.get(student.id) %}{{ latest[student.id].created_at|localdatetime }} <span class="is-size-7 has-text-grey">· โดย {{ evaluator_names.get(latest[student.id].created_by_id, 'ไม่พบข้อมูลผู้ประเมิน') }}</span>{% else %}ยังไม่ได้ประเมิน{% endif %}</div>
+<div class="buttons mt-2">{% for assignment, evidence in sections %}<a class="button is-light is-small" href="{{ url_for('eduqa.view_student_skill_evidence_results', revision_id=bundle.course.revision_id, skill_id=evidence.skill_id, clo_id=evidence.clo_id, evidence_id=evidence.id, student_id=student.id, bundle_id=bundle.id) }}">ผล {{ evidence.skill.code }}</a>{% endfor %}</div></td></tr>
+{% else %}<tr><td colspan="3">ยังไม่มีนักศึกษาลงทะเบียนรายวิชานี้</td></tr>{% endfor %}
+<tr id="student-search-empty" hidden><td colspan="3" role="status">ไม่พบนักศึกษาที่ตรงกับการค้นหา</td></tr>
+</tbody></table>
+{% set evidence = sections[0][1] %}<a class="button is-light" href="{{ url_for('eduqa.manage_student_outcome_skill_evidence', revision_id=bundle.course.revision_id, skill_id=evidence.skill_id, clo_id=evidence.clo_id) }}">ย้อนกลับ</a>
+</div></section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    const shareBundle = document.getElementById('share-bundle');
+    const shareBundleStatus = document.getElementById('share-bundle-status');
+    shareBundle.addEventListener('click', async function () {
+        const link = this.dataset.shareUrl;
+        try {
+            let copied = false;
+            if (navigator.clipboard && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(link);
+                    copied = true;
+                } catch (error) {
+                    // Try the fallback when clipboard access is unavailable.
+                }
+            }
+            if (!copied) {
+                const input = document.createElement('textarea');
+                input.value = link;
+                input.style.position = 'fixed';
+                input.style.opacity = '0';
+                document.body.appendChild(input);
+                try {
+                    input.select();
+                    if (!document.execCommand('copy')) throw new Error('Copy failed');
+                } finally {
+                    input.remove();
+                    this.focus();
+                }
+            }
+            shareBundleStatus.textContent = 'คัดลอกลิงก์แล้ว';
+        } catch (error) {
+            shareBundleStatus.textContent = 'ไม่สามารถคัดลอกลิงก์ได้: ' + link;
+        }
+    });
+
+    const studentSearch = document.getElementById('student-search');
+    const studentRows = Array.from(document.querySelectorAll('#bundle-students [data-student-row]'));
+    const studentSearchEmpty = document.getElementById('student-search-empty');
+    studentSearch.addEventListener('input', function () {
+        const query = this.value.trim().toLocaleLowerCase();
+        let matches = 0;
+        studentRows.forEach(function (row) {
+            const text = row.querySelector('[data-student-search]').textContent.toLocaleLowerCase();
+            row.hidden = !text.includes(query);
+            if (!row.hidden) matches += 1;
+        });
+        studentSearchEmpty.hidden = studentRows.length === 0 || matches > 0;
+    });
+</script>
+{% endblock %}

@@ -10,9 +10,11 @@
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ตรวจสอบหลักฐาน</p>
   <h1 class="fw-bold display-6 mb-2">รายละเอียดไฟล์หลักฐานเอกสารส่งใช้เงินยืม</h1>
 </header>
-{% with document=return_detail, pdf_export_url=url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id), pdf_reference_editable=False %}
-  {% include 'advance_payment/_pdf_reference_modal.html' %}
-{% endwith %}
+{% if can_download_return_detail(return_detail) %}
+  {% with document=return_detail, pdf_export_url=url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id), pdf_reference_editable=False %}
+    {% include 'advance_payment/_pdf_reference_modal.html' %}
+  {% endwith %}
+{% endif %}
 
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
   <div class="row align-items-center g-3">
@@ -28,17 +30,9 @@
         </div>
         <div class="col-6 col-sm-4 col-md-3">
             <span class="text-muted small d-block">สถานะปัจจุบัน</span>
-            {% set r_badge = 'bg-warning text-dark' %}
             {% set r_status = return_detail.status %}
-            {% if return_detail.status|lower == 'รอตรวจสอบ' %}{% set r_status = 'รอตรวจสอบ' %}
-            {% elif return_detail.status|lower == 'กำลังตรวจสอบ' %}{% set r_badge = 'bg-warning text-dark' %}{% set r_status = 'กำลังตรวจสอบ' %}
-            {% elif return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
-            {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-primary text-white' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
-            {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
-            {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ได้รับเอกสารแล้ว' %}
-            {% elif return_detail.status|lower == 'ล้างลูกหนี้เงินยืม' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
-            {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
-            <span class="badge {{ r_badge }} mt-1">{{ r_status }}</span>
+            {% if return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
+            <span class="badge {{ status_badge_class(return_detail.status) }} mt-1">{{ r_status }}</span>
         </div>
         <div class="col-6 col-sm-4 col-md-3">
           <span class="text-muted small d-block">หมายเลขฎีกา</span>
@@ -54,27 +48,32 @@
     
         {% if return_detail.rejection_comment %}
         <div class="col-12 mt-3">
-            <h6 class="fw-bold text-danger">ประวัติบันทึกข้อเสนอแนะการปฏิเสธ:</h6>
-            {% set rejection_history = return_detail.rejection_comment.split('ครั้งที่ ')|reject('equalto', '')|list|reverse %}
-            {% for comment in rejection_history %}
-              <p style="white-space: pre-line;" class="mb-2 p-2 rounded border {% if loop.first and return_detail.status|lower == 'ปฏิเสธ' %}text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small bg-light border-secondary-subtle{% endif %}">ครั้งที่ {{ comment }}</p>
-            {% endfor %}
+            <h6 class="fw-bold text-danger">ข้อเสนอแนะการปฏิเสธล่าสุด:</h6>
+            <p style="white-space: pre-line;" class="mb-2 p-2 {% if return_detail.status|lower in ['ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}rounded border text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small{% endif %}">{{ return_detail.rejection_comment|latest_rejection_comment }}</p>
         </div>
         {% endif %}
       </div>
     </div>
-    {% if advance_payment_role != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
+    {% if can_download_return_detail(return_detail) %}
       <div class="d-flex gap-2 justify-content-md-end mt-3">
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
           </button>
       </div>
     {% endif %}
+    {% if can_edit_return_detail %}
+      <div class="d-flex gap-2 justify-content-md-end mt-3">
+        <a class="btn btn-outline-warning btn-sm fw-bold px-3 py-2"
+           href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id, edit_return_id=return_detail.id) }}#return_block_ticket_{{ borrowing_ticket.id }}">
+          <i class="bi bi-pencil-square me-1"></i>แก้ไขข้อมูลเอกสาร
+        </a>
+      </div>
+    {% endif %}
     {% if advance_payment_role != 'finance' and return_detail.status|lower == 'รอยืนยันการแก้ไข' %}
       <div class="d-flex gap-2 justify-content-md-end mt-3">
         <form method="POST" action="{{ url_for('advance_payment.confirm_return_edit', return_id=return_detail.id) }}" class="m-0">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-1.5"><i class="bi bi-check2-circle me-1"></i>ยืนยันการแก้ไข</button>
+          <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-1.5"><i class="bi bi-check2-circle me-1"></i>ยืนยันการแก้ไขข้อมูล</button>
         </form>
       </div>
     {% endif %}
@@ -99,27 +98,38 @@
             </button>
         {% endif %}
         {% if return_detail.status|lower == 'รอตรวจสอบ' %}
-            <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmCheckingModal">
+            <form id="returnCheckingForm{{ return_detail.id }}" method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" data-ajax-validation="true" class="d-none">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if return_detail.has_over_limit_item %}<input type="hidden" name="high_amount_acknowledged" value="0">{% endif %}
+            </form>
+            <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 py-1.5"
+                data-popup-trigger="true"
+                data-popup-title="ยืนยันการส่งแบบฟอร์ม"
+                data-popup-message="{% if return_detail.has_over_limit_item %}รายการนี้มีใบเสร็จยอดเกิน 100,000 บาท กรุณาตรวจสอบเอกสารอว.ที่อนุมัติโดยอธิการบดี{% else %}คุณต้องการเปลี่ยนสถานะเอกสารนี้เป็น 'กำลังตรวจสอบ' ใช่หรือไม่?{% endif %}"
+                data-popup-target-form-id="returnCheckingForm{{ return_detail.id }}"
+                data-popup-require-acknowledgement="{{ 'true' if return_detail.has_over_limit_item else 'false' }}"
+                data-popup-acknowledgement-field-name="high_amount_acknowledged"
+                data-popup-acknowledgement-label="รับทราบ และจะทำการตรวจสอบเอกสาร"
+                data-popup-confirm-text="เริ่มทำการตรวจสอบ"
+                data-popup-confirm-class="btn-warning">
                 เริ่มการตรวจสอบ
             </button>
-            <div class="modal fade" id="confirmCheckingModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content text-start">
-                        <div class="modal-header"><h5 class="modal-title fw-bold">ยืนยันการเปลี่ยนสถานะ</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">คุณต้องการเปลี่ยนสถานะเอกสารนี้เป็น <strong>"กำลังตรวจสอบ"</strong> ใช่หรือไม่?</div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-warning fw-bold">ยืนยัน</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
         {% endif %}
         {% if return_detail.status|lower == 'กำลังตรวจสอบ' %}
-            <button type="button" class="btn btn-primary btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmProofedModal">
+            <form id="returnProofedForm{{ return_detail.id }}" method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" data-ajax-validation="true" class="d-none">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if return_detail.has_over_limit_item %}<input type="hidden" name="dean_document_acknowledged" value="0">{% endif %}
+            </form>
+            <button type="button" class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
+                data-popup-trigger="true"
+                data-popup-title="ยืนยันการส่งแบบฟอร์ม"
+                data-popup-message="{% if return_detail.has_over_limit_item %}กรุณายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีสำหรับใบเสร็จยอดเกิน 100,000 บาทแล้ว{% else %}คุณต้องการส่งเอกสารนี้ไปยังสถานะ 'ผ่านการตรวจสอบ' ใช่หรือไม่?{% endif %}"
+                data-popup-target-form-id="returnProofedForm{{ return_detail.id }}"
+                data-popup-require-acknowledgement="{{ 'true' if return_detail.has_over_limit_item else 'false' }}"
+                data-popup-acknowledgement-field-name="dean_document_acknowledged"
+                data-popup-acknowledgement-label="ยืนยันว่าได้ทำการตรวจสอบแล้ว"
+                data-popup-confirm-text="ตกลงและส่งแบบฟอร์ม"
+                data-popup-confirm-class="btn-warning">
                 ยืนยันการตรวจสอบ
             </button>
             <button type="button" class="btn btn-danger btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#rejectReturnModal{{ return_detail.id }}">
@@ -145,21 +155,6 @@
                 </form>
                 </div>
             </div>
-            <div class="modal fade" id="confirmProofedModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content text-start">
-                        <div class="modal-header"><h5 class="modal-title fw-bold">ยืนยันการตรวจสอบหลักฐาน</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">คุณต้องการส่งเอกสารนี้ไปยังสถานะ <strong>"ผ่านการตรวจสอบ"</strong> ใช่หรือไม่?</div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-primary fw-bold">ยืนยันข้อมูลถูกต้อง</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
            {% endif %}
         </div>
     {% endif %}
@@ -168,6 +163,7 @@
 
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
   <h3 class="h5 fw-bold mb-4">รายการไฟล์หลักฐานที่แนบมา</h3>
+    {% if return_detail.note %}<span class="text-danger">หมายเหตุ: {{return_detail.note}}</span>{% endif %}
     {% if proof_files %}
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -176,10 +172,10 @@
                 <th scope="col">ลำดับ</th>
                 <th scope="col">วันที่ในใบเสร็จ</th>
                 <th scope="col">ชื่อร้านค้า / ผู้รับเงิน</th>
-                <th scope="col">รายการ</th>
+                <th scope="col" style="width: 20%;">รายการ</th>
                 <th scope="col">จำนวนเงิน</th>
-                <th scope="col" style="width: 100px;">ไฟล์หลักฐาน</th>
-                <th scope="col">วันที่อัปโหลด</th>
+                <th scope="col">ไฟล์หลักฐาน</th>
+                <th scope="col">วันที่แก้ไขล่าสุด</th>
                 <th scope="col">เปิดดูไฟล์</th>
                 {% if session.get('advance_payment_system') == 'advance_payment' %}
                     <th scope="col">การจัดการ</th>
@@ -188,7 +184,7 @@
             </thead>
             <tbody>
             {% for file in proof_files %}
-                <tr>
+                <tr class="{% if file.receipt_item and (file.receipt_item.amount or 0) > 100000 and not file.receipt_item.is_cash %}table-warning{% endif %}">
                 <td class="fw-bold text-muted" style="width: 60px;">
                     {{ loop.index }}
                 </td>
@@ -203,12 +199,15 @@
                     </div>
                 </td>
                 
-                <td>
+                <td style="width: 20%;">
                     {{ file.receipt_item.description if file.receipt_item and file.receipt_item.description else '-' }}
                 </td>
                 
                 <td class="fw-bold text-secondary">
                     {{ "{:,.2f}".format(file.receipt_item.amount or 0) if file.receipt_item else '0.00' }} บาท
+                    {% if file.receipt_item and (file.receipt_item.amount or 0) > 100000 and not file.receipt_item.is_cash %}
+                      <span class="badge bg-danger ms-1">เกิน 100,000 บาท</span>
+                    {% endif %}
                 </td>
 
                 <td>
@@ -216,7 +215,7 @@
                     <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ file.original_filename or file.filename }}">
                     {% set proof_filename = file.filename or file.proof_reference or '' %}
                     {% if proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
-                        <img src="{{ url_for('static', filename=file.proof_reference) }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{ file.proof_reference|advance_payment_file_url }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
                     {% else %}
                         <i class="bi bi-file-earmark fs-2 text-primary"></i>
                     {% endif %}
@@ -227,12 +226,12 @@
                 </td>
                 
                 <td>
-                    <small class="text-muted">{{ file.created_at|thai_date if file.created_at else '-' }}</small>
+                    <small class="text-muted">{{ file.receipt_item.created_at|thai_date if file.receipt_item.created_at else '-' }}</small>
                 </td>
                 
                 <td>
                     {% if file.proof_reference %}
-                    <a href="{{ url_for('static', filename=file.proof_reference) }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
+                    <a href="{{ file.proof_reference|advance_payment_file_url }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
                         <i class="bi bi-box-arrow-up-right me-1"></i> เปิดไฟล์เต็ม
                     </a>
                     {% else %}
@@ -241,15 +240,15 @@
                 </td>
                 
                 <td>
-                  {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}
+                  {% if can_edit_return_detail %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ file.id or file.receipt_item.id }}">
-                        <i class="bi bi-pencil-square"></i> แก้ไข
+                        <i class="bi bi-pencil-square"></i> แก้ไขข้อมูลรายการ
                     </button>
                     {% endif %}
                 </td>
                 </tr>
 
-                {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}
+                {% if can_edit_return_detail %}
                 <div class="modal fade text-start" id="editModalInRow{{ file.id or file.receipt_item.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ file.id or file.receipt_item.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">
@@ -266,7 +265,7 @@
                         <div class="mb-3">
                           <label class="form-label fw-bold text-secondary small">วันที่ในใบเสร็จ</label>
                           <!-- เพิ่ม class modal-receipt-date-input -->
-                          <input type="date" name="receipt_date" class="form-control modal-receipt-date-input" value="{{ file.receipt_item.receipt_date.strftime('%Y-%m-%d') if file.receipt_item and file.receipt_item.receipt_date else '' }}" required>
+                          <input type="text" name="receipt_date" class="form-control modal-receipt-date-input app-date-picker" value="{{ file.receipt_item.receipt_date.strftime('%Y-%m-%d') if file.receipt_item and file.receipt_item.receipt_date else '' }}" placeholder="dd/mm/yyyy" required>
                           
                           <!-- แท็กแสดงข้อความแจ้งเตือนเมื่อเกิน 10 วัน -->
                           <small class="text-danger d-none modal-receipt-age-warning mt-1 d-block small"></small>
@@ -345,9 +344,8 @@
                     </div>
                   </div>
                   <div>
-                    {% if doc.download_url or doc.url or doc.file_path %}
-                      <a href="{{ doc.download_url or doc.url or doc.file_path }}"
-                         download="{{ doc.title }}.pdf"
+                    {% if doc.url or doc.view_url or doc.file_path %}
+                      <a href="{{ doc.url or doc.view_url or doc.file_path }}"
                          target="_blank" rel="noopener"
                          class="btn btn-sm btn-outline-primary fw-semibold px-3 announcement-download-btn">
                         <i class="bi bi-download me-1"></i> ดาวน์โหลด
@@ -364,26 +362,6 @@
       </div>
     </div>
 
-    <script>
-      function downloadAllAnnouncements() {
-        const downloadButtons = document.querySelectorAll('.announcement-download-btn');
-        if (downloadButtons.length === 0) return;
-
-        downloadButtons.forEach((btn, index) => {
-          setTimeout(() => {
-            const link = document.createElement('a');
-            link.href = btn.getAttribute('href');
-            link.download = btn.getAttribute('download') || 'announcement.pdf';
-            link.target = '_blank';
-            link.rel = 'noopener';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }, index * 400);
-        });
-      }
-    </script>
-
   {% else %}
     <div class="py-3 px-2 border rounded-3 bg-light text-center">
       <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>ไม่มีเอกสารประกาศที่เกี่ยวข้อง</p>
@@ -399,8 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function checkModalReceiptAge(receiptDateValue) {
   if (!receiptDateValue) return "";
 
-  const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
-  if (Number.isNaN(receiptDate.getTime())) return "";
+  const receiptDate = window.appParseDate(receiptDateValue);
+  if (!receiptDate) return "";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

@@ -3,12 +3,13 @@ from __future__ import annotations
 import importlib
 import sys
 import types
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 import pytz
+from werkzeug.exceptions import Forbidden, NotFound
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +57,12 @@ class _FakeQuery:
 
     def count(self):
         return self.count_value
+
+    def order_by(self, *_args, **_kwargs):
+        return self
+
+    def first(self):
+        return self.rows[0] if self.rows else None
 
 
 class _FakeSession:
@@ -218,7 +225,15 @@ def _install_import_stubs(monkeypatch):
     monkeypatch.setitem(sys.modules, "pydrive.drive", pydrive_drive_mod)
 
     monkeypatch.setitem(sys.modules, "pydrive", _module("pydrive"))
-    monkeypatch.setitem(sys.modules, "app.procurement.models", _module("app.procurement.models", ProcurementPlan=object))
+    monkeypatch.setitem(
+        sys.modules,
+        "app.procurement.models",
+        _module(
+            "app.procurement.models",
+            ProcurementPlan=object,
+            ProcurementPlanCommitteeMember=object,
+        ),
+    )
 
     sys.modules.pop("app.staff.views", None)
 
@@ -228,6 +243,188 @@ def staff_views(monkeypatch):
     _install_import_stubs(monkeypatch)
     views = importlib.import_module("app.staff.views")
     return views
+
+
+@pytest.mark.parametrize('reference_date, expected_start, expected_end', [
+    (date(2026, 1, 1), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 6, 1), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 6, 30), date(2026, 1, 1), date(2026, 6, 30)),
+    (date(2026, 9, 1), date(2026, 9, 1), date(2026, 12, 31)),
+    (date(2026, 10, 1), date(2026, 9, 1), date(2026, 12, 31)),
+    (date(2026, 12, 31), date(2026, 9, 1), date(2026, 12, 31)),
+    (date(2027, 1, 1), date(2027, 1, 1), date(2027, 6, 30)),
+    (date(2027, 6, 30), date(2027, 1, 1), date(2027, 6, 30)),
+    (date(2027, 7, 1), date(2027, 7, 1), date(2027, 12, 31)),
+    (date(2028, 1, 1), date(2028, 1, 1), date(2028, 6, 30)),
+])
+def test_civil_servant_login_quota_period_boundaries(
+    staff_views, reference_date, expected_start, expected_end
+):
+    staff = SimpleNamespace(employment=SimpleNamespace(title='ข้าราชการ'))
+
+    assert staff_views._current_login_quota_period(reference_date, staff) == (
+        expected_start, expected_end, 15
+    )
+
+
+@pytest.mark.parametrize('employment_title, quota_limit', [
+    ('พนักงานมหาวิทยาลัย', 30),
+    ('ลูกจ้างประจำ', 30),
+    ('ลูกจ้างชั่วคราว', 30),
+    ('ลูกจ้างปฏิบัติงานนอกเวลา', 30),
+])
+@pytest.mark.parametrize('reference_date, expected_start, expected_end', [
+    (date(2026, 9, 1), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2026, 10, 1), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2026, 12, 31), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2027, 1, 1), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2027, 6, 30), date(2026, 9, 1), date(2027, 6, 30)),
+    (date(2027, 7, 1), date(2027, 7, 1), date(2028, 6, 30)),
+    (date(2028, 6, 30), date(2027, 7, 1), date(2028, 6, 30)),
+    (date(2028, 7, 1), date(2028, 7, 1), date(2029, 6, 30)),
+])
+def test_other_employment_login_quota_periods(
+    staff_views, employment_title, quota_limit, reference_date, expected_start, expected_end
+):
+    staff = SimpleNamespace(employment=SimpleNamespace(title=employment_title))
+    assert staff_views._current_login_quota_period(reference_date, staff) == (
+        expected_start, expected_end, quota_limit
+    )
+
+
+@pytest.mark.parametrize('round_time, expected_ids', [
+    ('16:30', [1, 2]), ('17:00', [3, 7]),
+])
+def test_checkout_reminder_groups_and_exclusions(staff_views, monkeypatch, round_time, expected_ids):
+    bangkok = pytz.timezone('Asia/Bangkok')
+    target_date = date(2026, 11, 5)
+    accounts = [SimpleNamespace(id=i, line_id=f'line-{i}') for i in range(1, 9)]
+    accounts[7].line_id = None
+    monkeypatch.setattr(staff_views, 'StaffAccount', SimpleNamespace(get_active_accounts=lambda: accounts))
+
+    def record(staff_id, hour, minute=0, end=None, day=5):
+        return SimpleNamespace(
+            staff_id=staff_id,
+            start_datetime=bangkok.localize(datetime(2026, 11, day, hour, minute)),
+            end_datetime=end,
+        )
+
+    records = [
+        record(1, 7), record(2, 8, 30), record(3, 8, 31),
+        record(4, 8, end=bangkok.localize(datetime(2026, 11, 5, 16, 30))),
+        record(5, 8), record(5, 16, 30),  # Scan-based checkout.
+        record(6, 8, day=4),  # No check-in today.
+        record(7, 9), record(8, 8),
+    ]
+    assert [account.id for account in staff_views._build_missing_checkout_recipients(
+        target_date, round_time, records=records
+    )] == expected_ids
+
+    # An approved checkout removes the remaining staff member on recalculation.
+    records[2].end_datetime = bangkok.localize(datetime(2026, 11, 5, 16, 45))
+    records[-2].correction_type = 'checkout'
+    assert 3 not in [account.id for account in staff_views._build_missing_checkout_recipients(
+        target_date, '17:00', records=records
+    )]
+    assert staff_views._build_missing_checkout_recipients(target_date, '17:00', records=records) == []
+
+
+@pytest.mark.parametrize('method, holiday, expected_sent', [
+    ('GET', False, 0), ('POST', False, 1), ('POST', True, 0),
+])
+def test_checkout_reminder_preview_send_and_holiday(
+    staff_views, monkeypatch, method, holiday, expected_sent
+):
+    class FixedDatetime(datetime):
+        @classmethod
+        def now(cls, zone):
+            return zone.localize(cls(2026, 11, 5, 16, 30))
+
+    monkeypatch.setenv('JOB_TOKEN', 'test-token')
+    monkeypatch.setattr(staff_views, 'datetime', FixedDatetime)
+    monkeypatch.setattr(staff_views, 'request', SimpleNamespace(
+        method=method, values={'job_token': 'test-token', 'round': '16:30'},
+    ))
+    monkeypatch.setattr(staff_views, '_get_holiday_for_date', lambda _: holiday)
+    monkeypatch.setattr(staff_views, '_build_missing_checkout_recipients', lambda *_: [
+        SimpleNamespace(id=1, fullname='Test Staff', line_id='line-1'),
+    ])
+    monkeypatch.setattr(staff_views, 'jsonify', lambda payload: payload)
+    pushes = []
+    monkeypatch.setattr(staff_views, 'line_bot_api', SimpleNamespace(
+        push_message=lambda **kwargs: pushes.append(kwargs),
+    ))
+    payload = staff_views.line_remind_missing_checkout()
+
+    assert payload['sent_count'] == expected_sent
+    assert len(pushes) == expected_sent
+    assert payload['recipient_count'] == (0 if holiday else 1)
+
+
+@pytest.mark.parametrize('token', [None, 'wrong-token'])
+def test_checkout_reminder_requires_scheduler_token_or_admin(staff_views, monkeypatch, token):
+    monkeypatch.setenv('JOB_TOKEN', 'test-token')
+    monkeypatch.setattr(staff_views, 'request', SimpleNamespace(
+        method='POST', values={'job_token': token, 'round': '16:30'},
+    ))
+    monkeypatch.setattr(staff_views, 'current_user', SimpleNamespace(is_authenticated=False))
+    from werkzeug.exceptions import Unauthorized
+    with pytest.raises(Unauthorized):
+        staff_views.line_remind_missing_checkout()
+
+
+@pytest.mark.parametrize('record_source', ['scan', 'approved_request'])
+@pytest.mark.parametrize('endpoint', ['send_summary_data', 'send_time_report_data'])
+def test_summary_calendar_includes_weekend_and_holiday_checkins(staff_views, monkeypatch, record_source, endpoint):
+    class Query(_FakeQuery):
+        def __iter__(self):
+            return iter(self.rows)
+
+    class Column:
+        def in_(self, _values):
+            return self
+
+        def between(self, *_args):
+            return self
+
+    employee_query = Query()
+    employee_query.rows = [SimpleNamespace(th_firstname='Test', staff_account=SimpleNamespace())]
+    monkeypatch.setattr(staff_views, 'StaffPersonalInfo', SimpleNamespace(
+        query=employee_query, org_id=Column(),
+    ))
+    login_query = Query()
+    monkeypatch.setattr(staff_views, 'StaffWorkLogin', SimpleNamespace(query=login_query, start_datetime=Column()))
+    monkeypatch.setattr(staff_views, 'func', SimpleNamespace(timezone=lambda *_: Column()))
+    monkeypatch.setattr(staff_views, 'jsonify', lambda payload: payload)
+    monkeypatch.setattr(staff_views, 'request', SimpleNamespace(args=SimpleNamespace(
+        get=lambda key, **_: {'tab': 'login'}.get(key),
+    )))
+    monkeypatch.setattr(staff_views, '_approved_half_day_leave_period', lambda *_: None)
+    monkeypatch.setattr(staff_views, 'current_user', SimpleNamespace(
+        personal_info=SimpleNamespace(th_firstname='Test'),
+    ))
+    # Friday holiday, Saturday, Sunday, and an ordinary Monday.
+    dates = [date(2026, 10, day) for day in (23, 24, 25, 26)]
+    monkeypatch.setattr(staff_views, '_working_dates_between', lambda *_: {dates[-1]})
+    login_query.rows = [
+        SimpleNamespace(
+            id=index, staff_id=1, staff=SimpleNamespace(fullname='Test Staff'),
+            start_datetime=pytz.timezone('Asia/Bangkok').localize(
+                datetime.combine(day, datetime.strptime('08:00', '%H:%M').time())
+            ),
+            end_datetime=None, qrcode_in_exp_datetime=None, qrcode_out_exp_datetime=None,
+            lat=None, long=None, record_source=record_source,
+            correction_type='checkin' if record_source == 'approved_request' else None,
+        )
+        for index, day in enumerate(dates)
+    ]
+
+    events = getattr(staff_views, endpoint).__wrapped__()
+
+    assert [event['start'][:10] for event in events] == [day.isoformat() for day in dates]
+    assert all(event['type'] == 'login' for event in events)
+    assert all(event['approved_checkin'] == (record_source == 'approved_request') for event in events)
+    assert all(event['has_approved_correction'] == (record_source == 'approved_request') for event in events)
 
 
 def test_create_work_login_record_increments_daily_scan_count_and_sets_qrcode_expiry(staff_views, monkeypatch):
@@ -270,6 +467,90 @@ def test_create_work_login_record_increments_daily_scan_count_and_sets_qrcode_ex
     assert record.qrcode_in_exp_datetime == qrcode_exp.astimezone(pytz.utc)
     assert fake_session.added == [record]
     assert fake_session.commits == 1
+
+
+def test_morning_ot_ending_at_0830_counts_work_hours_from_ot_end(staff_views, monkeypatch):
+    bangkok = pytz.timezone("Asia/Bangkok")
+    query = _FakeQuery(count_value=1)
+    query.rows = [SimpleNamespace(start_datetime=bangkok.localize(datetime(2026, 6, 26, 6, 0)))]
+
+    class FakeStaffWorkLogin:
+        start_datetime = SimpleNamespace(asc=lambda: None)
+
+        @staticmethod
+        def generate_date_id(_date_value):
+            return "20260626"
+
+    FakeStaffWorkLogin.query = query
+    ot_range = SimpleNamespace(
+        lower=datetime(2026, 6, 26, 6, 0),
+        upper=datetime(2026, 6, 26, 8, 30),
+    )
+    staff = SimpleNamespace(
+        ot_record_staff=[SimpleNamespace(canceled_at=None, shift=SimpleNamespace(datetime=ot_range))]
+    )
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", FakeStaffWorkLogin)
+
+    info = staff_views._get_early_checkout_info(
+        staff, bangkok.localize(datetime(2026, 6, 26, 16, 0)).astimezone(pytz.utc)
+    )
+
+    assert info["worked_hours"] == 7.5
+    assert info["work_start"].isoformat() == "2026-06-26T08:30:00+07:00"
+
+
+def test_morning_ot_ending_at_0815_completes_eight_hours_at_1615(staff_views, monkeypatch):
+    bangkok = pytz.timezone("Asia/Bangkok")
+    query = _FakeQuery(count_value=1)
+    query.rows = [SimpleNamespace(start_datetime=bangkok.localize(datetime(2026, 6, 26, 6, 0)))]
+
+    class FakeStaffWorkLogin:
+        start_datetime = SimpleNamespace(asc=lambda: None)
+
+        @staticmethod
+        def generate_date_id(_date_value):
+            return "20260626"
+
+    FakeStaffWorkLogin.query = query
+    ot_range = SimpleNamespace(
+        lower=datetime(2026, 6, 26, 6, 0),
+        upper=datetime(2026, 6, 26, 8, 15),
+    )
+    staff = SimpleNamespace(
+        ot_record_staff=[SimpleNamespace(canceled_at=None, shift=SimpleNamespace(datetime=ot_range))]
+    )
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", FakeStaffWorkLogin)
+
+    assert staff_views._get_early_checkout_info(
+        staff, bangkok.localize(datetime(2026, 6, 26, 16, 15)).astimezone(pytz.utc)
+    ) is None
+
+
+def test_morning_ot_ending_at_eight_does_not_add_1630_block(staff_views, monkeypatch):
+    bangkok = pytz.timezone("Asia/Bangkok")
+    query = _FakeQuery(count_value=1)
+    query.rows = [SimpleNamespace(start_datetime=bangkok.localize(datetime(2026, 6, 26, 6, 0)))]
+
+    class FakeStaffWorkLogin:
+        start_datetime = SimpleNamespace(asc=lambda: None)
+
+        @staticmethod
+        def generate_date_id(_date_value):
+            return "20260626"
+
+    FakeStaffWorkLogin.query = query
+    staff = SimpleNamespace(ot_record_staff=[SimpleNamespace(
+        canceled_at=None,
+        shift=SimpleNamespace(datetime=SimpleNamespace(
+            lower=datetime(2026, 6, 26, 6, 0),
+            upper=datetime(2026, 6, 26, 8, 0),
+        )),
+    )])
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", FakeStaffWorkLogin)
+
+    assert staff_views._get_early_checkout_info(
+        staff, bangkok.localize(datetime(2026, 6, 26, 16, 0)).astimezone(pytz.utc)
+    ) is None
 
 
 def test_daily_work_login_rows_collapses_scans_by_day_and_uses_first_and_last_scan(staff_views):
@@ -315,6 +596,122 @@ def test_daily_work_login_rows_collapses_scans_by_day_and_uses_first_and_last_sc
 def test_to_bangkok_normalizes_naive_utc_datetimes(staff_views):
     converted = staff_views._to_bangkok(datetime(2026, 6, 26, 0, 48))
     assert converted.isoformat() == "2026-06-26T07:48:00+07:00"
+
+
+@pytest.mark.parametrize(
+    "stored_datetime",
+    [
+        datetime(2026, 6, 26, 0, 48),
+        pytz.utc.localize(datetime(2026, 6, 26, 0, 48)),
+    ],
+)
+def test_format_bangkok_datetime_normalizes_database_values(staff_views, stored_datetime):
+    assert staff_views._format_bangkok_datetime(stored_datetime) == "26/06/2026 07:48"
+
+
+@pytest.mark.parametrize("list_view", ["summary", "request_list"])
+def test_approver_lists_hide_own_request(staff_views, monkeypatch, list_view):
+    own_request = SimpleNamespace(id=1, staff_account_id=29, approver_id=29)
+    other_request = SimpleNamespace(id=2, staff_account_id=42, approver_id=29)
+    query = _FakeQuery()
+    query.rows = [own_request, other_request]
+    class StaffIdColumn:
+        def __ne__(self, account_id):
+            return lambda row: row.staff_account_id != account_id
+
+    def filter_rows(predicate):
+        query.rows = [row for row in query.rows if predicate(row)]
+        return query
+
+    query.filter = filter_rows
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(
+        query=query, requested_at=SimpleNamespace(desc=lambda: None), staff_account_id=StaffIdColumn(),
+    ))
+
+    if list_view == "summary":
+        assert staff_views._pending_clockin_requests_for(29) == [other_request]
+        assert query.filters == [{"approver_id": 29, "approved_at": None, "cancelled_at": None}]
+    else:
+        monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=29))
+        monkeypatch.setattr(staff_views, "render_template", lambda template, **context: context)
+        assert staff_views.list_for_clockin_clockout.__wrapped__()["all_requests"] == [other_request]
+        assert query.filters == [{"approver_id": 29}]
+
+
+def test_clock_requester_can_view_approved_request(staff_views, monkeypatch):
+    clock_request = SimpleNamespace(
+        id=5051,
+        staff_account_id=42,
+        approver_id=29,
+        approved_at=pytz.utc.localize(datetime(2026, 9, 30, 3, 0)),
+    )
+    monkeypatch.setattr(
+        staff_views,
+        "StaffRequestWorkLogin",
+        SimpleNamespace(query=SimpleNamespace(get_or_404=lambda request_id: clock_request)),
+    )
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=42))
+    monkeypatch.setattr(
+        staff_views,
+        "request",
+        SimpleNamespace(method="GET", args=SimpleNamespace(get=lambda _key: None)),
+    )
+    monkeypatch.setattr(
+        staff_views,
+        "render_template",
+        lambda template, **context: (template, context),
+    )
+
+    template, context = staff_views.approved_for_clockin_clockout.__wrapped__(5051)
+
+    assert template == "staff/checkin_approval.html"
+    assert context["clock_request"] is clock_request
+    assert context["can_approve"] is False
+
+
+@pytest.mark.parametrize("approver_id", [29, 42])
+@pytest.mark.parametrize("method", ["GET", "POST"])
+@pytest.mark.parametrize("decision", ["yes", "no"])
+def test_clock_requester_cannot_submit_approval_decision(staff_views, monkeypatch, approver_id, method, decision):
+    clock_request = SimpleNamespace(
+        id=5051,
+        staff_account_id=42,
+        approver_id=approver_id,
+    )
+    monkeypatch.setattr(
+        staff_views,
+        "StaffRequestWorkLogin",
+        SimpleNamespace(query=SimpleNamespace(get_or_404=lambda request_id: clock_request)),
+    )
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=42))
+    monkeypatch.setattr(
+        staff_views,
+        "request",
+        SimpleNamespace(method=method, args={"approved": decision}, form={"approved": decision}),
+    )
+
+    with pytest.raises(Forbidden):
+        staff_views.approved_for_clockin_clockout.__wrapped__(5051)
+
+
+def test_unrelated_staff_cannot_view_clock_request(staff_views, monkeypatch):
+    monkeypatch.setattr(staff_views, "StaffWorkFromHomeApprover", SimpleNamespace(
+        query=_FakeQuery(),
+    ), raising=False)
+    clock_request = SimpleNamespace(
+        id=5051,
+        staff_account_id=42,
+        approver_id=29,
+    )
+    monkeypatch.setattr(
+        staff_views,
+        "StaffRequestWorkLogin",
+        SimpleNamespace(query=SimpleNamespace(get_or_404=lambda request_id: clock_request)),
+    )
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=77))
+
+    with pytest.raises(NotFound):
+        staff_views.approved_for_clockin_clockout.__wrapped__(5051)
 
 
 @pytest.mark.parametrize(
@@ -825,3 +1222,200 @@ def test_handle_login_scan_request_posts_shared_flow(staff_views, monkeypatch, a
         "%d/%m/%Y %H:%M:%S"
     )
     assert pushed[0]["messages"].text == f"{message_prefix} {expected_local_time}"
+
+
+@pytest.mark.parametrize("clock", ["checkin", "checkout"])
+@pytest.mark.parametrize("debug", [False, True])
+def test_clock_request_emails_all_active_approvers(staff_views, monkeypatch, clock, debug):
+    from flask import Flask
+
+    app = Flask(__name__)
+    app.debug = debug
+    query = _FakeQuery()
+    query.rows = [
+        SimpleNamespace(
+            approver_account_id=account_id,
+            account=SimpleNamespace(id=account_id, email=email, line_id=None),
+            is_active=True,
+            notified_by_line=False,
+        )
+        for account_id, email in [(29, "first"), (30, "second"), (29, "first")]
+    ]
+    monkeypatch.setattr(staff_views, "StaffWorkFromHomeApprover", SimpleNamespace(
+        query=query, id=SimpleNamespace(asc=lambda: None),
+    ), raising=False)
+
+    class FakeRequest:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+            self.id = 5051
+
+        @staticmethod
+        def generate_date_id(value):
+            return value.strftime("%Y%m%d")
+
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", FakeRequest)
+    session = _FakeSession()
+    monkeypatch.setattr(staff_views, "db", SimpleNamespace(session=session))
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(
+        id=42, personal_info=SimpleNamespace(fullname="Requester"),
+    ))
+    links = []
+    def fake_url_for(endpoint, **kwargs):
+        links.append((endpoint, kwargs))
+        return "/clockin-clockout/approved/5051"
+    monkeypatch.setattr(staff_views, "url_for", fake_url_for)
+    monkeypatch.setattr(staff_views, "flash", lambda *args: None)
+    sent = []
+    monkeypatch.setattr(staff_views, "send_mail", lambda recipients, title, body: sent.append((recipients, body)))
+
+    with app.test_request_context("/", method="POST", data={
+        "clock": clock, "reason": "Missed scan", "workdatetime": "01/01/2020 08:30",
+    }):
+        staff_views.request_for_clockin_clockout.__wrapped__()
+
+    assert query.filters == [{"staff_account_id": 42, "is_active": True}]
+    assert [recipients for recipients, body in sent] == (
+        [] if debug else [["first@mahidol.ac.th"], ["second@mahidol.ac.th"]]
+    )
+    assert all("/clockin-clockout/approved/5051" in body for recipients, body in sent)
+    assert links[0][0] == "staff.approved_for_clockin_clockout"
+    assert links[0][1]["request_id"] == 5051
+    assert session.added[0].approver_id == 29
+    assert session.commits == 1
+
+
+@pytest.mark.parametrize("approver_id", [29, 30])
+def test_each_active_approver_can_open_emailed_request(staff_views, monkeypatch, approver_id):
+    clock_request = SimpleNamespace(id=5051, staff_account_id=42, approver_id=29)
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(
+        query=SimpleNamespace(get_or_404=lambda request_id: clock_request),
+    ))
+    query = _FakeQuery()
+    query.rows = [SimpleNamespace(approver_account_id=approver_id)]
+    monkeypatch.setattr(staff_views, "StaffWorkFromHomeApprover", SimpleNamespace(query=query), raising=False)
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=approver_id))
+    monkeypatch.setattr(staff_views, "request", SimpleNamespace(method="GET", args={}))
+    monkeypatch.setattr(staff_views, "render_template", lambda template, **context: context)
+
+    context = staff_views.approved_for_clockin_clockout.__wrapped__(5051)
+
+    assert context["can_approve"] is True
+    if approver_id != 29:
+        assert query.filters == [{
+            "staff_account_id": 42, "approver_account_id": approver_id, "is_active": True,
+        }]
+
+
+@pytest.mark.parametrize("decision", ["yes", "no"])
+@pytest.mark.parametrize("method", ["GET", "POST"])
+def test_clock_decision_redirects_to_scoped_request_list(staff_views, monkeypatch, decision, method):
+    clock_request = SimpleNamespace(
+        id=5051, staff_account_id=42, approver_id=29,
+        approved_at=None, cancelled_at=None, date_id=20261030,
+        work_datetime=datetime(2026, 10, 30, 1), is_checkin=True,
+        staff=SimpleNamespace(line_id=None, email="requester"),
+    )
+    query = _FakeQuery()
+    query.get_or_404 = lambda request_id: clock_request
+    query.populate_existing = lambda: query
+    query.with_for_update = lambda: query
+    query.one = lambda: clock_request
+    def forbid_unfiltered_list():
+        pytest.fail("Approval must not load every user's requests")
+    query.all = forbid_unfiltered_list
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(query=query))
+
+    class Login:
+        query = _FakeQuery()
+
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", Login)
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=29, fullname="Approver"))
+    monkeypatch.setattr(staff_views, "current_app", SimpleNamespace(debug=False))
+    monkeypatch.setattr(staff_views, "request", SimpleNamespace(
+        method=method, args={"approved": decision}, form={"approved": decision}, headers={},
+    ))
+    monkeypatch.setattr(staff_views, "db", SimpleNamespace(session=_FakeSession()))
+    monkeypatch.setattr(staff_views, "flash", lambda *args: None)
+    monkeypatch.setattr(staff_views, "send_mail", lambda *args: None)
+    monkeypatch.setattr(staff_views, "_refresh_daily_attendance_after_record", lambda record: None)
+    monkeypatch.setattr(staff_views, "url_for", lambda endpoint, **kwargs: endpoint)
+    monkeypatch.setattr(staff_views, "redirect", lambda target: ("redirect", target))
+
+    assert staff_views.approved_for_clockin_clockout.__wrapped__(5051) == (
+        "redirect", "staff.list_for_clockin_clockout",
+    )
+    assert bool(clock_request.approved_at) == (decision == "yes")
+    assert bool(clock_request.cancelled_at) == (decision == "no")
+
+
+@pytest.mark.parametrize("closed_field", ["approved_at", "cancelled_at", "existing_login"])
+@pytest.mark.parametrize("decision", ["yes", "no"])
+def test_closed_clock_request_cannot_be_processed_again(staff_views, monkeypatch, closed_field, decision):
+    clock_request = SimpleNamespace(
+        id=5051, staff_account_id=42, approver_id=29,
+        approved_at=None, cancelled_at=None,
+    )
+    query = _FakeQuery()
+    query.get_or_404 = lambda request_id: clock_request
+    query_steps = []
+    def populate_existing():
+        query_steps.append('refresh')
+        return query
+    def with_for_update():
+        query_steps.append('lock')
+        return query
+    def locked_request():
+        # Another transaction completed after the initial request was loaded.
+        assert query_steps == ['refresh', 'lock']
+        if closed_field != 'existing_login':
+            setattr(clock_request, closed_field, datetime(2026, 10, 28))
+        return clock_request
+    query.populate_existing = populate_existing
+    query.with_for_update = with_for_update
+    query.one = locked_request
+    login_query = _FakeQuery()
+    if closed_field == 'existing_login':
+        login_query.rows = [SimpleNamespace(id=370010, request_id=5051)]
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", SimpleNamespace(query=login_query))
+    monkeypatch.setattr(staff_views, "StaffRequestWorkLogin", SimpleNamespace(query=query))
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=29))
+    monkeypatch.setattr(staff_views, "request", SimpleNamespace(method="POST", form={"approved": decision}))
+    monkeypatch.setattr(staff_views, "flash", lambda *args: None)
+    monkeypatch.setattr(staff_views, "url_for", lambda *args, **kwargs: "/request/5051")
+    monkeypatch.setattr(staff_views, "redirect", lambda target: target)
+    session = _FakeSession()
+    monkeypatch.setattr(staff_views, "db", SimpleNamespace(session=session))
+
+    assert staff_views.approved_for_clockin_clockout.__wrapped__(5051) == "/request/5051"
+    assert session.added == []
+    assert session.commits == 0
+    if closed_field == 'existing_login':
+        assert login_query.filters == [{"request_id": 5051}]
+
+
+def test_location_frequencies_counts_scans_by_location_and_scopes_dates(staff_views):
+    tz = pytz.timezone('Asia/Bangkok')
+    def record(staff_id=7, note='salaya', scans=1, day=2, source='scan', end=None):
+        return SimpleNamespace(
+            staff_id=staff_id, note=note, num_scans=scans, record_source=source,
+            start_datetime=tz.localize(datetime(2026, 7, day, 8)), end_datetime=end,
+        )
+    records = [
+        record(), record(scans=2), record(note='gj', scans=2),
+        record(note='qrcode'), record(note=None),
+        record(staff_id=99), record(day=1), record(source='approved_request'),
+        record(source='hr_manual'),
+        record(note='opd', end=tz.localize(datetime(2026, 7, 2, 17))),
+    ]
+    result = staff_views._login_location_frequencies(records, {7}, date(2026, 7, 2), date(2026, 7, 2))
+    by_name = {item['name']: item for item in result}
+    assert by_name['ศาลายา'] == {'name': 'ศาลายา', 'checkins': 1, 'checkouts': 1, 'total': 2}
+    assert by_name['ศูนย์การแพทย์กาญจนาภิเษก']['checkouts'] == 1
+    assert by_name['ไม่ระบุสถานที่']['checkins'] == 2
+    assert by_name['สถานเวชศาสตร์ชันสูตร (ศิริราช)']['total'] == 2
+    assert sum(item['total'] for item in result) == 7
+    assert staff_views._login_location_frequencies([], {7}, date(2026, 7, 2), date(2026, 7, 2)) == []

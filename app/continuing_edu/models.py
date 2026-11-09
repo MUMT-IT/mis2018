@@ -213,6 +213,7 @@ class CEMember(db.Model):
     province = db.Column(db.String(255))
     zip_code = db.Column(db.String(100))
     phone_no = db.Column(db.String(100))
+    mt_license_no = db.Column(db.String(100), nullable=True)
 
     policy_accepted = db.Column(db.Boolean)
     terms_condition_accepted = db.Column(db.Boolean)
@@ -256,10 +257,6 @@ class CEMember(db.Model):
         if not (self.organization_id or self.organization):
             return False
         if not (self.occupation_id or self.occupation):
-            return False
-
-        # At least one address
-        if not self.addresses or len(self.addresses) == 0:
             return False
 
         return True

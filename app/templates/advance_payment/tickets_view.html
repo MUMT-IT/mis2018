@@ -1,12 +1,12 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}รายการสัญญาเงินยืมเงินทดรองจ่าย | ระบบเงินยืมทดรองจ่าย{% endblock %}
+{% block title %}รายการสัญญาเงินยืมทดรองจ่าย | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
 <!-- Header Section -->
 <header class="mb-4 pb-2 border-bottom">
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
-  <h1 class="fw-bold display-6 mb-2">รายการสัญญาเงินยืมเงินทดรองจ่าย</h1>
+  <h1 class="fw-bold display-6 mb-2">รายการสัญญาเงินยืมทดรองจ่าย</h1>
 </header>
 
 <section class="mb-4">
@@ -89,6 +89,7 @@
       <select id="statusFilter" class="form-select style-select" onchange="filterTicketsTable()">
         <option value="all">แสดงสถานะทั้งหมด</option>
         <option value="กำลังส่งคำขอ">กำลังส่งคำขอ</option>
+        <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
         <option value="อนุมัติจ่ายเงิน">อนุมัติจ่ายเงิน</option>
         <option value="มียอดคงค้าง">มียอดคงค้าง</option>
         <option value="เคลียร์ยอดแล้ว">เคลียร์ยอดแล้ว</option>
@@ -159,26 +160,21 @@
     <tbody id="ticketsTableBody">
       {% if tickets %}
         {% for borrowing_ticket in tickets %}
-          {% set badge_class = 'bg-warning text-dark' %}
           {% set display_status = borrowing_ticket.status %}
           {% if borrowing_ticket.status|lower == 'กำลังส่งคำขอ' %}
             {% set display_status = 'กำลังส่งคำขอ' %}
           {% elif borrowing_ticket.status|lower in ['อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ'] %}
-            {% set badge_class = 'bg-primary text-white' %}
             {% set display_status = 'อนุมัติจ่ายเงิน' if borrowing_ticket.status|lower == 'อนุมัติจ่ายเงิน' else 'ผ่านการตรวจสอบ' %}
           {% elif borrowing_ticket.status|lower == 'เคลียร์ยอดแล้ว' %}
-            {% set badge_class = 'bg-success text-white' %}
             {% set display_status = 'เคลียร์ยอดแล้ว' %}
           {% elif borrowing_ticket.status|lower == 'มียอดคงค้าง' %}
-            {% set badge_class = 'bg-info text-dark' %}
             {% set display_status = 'มียอดคงค้าง' %}
           {% elif borrowing_ticket.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}
-            {% set badge_class = 'bg-danger text-white' %}
             {% set display_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
           {% elif borrowing_ticket.status|lower in ['ปฏิเสธ'] %}
-            {% set badge_class = 'bg-danger text-white' %}
             {% set display_status = 'ปฏิเสธ' %}
           {% endif %}
+          {% set badge_class = status_badge_class(display_status) %}
 
           <tr class="ticket-row align-top"
               data-id="{{ borrowing_ticket.id or 0 }}"
@@ -231,7 +227,7 @@
 
             <!-- วันครบกำหนด -->
             <td class="text-center small text-secondary">
-            {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
+            {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
                 <div>{{ borrowing_ticket.due_date|thai_date }}</div>
                 
                 {# แสดงเตือนเฉพาะสัญญาที่ยังไม่ปิด/เคลียร์ยอด #}

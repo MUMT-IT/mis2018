@@ -7,7 +7,7 @@ import click
 import pandas
 import pandas as pd
 import requests
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import configure_mappers, joinedload
 from flask_principal import Principal, PermissionDenied, Identity
@@ -147,11 +147,16 @@ def create_app():
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    # Replace stale pooled connections before handing them to a request.
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['TEST_SERVER'] = _env_flag('TEST_SERVER', False)
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['LINE_CLIENT_ID'] = os.environ.get('LINE_CLIENT_ID')
     app.config['LINE_CLIENT_SECRET'] = os.environ.get('LINE_CLIENT_SECRET')
+    app.config['LINE_MINI_APP_CHANNEL_ID'] = os.environ.get('LINE_MINI_APP_CHANNEL_ID')
+    app.config['LINE_MINI_APP_CHANNEL_SECRET'] = os.environ.get('LINE_MINI_APP_CHANNEL_SECRET')
+    app.config['LINE_MINI_APP_LIFF_ID'] = os.environ.get('LINE_MINI_APP_LIFF_ID')
     app.config['LINE_MESSAGE_API_ACCESS_TOKEN'] = \
         os.environ.get('LINE_MESSAGE_API_ACCESS_TOKEN')
     app.config['LINE_MESSAGE_API_CLIENT_SECRET'] = \
@@ -268,6 +273,28 @@ def block_external_routes_globally():
     abort(403)
 
 
+@app.before_request
+def restrict_international_relations_participants():
+    """Keep participant identities inside their dedicated application area.
+
+    International Relations participants are not StaffAccount users.  This
+    global boundary prevents a participant session from reaching host routes
+    that may only check ``login_required`` and otherwise assume a staff model.
+    """
+    if session.get('user_type') != 'international_relations_participant':
+        return
+    if not current_user.is_authenticated:
+        # A stale session marker must not prevent the user from signing in
+        # again after the Flask-Login session has expired.
+        session.pop('user_type', None)
+        return
+
+    endpoint = request.endpoint or ''
+    if endpoint == 'static' or endpoint.startswith('international_relations.'):
+        return
+    abort(403)
+
+
 @app.route('/external')
 @login_required
 def external_landing():
@@ -295,6 +322,9 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def internal_server_error(e):
+    # Error-page context processors can reload current_user from the database.
+    # Clear a failed transaction before they issue another query.
+    db.session.rollback()
     return render_template('errors/500.html', blueprint=request.blueprint, error=e), 500
 
 
@@ -335,6 +365,9 @@ def get_weekdays(req):
 @login.user_loader
 def load_user(user_id):
     user_type = session.get('user_type')
+    if user_type == 'international_relations_participant':
+        from app.international_relations.models import InternalRelationParticipant
+        return InternalRelationParticipant.query.get(int(user_id))
     if user_type == 'service_customer':
         return ServiceCustomerAccount.query.get(int(user_id))
     if user_type == 'staff':
@@ -2054,8 +2087,129 @@ from app.academic_service_payment import academic_service_payment as academic_se
 app.register_blueprint(academic_service_payment_blueprint)
 
 from app.advance_payment import advance_payment as advance_payment_blueprint
+from app.advance_payment.models import (
+    BankAccountInfo,
+    AdvancePaymentStatus,
+    CashAdvanceAccountManager,
+    CashAdvanceBorrowingTicket,
+    CashManagementNotifications,
+    ClosingDocument,
+    ClosingDocumentLink,
+    FundRequest,
+    FundRequestItem,
+    ParcelReturnDetail,
+    PettyCashClaimDetail,
+    PettyCashClaimItem,
+    PettyCashClaimProofFile,
+    PettyCashFiscalYearCarryover,
+    PettyCashFiscalYearTopUpTransfer,
+    PettyCashSetting,
+    ReturnDetail,
+    ReturnProofFile,
+    ReturnReceiptItem,
+)
 
 app.register_blueprint(advance_payment_blueprint)
+
+
+class FundRequestAdminModelView(ModelView):
+    column_list = (
+        'id',
+        'requester_id',
+        'requester',
+        'creator_id',
+        'creator',
+        'org_id',
+        'petty_cash_setting_id',
+        'borrowing_ticket_id',
+        'form_type',
+        'ticket_number',
+        'request_date',
+        'status',
+        'amount',
+        'is_legacy_import',
+        'created_at',
+        'cancel_at',
+        'cancel_transferred_at',
+        'purpose',
+        'personal_note',
+        'period_year',
+        'withdrawal_proof_reference',
+        'withdrawal_proof_filename',
+    )
+
+
+class AdvancePaymentStatusAdminModelView(ModelView):
+    form_excluded_columns = ("id",)
+    column_list = ("id", "status_group", "code", "name")
+
+    def on_model_change(self, form, model, is_created):
+        code = (model.code or "").strip()
+        if (
+            not code
+            or not code.isascii()
+            or not code[0].isalpha()
+            or not code.replace("_", "").isalnum()
+            or code.upper() != code
+        ):
+            raise ValueError("Code ต้องเป็นภาษาอังกฤษตัวใหญ่และ underscore เท่านั้น")
+        model.code = code
+
+
+def _advance_payment_status_choices(status_group):
+    return lambda: (
+        AdvancePaymentStatus.query
+        .filter_by(status_group=status_group)
+        .order_by(AdvancePaymentStatus.code.asc())
+        .all()
+    )
+
+
+class BorrowingTicketAdminModelView(ModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("borrowing_ticket")}}
+
+
+class ReturnDetailAdminModelView(ModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("return_detail")}}
+
+
+class ParcelReturnDetailAdminModelView(ModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("parcel_return")}}
+
+
+class FundRequestStatusFilteredAdminModelView(FundRequestAdminModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("fund_request")}}
+
+
+class PettyCashClaimDetailAdminModelView(ModelView):
+    form_args = {"status_ref": {"query_factory": _advance_payment_status_choices("petty_cash_claim")}}
+
+
+admin.add_view(AdvancePaymentStatusAdminModelView(
+    AdvancePaymentStatus,
+    db.session,
+    category='Advance Payment',
+))
+
+
+admin.add_view(BorrowingTicketAdminModelView(CashAdvanceBorrowingTicket, db.session, category='Advance Payment'))
+admin.add_view(ModelView(CashManagementNotifications, db.session, category='Advance Payment'))
+admin.add_view(ReturnDetailAdminModelView(ReturnDetail, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ReturnReceiptItem, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ReturnProofFile, db.session, category='Advance Payment'))
+admin.add_view(ParcelReturnDetailAdminModelView(ParcelReturnDetail, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ClosingDocument, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ClosingDocumentLink, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashSetting, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashFiscalYearCarryover, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashFiscalYearTopUpTransfer, db.session, category='Advance Payment'))
+admin.add_view(ModelView(BankAccountInfo, db.session, category='Advance Payment'))
+admin.add_view(ModelView(CashAdvanceAccountManager, db.session, category='Advance Payment'))
+admin.add_view(FundRequestStatusFilteredAdminModelView(FundRequest, db.session, category='Advance Payment'))
+admin.add_view(ModelView(FundRequestItem, db.session, category='Advance Payment'))
+admin.add_view(PettyCashClaimDetailAdminModelView(PettyCashClaimDetail, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashClaimItem, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashClaimProofFile, db.session, category='Advance Payment'))
 
 from app.software_request import software_request as software_request_blueprint
 
@@ -2599,8 +2753,78 @@ def populate_subdistricts():
 
 
 @app.cli.command('test-scb-auth')
-@click.option('--timeout', default=30, show_default=True, type=int)
-def test_scb_auth(timeout):
+@click.option('--timeout', default=30, show_default=True, type=click.IntRange(min=1))
+@click.option('--jwt-only', is_flag=True, help='Skip outbound bank authentication.')
+def test_scb_auth(timeout, jwt_only):
+    """Smoke-test JWT creation/refresh and, by default, bank authentication."""
+    import secrets
+    from types import SimpleNamespace
+    from flask_jwt_extended import create_access_token, create_refresh_token
+    from app.scb_payment_service.views import refresh, test_login
+
+    # A separate app keeps test identities, keys and callbacks out of the live app.
+    test_app = Flask('scb-jwt-smoke-test')
+    test_app.config['JWT_SECRET_KEY'] = secrets.token_hex(32)
+    test_jwt = JWTManager(test_app)
+    client_id = 'scb-jwt-smoke-test'
+
+    @test_jwt.user_lookup_loader
+    def lookup_test_account(_header, payload):
+        if payload.get('sub') == client_id:
+            return SimpleNamespace(account_id=client_id)
+        return None
+
+    test_app.add_url_rule('/scb_payment/api/v1.0/refresh',
+                          view_func=refresh, methods=['POST'])
+    test_app.add_url_rule('/scb_payment/api/v1.0/test-login',
+                          view_func=test_login, methods=['GET'])
+    client = test_app.test_client()
+    base_path = '/scb_payment/api/v1.0'
+
+    def expect_json(response, step):
+        if response.status_code != 200:
+            # Do not print response bodies: login/refresh responses contain tokens.
+            raise click.ClickException('{} failed (HTTP {}).'.format(step, response.status_code))
+        data = response.get_json(silent=True)
+        if not isinstance(data, dict):
+            raise click.ClickException('{} returned an invalid JSON response.'.format(step))
+        return data
+
+    def verify_access(token, step):
+        data = expect_json(client.get(
+            base_path + '/test-login',
+            headers={'Authorization': 'Bearer ' + token},
+        ), step)
+        if data.get('logged_in_as') != client_id:
+            raise click.ClickException('{} returned the wrong client identity.'.format(step))
+        click.echo('{}: passed'.format(step))
+
+    with test_app.app_context():
+        tokens = {
+            'access_token': create_access_token(identity=client_id),
+            'refresh_token': create_refresh_token(identity=client_id),
+        }
+    for name in ('access_token', 'refresh_token'):
+        if not isinstance(tokens.get(name), str) or not tokens[name]:
+            raise click.ClickException('Token creation did not return {}.'.format(name))
+    click.echo('Access and refresh token creation: passed')
+    verify_access(tokens['access_token'], 'Access token verification')
+
+    refreshed = expect_json(client.post(
+        base_path + '/refresh',
+        headers={'Authorization': 'Bearer ' + tokens['refresh_token']},
+    ), 'Token refresh')
+    access_token = refreshed.get('access_token')
+    if not isinstance(access_token, str) or not access_token:
+        raise click.ClickException('Token refresh did not return an access token.')
+    if access_token == tokens['access_token']:
+        raise click.ClickException('Token refresh did not create a new access token.')
+    click.echo('Token refresh: passed')
+    verify_access(access_token, 'Refreshed access token verification')
+
+    if jwt_only:
+        return
+
     def get_fixie_proxies():
         fixie_host = os.environ.get("FIXIE_SOCKS_HOST")
         if not fixie_host:
@@ -2649,7 +2873,7 @@ def test_scb_auth(timeout):
             headers=headers,
             json=payload,
             proxies=get_fixie_proxies(),
-            timeout=30
+            timeout=timeout
         )
     except requests.RequestException as exc:
         raise click.ClickException('SCB auth request failed: {}'.format(exc))
@@ -3523,3 +3747,11 @@ from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
 from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
 app.register_blueprint(continuing_edu_admin_bp)
 app.register_blueprint(continuing_edu_admin_cert_bp)
+
+# International Relations uses external Google identities for participants and
+# the existing StaffAccount/Flask-Principal role system for administrators.
+from app.international_relations import bp as international_relations_bp
+app.register_blueprint(international_relations_bp)
+
+from app.line_mini_app import bp as line_mini_app_bp
+app.register_blueprint(line_mini_app_bp)

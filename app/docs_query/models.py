@@ -99,6 +99,13 @@ class DocsQueryDocument(db.Model):
                             default=lambda: datetime.now(timezone.utc),
                             onupdate=lambda: datetime.now(timezone.utc))
 
+    @property
+    def drive_view_url(self):
+        """Return the Google Drive URL used to view this document."""
+        if not self.drive_file_id:
+            return None
+        return 'https://drive.google.com/file/d/{}/view'.format(self.drive_file_id)
+
 
 class DocsQueryChunk(db.Model):
     __tablename__ = 'docs_query_chunks'
