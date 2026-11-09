@@ -2037,7 +2037,7 @@ def generate_petty_claim(claim, claim_type="1"):
     )
 
     body_1 = (
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น"
+        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้เบิกค่าใช้จ่ายในการดำเนินงานนั้น"
     )
     body_2 = (
         f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
