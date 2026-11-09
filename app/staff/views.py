@@ -5791,15 +5791,27 @@ def send_summary_data():
                     'type': 'wfh'
                 })
         if tab in ['smr', 'all']:
-            approved_seminar_attendances = emp.staff_account.seminar_attends.join(
-                StaffSeminarApproval
-            ).filter(
-                StaffSeminarApproval.is_final_approved.is_(True)
-            ).distinct()
+            approved_seminar_attendances = emp.staff_account.seminar_attends.all()
+            attend_ids = [smr.id for smr in approved_seminar_attendances]
+            final_approved_attend_ids = set()
+            if attend_ids:
+                final_approved_attend_ids = {
+                    attend_id for (attend_id,) in db.session.query(
+                        StaffSeminarApproval.seminar_attend_id
+                    ).filter(
+                        StaffSeminarApproval.seminar_attend_id.in_(attend_ids),
+                        StaffSeminarApproval.is_final_approved.is_(True)
+                    ).distinct().all()
+                }
             for smr in approved_seminar_attendances:
-                text_color = '#ffffff'
-                bg_color = '#FF33A5'
-                border_color = '#ffffff'
+                if smr.id in final_approved_attend_ids:
+                    text_color = '#ffffff'
+                    bg_color = '#FF33A5'
+                    border_color = '#ffffff'
+                else:
+                    text_color = '#ffffff'
+                    bg_color = '#FFBDE1'
+                    border_color = '#109AD3'
                 # Attendance records can contain the QR scan time or employee-specific
                 # values. The calendar event represents the seminar itself, so prefer
                 # the shared seminar schedule to keep the event consistent for all
