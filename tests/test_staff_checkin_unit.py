@@ -6,6 +6,7 @@ import types
 from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 import pytz
@@ -243,6 +244,43 @@ def staff_views(monkeypatch):
     _install_import_stubs(monkeypatch)
     views = importlib.import_module("app.staff.views")
     return views
+
+
+@pytest.mark.parametrize("has_records", [False, True])
+def test_daily_attendance_staff_detail_passes_alert_rows(staff_views, monkeypatch, has_records):
+    day = date(2026, 11, 10)
+    account = SimpleNamespace(leave_requests=[])
+    record = SimpleNamespace(
+        attendance_date=day,
+        status="present",
+        first_checkin_at=datetime(2026, 11, 10, 3),
+        last_checkout_at=datetime(2026, 11, 10, 10),
+    )
+    account_query = Mock()
+    account_query.join.return_value.filter.return_value.first_or_404.return_value = account
+    attendance_query = Mock()
+    attendance_query.filter.return_value.order_by.return_value.all.return_value = (
+        [record] if has_records else []
+    )
+    monkeypatch.setattr(staff_views, "StaffAccount", SimpleNamespace(
+        query=account_query, id=1, personal_id=1,
+    ))
+    monkeypatch.setattr(staff_views, "StaffPersonalInfo", SimpleNamespace(id=1))
+    monkeypatch.setattr(staff_views, "StaffDailyAttendance", SimpleNamespace(
+        query=attendance_query, staff_id=1, attendance_date=Mock(),
+    ), raising=False)
+    monkeypatch.setattr(staff_views, "_active_staff_filters", lambda: ())
+    monkeypatch.setattr(staff_views, "refresh_daily_attendance", Mock())
+    monkeypatch.setattr(staff_views, "request", SimpleNamespace(
+        args={"start": day.isoformat(), "end": day.isoformat()},
+    ))
+    monkeypatch.setattr(staff_views, "render_template", lambda template, **context: context)
+
+    context = staff_views.hr_daily_attendance_staff_detail.__wrapped__(1)
+
+    assert context["rows"] == ([
+        {"record": record, "leave_period": None, "is_late": True, "is_short_hours": True}
+    ] if has_records else [])
 
 
 @pytest.mark.parametrize('reference_date, expected_start, expected_end', [

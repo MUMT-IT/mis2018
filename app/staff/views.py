@@ -22,7 +22,7 @@ from app.models import Holidays, Org
 from flask import (abort, jsonify, render_template, render_template_string, request,
                    redirect, url_for, flash, session, send_from_directory,
                    make_response, current_app, send_file)
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, time
 from collections import defaultdict, namedtuple
 import pytz
 from sqlalchemy import and_, desc, cast, Date, or_, extract, func
@@ -997,6 +997,19 @@ def _calculate_work_hours(start_dt, end_dt):
     worked_seconds = max(0, (effective_end - effective_start).total_seconds())
     worked_hours = worked_seconds / 3600.0
     return min(8.0, worked_hours)
+
+
+def _daily_attendance_alerts(snapshot, half_day_period):
+    if snapshot.status != 'present':
+        return False, False
+
+    checkin = _to_bangkok(snapshot.first_checkin_at)
+    checkout = _to_bangkok(snapshot.last_checkout_at)
+    is_late = bool(checkin and checkin.time() > time(9) and half_day_period != 'morning')
+    worked_hours = _calculate_work_hours(checkin, checkout)
+    required_hours = 3.5 if half_day_period else 8.0
+    is_short_hours = worked_hours is not None and worked_hours < required_hours
+    return is_late, is_short_hours
 
 
 def _work_hours_display_and_status(worked_hours):
@@ -3756,6 +3769,7 @@ def hr_daily_attendance_report():
     if staff_type not in {'all', 'academic', 'non_academic'}:
         staff_type = 'all'
     selected_org_id = request.args.get('org_id', type=int)
+    all_organizations = request.args.get('org_id') == 'all'
 
     def parse_date(value, default):
         if not value:
@@ -3770,6 +3784,39 @@ def hr_daily_attendance_report():
     if start_date > end_date:
         start_date, end_date = end_date, start_date
 
+    active_org_ids = [
+        org_id for (org_id,) in (
+            db.session.query(StaffPersonalInfo.org_id)
+            .join(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
+            .filter(*_active_staff_filters())
+            .filter(StaffPersonalInfo.org_id.isnot(None))
+            .distinct()
+            .all()
+        )
+    ]
+    organizations = (
+        Org.query
+        .filter(Org.id.in_(active_org_ids))
+        .order_by(Org.name.asc())
+        .all()
+        if active_org_ids else []
+    )
+
+    selected_org = next((org for org in organizations if org.id == selected_org_id), None)
+    report_requested = all_organizations or selected_org is not None
+    template_name = 'staff/hr_daily_attendance_report.html'
+    filters = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'staff_type': staff_type,
+        'organizations': organizations,
+        'selected_org': selected_org,
+        'all_organizations': all_organizations,
+        'report_requested': report_requested,
+    }
+    if not report_requested:
+        return render_template(template_name, **filters)
+
     staff_type_filter = None
     if staff_type == 'academic':
         staff_type_filter = StaffPersonalInfo.academic_staff.is_(True)
@@ -3779,7 +3826,7 @@ def hr_daily_attendance_report():
             StaffPersonalInfo.academic_staff.is_(None),
         )
     staff_filters = list(_active_staff_filters())
-    if selected_org_id:
+    if selected_org is not None:
         staff_filters.append(StaffPersonalInfo.org_id == selected_org_id)
     if staff_type_filter is not None:
         staff_filters.append(staff_type_filter)
@@ -3841,7 +3888,6 @@ def hr_daily_attendance_report():
         .all()
     )
     staff_rows_by_id = {}
-    office_start_time = datetime.strptime('09:00', '%H:%M').time()
     for snapshot, personal_info in staff_snapshot_rows:
         row = staff_rows_by_id.setdefault(snapshot.staff_id, {
             'staff_id': snapshot.staff_id,
@@ -3869,13 +3915,10 @@ def hr_daily_attendance_report():
         if half_day_period and snapshot.status not in ('holiday', 'weekend'):
             row['leave'] += 0.5
         if snapshot.status == 'present':
-            checkin = _to_bangkok(snapshot.first_checkin_at)
-            checkout = _to_bangkok(snapshot.last_checkout_at)
-            if checkin and checkin.time() > office_start_time and half_day_period != 'morning':
+            is_late, is_short_hours = _daily_attendance_alerts(snapshot, half_day_period)
+            if is_late:
                 row['late_checkins'] += 1
-            worked_hours = _calculate_work_hours(checkin, checkout)
-            required_hours = 3.5 if half_day_period else 8.0
-            if worked_hours is not None and worked_hours < required_hours:
+            if is_short_hours:
                 row['short_hours_days'] += 1
             if snapshot.source == 'approved_request':
                 row['approved_request'] += 1
@@ -3917,24 +3960,6 @@ def hr_daily_attendance_report():
         ),
         key=lambda location: (-location['checkins'], location['name']),
     )
-    active_org_ids = [
-        org_id for (org_id,) in (
-            db.session.query(StaffPersonalInfo.org_id)
-            .join(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
-            .filter(*_active_staff_filters())
-            .filter(StaffPersonalInfo.org_id.isnot(None))
-            .distinct()
-            .all()
-        )
-    ]
-    organizations = (
-        Org.query
-        .filter(Org.id.in_(active_org_ids))
-        .order_by(Org.name.asc())
-        .all()
-        if active_org_ids else []
-    )
-
     daily_rows = []
     current_date = start_date
     while current_date <= end_date:
@@ -3964,12 +3989,8 @@ def hr_daily_attendance_report():
     )
 
     return render_template(
-        'staff/hr_daily_attendance_report.html',
-        start_date=start_date,
-        end_date=end_date,
-        staff_type=staff_type,
-        organizations=organizations,
-        selected_org_id=selected_org_id,
+        template_name,
+        **filters,
         status_order=status_order,
         status_labels=status_labels,
         totals=totals,
@@ -4023,16 +4044,20 @@ def hr_daily_attendance_staff_detail(staff_id):
         .order_by(StaffDailyAttendance.attendance_date.desc())
         .all()
     )
+    rows = []
+    for record in records:
+        leave_period = _approved_half_day_leave_period(staff_account, record.attendance_date)
+        is_late, is_short_hours = _daily_attendance_alerts(record, leave_period)
+        rows.append({
+            'record': record,
+            'leave_period': leave_period,
+            'is_late': is_late,
+            'is_short_hours': is_short_hours,
+        })
     return render_template(
         'staff/hr_daily_attendance_staff_detail.html',
         staff_account=staff_account,
-        records=records,
-        half_day_leave_periods={
-            record.attendance_date: _approved_half_day_leave_period(
-                staff_account, record.attendance_date
-            )
-            for record in records
-        },
+        rows=rows,
         start_date=start_date,
         end_date=end_date,
     )
