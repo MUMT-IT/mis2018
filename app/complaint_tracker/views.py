@@ -1473,9 +1473,20 @@ def admin_index():
         if tab == 'new':
             query = query.filter(ComplaintRecord.status_id.is_(None))
         elif tab == 'repair_record':
-            query = query.filter(or_(ComplaintRecord.repairs.any(), ComplaintRecord.repair_approvals.any()))
+            query = query.filter(
+                or_(
+                    ComplaintRecord.organization == current_user.personal_info.org.name,
+                    ComplaintRecord.organization.is_(None)
+                ),
+                or_(ComplaintRecord.repairs.any(), ComplaintRecord.repair_approvals.any())
+            )
         elif tab in ('pending', 'progress', 'completed', 'cancelled'):
-            query = query.join(ComplaintStatus).filter(ComplaintStatus.code == tab)
+            query = query.join(ComplaintStatus).filter(ComplaintStatus.code == tab,
+                                                       or_(
+                                                           ComplaintRecord.organization == current_user.personal_info.org.name,
+                                                           ComplaintRecord.organization.is_(None)
+                                                       )
+            )
         else:
             query = query.filter(ComplaintRecord.id.is_(None))
 
