@@ -4038,7 +4038,11 @@ def hr_daily_attendance_staff_detail(staff_id):
         'end_date': end_date,
     }
     if load_mode not in ('table', 'full'):
-        return render_template('staff/hr_daily_attendance_staff_detail.html', **detail_context)
+        return render_template(
+            'staff/hr_daily_attendance_staff_detail.html',
+            attendance_badges=get_home_attendance_badges(staff_account, today),
+            **detail_context,
+        )
 
     current_date = start_date
     while current_date <= end_date:
@@ -4073,6 +4077,7 @@ def hr_daily_attendance_staff_detail(staff_id):
     return render_template(
         'staff/hr_daily_attendance_staff_detail.html',
         rows=rows,
+        attendance_badges=get_home_attendance_badges(staff_account, today),
         **detail_context,
     )
 
