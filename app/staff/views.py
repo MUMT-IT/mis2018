@@ -4030,6 +4030,16 @@ def hr_daily_attendance_staff_detail(staff_id):
         .filter(StaffAccount.id == staff_id, *_active_staff_filters())
         .first_or_404()
     )
+    load_mode = request.args.get('load')
+    detail_context = {
+        'staff_account': staff_account,
+        'staff_id': staff_id,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+    if load_mode not in ('table', 'full'):
+        return render_template('staff/hr_daily_attendance_staff_detail.html', **detail_context)
+
     current_date = start_date
     while current_date <= end_date:
         refresh_daily_attendance(current_date, staff_ids=[staff_id])
@@ -4054,12 +4064,16 @@ def hr_daily_attendance_staff_detail(staff_id):
             'is_late': is_late,
             'is_short_hours': is_short_hours,
         })
+    if load_mode == 'table':
+        return (
+            render_template('staff/_hr_daily_attendance_staff_table.html', rows=rows),
+            200,
+            {'X-Attendance-Table': '1'},
+        )
     return render_template(
         'staff/hr_daily_attendance_staff_detail.html',
-        staff_account=staff_account,
         rows=rows,
-        start_date=start_date,
-        end_date=end_date,
+        **detail_context,
     )
 
 

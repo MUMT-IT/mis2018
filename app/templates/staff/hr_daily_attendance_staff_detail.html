@@ -195,112 +195,75 @@
                 <label for="detailEnd">End date</label>
                 <input id="detailEnd" name="end" type="date" value="{{ end_date.isoformat() }}" required>
             </div>
+            {% for filter_name in ('org_id', 'staff_type') %}
+                {% if request.args.get(filter_name) %}
+                    <input type="hidden" name="{{ filter_name }}" value="{{ request.args[filter_name] }}">
+                {% endif %}
+            {% endfor %}
             <button type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Filter</button>
         </form>
-
-        <div class="daily-attendance-detail-loading" role="status">
-            <span id="dailyAttendanceDetailLoading" hidden>
-                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                Loading attendance records. Longer date ranges may take a while.
-            </span>
-        </div>
 
         <a class="daily-attendance-detail-back"
            href="{{ url_for('staff.hr_daily_attendance_report', start=start_date.isoformat(), end=end_date.isoformat(), org_id=request.args.get('org_id'), staff_type=request.args.get('staff_type')) }}">
             <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to daily attendance statistics
         </a>
 
-        <div id="dailyAttendanceDetailResults" class="daily-attendance-detail-table-wrap">
-            <table class="daily-attendance-detail-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Source</th>
-                        <th>First check-in</th>
-                        <th>Last checkout</th>
-                        <th>Work hours</th>
-                        <th>Note</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in rows %}
-                        {% set record = row.record %}
-                        {% set leave_period = row.leave_period %}
-                        <tr{% if row.is_late or row.is_short_hours %} class="{{ 'has-late-checkin' if row.is_late else 'has-short-hours' }}"{% endif %}>
-                            <td>{{ record.attendance_date.strftime('%d/%m/%Y') }}</td>
-                            <td>
-                                <span class="attendance-status-tag is-{{ record.status|replace('_', '-') }}">
-                                {% if record.status == 'present' %}Present
-                                {% elif record.status == 'absent' %}Absent
-                                {% elif record.status == 'leave' %}Leave
-                                {% elif record.status == 'work_from_home' %}Work from home
-                                {% elif record.status == 'holiday' %}Holiday
-                                {% elif record.status == 'weekend' %}Weekend
-                                {% else %}{{ record.status }}{% endif %}
-                                </span>
-                                {% if leave_period %}
-                                    <div class="attendance-detail-indicator">
-                                        <span class="attendance-status-tag is-leave">Approved {{ leave_period }} leave (½ day)</span>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td>{% if record.source == 'attendance_reconciliation' %}{% elif record.source %}{{ record.source }}{% else %}—{% endif %}</td>
-                            <td>
-                                {{ record.first_checkin_at|localdatetime if record.first_checkin_at else '—' }}
-                                {% if row.is_late %}
-                                    <span class="attendance-detail-indicator attendance-late-warning">Late check-in</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ record.last_checkout_at|localdatetime if record.last_checkout_at else '—' }}</td>
-                            <td>
-                                {% if record.worked_minutes is not none %}
-                                    {{ record.worked_minutes // 60 }} hr {{ '%02d'|format(record.worked_minutes % 60) }} min
-                                {% else %}
-                                    —
-                                {% endif %}
-                                {% if row.is_short_hours %}
-                                    <span class="attendance-detail-indicator attendance-hours-warning">
-                                        {% if leave_period and record.worked_minutes is not none and record.worked_minutes < 210 %}
-                                            {{ 210 - record.worked_minutes }} min below half-day requirement (3 hr 30 min)
-                                        {% else %}
-                                            Below {{ 'half-day requirement (3 hr 30 min)' if leave_period else '8 hr requirement' }}
-                                        {% endif %}
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td>{% if record.note == 'No check-in record found' %}{% elif record.note %}{{ record.note }}{% else %}—{% endif %}</td>
-                        </tr>
-                    {% else %}
-                        <tr><td colspan="7">No snapshot records found for the selected period.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div id="dailyAttendanceDetailResults" class="daily-attendance-detail-table-wrap"
+             {% if rows is not defined %}
+                 hx-get="{{ url_for('staff.hr_daily_attendance_staff_detail', staff_id=staff_id, start=start_date.isoformat(), end=end_date.isoformat(), load='table') }}"
+                 hx-trigger="load"
+             {% endif %}>
+            {% if rows is defined %}
+                {% include 'staff/_hr_daily_attendance_staff_table.html' %}
+            {% else %}
+                <p class="daily-attendance-detail-loading" role="status">
+                    <span id="dailyAttendanceDetailLoading" hidden>
+                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                        Loading attendance records. Longer date ranges may take a while.
+                    </span>
+                    <span id="dailyAttendanceDetailError" hidden>Could not load attendance records.</span>
+                </p>
+                <a id="dailyAttendanceDetailFallback"
+                   href="{{ url_for('staff.hr_daily_attendance_staff_detail', staff_id=staff_id, start=start_date.isoformat(), end=end_date.isoformat(), org_id=request.args.get('org_id'), staff_type=request.args.get('staff_type'), load='full') }}">
+                    Load table directly
+                </a>
+            {% endif %}
         </div>
     </div>
 </section>
+{% if rows is not defined %}
 <script>
     (() => {
-        const form = document.getElementById('dailyAttendanceDetailFilter');
-        const button = form.querySelector('button[type="submit"]');
-        const loading = document.getElementById('dailyAttendanceDetailLoading');
+        const button = document.querySelector('#dailyAttendanceDetailFilter button[type="submit"]');
         const results = document.getElementById('dailyAttendanceDetailResults');
+        const loading = document.getElementById('dailyAttendanceDetailLoading');
+        const error = document.getElementById('dailyAttendanceDetailError');
+        const fallback = document.getElementById('dailyAttendanceDetailFallback');
 
-        form.addEventListener('submit', (event) => {
-            if (button.disabled) {
-                event.preventDefault();
-                return;
-            }
+        results.addEventListener('htmx:beforeRequest', () => {
             button.disabled = true;
             loading.hidden = false;
+            fallback.hidden = true;
             results.setAttribute('aria-busy', 'true');
         });
 
-        window.addEventListener('pageshow', () => {
+        results.addEventListener('htmx:beforeSwap', (event) => {
+            if (event.detail.xhr.getResponseHeader('X-Attendance-Table') !== '1') {
+                event.detail.shouldSwap = false;
+                event.detail.isError = true;
+            }
+        });
+
+        results.addEventListener('htmx:afterRequest', (event) => {
             button.disabled = false;
             loading.hidden = true;
             results.removeAttribute('aria-busy');
+            if (event.detail.failed) {
+                error.hidden = false;
+                fallback.hidden = false;
+            }
         });
     })();
 </script>
+{% endif %}
 {% endblock %}
