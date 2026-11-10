@@ -1440,8 +1440,21 @@ def admin_index():
             .all()
         )
         new_record_count = status_counts.get(None, 0)
-        pending_record_count = status_counts.get('pending', 0)
-        progress_record_count = status_counts.get('progress', 0)
+        organization_status_counts = dict(
+            db.session.query(ComplaintStatus.code, func.count(ComplaintRecord.id))
+            .outerjoin(ComplaintRecord.status)
+            .filter(
+                ComplaintRecord.id.in_(record_ids),
+                or_(
+                    ComplaintRecord.organization == current_user.personal_info.org.name,
+                    ComplaintRecord.organization.is_(None)
+                )
+            )
+            .group_by(ComplaintStatus.code)
+            .all()
+        )
+        pending_record_count = organization_status_counts.get('pending', 0)
+        progress_record_count = organization_status_counts.get('progress', 0)
 
         repair_record_count = db.session.query(
             func.count(func.distinct(ComplaintRecord.id))
@@ -1451,6 +1464,10 @@ def admin_index():
             ComplaintRepairApproval, ComplaintRepairApproval.record_id == ComplaintRecord.id
         ).filter(
             ComplaintRecord.id.in_(record_ids),
+            or_(
+                ComplaintRecord.organization == current_user.personal_info.org.name,
+                ComplaintRecord.organization.is_(None)
+            ),
             or_(
                 and_(ComplaintRepair.id.isnot(None), ComplaintRepair.is_print.is_(False)),
                 and_(ComplaintRepairApproval.id.isnot(None), ComplaintRepairApproval.is_print.is_(False))
