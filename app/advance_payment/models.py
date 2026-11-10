@@ -42,8 +42,8 @@ def _staff_org(staff):
 def _staff_position(staff):
     personal_info = getattr(staff, "personal_info", None)
     return (
-        getattr(personal_info, "position", None)
-        or getattr(getattr(personal_info, "job_position", None), "position", None)
+        getattr(getattr(personal_info, "job_position", None), "position", None)
+        or getattr(personal_info, "position", None)
     )
 
 
