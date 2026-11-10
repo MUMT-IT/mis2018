@@ -1854,7 +1854,7 @@ def edit_leave_request(req_id=None):
                 start_travel_dt, end_travel_dt = request.form.get('traveldates').split(' - ')
                 start_travel_datetime = datetime.strptime(start_travel_dt, '%d/%m/%Y')
                 end_travel_datetime = datetime.strptime(end_travel_dt, '%d/%m/%Y')
-                if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
+                if not (start_travel_datetime.date() <= start_datetime.date() and end_travel_datetime.date() >= end_datetime.date()):
                     flash('ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
                     return redirect(request.referrer)
                 else:
