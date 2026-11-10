@@ -1396,6 +1396,7 @@ def delete_quotation_file(repair_company_id):
 @login_required
 def admin_index():
     tab = request.args.get('tab')
+    org = current_user.personal_info.org.name if current_user.personal_info.org else None
     admin_rows = ComplaintAdmin.query.with_entities(
         ComplaintAdmin.id,
         ComplaintAdmin.topic_id
@@ -1446,7 +1447,7 @@ def admin_index():
             .filter(
                 ComplaintRecord.id.in_(record_ids),
                 or_(
-                    ComplaintRecord.organization == current_user.personal_info.org.name,
+                    ComplaintRecord.organization == org,
                     ComplaintRecord.organization.is_(None)
                 )
             )
@@ -1465,7 +1466,7 @@ def admin_index():
         ).filter(
             ComplaintRecord.id.in_(record_ids),
             or_(
-                ComplaintRecord.organization == current_user.personal_info.org.name,
+                ComplaintRecord.organization == org,
                 ComplaintRecord.organization.is_(None)
             ),
             or_(
@@ -1492,7 +1493,7 @@ def admin_index():
         elif tab == 'repair_record':
             query = query.filter(
                 or_(
-                    ComplaintRecord.organization == current_user.personal_info.org.name,
+                    ComplaintRecord.organization == org,
                     ComplaintRecord.organization.is_(None)
                 ),
                 or_(ComplaintRecord.repairs.any(), ComplaintRecord.repair_approvals.any())
@@ -1500,7 +1501,7 @@ def admin_index():
         elif tab in ('pending', 'progress', 'completed', 'cancelled'):
             query = query.join(ComplaintStatus).filter(ComplaintStatus.code == tab,
                                                        or_(
-                                                           ComplaintRecord.organization == current_user.personal_info.org.name,
+                                                           ComplaintRecord.organization == org,
                                                            ComplaintRecord.organization.is_(None)
                                                        )
             )
