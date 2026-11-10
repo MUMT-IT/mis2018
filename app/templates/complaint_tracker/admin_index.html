@@ -3,10 +3,18 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+    <style>
+        .complaint-admin .issue-tag {
+            background: #fff4d6;
+            color: #92400e;
+            border: 1px solid #f5d58a;
+            font-weight: 600;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
 {% include "nav.html" %}
-    <section class="section">
+    <section class="section complaint-admin">
         <div class="container">
             {% include 'messages.html' %}
             <div class="columns is-centered">
@@ -81,6 +89,7 @@
 {#                            <th></th>#}
                                 <th style="width: 1.5em">ID</th>
                                 <th>รายละเอียด</th>
+                                <th>Issue</th>
                                 <th>หัวข้อ</th>
                                 <th>ประเภท</th>
 {#                                <th>ประเภทครุภัณฑ์</th>#}
@@ -103,6 +112,13 @@
 {#                                            </td>#}
                                             <td>{{ record.id }}</td>
                                             <td>{{ record.desc }}</td>
+                                            <td>
+                                                {% if record.issue %}
+                                                    <span class="tag is-rounded issue-tag mb-1">
+                                                        {{ record.issue }}
+                                                    </span>
+                                                {% endif %}
+                                            </td>
                                             <td>{{ record.topic }}</td>
                                             <td>{{ record.type or 'ไม่ระบุ' }}</td>
                                             <td>
