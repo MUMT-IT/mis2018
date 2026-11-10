@@ -1461,6 +1461,7 @@ def admin_index():
             selectinload(ComplaintRecord.topic)
             .selectinload(ComplaintTopic.admins)
             .selectinload(ComplaintAdmin.admin),
+            joinedload(ComplaintRecord.issue),
             joinedload(ComplaintRecord.type),
             joinedload(ComplaintRecord.priority),
             joinedload(ComplaintRecord.status),
