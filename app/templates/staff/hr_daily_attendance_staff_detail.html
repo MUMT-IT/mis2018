@@ -67,6 +67,17 @@
         padding: 0.45rem 1rem;
     }
 
+    .daily-attendance-detail-filter button:disabled {
+        cursor: wait;
+        opacity: 0.7;
+    }
+
+    .daily-attendance-detail-loading {
+        color: var(--theme-muted);
+        font-size: 0.85rem;
+        margin-top: 0.75rem;
+    }
+
     .daily-attendance-detail-back {
         display: inline-block;
         margin-top: 0.85rem;
@@ -150,6 +161,21 @@
     .attendance-hours-warning {
         color: #996516;
         font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .daily-attendance-detail-table tr.has-short-hours td {
+        background: #fff3bf;
+    }
+
+    .daily-attendance-detail-table tr.has-late-checkin td {
+        background: #fce4e4;
+    }
+
+    .attendance-late-warning {
+        color: #8b1e1e;
+        font-size: 0.75rem;
+        font-weight: 700;
     }
 </style>
 
@@ -160,7 +186,7 @@
             Snapshot records from {{ start_date.strftime('%d/%m/%Y') }} to {{ end_date.strftime('%d/%m/%Y') }}
         </p>
 
-        <form class="daily-attendance-detail-filter" method="get">
+        <form id="dailyAttendanceDetailFilter" class="daily-attendance-detail-filter" method="get">
             <div>
                 <label for="detailStart">Start date</label>
                 <input id="detailStart" name="start" type="date" value="{{ start_date.isoformat() }}" required>
@@ -172,12 +198,19 @@
             <button type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Filter</button>
         </form>
 
+        <div class="daily-attendance-detail-loading" role="status">
+            <span id="dailyAttendanceDetailLoading" hidden>
+                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                Loading attendance records. Longer date ranges may take a while.
+            </span>
+        </div>
+
         <a class="daily-attendance-detail-back"
-           href="{{ url_for('staff.hr_daily_attendance_report', start=start_date.isoformat(), end=end_date.isoformat()) }}">
+           href="{{ url_for('staff.hr_daily_attendance_report', start=start_date.isoformat(), end=end_date.isoformat(), org_id=request.args.get('org_id'), staff_type=request.args.get('staff_type')) }}">
             <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to daily attendance statistics
         </a>
 
-        <div class="daily-attendance-detail-table-wrap">
+        <div id="dailyAttendanceDetailResults" class="daily-attendance-detail-table-wrap">
             <table class="daily-attendance-detail-table">
                 <thead>
                     <tr>
@@ -191,9 +224,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for record in records %}
-                        {% set leave_period = half_day_leave_periods.get(record.attendance_date) %}
-                        <tr>
+                    {% for row in rows %}
+                        {% set record = row.record %}
+                        {% set leave_period = row.leave_period %}
+                        <tr{% if row.is_late or row.is_short_hours %} class="{{ 'has-late-checkin' if row.is_late else 'has-short-hours' }}"{% endif %}>
                             <td>{{ record.attendance_date.strftime('%d/%m/%Y') }}</td>
                             <td>
                                 <span class="attendance-status-tag is-{{ record.status|replace('_', '-') }}">
@@ -212,18 +246,27 @@
                                 {% endif %}
                             </td>
                             <td>{% if record.source == 'attendance_reconciliation' %}{% elif record.source %}{{ record.source }}{% else %}—{% endif %}</td>
-                            <td>{{ record.first_checkin_at|localdatetime if record.first_checkin_at else '—' }}</td>
+                            <td>
+                                {{ record.first_checkin_at|localdatetime if record.first_checkin_at else '—' }}
+                                {% if row.is_late %}
+                                    <span class="attendance-detail-indicator attendance-late-warning">Late check-in</span>
+                                {% endif %}
+                            </td>
                             <td>{{ record.last_checkout_at|localdatetime if record.last_checkout_at else '—' }}</td>
                             <td>
                                 {% if record.worked_minutes is not none %}
                                     {{ record.worked_minutes // 60 }} hr {{ '%02d'|format(record.worked_minutes % 60) }} min
-                                    {% if leave_period and record.status == 'present' and record.worked_minutes < 210 %}
-                                        <span class="attendance-detail-indicator attendance-hours-warning">
-                                            {{ 210 - record.worked_minutes }} min below half-day requirement (3 hr 30 min)
-                                        </span>
-                                    {% endif %}
                                 {% else %}
                                     —
+                                {% endif %}
+                                {% if row.is_short_hours %}
+                                    <span class="attendance-detail-indicator attendance-hours-warning">
+                                        {% if leave_period and record.worked_minutes is not none and record.worked_minutes < 210 %}
+                                            {{ 210 - record.worked_minutes }} min below half-day requirement (3 hr 30 min)
+                                        {% else %}
+                                            Below {{ 'half-day requirement (3 hr 30 min)' if leave_period else '8 hr requirement' }}
+                                        {% endif %}
+                                    </span>
                                 {% endif %}
                             </td>
                             <td>{% if record.note == 'No check-in record found' %}{% elif record.note %}{{ record.note }}{% else %}—{% endif %}</td>
@@ -236,4 +279,28 @@
         </div>
     </div>
 </section>
+<script>
+    (() => {
+        const form = document.getElementById('dailyAttendanceDetailFilter');
+        const button = form.querySelector('button[type="submit"]');
+        const loading = document.getElementById('dailyAttendanceDetailLoading');
+        const results = document.getElementById('dailyAttendanceDetailResults');
+
+        form.addEventListener('submit', (event) => {
+            if (button.disabled) {
+                event.preventDefault();
+                return;
+            }
+            button.disabled = true;
+            loading.hidden = false;
+            results.setAttribute('aria-busy', 'true');
+        });
+
+        window.addEventListener('pageshow', () => {
+            button.disabled = false;
+            loading.hidden = true;
+            results.removeAttribute('aria-busy');
+        });
+    })();
+</script>
 {% endblock %}

@@ -275,11 +275,12 @@
             </div>
             <div class="daily-attendance-report-filter">
                 <label for="dailyAttendanceOrganization">หน่วยงาน</label>
-                <select id="dailyAttendanceOrganization" name="org_id">
-                    <option value="">ทุกหน่วยงาน</option>
+                <select id="dailyAttendanceOrganization" name="org_id" required>
+                    <option value="" {% if not report_requested %}selected{% endif %}>เลือกหน่วยงาน</option>
+                    <option value="all" {% if all_organizations %}selected{% endif %}>ทุกหน่วยงาน</option>
                     {% for organization in organizations %}
                         <option value="{{ organization.id }}"
-                                {% if selected_org_id == organization.id %}selected{% endif %}>
+                                {% if selected_org and selected_org.id == organization.id %}selected{% endif %}>
                             {{ organization.display_name }}
                         </option>
                     {% endfor %}
@@ -306,7 +307,7 @@
             <i class="fas fa-arrow-left" aria-hidden="true"></i> กลับหน้าสรุปการเข้าออกงาน
         </a>
 
-        {% set selected_org = organizations|selectattr('id', 'equalto', selected_org_id)|first|default(none) %}
+        {% if report_requested %}
         {% set summary_stats = [
             ('ช่วงวันที่เลือก (วัน)', daily_rows|length),
             ('บุคลากรที่พบใน snapshot (คน)', staff_count),
@@ -317,7 +318,7 @@
         ] %}
         <section class="daily-attendance-report-dashboard" aria-labelledby="dailyAttendanceDashboardTitle">
             <h2 class="daily-attendance-report-dashboard-title" id="dailyAttendanceDashboardTitle">
-                ภาพรวม · {{ selected_org.display_name if selected_org else ('หน่วยงานที่เลือก' if selected_org_id else 'ทุกหน่วยงาน') }}
+                ภาพรวม · {{ selected_org.display_name if selected_org else 'ทุกหน่วยงาน' }}
             </h2>
             <div class="daily-attendance-report-summary">
                 {% for label, value in summary_stats %}
@@ -375,7 +376,7 @@
                         <tr{% if highest_alert_count %} class="has-attendance-alert"
                             style="--attendance-alert-intensity: {{ [100, 100 * highest_alert_count / row.quota_limit]|min }}%"{% endif %}>
                             <td>
-                                <a href="{{ url_for('staff.hr_daily_attendance_staff_detail', staff_id=row.staff_id, start=start_date.isoformat(), end=end_date.isoformat()) }}">
+                                <a href="{{ url_for('staff.hr_daily_attendance_staff_detail', staff_id=row.staff_id, start=start_date.isoformat(), end=end_date.isoformat(), org_id=selected_org.id if selected_org else 'all', staff_type=staff_type) }}">
                                     {{ row.name }}
                                 </a>
                             </td>
@@ -412,6 +413,9 @@
         <p class="daily-attendance-report-subtitle">
             สีจะเข้มขึ้นตามสัดส่วนจำนวนวันในช่วงที่เลือกเทียบกับโควตาต่อรอบของบุคลากรแต่ละคน
         </p>
+        {% else %}
+            <p class="daily-attendance-report-subtitle">เลือกหน่วยงานและกดแสดงสถิติเพื่อดูรายงาน</p>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
