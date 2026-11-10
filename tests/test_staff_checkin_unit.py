@@ -247,7 +247,8 @@ def staff_views(monkeypatch):
 
 
 @pytest.mark.parametrize("has_records", [False, True])
-def test_daily_attendance_staff_detail_passes_alert_rows(staff_views, monkeypatch, has_records):
+@pytest.mark.parametrize("load_mode", [None, "table", "full"])
+def test_daily_attendance_staff_detail_loading(staff_views, monkeypatch, has_records, load_mode):
     day = date(2026, 11, 10)
     account = SimpleNamespace(leave_requests=[])
     record = SimpleNamespace(
@@ -270,14 +271,30 @@ def test_daily_attendance_staff_detail_passes_alert_rows(staff_views, monkeypatc
         query=attendance_query, staff_id=1, attendance_date=Mock(),
     ), raising=False)
     monkeypatch.setattr(staff_views, "_active_staff_filters", lambda: ())
-    monkeypatch.setattr(staff_views, "refresh_daily_attendance", Mock())
+    refresh = Mock()
+    monkeypatch.setattr(staff_views, "refresh_daily_attendance", refresh)
     monkeypatch.setattr(staff_views, "request", SimpleNamespace(
-        args={"start": day.isoformat(), "end": day.isoformat()},
+        args={"start": day.isoformat(), "end": day.isoformat(), "load": load_mode},
     ))
-    monkeypatch.setattr(staff_views, "render_template", lambda template, **context: context)
+    monkeypatch.setattr(staff_views, "render_template", lambda template, **context: (template, context))
 
-    context = staff_views.hr_daily_attendance_staff_detail.__wrapped__(1)
+    response = staff_views.hr_daily_attendance_staff_detail.__wrapped__(1)
 
+    if load_mode == "table":
+        (template, context), status, headers = response
+        assert template == "staff/_hr_daily_attendance_staff_table.html"
+        assert status == 200
+        assert headers["X-Attendance-Table"] == "1"
+    else:
+        template, context = response
+        assert template == "staff/hr_daily_attendance_staff_detail.html"
+    if load_mode is None:
+        refresh.assert_not_called()
+        attendance_query.filter.assert_not_called()
+        assert "rows" not in context
+        return
+
+    refresh.assert_called_once_with(day, staff_ids=[1])
     assert context["rows"] == ([
         {"record": record, "leave_period": None, "is_late": True, "is_short_hours": True}
     ] if has_records else [])
