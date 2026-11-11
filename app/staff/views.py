@@ -8368,6 +8368,46 @@ def send_time_report_data():
     return jsonify(records)
 
 
+@staff.route('/api/time-report/requests')
+@login_required
+def send_time_report_requests():
+    query = StaffRequestWorkLogin.query.filter_by(
+        staff_account_id=current_user.id, approved_at=None,
+    )
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    try:
+        if cal_start:
+            query = query.filter(StaffRequestWorkLogin.work_datetime >= parser.isoparse(cal_start))
+        if cal_end:
+            query = query.filter(StaffRequestWorkLogin.work_datetime < parser.isoparse(cal_end))
+    except (ValueError, TypeError):
+        abort(400, description='Invalid calendar date range')
+    events = []
+    for record in query.all():
+        if not record.work_datetime:
+            continue
+        if record.revoked_approved_at:
+            status, color = 'เพิกถอนโดย HR', '#6b7280'
+        elif record.cancelled_at:
+            status, color = 'ยกเลิก/ไม่อนุมัติ', '#b91c1c'
+        else:
+            status, color = 'รออนุมัติ', '#92400e'
+        request_type = 'เข้างาน' if record.is_checkin else 'ออกงาน'
+        events.append({
+            'id': f'checkin-request-{record.id}',
+            'start': _to_bangkok(record.work_datetime).isoformat(),
+            'allDay': False,
+            'title': f'คำขอ{request_type} · {status}',
+            'type': 'checkin_request',
+            'backgroundColor': color,
+            'borderColor': color,
+            'textColor': '#ffffff',
+            'url': url_for('staff.approved_for_clockin_clockout', request_id=record.id),
+        })
+    return jsonify(events)
+
+
 @staff.route('/api/time-report/quota')
 @login_required
 def send_time_report_quota():
