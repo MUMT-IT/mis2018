@@ -8698,6 +8698,7 @@ def staff_edit_info(staff_id):
         staff.th_lastname = form.get('th_lastname')
         staff.image_url = (form.get('image_url') or '').strip() or None
         staff.sap_id = form.get('sap_id')
+        staff.position = form.get('position')
         if not staff.academic_staff:
             staff.position_level = form.get('position_level')
         staff.employed_date = start_date
@@ -8706,7 +8707,7 @@ def staff_edit_info(staff_id):
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         if staff.employment_id:
-            if staff.employment_id != form.get('employment_id'):
+            if not int(staff.employment_id) == int(form.get('employment_id')):
                 staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
                 if staff_account:
                     _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
