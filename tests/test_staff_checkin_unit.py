@@ -273,6 +273,8 @@ def test_daily_attendance_staff_detail_loading(staff_views, monkeypatch, has_rec
     monkeypatch.setattr(staff_views, "_active_staff_filters", lambda: ())
     refresh = Mock()
     monkeypatch.setattr(staff_views, "refresh_daily_attendance", refresh)
+    badges = Mock(return_value=["double-tap"])
+    monkeypatch.setattr(staff_views, "get_home_attendance_badges", badges)
     monkeypatch.setattr(staff_views, "request", SimpleNamespace(
         args={"start": day.isoformat(), "end": day.isoformat(), "load": load_mode},
     ))
@@ -285,9 +287,12 @@ def test_daily_attendance_staff_detail_loading(staff_views, monkeypatch, has_rec
         assert template == "staff/_hr_daily_attendance_staff_table.html"
         assert status == 200
         assert headers["X-Attendance-Table"] == "1"
+        badges.assert_not_called()
     else:
         template, context = response
         assert template == "staff/hr_daily_attendance_staff_detail.html"
+        badges.assert_called_once_with(account, datetime.now(staff_views.tz).date())
+        assert context["attendance_badges"] == ["double-tap"]
     if load_mode is None:
         refresh.assert_not_called()
         attendance_query.filter.assert_not_called()

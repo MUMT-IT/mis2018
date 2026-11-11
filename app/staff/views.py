@@ -700,11 +700,13 @@ def _login_location_frequencies(records, staff_ids, start_date, end_date):
 def _build_login_summary_dashboard(start_date, end_date, dept_id):
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
     office_end_time = datetime.strptime('16:30', '%H:%M').time()
+    selected_org = Org.query.get(dept_id)
+    org_ids = get_org_and_children_ids(selected_org) if selected_org else [dept_id]
 
     # Keep the mini dashboard aligned with StaffAccount.is_active: retired or
     # resigned employees should not appear in the manager's staff list.
     employee_query = StaffPersonalInfo.query.filter(
-        StaffPersonalInfo.org_id == dept_id,
+        StaffPersonalInfo.org_id.in_(org_ids),
         or_(
             StaffPersonalInfo.retired.is_(False),
             StaffPersonalInfo.retired.is_(None),
@@ -4038,7 +4040,11 @@ def hr_daily_attendance_staff_detail(staff_id):
         'end_date': end_date,
     }
     if load_mode not in ('table', 'full'):
-        return render_template('staff/hr_daily_attendance_staff_detail.html', **detail_context)
+        return render_template(
+            'staff/hr_daily_attendance_staff_detail.html',
+            attendance_badges=get_home_attendance_badges(staff_account, today),
+            **detail_context,
+        )
 
     current_date = start_date
     while current_date <= end_date:
@@ -4073,6 +4079,7 @@ def hr_daily_attendance_staff_detail(staff_id):
     return render_template(
         'staff/hr_daily_attendance_staff_detail.html',
         rows=rows,
+        attendance_badges=get_home_attendance_badges(staff_account, today),
         **detail_context,
     )
 
@@ -4082,6 +4089,92 @@ def hr_daily_attendance_staff_detail(staff_id):
 @login_required
 def hr_checkin_requests():
     return render_template('staff/hr_checkin_requests.html')
+
+
+def _notify_checkin_request_revoked(clock_request):
+    """Notify both parties after the attendance correction has committed."""
+    title = 'แจ้งเพิกถอนการอนุมัติคำขอรับรองเวลาทำงานโดย HR'
+    message = (
+        f'HR ได้เพิกถอนการอนุมัติคำขอรับรองเวลาทำงาน ตามคำร้องขอของพนักงานผู้ยื่นคำขอ\n'
+        f'รหัสคำขอ: {clock_request.id}\n'
+        f'ผู้ยื่นคำขอ: {clock_request.staff.fullname}\n'
+        f'ประเภท: {"เข้างาน" if clock_request.is_checkin else "ออกงาน"}\n'
+        f'วันที่และเวลาที่ขอรับรอง: {_format_bangkok_datetime(clock_request.work_datetime)}\n'
+        f'ผู้อนุมัติเดิม: {clock_request.approver.fullname if clock_request.approver else "ไม่ระบุ"}\n'
+        f'ผู้ดำเนินการ HR: {current_user.fullname}\n'
+        f'เหตุผลที่เพิกถอน: {clock_request.revocation_reason}\n\n'
+        'รายการรับรองเวลานี้ถูกนำออกจากข้อมูลการลงเวลาแล้ว '
+        'หากต้องการแก้ไข กรุณาส่งคำขอรับรองเวลาใหม่\n\n'
+        'หากพนักงานไม่ได้ร้องขอให้เพิกถอน หรือข้อมูลนี้ไม่ถูกต้อง '
+        'กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ (HR) ทันที'
+    )
+    if current_app.debug:
+        current_app.logger.info('Skipping revocation notifications in debug mode for request %s', clock_request.id)
+        return []
+    failures = []
+    sent_emails, sent_line_ids = set(), set()
+    for recipient in (clock_request.staff, clock_request.approver):
+        if recipient is None:
+            continue
+        email = (recipient.email or '').strip()
+        if email:
+            if '@' not in email:
+                email += '@mahidol.ac.th'
+            if email.lower() not in sent_emails:
+                sent_emails.add(email.lower())
+                try:
+                    send_mail([email], title, message)
+                except Exception:
+                    current_app.logger.exception('Revocation email failed for request %s, account %s', clock_request.id, recipient.id)
+                    failures.append('email')
+        else:
+            failures.append('email')
+        if recipient.line_id and recipient.line_id not in sent_line_ids:
+            sent_line_ids.add(recipient.line_id)
+            try:
+                line_bot_api.push_message(to=recipient.line_id, messages=TextSendMessage(text=message))
+            except Exception:
+                current_app.logger.exception('Revocation LINE notification failed for request %s, account %s', clock_request.id, recipient.id)
+                failures.append('LINE')
+        elif not recipient.line_id:
+            failures.append('LINE')
+    return failures
+
+
+@staff.route('/for-hr/login-report/checkin-requests/<int:request_id>/revoke', methods=['POST'])
+@hr_permission.require()
+@login_required
+def hr_revoke_checkin_request(request_id):
+    reason = (request.form.get('reason') or '').strip()
+    if not reason:
+        abort(400, description='กรุณาระบุเหตุผลที่เพิกถอน')
+    clock_request = (
+        StaffRequestWorkLogin.query.filter_by(id=request_id)
+        .populate_existing().with_for_update().first_or_404()
+    )
+    if not clock_request.approved_at or clock_request.cancelled_at:
+        abort(409, description='คำขอนี้ไม่ได้อยู่ในสถานะอนุมัติ')
+    clock_request.revoked_approved_at = clock_request.approved_at
+    clock_request.approved_at = None
+    clock_request.cancelled_at = datetime.now(pytz.utc)
+    clock_request.revoked_by_id = current_user.id
+    clock_request.revocation_reason = reason
+    affected_dates = {_to_bangkok(clock_request.work_datetime).date()}
+    for record in StaffWorkLogin.query.filter_by(request_id=request_id).all():
+        for value in (record.start_datetime, record.end_datetime):
+            if value:
+                affected_dates.add(_to_bangkok(value).date())
+        db.session.delete(record)
+    # Flush deletions before rebuilding snapshots; commit the correction atomically.
+    db.session.flush()
+    for target_date in affected_dates:
+        refresh_daily_attendance(target_date, staff_ids=[clock_request.staff_account_id])
+    db.session.commit()
+    notification_failures = _notify_checkin_request_revoked(clock_request)
+    flash('เพิกถอนการอนุมัติและปรับปรุงข้อมูลการลงเวลาเรียบร้อยแล้ว', 'success')
+    if notification_failures:
+        flash('แจ้งเตือนได้ไม่ครบทุกช่องทาง กรุณาตรวจสอบอีเมล/การเชื่อมต่อ LINE และแจ้งผู้ขอและผู้อนุมัติโดยตรง', 'warning')
+    return redirect(url_for('staff.hr_checkin_requests'))
 
 
 @staff.route('/api/for-hr/login-report/checkin-requests')
@@ -4141,6 +4234,8 @@ def get_hr_checkin_requests():
     rows = query.offset(start).limit(length).all()
 
     def status_for(record):
+        if record.revoked_approved_at:
+            return {'key': 'revoked', 'label': 'เพิกถอนโดย HR'}
         if record.approved_at:
             return {'key': 'approved', 'label': 'อนุมัติ'}
         if record.cancelled_at:
@@ -4159,6 +4254,11 @@ def get_hr_checkin_requests():
             'reason': record.reason or '',
             'status': status,
             'approver_name': approver.fullname if approver else 'ไม่ระบุ',
+            'revocation_reason': record.revocation_reason or '',
+            'revoked_by_name': record.revoked_by.fullname if record.revoked_by else '',
+            'revoked_at': _to_bangkok(record.cancelled_at).isoformat() if record.revoked_approved_at else None,
+            'original_approved_at': _to_bangkok(record.revoked_approved_at).isoformat() if record.revoked_approved_at else None,
+            'revoke_url': url_for('staff.hr_revoke_checkin_request', request_id=record.id) if record.approved_at and not record.cancelled_at else None,
         })
 
     return jsonify({
@@ -8266,6 +8366,46 @@ def send_time_report_data():
             'type': 'login'
         })
     return jsonify(records)
+
+
+@staff.route('/api/time-report/requests')
+@login_required
+def send_time_report_requests():
+    query = StaffRequestWorkLogin.query.filter_by(
+        staff_account_id=current_user.id, approved_at=None,
+    )
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    try:
+        if cal_start:
+            query = query.filter(StaffRequestWorkLogin.work_datetime >= parser.isoparse(cal_start))
+        if cal_end:
+            query = query.filter(StaffRequestWorkLogin.work_datetime < parser.isoparse(cal_end))
+    except (ValueError, TypeError):
+        abort(400, description='Invalid calendar date range')
+    events = []
+    for record in query.all():
+        if not record.work_datetime:
+            continue
+        if record.revoked_approved_at:
+            status, color = 'เพิกถอนโดย HR', '#6b7280'
+        elif record.cancelled_at:
+            status, color = 'ยกเลิก/ไม่อนุมัติ', '#b91c1c'
+        else:
+            status, color = 'รออนุมัติ', '#92400e'
+        request_type = 'เข้างาน' if record.is_checkin else 'ออกงาน'
+        events.append({
+            'id': f'checkin-request-{record.id}',
+            'start': _to_bangkok(record.work_datetime).isoformat(),
+            'allDay': False,
+            'title': f'คำขอ{request_type} · {status}',
+            'type': 'checkin_request',
+            'backgroundColor': color,
+            'borderColor': color,
+            'textColor': '#ffffff',
+            'url': url_for('staff.approved_for_clockin_clockout', request_id=record.id),
+        })
+    return jsonify(events)
 
 
 @staff.route('/api/time-report/quota')

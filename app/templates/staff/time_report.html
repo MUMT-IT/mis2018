@@ -949,7 +949,9 @@
             <p class="help mb-4">เลือกวันที่จากปฏิทินเพื่อกรอกคำขอรับรองเวลา</p>
             <form method="post" action="{{ url_for('staff.request_for_clockin_clockout') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% with calendar_request=true %}
                 {% include "staff/_clockin_request_fields.html" %}
+                {% endwith %}
                 <div class="field is-grouped is-grouped-right mt-5">
                     <div class="control">
                         <button type="button" class="button is-light" data-close-clockin-request>ยกเลิก</button>
@@ -1023,12 +1025,22 @@
                 $('#loginQuotaChart').html('<div class="staff-login-quota-item">ไม่สามารถโหลดข้อมูลโควตาได้</div>');
             });
 
-        var requestDatePicker = $('#clockinRequestModal input[name="workdatetime"]').daterangepicker({
-            singleDatePicker: true,
-            timePicker: true,
-            timePickerIncrement: 5,
-            timePicker24Hour: true,
-            locale: { format: 'DD/MM/YYYY HH:mm' }
+        var requestForm = document.querySelector('#clockinRequestModal form');
+        var requestDate = document.getElementById('calendarRequestDate');
+        var requestTime = document.getElementById('calendarRequestTime');
+        requestForm.addEventListener('submit', function(event) {
+            var dateDisplay = moment(requestDate.value, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            requestForm.elements.workdatetime.value = dateDisplay + ' ' + requestTime.value;
+            var requestType = requestForm.elements.clock.value === 'checkin' ? 'เข้างาน' : 'ออกงาน';
+            var confirmation = 'กรุณาตรวจสอบข้อมูลก่อนส่งคำขอรับรองเวลา\n\n' +
+                'ประเภท: ' + requestType + '\n' +
+                'วันที่: ' + dateDisplay + '\n' +
+                'เวลา: ' + requestTime.value + '\n' +
+                'เหตุผล: ' + requestForm.elements.reason.value.trim() + '\n\n' +
+                'ยืนยันส่งคำขอนี้หรือไม่?';
+            if (!window.confirm(confirmation)) {
+                event.preventDefault();
+            }
         });
 
         var calendar = $('#loginCalendar').fullCalendar({
@@ -1036,6 +1048,7 @@
             locale: 'th',
             eventSources: [
                 {{ url_for('staff.send_time_report_data')|tojson|safe }},
+                {{ url_for('staff.send_time_report_requests')|tojson|safe }},
                 {{ url_for('staff.send_holidays_data')|tojson|safe }},
                 {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id, approved_only=1)|tojson|safe }},
                 {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id, approved_only=1)|tojson|safe }},
@@ -1055,7 +1068,9 @@
                 if (event.type !== 'login') {
                     var eventTitle = String(event.title || '');
                     var escapedEventTitle = $('<span/>').text(eventTitle).html();
-                    if (event.type === 'leave' && eventTitle.indexOf('ลาป่วย') !== -1) {
+                    if (event.type === 'checkin_request') {
+                        element.find('.fc-title').html('<i class="fas fa-file-alt" aria-hidden="true"></i> ' + escapedEventTitle);
+                    } else if (event.type === 'leave' && eventTitle.indexOf('ลาป่วย') !== -1) {
                         element.find('.fc-title').html(
                             '<i class="fas fa-face-frown-open staff-login-leave-icon" aria-hidden="true"></i> ' + escapedEventTitle
                         );
@@ -1116,11 +1131,11 @@
                 $('#calendarSubtitle').text(view.intervalStart.format('dddd, D MMMM YYYY'));
             },
             dayClick: function(date) {
-                var selectedDate = date.clone().hour(9).minute(0);
-                requestDatePicker.data('daterangepicker').setStartDate(selectedDate);
-                requestDatePicker.data('daterangepicker').setEndDate(selectedDate);
+                requestDate.value = date.format('YYYY-MM-DD');
+                requestTime.value = '';
+                requestForm.elements.workdatetime.value = '';
                 $('#clockinRequestModal').addClass('is-active').attr('aria-hidden', 'false');
-                $('#clockinRequestModal input[name="reason"]').trigger('focus');
+                requestTime.focus();
             }
         });
 

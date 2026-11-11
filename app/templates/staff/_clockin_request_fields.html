@@ -5,8 +5,16 @@
     <div class="field-body">
         <div class="field">
             <div class="control has-icons-left">
+                {% if calendar_request %}
+                <input type="hidden" name="workdatetime">
+                <div class="is-flex" style="gap: .75rem;">
+                    <input type="date" id="calendarRequestDate" class="input" required aria-label="วันที่ขอรับรอง">
+                    <input type="time" id="calendarRequestTime" class="input" required aria-label="เวลาที่ขอรับรอง">
+                </div>
+                {% else %}
                 <input name="workdatetime" id="workdatetime" class="input" required
                        value="{% if request_record %}{{ request_record.work_datetime.strftime('%d/%m/%Y %H:%M') }}{% endif %}">
+                {% endif %}
                 <span class="icon is-small is-left">
                     <i class="far fa-calendar-alt" aria-hidden="true"></i>
                 </span>

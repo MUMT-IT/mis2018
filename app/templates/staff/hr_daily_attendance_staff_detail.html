@@ -19,6 +19,51 @@
         padding: 1.5rem;
     }
 
+    .daily-attendance-detail-header {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .daily-attendance-detail-profile {
+        align-items: center;
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .daily-attendance-detail-profile .attendance-badge {
+        display: block;
+        height: 2rem;
+        width: 2rem;
+    }
+
+    .daily-attendance-detail-profile .attendance-badge.is-unearned {
+        filter: grayscale(1);
+        opacity: 0.5;
+    }
+
+    .daily-attendance-detail-avatar {
+        align-items: center;
+        background: var(--theme-navy-deep);
+        border-radius: 50%;
+        color: #fff;
+        display: flex;
+        flex: 0 0 4rem;
+        font-size: 1.4rem;
+        font-weight: 800;
+        height: 4rem;
+        justify-content: center;
+        overflow: hidden;
+        width: 4rem;
+    }
+
+    .daily-attendance-detail-avatar img {
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+    }
+
     .daily-attendance-detail-title {
         color: var(--theme-navy-deep);
         font-size: 1.45rem;
@@ -181,10 +226,25 @@
 
 <section class="section daily-attendance-detail">
     <div class="daily-attendance-detail-card">
-        <h1 class="daily-attendance-detail-title">{{ staff_account.fullname }}</h1>
-        <p class="daily-attendance-detail-subtitle">
-            Snapshot records from {{ start_date.strftime('%d/%m/%Y') }} to {{ end_date.strftime('%d/%m/%Y') }}
-        </p>
+        {% set personal_info = staff_account.personal_info %}
+        <header class="daily-attendance-detail-header">
+            <div class="daily-attendance-detail-profile">
+                <span class="daily-attendance-detail-avatar" aria-hidden="true">
+                    {% if personal_info.image_url %}
+                        <img src="{{ personal_info.image_url }}" alt="">
+                    {% else %}
+                        {{ (personal_info.th_firstname or personal_info.en_firstname or '?')[:1] }}
+                    {% endif %}
+                </span>
+                {% include 'staff/partials/attendance_badges.html' %}
+            </div>
+            <div>
+                <h1 class="daily-attendance-detail-title">{{ staff_account.fullname }}</h1>
+                <p class="daily-attendance-detail-subtitle">
+                    Snapshot records from {{ start_date.strftime('%d/%m/%Y') }} to {{ end_date.strftime('%d/%m/%Y') }}
+                </p>
+            </div>
+        </header>
 
         <form id="dailyAttendanceDetailFilter" class="daily-attendance-detail-filter" method="get">
             <div>

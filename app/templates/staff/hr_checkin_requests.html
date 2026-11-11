@@ -19,6 +19,9 @@
     #hrCheckinRequestsTable tbody td { vertical-align: middle; }
     .hr-checkin-reason { max-width: 18rem; white-space: normal; }
     .hr-checkin-requests-actions { margin-top: 1rem; }
+    #hrRevokeDialog { border: 0; border-radius: 16px; padding: 1.5rem; width: min(32rem, calc(100% - 2rem)); }
+    #hrRevokeDialog::backdrop { background: rgba(10, 20, 40, .55); }
+    #hrRevokeDialog .buttons { justify-content: flex-end; margin-top: 1.25rem; }
 </style>
 {% endblock %}
 
@@ -33,7 +36,7 @@
                     <thead>
                         <tr>
                             <th>รหัส</th><th>ผู้ขอ</th><th>ประเภท</th><th>วันที่ต้องการรับรอง</th>
-                            <th>วันที่ส่งคำขอ</th><th>เหตุผล</th><th>สถานะ</th><th>ผู้อนุมัติ</th>
+                            <th>วันที่ส่งคำขอ</th><th>เหตุผล</th><th>สถานะ</th><th>ผู้อนุมัติ</th><th>จัดการ</th>
                         </tr>
                     </thead>
                 </table>
@@ -47,6 +50,24 @@
         </div>
     </div>
 </section>
+<dialog id="hrRevokeDialog" aria-labelledby="hrRevokeTitle" aria-describedby="hrRevokeDescription">
+    <form method="post" id="hrRevokeForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h2 id="hrRevokeTitle" class="title is-5">เพิกถอนการอนุมัติ</h2>
+        <p id="hrRevokeRequest" class="mb-3"></p>
+        <p id="hrRevokeDescription" class="mb-4">รายการรับรองเวลาจะถูกนำออกจากข้อมูลการลงเวลา หากต้องการแก้ไข บุคลากรต้องส่งคำขอใหม่</p>
+        <div class="field">
+            <label class="label" for="hrRevokeReason">เหตุผลที่เพิกถอน <span class="has-text-danger">*</span></label>
+            <div class="control">
+                <textarea id="hrRevokeReason" name="reason" class="textarea" required autofocus rows="3"></textarea>
+            </div>
+        </div>
+        <div class="buttons">
+            <button type="button" id="hrRevokeCancel" class="button">ยกเลิก</button>
+            <button type="submit" class="button is-danger">ยืนยันเพิกถอนการอนุมัติ</button>
+        </div>
+    </form>
+</dialog>
 {% endblock %}
 
 {% block scripts %}
@@ -60,6 +81,27 @@
         return date.toLocaleString('th-TH', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false});
     }
     $(function() {
+        const dialog = document.getElementById('hrRevokeDialog');
+        const form = document.getElementById('hrRevokeForm');
+        const reason = document.getElementById('hrRevokeReason');
+        $('#hrCheckinRequestsTable').on('click', '.hr-revoke-button', function() {
+            const row = $('#hrCheckinRequestsTable').DataTable().row($(this).closest('tr')).data();
+            form.reset();
+            form.action = row.revoke_url;
+            reason.setCustomValidity('');
+            document.getElementById('hrRevokeRequest').textContent =
+                'คำขอ #' + row.id + ' · ' + row.staff_name + ' · ' + row.request_type + ' · ' + formatLocalDateTime(row.work_datetime);
+            dialog.showModal();
+        });
+        document.getElementById('hrRevokeCancel').addEventListener('click', function() { dialog.close(); });
+        reason.addEventListener('input', function() { reason.setCustomValidity(''); });
+        form.addEventListener('submit', function(event) {
+            if (!reason.value.trim()) {
+                event.preventDefault();
+                reason.setCustomValidity('กรุณาระบุเหตุผลที่เพิกถอน');
+                reason.reportValidity();
+            }
+        });
         $('#hrCheckinRequestsTable').DataTable({
             processing: true, serverSide: true, deferRender: true, searchDelay: 400,
             pageLength: 25, order: [[4, 'desc']],
@@ -71,8 +113,19 @@
                 {data:'work_datetime', render: function(data, type) { return type === 'display' ? escapeHtml(formatLocalDateTime(data)) : (data || ''); }},
                 {data:'requested_at', render: function(data, type) { return type === 'display' ? escapeHtml(formatLocalDateTime(data)) : (data || ''); }},
                 {data:'reason', render: function(data) { return '<span class="hr-checkin-reason">' + escapeHtml(data) + '</span>'; }},
-                {data:'status', render: function(data) { return '<span class="tag ' + (data.key === 'approved' ? 'is-success' : data.key === 'rejected' ? 'is-danger' : 'is-warning') + '">' + escapeHtml(data.label) + '</span>'; }},
-                {data:'approver_name', render: function(data) { return escapeHtml(data); }}
+                {data:'status', render: function(data) { return '<span class="tag ' + (data.key === 'approved' ? 'is-success' : (data.key === 'rejected' || data.key === 'revoked') ? 'is-danger' : 'is-warning') + '">' + escapeHtml(data.label) + '</span>'; }},
+                {data:'approver_name', render: function(data) { return escapeHtml(data); }},
+                {data:null, orderable:false, searchable:false, render: function(data, type, row) {
+                    if (row.revoke_url) {
+                        return '<button class="button is-small is-danger is-light hr-revoke-button" type="button">เพิกถอนการอนุมัติ</button>';
+                    }
+                    if (row.status.key === 'revoked') {
+                        return '<div class="hr-checkin-reason">' + escapeHtml(row.revocation_reason) +
+                            '<br>โดย ' + escapeHtml(row.revoked_by_name) + '<br>' + escapeHtml(formatLocalDateTime(row.revoked_at)) +
+                            '<br>อนุมัติเดิม: ' + escapeHtml(formatLocalDateTime(row.original_approved_at)) + '</div>';
+                    }
+                    return '—';
+                }}
             ],
             language: { processing:'กำลังโหลด...', search:'ค้นหา:', lengthMenu:'แสดง _MENU_ รายการ', info:'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ', infoEmpty:'ไม่มีรายการ', zeroRecords:'ไม่พบรายการที่ค้นหา', paginate:{first:'แรก', last:'สุดท้าย', next:'ถัดไป', previous:'ก่อนหน้า'} }
         });
