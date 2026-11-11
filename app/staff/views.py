@@ -40,7 +40,7 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
-from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm
+from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm, HeadPositionForm
 from app.roles import (admin_permission, hr_permission, secretary_permission, manager_permission,
                        event_staff_permission, head_permission)
 from app.staff.models import *
@@ -9356,7 +9356,36 @@ def edit_organizations():
             flash('บันทึกสถานะหน่วยงานเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.edit_organizations'))
     orgs = Org.query.all()
-    return render_template('staff/organizations.html', orgs=orgs)
+    head_positions = StaffHeadPosition.query.all()
+    return render_template('staff/organizations.html', orgs=orgs, head_positions=head_positions)
+
+
+@staff.route('/for-hr/organizations/head-position/<int:head_position_id>', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def change_head_position(head_position_id):
+    head_position = StaffHeadPosition.query.get(head_position_id)
+    form = HeadPositionForm(obj=head_position)
+    if form.validate_on_submit():
+        form.populate_obj(head_position)
+        db.session.add(head_position)
+        if head_position.org_id:
+            org = Org.query.filter_by(id=head_position.org_id).first()
+            if org.head:
+                if not org.head == head_position.org.head:
+                    org.head = head_position.staff.email
+            else:
+                org.head = head_position.staff.email
+            db.session.add(org)
+        db.session.commit()
+        flash('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
+        resp = make_response("")
+        resp.headers["HX-Refresh"] = "true"
+        return resp
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('staff/modal/staff_change_head_position.html', form=form, head_position=head_position)
 
 
 @staff.route('/for-hr/organizations/<int:org_id>/staff', methods=['GET', 'POST'])
