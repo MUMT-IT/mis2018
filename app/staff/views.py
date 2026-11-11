@@ -700,11 +700,13 @@ def _login_location_frequencies(records, staff_ids, start_date, end_date):
 def _build_login_summary_dashboard(start_date, end_date, dept_id):
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
     office_end_time = datetime.strptime('16:30', '%H:%M').time()
+    selected_org = Org.query.get(dept_id)
+    org_ids = get_org_and_children_ids(selected_org) if selected_org else [dept_id]
 
     # Keep the mini dashboard aligned with StaffAccount.is_active: retired or
     # resigned employees should not appear in the manager's staff list.
     employee_query = StaffPersonalInfo.query.filter(
-        StaffPersonalInfo.org_id == dept_id,
+        StaffPersonalInfo.org_id.in_(org_ids),
         or_(
             StaffPersonalInfo.retired.is_(False),
             StaffPersonalInfo.retired.is_(None),
