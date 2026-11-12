@@ -1402,7 +1402,6 @@ def delete_quotation_file(repair_company_id):
 @login_required
 def admin_index():
     tab = request.args.get('tab')
-    org = current_user.personal_info.org.name if current_user.personal_info.org else None
     admin_rows = ComplaintAdmin.query.with_entities(
         ComplaintAdmin.id,
         ComplaintAdmin.topic_id
@@ -1447,21 +1446,8 @@ def admin_index():
             .all()
         )
         new_record_count = status_counts.get(None, 0)
-        organization_status_counts = dict(
-            db.session.query(ComplaintStatus.code, func.count(ComplaintRecord.id))
-            .outerjoin(ComplaintRecord.status)
-            .filter(
-                ComplaintRecord.id.in_(record_ids),
-                or_(
-                    ComplaintRecord.organization == org,
-                    ComplaintRecord.organization.is_(None)
-                )
-            )
-            .group_by(ComplaintStatus.code)
-            .all()
-        )
-        pending_record_count = organization_status_counts.get('pending', 0)
-        progress_record_count = organization_status_counts.get('progress', 0)
+        pending_record_count = status_counts.get('pending', 0)
+        progress_record_count = status_counts.get('progress', 0)
 
         repair_record_count = db.session.query(
             func.count(func.distinct(ComplaintRecord.id))
@@ -1472,10 +1458,6 @@ def admin_index():
         ).filter(
             ComplaintRecord.id.in_(record_ids),
             or_(
-                ComplaintRecord.organization == org,
-                ComplaintRecord.organization.is_(None)
-            ),
-            or_(
                 and_(ComplaintRepair.id.isnot(None), ComplaintRepair.is_print.is_(False)),
                 and_(ComplaintRepairApproval.id.isnot(None), ComplaintRepairApproval.is_print.is_(False))
             )
@@ -1485,7 +1467,6 @@ def admin_index():
             selectinload(ComplaintRecord.topic)
             .selectinload(ComplaintTopic.admins)
             .selectinload(ComplaintAdmin.admin),
-            joinedload(ComplaintRecord.issue),
             joinedload(ComplaintRecord.type),
             joinedload(ComplaintRecord.priority),
             joinedload(ComplaintRecord.status),
@@ -1497,20 +1478,9 @@ def admin_index():
         if tab == 'new':
             query = query.filter(ComplaintRecord.status_id.is_(None))
         elif tab == 'repair_record':
-            query = query.filter(
-                or_(
-                    ComplaintRecord.organization == org,
-                    ComplaintRecord.organization.is_(None)
-                ),
-                or_(ComplaintRecord.repairs.any(), ComplaintRecord.repair_approvals.any())
-            )
+            query = query.filter(or_(ComplaintRecord.repairs.any(), ComplaintRecord.repair_approvals.any()))
         elif tab in ('pending', 'progress', 'completed', 'cancelled'):
-            query = query.join(ComplaintStatus).filter(ComplaintStatus.code == tab,
-                                                       or_(
-                                                           ComplaintRecord.organization == org,
-                                                           ComplaintRecord.organization.is_(None)
-                                                       )
-            )
+            query = query.join(ComplaintStatus).filter(ComplaintStatus.code == tab)
         else:
             query = query.filter(ComplaintRecord.id.is_(None))
 
