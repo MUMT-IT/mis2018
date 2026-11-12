@@ -6546,7 +6546,7 @@ def seminar_suggest():
     prev_start, prev_end = get_start_end_date_for_fiscal_year(current_fy - 1)
     _, next_end = get_start_end_date_for_fiscal_year(current_fy + 1)
     if q:
-        seminars = StaffSeminar.query.filter(
+        seminars = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None,
             StaffSeminar.topic.ilike(f"%{q}%"),
             StaffSeminar.start_datetime >= prev_start,
             StaffSeminar.start_datetime <= next_end
