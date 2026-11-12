@@ -1229,7 +1229,7 @@
                             <a class="button is-light"
                                     {% if investigators or admins %}
                                href="{{ url_for('comp_tracker.admin_index', tab=tab,
-                               organization=request.args.get('organization', 'all')) }}"
+                               organization=organization) }}"
                                     {% else %}
                                href="/"
                                     {% endif %}
