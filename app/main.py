@@ -30,6 +30,7 @@ from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api
+from unicodedata import category
 from wtforms.validators import InputRequired
 
 import os
@@ -1382,6 +1383,7 @@ admin.add_views(ModelView(ComplaintTag, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintType, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintIssue, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintTopicIssueAssociation, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecordStatusAssociation, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
