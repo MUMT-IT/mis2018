@@ -6,6 +6,9 @@
   <header class="mb-4 pb-3 border-bottom">
     <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับฝ่ายการเงิน</p>
     <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
+    <button type="button" class="btn btn-outline-primary fw-bold mb-3" data-bs-toggle="modal" data-bs-target="#legacyImportModal">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> นำเข้ารายงานลูกหนี้เงินยืมย้อนหลัง
+    </button>
     <form method="post" action="{{ url_for('advance_payment.toggle_cash_mng_finance_state') }}" class="d-flex align-items-center gap-2">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <span class="fw-bold">
@@ -23,6 +26,63 @@
       </button>
     </form>
   </header>
+
+  <div class="modal fade" id="legacyImportModal" tabindex="-1" aria-labelledby="legacyImportModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <form id="legacyImportForm" method="post" action="{{ url_for('advance_payment.legacy_import') }}" enctype="multipart/form-data">
+          <div class="modal-header">
+            <h2 class="modal-title fs-5" id="legacyImportModalTitle">นำเข้ารายงานลูกหนี้เงินยืมย้อนหลัง</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="legacyImportFile" class="form-label fw-bold">ไฟล์รายงานลูกหนี้เงินยืม (.xls)</label>
+            <input id="legacyImportFile" name="file" type="file" accept=".xls" class="form-control" required>
+            <div id="legacyImportError" class="alert alert-danger mt-3 d-none" role="alert"></div>
+            <div id="legacyImportResult" class="mt-4 d-none" role="status" aria-live="polite">
+              <div class="row g-2 mb-3">
+                <div class="col-4"><div class="border rounded p-2 h-100"><div class="small text-muted">รายการที่พบ</div><strong id="legacyImportFoundCount"></strong></div></div>
+                <div class="col-4"><div class="border rounded p-2 h-100"><div class="small text-muted">สร้างแล้ว</div><strong id="legacyImportCreatedCount" class="text-success"></strong></div></div>
+                <div class="col-4"><div class="border rounded p-2 h-100"><div class="small text-muted">สร้างไม่ได้</div><strong id="legacyImportRejectedCount" class="text-warning"></strong></div></div>
+              </div>
+              <div id="legacyImportNoNew" class="alert alert-info d-none">ไม่มีรายการใหม่ที่สร้างได้</div>
+              <div id="legacyImportRejectedSection" class="d-none">
+                <h3 class="h6 fw-bold">รายการที่สร้างไม่ได้</h3>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped align-middle">
+                    <thead><tr><th>แถวในไฟล์</th><th>เลขที่ยืม</th><th>ผู้ยืม</th><th>สาเหตุ</th></tr></thead>
+                    <tbody id="legacyImportRejectedRows"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ปิด</button>
+            <button id="legacyImportSubmit" type="submit" class="btn btn-primary">อัปโหลดและสร้างสัญญา</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="legacyImportSuccessModal" tabindex="-1" aria-labelledby="legacyImportSuccessTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="legacyImportSuccessTitle">นำเข้าสำเร็จ</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+        </div>
+        <div class="modal-body">
+          นำเข้าข้อมูลสัญญาเสร็จสิ้น <strong id="legacyImportSuccessCount"></strong> รายการ
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">ปิด</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Section กรองและค้นหาข้อมูลแบบ Row -->
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-4">
@@ -300,6 +360,83 @@
       calculateSummaryCounts();
       updateTabBadges();
       filterTable();
+      const importForm = document.getElementById("legacyImportForm");
+      const importError = document.getElementById("legacyImportError");
+      const importResult = document.getElementById("legacyImportResult");
+      const importButton = document.getElementById("legacyImportSubmit");
+      document.getElementById("legacyImportModal").addEventListener("hidden.bs.modal", function() {
+        importForm.reset();
+        importError.classList.add("d-none");
+        importResult.classList.add("d-none");
+      });
+      importForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+        importButton.disabled = true;
+        importButton.textContent = "กำลังนำเข้า...";
+        importError.classList.add("d-none");
+        importResult.classList.add("d-none");
+        try {
+          const response = await fetch(importForm.getAttribute("action"), {
+            method: "POST",
+            body: new FormData(importForm),
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" },
+          });
+          if (!(response.headers.get("content-type") || "").includes("application/json")) {
+            throw new Error("ไม่สามารถรับผลนำเข้าได้ กรุณาเข้าสู่ระบบใหม่แล้วลองอีกครั้ง");
+          }
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || "นำเข้าไม่สำเร็จ กรุณาลองอีกครั้ง");
+          }
+          if (result.rejected.length === 0 && result.imported_count > 0) {
+            document.getElementById("legacyImportSuccessCount").textContent = result.imported_count;
+            importForm.reset();
+            const importModal = document.getElementById("legacyImportModal");
+            const showSuccess = () => {
+              bootstrap.Modal.getOrCreateInstance(document.getElementById("legacyImportSuccessModal")).show();
+            };
+            if (importModal.classList.contains("show")) {
+              importModal.addEventListener("hidden.bs.modal", showSuccess, { once: true });
+              bootstrap.Modal.getOrCreateInstance(importModal).hide();
+            } else {
+              showSuccess();
+            }
+            return;
+          }
+          document.getElementById("legacyImportFoundCount").textContent = result.found_count;
+          document.getElementById("legacyImportCreatedCount").textContent = result.imported_count;
+          document.getElementById("legacyImportRejectedCount").textContent = result.rejected.length;
+          const rejectedRows = document.getElementById("legacyImportRejectedRows");
+          rejectedRows.replaceChildren();
+          result.rejected.forEach((item) => {
+            const row = document.createElement("tr");
+            [item.source_row, item.ticket_number || "—", item.borrower_name || "—"].forEach((value) => {
+              const cell = document.createElement("td");
+              cell.textContent = value;
+              row.appendChild(cell);
+            });
+            const reasonCell = document.createElement("td");
+            item.reasons.forEach((reason) => {
+              const line = document.createElement("div");
+              line.textContent = reason;
+              reasonCell.appendChild(line);
+            });
+            row.appendChild(reasonCell);
+            rejectedRows.appendChild(row);
+          });
+          document.getElementById("legacyImportRejectedSection").classList.toggle("d-none", result.rejected.length === 0);
+          document.getElementById("legacyImportNoNew").classList.toggle("d-none", result.imported_count !== 0);
+          importResult.classList.remove("d-none");
+          importForm.reset();
+        } catch (error) {
+          importError.textContent = error.message || "นำเข้าไม่สำเร็จ กรุณาลองอีกครั้ง";
+          importError.classList.remove("d-none");
+        } finally {
+          importButton.disabled = false;
+          importButton.textContent = "อัปโหลดและสร้างสัญญา";
+        }
+      });
     });
 
     function navigateToTicketsView(filterType) {

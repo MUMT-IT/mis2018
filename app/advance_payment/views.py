@@ -4,8 +4,8 @@ import uuid
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
-from sqlalchemy import extract, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import extract, inspect, text
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from functools import wraps
 import re
 from types import SimpleNamespace
@@ -43,7 +43,7 @@ from .borrowing_ticket_eligibility import (
     calculate_borrowing_ticket_eligibility,
 )
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
 from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
@@ -57,6 +57,13 @@ from .date_utils import (
     normalize_reference_date,
     parse_date,
     parse_datetime,
+)
+from .legacy_xls import (
+    check_legacy_contracts,
+    legacy_borrower_name_key,
+    LegacyXlsError,
+    MAX_FILE_BYTES as LEGACY_XLS_MAX_FILE_BYTES,
+    parse_legacy_cash_advance_xls,
 )
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
@@ -3325,6 +3332,35 @@ def _money_decimal(value):
     return Decimal(str(value or 0)).quantize(Decimal("0.01"))
 
 
+def _ticket_opening_budget(ticket):
+    """The amount that can be returned through this system."""
+    opening = ticket.opening_balance_amount
+    return _money_decimal(opening if opening is not None else ticket.required_budget)
+
+
+def _ticket_has_imported_reduction(ticket):
+    """The XLS opening balance is below the original borrowed amount."""
+    if ticket is None or ticket.opening_balance_amount is None:
+        return False
+    return _money_decimal(ticket.opening_balance_amount) < _money_decimal(ticket.required_budget)
+
+
+def _legacy_verification_display_summary(summary, ticket, source_row):
+    """Combine historical XLS amounts with current returns for the existing cards."""
+    display = dict(summary)
+    if source_row is not None:
+        display["budget"] = _money_decimal(ticket.required_budget)
+        display["cumulative_total"] = (
+            _money_decimal(source_row.repaid_amount)
+            + _money_decimal(summary["cumulative_total"])
+        )
+        display["pending_amount"] = (
+            _money_decimal(source_row.pending_documents_amount)
+            + _money_decimal(summary["pending_amount"])
+        )
+    return display
+
+
 def _parse_money_input(value):
     """Parse user-entered money without passing through binary floating point."""
     try:
@@ -3340,12 +3376,17 @@ def _advance_payment_dashboard_amounts():
     """Calculate the five finance revolving-fund dashboard amounts."""
     active_ticket_rows = (
         _finance_revolving_borrowing_ticket_query()
-        .with_entities(BorrowingTicket.id, BorrowingTicket.required_budget)
+        .with_entities(BorrowingTicket.id, BorrowingTicket.required_budget, BorrowingTicket.opening_balance_amount)
         .all()
     )
-    active_ticket_ids = [ticket_id for ticket_id, _ in active_ticket_rows]
+    active_ticket_ids = [ticket_id for ticket_id, _, _ in active_ticket_rows]
     total_lent = sum(
-        (_money_decimal(required_budget) for _, required_budget in active_ticket_rows),
+        (_money_decimal(required_budget) for _, required_budget, _ in active_ticket_rows),
+        Decimal("0.00"),
+    )
+    opening_debit = sum(
+        (_money_decimal(opening if opening is not None else required)
+         for _, required, opening in active_ticket_rows),
         Decimal("0.00"),
     )
 
@@ -3357,7 +3398,7 @@ def _advance_payment_dashboard_amounts():
         "total_received_amount": Decimal("0.00"),
         "total_cash_return_amount": Decimal("0.00"),
         "remaining_budget_amount": (
-            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET - total_lent
+            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET - opening_debit
         ),
     }
     if not active_ticket_ids:
@@ -3474,7 +3515,7 @@ def _advance_payment_dashboard_amounts():
         "total_cash_return_amount": total_cash_return_amount,
         "remaining_budget_amount": (
             ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET
-            - total_lent
+            - opening_debit
             + total_received_amount
             + total_cash_return_amount
         ),
@@ -3679,7 +3720,7 @@ def _recalculate_borrowing_ticket_settlement(ticket_ids):
         ),
     )
     ticket_budgets = {
-        ticket.id: _money_decimal(ticket.required_budget) for ticket in tickets
+        ticket.id: _ticket_opening_budget(ticket) for ticket in tickets
     }
 
     return_rows = db.session.query(ReturnDetail).filter(
@@ -3822,7 +3863,7 @@ def _calculate_ticket_group_totals(ticket_ids):
         tickets,
         key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
     )
-    remaining = {ticket.id: _money_decimal(ticket.required_budget) for ticket in ticket_order}
+    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in ticket_order}
     allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     excluded_return_statuses = {"PENDING", "IN_PROGRESS", "DRAFT", "REJECTED"}
 
@@ -3880,7 +3921,7 @@ def _calculate_ticket_group_totals(ticket_ids):
             remaining[linked_id] -= portion
             amount -= portion
     cumulative_total = sum(allocated.values())
-    budget = sum((_money_decimal(ticket.required_budget) for ticket in ticket_order), Decimal("0.00"))
+    budget = sum((_ticket_opening_budget(ticket) for ticket in ticket_order), Decimal("0.00"))
     return {
         "cumulative_total": cumulative_total,
         "budget": budget,
@@ -3914,7 +3955,7 @@ def _calculate_return_form_group_totals(
         tickets,
         key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
     )
-    remaining = {ticket.id: _money_decimal(ticket.required_budget) for ticket in ticket_order}
+    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in ticket_order}
     allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     excluded_statuses = {"DRAFT", "REJECTED"}
 
@@ -3991,7 +4032,7 @@ def _calculate_return_form_group_totals(
             amount -= portion
 
     cumulative_total = sum(allocated.values())
-    budget = sum((_money_decimal(ticket.required_budget) for ticket in ticket_order), Decimal("0.00"))
+    budget = sum((_ticket_opening_budget(ticket) for ticket in ticket_order), Decimal("0.00"))
     return {
         "cumulative_total": cumulative_total,
         "budget": budget,
@@ -4025,7 +4066,7 @@ def _ticket_allocation_rows(tickets, group_totals):
     )
     rows = []
     for ticket in ticket_order:
-        budget = _money_decimal(ticket.required_budget)
+        budget = _ticket_opening_budget(ticket)
         cumulative_total = _money_decimal(allocated_by_ticket.get(ticket.id))
         rows.append({
             "ticket_id": ticket.id,
@@ -4039,11 +4080,8 @@ def _ticket_allocation_rows(tickets, group_totals):
 
 def _calculate_ticket_return_totals(ticket_id):
     group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
-    budget = _money_decimal(
-        db.session.query(BorrowingTicket.required_budget)
-        .filter(BorrowingTicket.id == ticket_id)
-        .scalar() or 0
-    )
+    ticket = db.session.get(BorrowingTicket, ticket_id)
+    budget = _ticket_opening_budget(ticket) if ticket else Decimal("0.00")
     cumulative_total = _money_decimal(group_totals.get("allocated_by_ticket", {}).get(ticket_id))
     return {
         "cumulative_total": cumulative_total,
@@ -4051,7 +4089,7 @@ def _calculate_ticket_return_totals(ticket_id):
         "remaining_amount": budget - cumulative_total,
         "status": (
             "เคลียร์ยอดแล้ว" if cumulative_total >= budget
-            else "มียอดคงค้าง" if cumulative_total > 0
+            else "มียอดคงค้าง" if cumulative_total > 0 or _ticket_has_imported_reduction(ticket)
             else "อนุมัติจ่ายเงิน"
         ),
     }
@@ -4059,7 +4097,8 @@ def _calculate_ticket_return_totals_with_parcel(ticket_id, *, exclude_return_id=
     group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
     return_total = _money_decimal(group_totals.get("normal_allocated_by_ticket", {}).get(ticket_id))
     parcel_total = _money_decimal(group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id))
-    budget = _money_decimal(db.session.query(BorrowingTicket.required_budget).filter(BorrowingTicket.id == ticket_id).scalar())
+    ticket = db.session.get(BorrowingTicket, ticket_id)
+    budget = _ticket_opening_budget(ticket) if ticket else Decimal("0.00")
     combined_total = return_total + parcel_total
     return {
         "return_total": return_total,
@@ -4088,11 +4127,8 @@ def _calculate_ticket_submission_totals_with_parcel(
     parcel_total = _money_decimal(
         group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id)
     )
-    budget = _money_decimal(
-        db.session.query(BorrowingTicket.required_budget)
-        .filter(BorrowingTicket.id == ticket_id)
-        .scalar() or 0
-    )
+    ticket = db.session.get(BorrowingTicket, ticket_id)
+    budget = _ticket_opening_budget(ticket) if ticket else Decimal("0.00")
     combined_total = return_total + parcel_total
     return {
         "return_total": return_total,
@@ -4353,11 +4389,18 @@ def _recalculate_borrowing_ticket_status(
         new_status_id = _status_id("borrowing_ticket", code="CLOSED")
         borrowing_ticket.closed_date = datetime.now().date()
 
-    elif cumulative_total > 0:
+    elif cumulative_total > 0 or _ticket_has_imported_reduction(borrowing_ticket):
         new_status_id = _status_id("borrowing_ticket", code="PARTIAL_RETURN")
+        borrowing_ticket.closed_date = None
 
     else:
-        if old_status_id in _status_ids("borrowing_ticket", {"PENDING", "IN_PROGRESS", "APPROVED", "REJECTED"}):
+        if (
+            borrowing_ticket.import_batch_id is not None
+            and old_status_id in _status_ids("borrowing_ticket", {"CLOSED", "PARTIAL_RETURN"})
+        ):
+            new_status_id = _status_id("borrowing_ticket", code="APPROVED")
+            borrowing_ticket.closed_date = None
+        elif old_status_id in _status_ids("borrowing_ticket", {"PENDING", "IN_PROGRESS", "APPROVED", "REJECTED"}):
             new_status_id = old_status_id
 
     borrowing_ticket.status_id = new_status_id
@@ -4842,7 +4885,7 @@ def coordinator_dashboard():
         ticket_remaining = totals["remaining_amount"]
         ticket.ticket_remaining = ticket_remaining
         return_form_totals = _calculate_return_form_group_totals(_ticket_group_ids(ticket.id))
-        return_form_budget = _money_decimal(ticket.required_budget)
+        return_form_budget = _ticket_opening_budget(ticket)
         return_form_submitted_total = _money_decimal(
             return_form_totals.get("allocated_by_ticket", {}).get(ticket.id)
         )
@@ -4880,7 +4923,7 @@ def coordinator_dashboard():
         ticket.submitted_return_total = ticket_display_totals["cumulative_total"]
         ticket.ticket_remaining = _calculate_ticket_return_totals(ticket.id)["remaining_amount"]
         return_form_totals = _calculate_return_form_group_totals(_ticket_group_ids(ticket.id))
-        return_form_budget = _money_decimal(ticket.required_budget)
+        return_form_budget = _ticket_opening_budget(ticket)
         return_form_submitted_total = _money_decimal(
             return_form_totals.get("allocated_by_ticket", {}).get(ticket.id)
         )
@@ -5145,6 +5188,8 @@ def coordinator_dashboard():
 def export_ticket_pdf(ticket_id):
     ticket = db.session.query(BorrowingTicket).get(ticket_id)
     if not ticket:
+        abort(404)
+    if ticket.import_batch_id is not None:
         abort(404)
 
     if (
@@ -5619,6 +5664,147 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         staff_options=staff_options,
     )
 
+def _legacy_contract_checks(report):
+    numbers = {row.ticket_number.strip() for row in report.rows if row.ticket_number.strip()}
+    existing_numbers = {
+        number.strip()
+        for (number,) in db.session.query(BorrowingTicket.number)
+        .filter(func.trim(BorrowingTicket.number).in_(numbers))
+        .all()
+    } if numbers else set()
+    staff_rows = (
+        db.session.query(
+            StaffAccount.id,
+            StaffPersonalInfo.th_firstname,
+            StaffPersonalInfo.th_lastname,
+        )
+        .outerjoin(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .all()
+    )
+    borrower_ids_by_name = {}
+    for staff_id, first_name, last_name in staff_rows:
+        if first_name and last_name:
+            name_key = legacy_borrower_name_key(first_name, last_name)
+            borrower_ids_by_name.setdefault(name_key, []).append(staff_id)
+    _status_id("borrowing_ticket", code="APPROVED")
+    return check_legacy_contracts(
+        report,
+        existing_numbers=existing_numbers,
+        borrower_ids_by_name=borrower_ids_by_name,
+        upload_date=datetime.now(ZoneInfo("Asia/Bangkok")).date(),
+    )
+
+
+def _legacy_import_schema_ready():
+    inspector = inspect(db.engine)
+    if not inspector.has_table("cash_advance_import_batches"):
+        return False
+    columns = {column["name"] for column in inspector.get_columns("cash_advance_borrowing_tickets")}
+    return {"opening_balance_amount", "import_batch_id", "import_source_row"} <= columns
+
+
+@bp.route("/finance/legacy-import", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def legacy_import():
+    """Import valid tickets and return only rejected rows for the finance modal."""
+    report = None
+    filename = None
+    error = None
+    contract_checks = None
+    imported_count = None
+    error_status = 400
+    uploaded = request.files.get("file")
+    if not uploaded or not uploaded.filename:
+        error = "กรุณาเลือกไฟล์ .xls"
+    elif not uploaded.filename.lower().endswith(".xls"):
+        error = "รองรับเฉพาะไฟล์ .xls ของรายงานลูกหนี้เงินยืม"
+    else:
+        filename = uploaded.filename
+        file_bytes = uploaded.read(LEGACY_XLS_MAX_FILE_BYTES + 1)
+        try:
+            report = parse_legacy_cash_advance_xls(file_bytes)
+        except LegacyXlsError as exc:
+            current_app.logger.info("Legacy XLS import rejected: %s", exc)
+            error = "อ่านไฟล์ไม่ได้ กรุณาตรวจว่าเป็นไฟล์ .xls รายงานลูกหนี้เงินยืมที่ถูกต้อง และมีขนาดไม่เกิน 5 MB"
+        if report is not None:
+            final_path = None
+            try:
+                if not _legacy_import_schema_ready():
+                    raise ValueError("ยังไม่ได้ปรับฐานข้อมูลสำหรับการนำเข้า กรุณารัน migration บนฐานทดสอบก่อน")
+                contract_checks = _legacy_contract_checks(report)
+                ready_checks = [check for check in contract_checks if check.ready_after_migration]
+                imported_count = 0
+                if ready_checks:
+                    private_dir = os.path.join(current_app.instance_path, "legacy_cash_advance_sources")
+                    os.makedirs(private_dir, exist_ok=True)
+                    final_path = os.path.join(private_dir, f"{uuid.uuid4().hex}.xls")
+                    with open(final_path, "xb") as source_file:
+                        source_file.write(file_bytes)
+                    batch = CashAdvanceImportBatch(
+                        source_file_path=final_path,
+                        uploaded_by_id=current_user.id,
+                        uploaded_on=datetime.now(ZoneInfo("Asia/Bangkok")).date(),
+                    )
+                    db.session.add(batch)
+                    db.session.flush()
+                    approved_status = _status_id("borrowing_ticket", code="APPROVED")
+                    partial_status = _status_id("borrowing_ticket", code="PARTIAL_RETURN")
+                    for check in ready_checks:
+                        row = check.row
+                        db.session.add(BorrowingTicket(
+                            number=row.ticket_number.strip(),
+                            creator_id=current_user.id,
+                            borrower_id=check.borrower_ids[0],
+                            status_id=(
+                                partial_status if row.opening_balance_amount < row.borrowed_amount
+                                else approved_status
+                            ),
+                            borrowing_ticket_purpose=row.purpose,
+                            required_budget=row.borrowed_amount,
+                            opening_balance_amount=row.opening_balance_amount,
+                            import_batch_id=batch.id,
+                            import_source_row=row.source_row,
+                            account_number="",
+                            borrowing_ticket_start_date=None,
+                            borrowing_ticket_end_date=None,
+                            due_date=row.due_date,
+                            approved_at=datetime.combine(row.borrow_date, datetime.min.time()),
+                            created_at=datetime.utcnow(),
+                            aip_ref_no="",
+                            aip_ref_date=None,
+                            finance_verified=True,
+                        ))
+                    db.session.commit()
+                    imported_count = len(ready_checks)
+            except (ValueError, SQLAlchemyError, OSError, LookupError) as exc:
+                db.session.rollback()
+                if final_path and os.path.isfile(final_path):
+                    os.remove(final_path)
+                current_app.logger.exception("Legacy cash advance import failed")
+                error = str(exc) if isinstance(exc, ValueError) else "บันทึกข้อมูลไม่สำเร็จ กรุณาตรวจเลขที่ยืมและลองอีกครั้ง"
+                imported_count = None
+                error_status = 500
+
+    if error:
+        return jsonify({"error": error}), error_status
+    rejected = [
+        {
+            "source_row": check.row.source_row,
+            "ticket_number": check.row.ticket_number,
+            "borrower_name": check.row.borrower_name,
+            "reasons": check.reasons,
+        }
+        for check in contract_checks
+        if not check.ready_after_migration
+    ]
+    return jsonify({
+        "filename": filename,
+        "found_count": len(report.rows),
+        "imported_count": imported_count,
+        "rejected": rejected,
+    })
+
+
 @bp.route("/finance/tickets", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def tickets_view():
@@ -5682,10 +5868,11 @@ def tickets_view():
 
     near_due_count = 0
     overdue_count = 0
-    shadow_sum_debt = sum(
-        (_money_decimal(ticket.required_budget) for ticket in unsettled_tickets),
-        Decimal("0.00"),
-    )
+    remaining_by_ticket = {
+        ticket.id: max(_calculate_ticket_return_totals(ticket.id)["remaining_amount"], Decimal("0.00"))
+        for ticket in unsettled_tickets
+    }
+    shadow_sum_debt = sum(remaining_by_ticket.values(), Decimal("0.00"))
 
     for ticket in all_tickets:
         borrower_user = getattr(ticket, "borrower_user", None)
@@ -5698,7 +5885,7 @@ def tickets_view():
         if not ticket.search_account_number:
             ticket.search_account_number = ticket.account_number or ""
         raw_status_id = ticket.status_id
-        if ticket.due_date:
+        if ticket.due_date and remaining_by_ticket.get(ticket.id, Decimal("0.00")) > 0:
             if today_date > ticket.due_date:
                 if raw_status_id not in _status_ids("borrowing_ticket", ticket_summary_excluded_statuses):
                     overdue_count += 1
@@ -5712,6 +5899,7 @@ def tickets_view():
         tickets = [
             t for t in all_tickets
             if t.status_id not in _status_ids_for_record(t, ticket_summary_excluded_statuses)
+            and remaining_by_ticket.get(t.id, Decimal("0.00")) > 0
             and t.due_date
             and 0 <= (t.due_date - today_date).days <= 15
         ]
@@ -5719,11 +5907,12 @@ def tickets_view():
         tickets = [
             t for t in all_tickets
             if t.status_id not in _status_ids_for_record(t, ticket_summary_excluded_statuses)
+            and remaining_by_ticket.get(t.id, Decimal("0.00")) > 0
             and t.due_date
             and today_date > t.due_date
         ]
     elif filter_type == "pending_debt":
-        tickets = unsettled_tickets
+        tickets = [t for t in unsettled_tickets if remaining_by_ticket[t.id] > 0]
     else:
         tickets = all_tickets
 
@@ -5886,9 +6075,9 @@ def verification_view(ticket_id):
         {
             "ticket_id": ticket_id,
             "ticket_number": borrowing_ticket.number or f"#{ticket_id}",
-            "budget": _money_decimal(borrowing_ticket.required_budget),
+            "budget": _ticket_opening_budget(borrowing_ticket),
             "cumulative_total": Decimal("0.00"),
-            "remaining_amount": _money_decimal(borrowing_ticket.required_budget),
+            "remaining_amount": _ticket_opening_budget(borrowing_ticket),
         },
     )
     summary = _with_pending_return_amounts(
@@ -5921,12 +6110,31 @@ def verification_view(ticket_id):
         StaffAccount, StaffAccount.personal_id == StaffPersonalInfo.id
     ).filter(StaffAccount.id == borrowing_ticket.borrower_id).scalar()
 
+    legacy_source_row = None
+    if borrowing_ticket.import_batch_id and borrowing_ticket.import_batch:
+        try:
+            with open(borrowing_ticket.import_batch.source_file_path, "rb") as source_file:
+                source_report = parse_legacy_cash_advance_xls(source_file.read())
+            legacy_source_row = next(
+                (row for row in source_report.rows
+                 if row.source_row == borrowing_ticket.import_source_row
+                 and row.ticket_number.strip() == (borrowing_ticket.number or "").strip()),
+                None,
+            )
+        except (OSError, LegacyXlsError):
+            current_app.logger.warning("Could not read legacy XLS for ticket %s", ticket_id)
+
+    display_summary = _legacy_verification_display_summary(
+        summary, borrowing_ticket, legacy_source_row
+    )
+
     return render_template(
         "verification.html",
         borrowing_ticket=borrowing_ticket,
         return_details=return_details,
         parcel_returns=parcel_returns,
         summary=summary,
+        display_summary=display_summary,
         group_summary=approved_return_totals,
         ticket_allocation_rows=ticket_allocation_rows,
         notifications=notifications,
@@ -7772,13 +7980,22 @@ def approve_borrowing_ticket(ticket_id):
 
     # Contract numbers may contain prefixes, separators, or leading zeroes.
     number = raw_number
+    if db.session.query(BorrowingTicket.id).filter(
+        BorrowingTicket.id != ticket_id,
+        func.trim(BorrowingTicket.number) == number,
+    ).first():
+        return _validation_error_response("เลขที่ยืมนี้มีในระบบแล้ว")
     borrowing_ticket.status_id = _status_id_for_record(borrowing_ticket, "APPROVED")
     borrowing_ticket.number = number
     borrowing_ticket.borrowing_approval_ref_no = approval_ref_no
     borrowing_ticket.borrowing_approval_date = approval_date
     borrowing_ticket.approved_at = approved_at
     borrowing_ticket.finance_verified = True
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return _validation_error_response("เลขที่ยืมนี้มีในระบบแล้ว")
 
     _send_notification_email(borrowing_ticket)
 
@@ -13013,6 +13230,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             .filter(
                 BorrowingTicket.account_number == account_number,
                 BorrowingTicket.approved_at.isnot(None),
+                BorrowingTicket.import_batch_id.is_(None),
             )
             .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.created_at.asc())
             .all()

@@ -151,6 +151,15 @@ def status_name_for_record(record):
     return status_ref.name if status_ref else None
 
 
+class CashAdvanceImportBatch(db.Model):
+    __tablename__ = "cash_advance_import_batches"
+
+    id = Column(Integer, primary_key=True)
+    source_file_path = Column(String(1024), nullable=False)
+    uploaded_by_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
+    uploaded_on = Column(Date, nullable=False)
+
+
 class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
     __table_args__ = (
@@ -175,10 +184,13 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
         return status_name_for_record(self)
     borrowing_ticket_purpose = Column(String, nullable=False)
     required_budget = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    opening_balance_amount = Column(Numeric(12, 2, asdecimal=True), nullable=True)
+    import_batch_id = Column(Integer, ForeignKey("cash_advance_import_batches.id"), nullable=True)
+    import_source_row = Column(Integer, nullable=True)
     account_number = Column(String(100), nullable=False)
     bank_account_info_id = Column(Integer, ForeignKey("cash_mng_bank_account_infos.id"), nullable=True)
-    borrowing_ticket_start_date = Column(Date, nullable=False)
-    borrowing_ticket_end_date = Column(Date, nullable=False)
+    borrowing_ticket_start_date = Column(Date, nullable=True)
+    borrowing_ticket_end_date = Column(Date, nullable=True)
     finance_verified = Column(Boolean, nullable=False, default=False)
     due_date = Column(Date, nullable=False)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -189,7 +201,7 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     rejection_comment = Column(String(1000), nullable=True)
     finance_note = Column(String(2000), nullable=True)
     aip_ref_no = Column(String(255), nullable=False)
-    aip_ref_date = Column(Date, nullable=False)
+    aip_ref_date = Column(Date, nullable=True)
     last_notified_type = Column(String(50), nullable=True)
     last_notified_date = Column(Date, nullable=True)
 
@@ -197,6 +209,7 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
         "BankAccountInfo",
         foreign_keys=[bank_account_info_id],
     )
+    import_batch = relationship("CashAdvanceImportBatch", foreign_keys=[import_batch_id])
     creator_user = relationship(
         StaffAccount,
         foreign_keys=[creator_id],
