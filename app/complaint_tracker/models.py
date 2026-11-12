@@ -151,6 +151,14 @@ class ComplaintIssue(db.Model):
         return self.issue
 
 
+class ComplaintTopicIssueAssociation(db.Model):
+    __tablename__ = 'complaint_topic_issue_associations'
+    topic_id = db.Column(db.ForeignKey('complaint_topics.id'), primary_key=True)
+    topic = db.relationship(ComplaintTopic, backref=db.backref('issue_associations', cascade='all, delete-orphan'))
+    issue_id = db.Column(db.ForeignKey('complaint_issues.id'), primary_key=True)
+    issue = db.relationship(ComplaintIssue, backref=db.backref('topics_associations', cascade='all, delete-orphan'))
+
+
 class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
