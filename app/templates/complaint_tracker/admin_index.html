@@ -31,7 +31,7 @@
                     <div class="tabs is-boxed">
                         <ul>
                             <li {% if tab == 'new' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='new') }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='new', organization=organization) }}">
                                     <span class="icon is-small"><i class="fas fa-times"></i></span>
                                     <span>ยังไม่ดำเนินการ</span>
                                     {% if new_record_count > 0 %}
@@ -40,7 +40,7 @@
                                 </a>
                             </li>
                             <li {% if tab == 'pending' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='pending') }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='pending', organization=organization) }}">
                                     <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                     <span>รอดำเนินการ</span>
                                     {% if pending_record_count > 0 %}
@@ -49,7 +49,7 @@
                                 </a>
                             </li>
                             <li {% if tab == 'progress' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='progress') }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='progress', organization=organization) }}">
                                     <span class="icon is-small"><i class="fas fa-history"></i></span>
                                     <span>อยู่ระหว่างดำเนินการ</span>
                                     {% if progress_record_count > 0 %}
@@ -58,19 +58,19 @@
                                 </a>
                             </li>
                             <li {% if tab == 'completed' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='completed') }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='completed', organization=organization) }}">
                                     <span class="icon is-small"><i class="fas fa-check"></i></span>
                                     <span>ดำเนินการเสร็จสิ้น</span>
                                 </a>
                             </li>
                              <li {% if tab == 'cancelled' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='cancelled') }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='cancelled', organization=organization) }}">
                                     <span class="icon is-small"><i class="fas fa-ban"></i></span>
                                     <span>ยกเลิก</span>
                                 </a>
                             </li>
                             <li {% if tab == 'repair_record' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='repair_record') }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='repair_record', organization=organization) }}">
                                     <span class="icon is-small"><i class="fas fa-file-pdf"></i></span>
                                     <span>ใบแจ้งซ่อม/ใบอนุมัติหลักการซ่อม</span>
                                     {% if repair_record_count > 0 %}
@@ -80,7 +80,24 @@
                             </li>
                         </ul>
                     </div>
-                    <form method="post" action="{{ url_for('comp_tracker.admin_index', tab=tab) }}">
+                    <form method="get" action="{{ url_for('comp_tracker.admin_index') }}" class="field is-grouped is-align-items-center mb-4">
+                        {% if tab %}
+                            <input type="hidden" name="tab" value="{{ tab }}">
+                        {% endif %}
+                        <div class="field">
+                            <label class="label" for="organization-filter">หน่วยงานที่รับผิดชอบ</label>
+                            <div class="control">
+                                <div class="select">
+                                    <select id="organization-filter" name="organization" onchange="this.form.submit()">
+                                        <option value="all" {% if organization == 'all' %}selected{% endif %}>ทั้งหมด</option>
+                                        <option value="หน่วยข้อมูลและสารสนเทศ" {% if organization == 'หน่วยข้อมูลและสารสนเทศ' %}selected{% endif %}>หน่วยข้อมูลและสารสนเทศ</option>
+                                        <option value="หน่วยซ่อมบำรุง" {% if organization == 'หน่วยซ่อมบำรุง' %}selected{% endif %}>หน่วยซ่อมบำรุง</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <form method="post" action="{{ url_for('comp_tracker.admin_index', tab=tab, organization=organization) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {#                        <input type="submit" value="Print" class="button is-success">#}
                         <br/>
@@ -244,7 +261,7 @@
                                                 {% endif %}
                                             </td>
                                             <td>
-                                                <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id, tab=tab) }}">
+                                                <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id, tab=tab, organization=organization) }}">
                                                     <span class="icon">
                                                         <i class="fas fa-search"></i>
                                                     </span>
