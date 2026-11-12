@@ -1018,7 +1018,7 @@ def _work_hours_display_and_status(worked_hours):
     if worked_hours is None:
         return None, False
     displayed_hours = float(f'{worked_hours:.1f}')
-    return f'{displayed_hours:.1f} hrs.', displayed_hours < 8.0
+    return f'{displayed_hours:.1f} hrs.', worked_hours < 8.0
 
 
 def _work_login_event_style(is_late, hours_is_negative, has_checkout):
