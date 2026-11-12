@@ -106,8 +106,7 @@
 {#                            <th></th>#}
                                 <th style="width: 1.5em">ID</th>
                                 <th>รายละเอียด</th>
-                                <th>Issue</th>
-                                <th>หัวข้อ</th>
+ฃ                               <th>หัวข้อ</th>
                                 <th>ประเภท</th>
 {#                                <th>ประเภทครุภัณฑ์</th>#}
                                 <th>Tag</th>
@@ -129,13 +128,6 @@
 {#                                            </td>#}
                                             <td>{{ record.id }}</td>
                                             <td>{{ record.desc }}</td>
-                                            <td>
-                                                {% if record.issue %}
-                                                    <span class="tag is-rounded issue-tag mb-1">
-                                                        {{ record.issue }}
-                                                    </span>
-                                                {% endif %}
-                                            </td>
                                             <td>{{ record.topic }}</td>
                                             <td>{{ record.type or 'ไม่ระบุ' }}</td>
                                             <td>
