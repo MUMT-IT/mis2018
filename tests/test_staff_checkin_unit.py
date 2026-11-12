@@ -805,6 +805,26 @@ def test_calculate_work_hours_requires_checkout(staff_views):
     assert staff_views._calculate_work_hours(start_dt, None) is None
 
 
+@pytest.mark.parametrize(
+    ('end_time', 'expected_short_hours'),
+    [((16, 32, 26), True), ((16, 32, 31), False), ((16, 32, 36), False)],
+)
+def test_work_hours_status_uses_exact_duration_before_display_rounding(
+    staff_views, end_time, expected_short_hours
+):
+    tz = pytz.timezone('Asia/Bangkok')
+    checkin = tz.localize(datetime(2026, 11, 12, 8, 32, 31))
+    checkout = tz.localize(datetime(2026, 11, 12, *end_time))
+
+    worked_hours = staff_views._calculate_work_hours(checkin, checkout)
+    display, is_short_hours = staff_views._work_hours_display_and_status(worked_hours)
+
+    assert display == '8.0 hrs.'
+    assert is_short_hours is expected_short_hours
+    style = staff_views._work_login_event_style(False, is_short_hours, True)
+    assert style[3] == (['is-short-hours'] if expected_short_hours else ['is-complete-hours'])
+
+
 def test_work_login_event_style_uses_warning_for_short_hours(staff_views):
     text_color, background_color, border_color, class_names = (
         staff_views._work_login_event_style(True, True, True)
