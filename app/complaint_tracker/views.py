@@ -1210,6 +1210,7 @@ def closing_page():
 @login_required
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
+    organization = request.args.get('organization', 'all')
     procurement_no = request.args.get('procurement_no')
     pro_number = request.args.get('pro_number')
     statuses = ComplaintStatus.query.all()
@@ -1264,14 +1265,15 @@ def edit_record_admin(record_id):
                         flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                                                tab=tab, file_url=file_url, admins=admins, investigators=investigators,
-                                               coordinators=coordinators, repair_approval_id=repair_approval_id, statuses=statuses)
+                                               coordinators=coordinators, repair_approval_id=repair_approval_id,
+                                               statuses=statuses, organization=organization)
                 elif old_status and not new_status:
                     form.status.data = old_status
                     flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                                            tab=tab, file_url=file_url, admins=admins, investigators=investigators,
                                            coordinators=coordinators, repair_approval_id=repair_approval_id,
-                                           statuses=statuses)
+                                           statuses=statuses, organization=organization)
                 elif not old_status and new_status:
                     first_status = ComplaintStatus.query.filter_by(no=1).first()
                     if not first_status:
@@ -1284,14 +1286,15 @@ def edit_record_admin(record_id):
                         flash('ไม่พบสถานะแรกของกระบวนการ กรุณาติดต่อผู้ดูแลระบบ', 'danger')
                         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                                               repair_approval_id=repair_approval_id, statuses=statuses)
+                                               repair_approval_id=repair_approval_id, statuses=statuses,
+                                               organization=organization)
                     if (first_status.no != new_status.no):
                         form.status.data = None
                         flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                                                tab=tab, file_url=file_url, admins=admins, investigators=investigators,
                                                coordinators=coordinators, repair_approval_id=repair_approval_id,
-                                               statuses=statuses)
+                                               statuses=statuses, organization=organization)
             form.populate_obj(record)
             record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
             for i, company_form in enumerate(form.repair_companies):
@@ -1379,10 +1382,10 @@ def edit_record_admin(record_id):
                                   'message_email', message)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                               statuses=statuses)
+                               statuses=statuses, organization=organization)
     else:
         return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id,
-                               tab=tab)
+                               tab=tab, organization=organization)
 
 
 @complaint_tracker.route('/issue/repair_company/file/delete/<int:repair_company_id>', methods=['GET', 'POST'])
@@ -1402,6 +1405,10 @@ def delete_quotation_file(repair_company_id):
 @login_required
 def admin_index():
     tab = request.args.get('tab')
+    organization = request.args.get('organization', 'all')
+    allowed_organizations = {'หน่วยข้อมูลและสารสนเทศ', 'หน่วยซ่อมบำรุง'}
+    if organization not in allowed_organizations | {'all'}:
+        organization = 'all'
     admin_rows = ComplaintAdmin.query.with_entities(
         ComplaintAdmin.id,
         ComplaintAdmin.topic_id
@@ -1429,6 +1436,13 @@ def admin_index():
         .all()
         if record_id
     )
+
+    if organization != 'all' and record_ids:
+        record_ids = {
+            record_id for record_id, in db.session.query(ComplaintRecord.id)
+            .filter(ComplaintRecord.id.in_(record_ids), ComplaintRecord.organization == organization)
+            .all()
+        }
 
     records = []
     new_record_count = 0
@@ -1493,7 +1507,7 @@ def admin_index():
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab,
                            new_record_count=new_record_count, pending_record_count=pending_record_count,
                            progress_record_count=progress_record_count, repair_record_count=repair_record_count,
-                           admin_record_ids=admin_record_ids)
+                           admin_record_ids=admin_record_ids, organization=organization)
 
 
 @complaint_tracker.route('/topics/<code>')
