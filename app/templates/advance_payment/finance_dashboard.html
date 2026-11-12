@@ -9,6 +9,9 @@
     <button type="button" class="btn btn-outline-primary fw-bold mb-3" data-bs-toggle="modal" data-bs-target="#legacyImportModal">
       <i class="bi bi-file-earmark-spreadsheet me-1"></i> นำเข้ารายงานลูกหนี้เงินยืมย้อนหลัง
     </button>
+    <a class="btn btn-outline-success fw-bold mb-3" href="{{ url_for('advance_payment.export_receivables_report') }}">
+      <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงานลูกหนี้เงินยืม
+    </a>
     <form method="post" action="{{ url_for('advance_payment.toggle_cash_mng_finance_state') }}" class="d-flex align-items-center gap-2">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <span class="fw-bold">

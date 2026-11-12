@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+from io import BytesIO
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
@@ -65,6 +66,7 @@ from .legacy_xls import (
     MAX_FILE_BYTES as LEGACY_XLS_MAX_FILE_BYTES,
     parse_legacy_cash_advance_xls,
 )
+from .receivables_report import build_receivable_row, generate_receivables_xls
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
 from app.staff.models import StaffHeadPosition, StaffPersonalInfo
@@ -5701,6 +5703,94 @@ def _legacy_import_schema_ready():
         return False
     columns = {column["name"] for column in inspector.get_columns("cash_advance_borrowing_tickets")}
     return {"opening_balance_amount", "import_batch_id", "import_source_row"} <= columns
+
+
+def _legacy_source_row_for_report(ticket, cache):
+    if ticket.import_batch_id is None:
+        return None
+    batch = ticket.import_batch
+    if batch is None:
+        raise ValueError(f"ไม่พบไฟล์ต้นฉบับของสัญญา {ticket.number}")
+    if batch.id not in cache:
+        with open(batch.source_file_path, "rb") as source_file:
+            report = parse_legacy_cash_advance_xls(source_file.read())
+        cache[batch.id] = {row.source_row: row for row in report.rows}
+    row = cache[batch.id].get(ticket.import_source_row)
+    if row is None or row.ticket_number.strip() != (ticket.number or "").strip():
+        raise ValueError(f"หาแถวเดิมของสัญญา {ticket.number} ในไฟล์ต้นฉบับไม่พบ")
+    return row
+
+
+def _receivables_report_rows(tickets):
+    group_cache = {}
+    source_cache = {}
+    rows = []
+    for ticket in tickets:
+        group_ids = frozenset(_ticket_group_ids(ticket.id))
+        if group_ids not in group_cache:
+            group_cache[group_ids] = (
+                _calculate_ticket_group_totals(group_ids),
+                _calculate_return_form_group_totals(group_ids),
+            )
+        approved, submitted = group_cache[group_ids]
+        approved_amount = _money_decimal(
+            approved.get("allocated_by_ticket", {}).get(ticket.id)
+        )
+        submitted_amount = _money_decimal(
+            submitted.get("allocated_by_ticket", {}).get(ticket.id)
+        )
+        source_row = _legacy_source_row_for_report(ticket, source_cache)
+        person = getattr(getattr(ticket, "borrower_user", None), "personal_info", None)
+        first_name_with_title = (
+            source_row.first_name_with_title if source_row else
+            "".join((getattr(person, "th_title", "") or "",
+                     getattr(person, "th_firstname", "") or "")) or None
+        )
+        last_name = (
+            source_row.last_name if source_row else
+            getattr(person, "th_lastname", None)
+        )
+        rows.append(build_receivable_row(
+            ticket,
+            approved_amount=approved_amount,
+            pending_amount=max(submitted_amount - approved_amount, Decimal("0.00")),
+            historical_repaid=source_row.repaid_amount if source_row else 0,
+            historical_pending=source_row.pending_documents_amount if source_row else 0,
+            first_name_with_title=first_name_with_title,
+            last_name=last_name,
+            borrow_text=source_row.borrow_text if source_row else None,
+        ))
+    return rows
+
+
+@bp.route("/finance/receivables-report.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_receivables_report():
+    """Download the current receivables snapshot using the system's return totals."""
+    tickets = (
+        db.session.query(BorrowingTicket)
+        .options(joinedload(BorrowingTicket.import_batch))
+        .filter(
+            BorrowingTicket.approved_at.isnot(None),
+            BorrowingTicket.status_id.notin_(_status_ids("borrowing_ticket", {"REJECTED"})),
+        )
+        .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.id.asc())
+        .all()
+    )
+    try:
+        rows = _receivables_report_rows(tickets)
+        report_date = datetime.now(ZoneInfo("Asia/Bangkok")).date()
+        workbook = generate_receivables_xls(rows, report_date=report_date)
+    except (OSError, LegacyXlsError, ValueError) as exc:
+        current_app.logger.exception("Could not generate cash advance receivables report")
+        flash(f"สร้างรายงานลูกหนี้เงินยืมไม่สำเร็จ: {exc}", "danger")
+        return redirect(url_for("advance_payment.finance_dashboard"))
+    return send_file(
+        BytesIO(workbook),
+        mimetype="application/vnd.ms-excel",
+        as_attachment=True,
+        download_name=f"cash_advance_receivables_{report_date.isoformat()}.xls",
+    )
 
 
 @bp.route("/finance/legacy-import", methods=["POST"])
