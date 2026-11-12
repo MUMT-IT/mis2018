@@ -58,6 +58,16 @@ TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 # json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+COMPLAINT_RESPONSIBLE_ORGANIZATIONS = {'หน่วยข้อมูลและสารสนเทศ', 'หน่วยซ่อมบำรุง'}
+
+
+def _default_complaint_organization():
+    personal_info = getattr(current_user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    org_name = getattr(org, 'name', None)
+    if isinstance(org_name, str):
+        org_name = org_name.strip()
+    return org_name if org_name in COMPLAINT_RESPONSIBLE_ORGANIZATIONS else 'all'
 
 
 class NumberedCanvas(canvas.Canvas):
@@ -1210,7 +1220,11 @@ def closing_page():
 @login_required
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
-    organization = request.args.get('organization', 'all')
+    organization = request.args.get('organization')
+    if organization is None:
+        organization = _default_complaint_organization()
+    if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
+        organization = 'all'
     procurement_no = request.args.get('procurement_no')
     pro_number = request.args.get('pro_number')
     statuses = ComplaintStatus.query.all()
@@ -1405,9 +1419,10 @@ def delete_quotation_file(repair_company_id):
 @login_required
 def admin_index():
     tab = request.args.get('tab')
-    organization = request.args.get('organization', 'all')
-    allowed_organizations = {'หน่วยข้อมูลและสารสนเทศ', 'หน่วยซ่อมบำรุง'}
-    if organization not in allowed_organizations | {'all'}:
+    organization = request.args.get('organization')
+    if organization is None:
+        organization = _default_complaint_organization()
+    if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
         organization = 'all'
     admin_rows = ComplaintAdmin.query.with_entities(
         ComplaintAdmin.id,
