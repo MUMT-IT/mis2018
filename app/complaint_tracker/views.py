@@ -1097,6 +1097,9 @@ def repair_request_landing():
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
+    issues = None
+    if topic.category and topic.category.no == 1:
+        issues = ComplaintIssue.query.order_by(ComplaintIssue.id.asc()).all()
     has_procurement = request.values.get('has_procurement', 'false')
     ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
@@ -1125,6 +1128,9 @@ def new_record(topic_id, room=None, procurement=None):
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
+        issue_id = request.form.get('issue_id', type=int)
+        if issue_id:
+            record.issue_id = issue_id
         if topic.code == 'runied' and has_procurement == 'true' and not procurement:
             flash('กรุณาเพิ่มข้อมูลครุภัณฑ์ โดยสแกน QR Code หรือกรอกเลขครุภัณฑ์', 'danger')
             resp = make_response()
@@ -1192,7 +1198,7 @@ def new_record(topic_id, room=None, procurement=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
-                           is_admin=is_admin, procurement=procurement, has_procurement=has_procurement)
+                           is_admin=is_admin, procurement=procurement, has_procurement=has_procurement, issues=issues)
 
 
 @complaint_tracker.route('issue/closing-page')
