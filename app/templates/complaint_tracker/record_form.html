@@ -198,30 +198,15 @@
                         {% if topic.category.no == 1 %}
                             <div class="repair-quick-entry">
                                 <label class="label">ปัญหาที่พบบ่อย</label>
-{#                                {% if issues %}#}
-                                    <div class="repair-chip-row" id="repairCommonChips" aria-label="ตัวอย่างปัญหาที่พบบ่อย">
-                                        {% for issue in issues %}
-                                            <button type="button" class="repair-chip" data-repair-id="{{ issue.id }}" data-repair-text="{{ issue.issue }}">
-                                                <span class="repair-chip-icon" aria-hidden="true">
-                                                    {{ issue.icon|safe }}
-                                                </span>{{ issue.issue }}
-                                            </button>
-                                        {% endfor %}
-                                    </div>
-{#                                    {% if issues|length > 6 %}#}
-{#                                        <button type="button" class="repair-more" id="repairMore" aria-expanded="false">#}
-{#                                            ＋ หัวข้ออื่นอีก {{ issues[6:]|length }} รายการ</button>#}
-{#                                        <div class="repair-chip-row" id="repairOtherChips" aria-label="หัวข้อแจ้งซ่อมอื่น">#}
-{#                                            {% for issue in issues[6:] %}#}
-{#                                                <button type="button" class="repair-chip" data-repair-id="{{ issue.id }}" data-repair-text="{{ issue.issue }}">#}
-{#                                                    <span class="repair-chip-icon" aria-hidden="true">#}
-{#                                                        {{ issue.icon|safe }}#}
-{#                                                    </span>{{ issue.issue }}#}
-{#                                                </button>#}
-{#                                            {% endfor %}#}
-{#                                        </div>#}
-{#                                    {% endif %}#}
-{#                                {% endif %}#}
+                                <div class="repair-chip-row" id="repairCommonChips" aria-label="ตัวอย่างปัญหาที่พบบ่อย">
+                                    {% for issue in issues %}
+                                        <button type="button" class="repair-chip" data-repair-id="{{ issue.id }}" data-repair-text="{{ issue.issue }}">
+                                            <span class="repair-chip-icon" aria-hidden="true">
+                                                {{ issue.icon|safe }}
+                                            </span>{{ issue.issue }}
+                                        </button>
+                                    {% endfor %}
+                                </div>
                             </div>
                         {% endif %}
                         <div class="field">

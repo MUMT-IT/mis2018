@@ -1109,7 +1109,12 @@ def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
     issues = None
     if topic.category and topic.category.no == 1:
-        issues = ComplaintIssue.query.order_by(ComplaintIssue.id.asc()).all()
+        topic_issue_associations = ComplaintTopicIssueAssociation.query.options(
+            joinedload(ComplaintTopicIssueAssociation.issue)
+        ).filter_by(topic_id=topic_id).order_by(
+            ComplaintTopicIssueAssociation.issue_id.asc()
+        ).all()
+        issues = [association.issue for association in topic_issue_associations]
     has_procurement = request.values.get('has_procurement', 'false')
     ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
