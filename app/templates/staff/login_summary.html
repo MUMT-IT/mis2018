@@ -637,111 +637,7 @@
         box-shadow: inset 0 0 0 1px rgba(184, 67, 63, 0.12);
     }
 
-    .staff-login-calendar .fc-event {
-        border: 0;
-        border-radius: 12px;
-        box-shadow: inset 0 0 0 1px rgba(18, 39, 84, 0.04);
-        color: #1f2f57;
-        font-size: 0.72rem;
-        font-weight: 700;
-        line-height: 1.25;
-        margin-bottom: 2px;
-        padding: 0.2rem 0.35rem;
-    }
-
-    .staff-login-calendar .fc-event .fc-content {
-        display: block;
-        white-space: normal;
-    }
-
-    .staff-login-calendar .fc-event .fc-title {
-        display: block;
-    }
-
-    .staff-login-calendar .fc-event.is-late-login {
-        background: rgba(248, 202, 202, 0.98);
-        border-color: rgba(229, 155, 155, 0.96);
-    }
-
-    .staff-login-calendar .fc-event.is-short-hours {
-        background: #fff3bf;
-        border-color: #e6cf73;
-    }
-
-    .staff-login-calendar .fc-event.is-complete-hours {
-        background: #e4f3e9;
-        border-color: #b8ddc4;
-        color: #245b38;
-    }
-
-    .staff-login-calendar .staff-login-event-content {
-        align-items: stretch;
-        display: flex;
-        flex-direction: column;
-        gap: 0.12rem;
-        line-height: 1.25;
-        min-width: 0;
-        width: 100%;
-    }
-
-    .staff-login-calendar .staff-login-event-head {
-        align-items: baseline;
-        display: flex;
-        gap: 0.35rem;
-        justify-content: space-between;
-        min-width: 0;
-    }
-
-    .staff-login-calendar .staff-login-event-name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .staff-login-calendar .staff-login-event-alert {
-        color: #b8433f;
-        margin-right: 0.3rem;
-    }
-
-    .staff-login-calendar .staff-login-event-hours {
-        flex-shrink: 0;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .staff-login-calendar .staff-login-event-hours.is-total {
-        color: var(--theme-navy-deep);
-    }
-
-    .staff-login-calendar .staff-login-event-hours.is-negative {
-        color: #b83f3f;
-    }
-
-    .staff-login-calendar .staff-login-event-meter {
-        background: rgba(18, 39, 84, 0.08);
-        border-radius: 999px;
-        height: 0.35rem;
-        overflow: hidden;
-        width: 100%;
-    }
-
-    .staff-login-calendar .staff-login-event-meter-fill {
-        display: block;
-        height: 100%;
-        width: var(--staff-login-meter-width, 0%);
-    }
-
-    .staff-login-calendar .staff-login-event-meter-fill.is-negative {
-        background: linear-gradient(90deg, rgba(184, 63, 63, 0.95), rgba(221, 123, 123, 0.95));
-    }
-
-    .staff-login-calendar .staff-login-event-meter-fill.is-positive {
-        background: linear-gradient(90deg, #4f8f67, #76ad89);
-    }
-
-    .staff-login-calendar .staff-login-event-meter-fill.is-late {
-        background: linear-gradient(90deg, #a85f5f, #c98787);
-    }
+    {% include 'staff/_login_calendar_event_styles.html' %}
 
     .staff-login-calendar .fc-more {
         color: var(--theme-muted);
@@ -1202,6 +1098,7 @@
 
 {% block scripts %}
 {{ super() }}
+{% include 'staff/_login_calendar_event_script.html' %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/locale-all.js" integrity="sha512-vTlIpCig7Yl48kFM3fyxWwW7t+cf+U7Bi22g/o2D4hbGKXnN//6hNZYtIZKSmXQJ5BTdr1jMBz6BUZV030LmuQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
@@ -1545,33 +1442,7 @@
                     }
                     return;
                 }
-                var name = $('<span/>').text(event.title || '').html();
-                var workedHours = event.worked_hours_display ? $('<span/>').text(event.worked_hours_display).html() : '';
-                var requiredHours = event.required_hours || 8;
-                var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / requiredHours) * 100, 12), 100) : 0;
-                var hoursClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
-                var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
-                var correctionLabel = event.approved_checkin && event.approved_checkout
-                    ? 'มีการแก้ไขเวลาเข้าและออก'
-                    : (event.approved_checkin ? 'มีการแก้ไขเวลาเข้า' : 'มีการแก้ไขเวลากลับ');
-                var alertIcon = event.has_approved_correction
-                    ? '<i class="fas fa-triangle-exclamation staff-login-event-alert" role="img" title="' +
-                      escapeHtml(correctionLabel) + '" aria-label="' + escapeHtml(correctionLabel) + '"></i>'
-                    : '';
-                var content = '<span class="staff-login-event-content">';
-                content += '<span class="staff-login-event-head">';
-                content += '<span class="staff-login-event-name">' + alertIcon + name + '</span>';
-                if (workedHours) {
-                    content += '<span class="staff-login-event-hours is-total ' + hoursClass + '">' + workedHours + '</span>';
-                }
-                content += '</span>';
-                if (workedHours) {
-                    content += '<span class="staff-login-event-meter" aria-hidden="true">';
-                    content += '<span class="staff-login-event-meter-fill ' + meterClass + '" style="--staff-login-meter-width: ' + meterWidth + '%"></span>';
-                    content += '</span>';
-                }
-                content += '</span>';
-                element.find('.fc-title').html(content);
+                renderStaffLoginCalendarEvent(event, element);
             },
             viewRender: function(view) {
                 const monthStart = moment(view.intervalStart).startOf('month');

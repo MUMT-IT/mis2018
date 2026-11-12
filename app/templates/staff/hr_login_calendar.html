@@ -8,8 +8,7 @@
     .staff-calendar-shell { padding: 1.5rem 1rem 3rem; }
     .staff-calendar-card { background: white; border-radius: 20px; padding: 1.5rem; box-shadow: 0 12px 35px rgba(18,39,84,.08); }
     .staff-calendar-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
-    #staffCalendar .fc-title { white-space: pre-line; }
-    #staffCalendar .fc-event { padding: .25rem; }
+    {% include 'staff/_login_calendar_event_styles.html' %}
     #staffCalendarStatus { min-height: 1.5rem; margin-bottom: .75rem; }
     @media (max-width: 600px) {
         .staff-calendar-card { padding: .75rem; }
@@ -27,9 +26,9 @@
             <a class="button is-light" href="{{ url_for('staff.hr_login_summary_report') }}">กลับรายงานลงเวลา</a>
             <a class="button is-info is-light" href="{{ url_for('staff.hr_login_records', staff_id=selected_staff.id) }}">ดูรายการลงเวลาทั้งหมด</a>
         </div>
-        <p class="help">แสดงเวลาเข้า–ออกและชั่วโมงทำงานตามเวลาไทย · สีแดง: สายหรือชั่วโมงไม่ครบ · สีส้ม: วันหยุด</p>
+        <p class="help">แสดงเวลาเข้า–ออกและชั่วโมงทำงานตามเวลาไทย · สีแดง: สาย · สีเหลือง: ชั่วโมงไม่ครบ · สีเขียว: ชั่วโมงครบ · สีส้ม: วันหยุด</p>
         <p id="staffCalendarStatus" role="status" aria-live="polite"></p>
-        <div id="staffCalendar"></div>
+        <div class="staff-login-calendar"><div id="staffCalendar"></div></div>
     </div>
 </section>
 {% endblock %}
@@ -38,6 +37,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/locale-all.js"></script>
+{% include 'staff/_login_calendar_event_script.html' %}
 <script>
 $(function () {
     const calendar = $('#staffCalendar');
@@ -49,22 +49,20 @@ $(function () {
         fixedWeekCount: false,
         showNonCurrentDates: false,
         header: {left: 'prev,next today', center: '', right: 'title'},
-        displayEventTime: false,
+        displayEventEnd: true,
+        timeFormat: 'H(:mm)',
+        eventLimit: false,
+        eventRender: function (event, element) {
+            if (event.type === 'login') {
+                renderStaffLoginCalendarEvent(event, element);
+            }
+        },
         events: function (start, end, timezone, callback) {
             const month = moment(start).add(Math.floor(moment(end).diff(moment(start), 'days') / 2), 'days').format('YYYY-MM');
             $.getJSON({{ url_for('staff.hr_manual_checkin_calendar_data')|tojson }}, {
                 staff_id: {{ selected_staff.id|tojson }}, month: month
             }).done(function (data) {
-                const events = (data.events || []).map(function (event) {
-                    if (event.type === 'login') {
-                        event.title = event.note + (event.worked_hours_display ? '\n' + event.worked_hours_display : '\nยังไม่ลงเวลาออก');
-                        if (event.has_approved_correction) event.title += '\nมีการแก้ไขเวลา';
-                        event.start = event.start.slice(0, 10);
-                        delete event.end;
-                        event.allDay = true;
-                    }
-                    return event;
-                });
+                const events = data.events || [];
                 callback(events);
                 $('#staffCalendarStatus').text(events.length ? '' : 'ไม่มีรายการลงเวลาในเดือนนี้');
             }).fail(function () {

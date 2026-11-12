@@ -1,0 +1,31 @@
+<script>
+function renderStaffLoginCalendarEvent(event, element) {
+    var name = $('<span/>').text(event.title || '').html();
+    var workedHours = event.worked_hours_display ? $('<span/>').text(event.worked_hours_display).html() : '';
+    var requiredHours = event.required_hours || 8;
+    var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / requiredHours) * 100, 12), 100) : 0;
+    var hoursClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
+    var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
+    var correctionLabel = event.approved_checkin && event.approved_checkout
+        ? 'มีการแก้ไขเวลาเข้าและออก'
+        : (event.approved_checkin ? 'มีการแก้ไขเวลาเข้า' : 'มีการแก้ไขเวลากลับ');
+    var alertIcon = event.has_approved_correction
+        ? '<i class="fas fa-triangle-exclamation staff-login-event-alert" role="img" title="' +
+          $('<span/>').text(correctionLabel).html() + '" aria-label="' + $('<span/>').text(correctionLabel).html() + '"></i>'
+        : '';
+    var content = '<span class="staff-login-event-content">';
+    content += '<span class="staff-login-event-head">';
+    content += '<span class="staff-login-event-name">' + alertIcon + name + '</span>';
+    if (workedHours) {
+        content += '<span class="staff-login-event-hours is-total ' + hoursClass + '">' + workedHours + '</span>';
+    }
+    content += '</span>';
+    if (workedHours) {
+        content += '<span class="staff-login-event-meter" aria-hidden="true">';
+        content += '<span class="staff-login-event-meter-fill ' + meterClass + '" style="--staff-login-meter-width: ' + meterWidth + '%"></span>';
+        content += '</span>';
+    }
+    content += '</span>';
+    element.find('.fc-title').html(content);
+}
+</script>

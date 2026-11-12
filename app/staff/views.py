@@ -4443,8 +4443,11 @@ def hr_manual_checkin_calendar_data():
         if not start_dt:
             continue
         worked_hours = _calculate_work_hours(start_dt, end_dt)
-        worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
-        is_late = bool(start_dt and start_dt.time() > office_start_time)
+        half_day_period = _approved_half_day_leave_period(staff_person.staff_account, row['date'])
+        required_hours = 3.5 if half_day_period else 8.0
+        worked_hours_display = f'{worked_hours:.1f} hrs.' if worked_hours is not None else None
+        hours_is_negative = worked_hours is not None and worked_hours < required_hours
+        is_late = bool(start_dt.time() > office_start_time and half_day_period != 'morning')
         text_color, background_color, border_color, class_names = _work_login_event_style(
             is_late, hours_is_negative, bool(end_dt)
         )
@@ -4471,6 +4474,7 @@ def hr_manual_checkin_calendar_data():
             'note': note,
             'worked_hours_display': worked_hours_display,
             'worked_hours': worked_hours,
+            'required_hours': required_hours,
             'is_late': is_late,
             'approved_checkin': row['approved_checkin'],
             'approved_checkout': row['approved_checkout'],
