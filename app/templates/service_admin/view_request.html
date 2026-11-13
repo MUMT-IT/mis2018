@@ -367,7 +367,7 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                {% if service_request.status.status_id == 3 and service_request.admin_id %}
+                                {% if service_request.status.status_id == 3 and service_request.admin_id and is_admin %}
                                     <a class="button is-info is-rounded is-small mb-2"
                                        href="{{ url_for('service_admin.generate_quotation',
                                             request_id=service_request.id, code=service_request.sub_lab.code, menu='quotation',
@@ -384,7 +384,7 @@
                                         <span class="icon"><i class="fas fa-pen"></i></span>
                                         <span>แก้ไขข้อมูลคำขอ</span>
                                     </a>
-                                {% elif service_request.status.status_id == 3 %}
+                                {% elif service_request.status.status_id == 3 and is_admin %}
                                     <a class="button is-info is-rounded is-small mb-2"
                                        href="{{ url_for('service_admin.generate_quotation',
                                             request_id=service_request.id, code=service_request.sub_lab.code, menu='quotation',
@@ -397,10 +397,10 @@
                                         (service_request.get_result() and service_request.get_result().sent_at == None) %}
                                     <a class="button is-primary is-rounded is-small mb-2"
                                             {% if result_id %}
-                                       href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
+                                                href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
                                                 request_id=service_request.id, menu='test_item', tab='testing') }}"
                                             {% else %}
-                                       href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
+                                                href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
                                                 menu='test_item', tab='testing') }}"
                                             {% endif %}
                                     >
