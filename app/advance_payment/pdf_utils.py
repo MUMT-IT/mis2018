@@ -2750,7 +2750,7 @@ def _overdue_reminder_paragraphs(letter):
         f"({e(letter['amount_text'])})",
         "ทางคณะเทคนิคการแพทย์ จึงใคร่ขอให้ท่านโปรดส่งคืนภายใน 15 วันหลังจากได้รับหนังสือฉบับนี้ "
         "หากไม่สามารถคืนภายใน 60 วัน หลังครบกำหนดตามสัญญา ต้องทำ"
-        "<u>หนังสือชี้แจงเหตุผลที่ชัดเจนและส่งล่วงหน้า 7 วัน</u> "
+        "<u width=\"0.35\">หนังสือชี้แจงเหตุผลที่ชัดเจนและส่งล่วงหน้า 7 วัน</u> "
         "<b>หากไม่ดำเนินการตามกำหนด คณะฯ จะดำเนินการหักเงินเดือน ค่าจ้าง เบี้ยหวัด "
         "บำเหน็จ บำนาญ หรือเงินอื่นใดตามที่ท่านได้ลงนามในสัญญาการยืมเงิน</b> "
         "ทั้งนี้หากท่านดำเนินการส่งใช้เงินยืมแล้วในระหว่างการจัดส่งหนังสือฉบับนี้ "
@@ -2800,7 +2800,7 @@ html, body {{ margin: 0; padding: 0; color: #000; font-family: SarabunPDF, sans-
 .letter-body p {{ margin: 0 0 2.1mm; text-indent: 25mm; }}
 .letter-body .closing {{ text-indent: 25mm; }}
 .letter-body b {{ font-weight: 700; }}
-.letter-body u {{ text-decoration: underline; text-underline-offset: 1px; }}
+.letter-body u {{ text-decoration: underline; text-decoration-thickness: 0.4px; text-underline-offset: 1px; }}
 .signature {{ position: absolute; top: 229mm; left: 50%; right: 20mm; text-align: center; line-height: 1.3; }}
 </style></head><body>{''.join(pages)}</body></html>"""
 
