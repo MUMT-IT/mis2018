@@ -32,7 +32,7 @@ Branch: `codex/legacy-cash-advance-import-demo`
 
 ## ฐานข้อมูลทดสอบที่แยกไว้
 
-ฐานเดิมใน `.env` คือ `mumtmis` และ **ไม่ได้รัน migration หรือเขียนข้อมูลนำเข้าใส่ฐานนี้**
+ฐานหลักใน `.env` คือ `mumtmis` อัปเกรด schema ถึง revision `a9c4e7b2d105` แล้วเมื่อ 2026-11-13 โดยไม่มีการคัดลอกรายการนำเข้าจากฐานทดสอบ
 
 - `mumtmis_legacy_import_dev`: คัดลอกเฉพาะ schema ใช้ลอง DDL แบบ rollback
 - `mumtmis_legacy_import_full_dev`: คัดลอกฐาน local เพื่อทดสอบ UI; ใช้ schema revision `a9c4e7b2d105` และลบคอลัมน์ `import_source_row` ที่เคยสร้างใน demo ออกแล้ว โดยคงรายการนำเข้าที่มีอยู่
