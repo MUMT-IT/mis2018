@@ -33,7 +33,7 @@ class SystemPermissionTests(unittest.TestCase):
             "_can_use_module_system": lambda staff, system: True,
             "_current_module_role": lambda: self.state["system"],
             "_is_cash_mng_finance_open": lambda: True,
-            "abort": lambda status, **kwargs: (_ for _ in ()).throw(PermissionError(status)),
+            "abort": lambda status: (_ for _ in ()).throw(PermissionError(status)),
             "ADVANCE_PAYMENT_SYSTEM": "advance_payment",
             "PETTY_CASH_SYSTEM": "petty_cash",
             "FINANCE_SYSTEM": "finance",

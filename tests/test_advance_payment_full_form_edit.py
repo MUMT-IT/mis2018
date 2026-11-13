@@ -49,7 +49,7 @@ class FullFormEditTests(unittest.TestCase):
     def test_editing_reuses_the_record_and_requires_confirmation(self):
         self.assertIn("else edit_return_detail", self.views)
         self.assertIn("existing_draft = edit_claim_detail", self.views)
-        self.assertGreaterEqual(self.views.count('"EDIT_CONFIRMATION_REQUIRED"'), 3)
+        self.assertGreaterEqual(self.views.count('"รอยืนยันการแก้ไข"'), 3)
 
     def test_edit_mode_does_not_offer_draft_autosave(self):
         self.assertIn("if not return_edit_detail|default(none)", self.return_form)

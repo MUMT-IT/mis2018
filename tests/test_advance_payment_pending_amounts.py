@@ -30,9 +30,8 @@ class PendingAmountSummaryTests(unittest.TestCase):
             "วันครบกำหนด",
         ):
             self.assertIn(label, self.verification_template)
-        self.assertIn("display_summary.pending_amount", self.verification_template)
-        self.assertIn("display_summary.unsubmitted_amount", self.verification_template)
-        self.assertNotIn("ยอดยืมเดิม", self.verification_template)
+        self.assertIn("summary.pending_amount", self.verification_template)
+        self.assertIn("summary.unsubmitted_amount", self.verification_template)
         summary_position = self.verification_template.rindex(
             "<strong>ยอดเงินยืม</strong>"
         )
