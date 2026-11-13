@@ -313,12 +313,19 @@ class EduQAStudentSkillEvidence(db.Model):
     endorsed = db.Column(db.Boolean(), nullable=False, default=False)
     endorsed_by_id = db.Column(db.ForeignKey('staff_account.id'))
     endorsed_at = db.Column(db.DateTime(timezone=True))
+    endorsed_passed = db.Column(db.Boolean(), nullable=True)
 
     evidence = db.relationship(EduQASkillEvidence,
                                backref=db.backref('student_evidence', cascade='all, delete-orphan'))
     student = db.relationship(EduQAStudent, backref=db.backref('student_skill_evidence', cascade='all, delete-orphan'))
     created_by = db.relationship(StaffAccount, foreign_keys=[created_by_id])
     endorsed_by = db.relationship(StaffAccount, foreign_keys=[endorsed_by_id])
+
+    def effective_passed(self, submission):
+        """An explicit approval decision takes precedence over evaluator scores."""
+        if self.endorsed and self.endorsed_passed is not None:
+            return self.endorsed_passed
+        return submission.passed if submission is not None else None
 
 
 class EduQAAcademicStaff(db.Model):

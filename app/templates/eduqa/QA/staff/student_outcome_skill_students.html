@@ -113,7 +113,7 @@
             <form method="get" class="mb-4">
                 <input type="hidden" name="academic_year" value="{{ academic_year }}">
                 <div class="field">
-                    <label class="label" for="student-status">สถานะผลประเมินล่าสุด</label>
+                    <label class="label" for="student-status">สถานะผลประเมิน</label>
                     <div class="field is-grouped">
                         <div class="control">
                             <div class="select">
@@ -127,13 +127,13 @@
                         <div class="control"><button type="submit" class="button is-info">กรอง</button></div>
                     </div>
                 </div>
-                <p class="help">แสดง {{ filtered_student_rows|length }} จาก {{ student_rows|length }} คน · กรองตามผลประเมินล่าสุดของนักศึกษา</p>
+                <p class="help">แสดง {{ filtered_student_rows|length }} จาก {{ student_rows|length }} คน · ใช้ผลรับรองเมื่อรับรองแล้ว มิฉะนั้นใช้ผลประเมินล่าสุด</p>
             </form>
             {% if filtered_student_rows %}
             <div class="table-container">
                 <table class="table is-fullwidth is-hoverable">
                     <thead>
-                    <tr><th>รหัสนักศึกษา</th><th>ชื่อ</th><th>รายวิชาที่ลงทะเบียน</th><th>ผลประเมินล่าสุด</th></tr>
+                    <tr><th>รหัสนักศึกษา</th><th>ชื่อ</th><th>รายวิชาที่ลงทะเบียน</th><th>สถานะ</th></tr>
                     </thead>
                     <tbody>
                     {% for row in filtered_student_rows %}
@@ -151,8 +151,8 @@
                         </td>
                         <td>
                             {% if not row.latest %}<span class="tag is-warning is-light">รอประเมิน</span>
-                            {% elif row.latest.submission.passed is sameas true %}<span class="tag is-success">ผ่าน</span>
-                            {% elif row.latest.submission.passed is sameas false %}<span class="tag is-danger">ไม่ผ่าน</span>
+                            {% elif row.passed is sameas true %}<span class="tag is-success">ผ่าน</span>
+                            {% elif row.passed is sameas false %}<span class="tag is-danger">ไม่ผ่าน</span>
                             {% else %}<span class="tag is-light">ไม่กำหนดเกณฑ์</span>{% endif %}
                         </td>
                     </tr>

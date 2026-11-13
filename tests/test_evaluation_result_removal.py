@@ -71,6 +71,7 @@ def test_result_removal(remaining, mismatch, fail):
             assert session.delete.call_args_list[1].args[0] is submission
             assert any(call.args[0] is evaluation for call in session.delete.call_args_list) == (not remaining)
             assert student_evidence.endorsed is False
+            assert student_evidence.endorsed_passed is None
             assert student_evidence.endorsed_by is None
             assert student_evidence.endorsed_at is None
             assert session.rollback.called == fail
