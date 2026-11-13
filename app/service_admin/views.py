@@ -44,7 +44,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 
-from ..staff.models import Role
+from ..staff.models import Role, StaffAccount
 
 CREDIT_DATE = 60
 CREDIT_OVERDUE_DATE = 30
@@ -2326,8 +2326,8 @@ def menu():
 
 @service_admin.route('/customer/register/index')
 def customer_register_index():
-    user_type = session.get('user_type')
-    return render_template('service_admin/customer_register_index.html', user_type=user_type)
+    is_staff = current_user.is_authenticated and isinstance(current_user, StaffAccount)
+    return render_template('service_admin/customer_register_index.html', is_staff=is_staff)
 
 
 @service_admin.route('/admin/register/search')
