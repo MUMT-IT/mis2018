@@ -1,7 +1,6 @@
 import os
 import json
 import uuid
-import hashlib
 from io import BytesIO
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -45,7 +44,7 @@ from .borrowing_ticket_eligibility import (
     calculate_borrowing_ticket_eligibility,
 )
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, CashAdvanceBalanceAdjustment, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
 from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
@@ -5842,22 +5841,6 @@ def _snapshot_json(snapshot):
     return {key: format(value, ".2f") for key, value in snapshot.items()}
 
 
-def _save_adjustment_source(file_bytes):
-    """Keep one immutable private copy per distinct adjustment source file."""
-    private_dir = os.path.join(current_app.instance_path, "legacy_cash_advance_sources")
-    os.makedirs(private_dir, exist_ok=True)
-    digest = hashlib.sha256(file_bytes).hexdigest()
-    path = os.path.join(private_dir, f"adjustment_{digest}.xls")
-    try:
-        with open(path, "xb") as source_file:
-            source_file.write(file_bytes)
-    except FileExistsError:
-        with open(path, "rb") as source_file:
-            if hashlib.sha256(source_file.read()).hexdigest() != digest:
-                raise OSError("Stored adjustment source has changed")
-    return path
-
-
 def _receivables_report_rows(tickets):
     group_cache = {}
     source_cache = {}
@@ -5944,6 +5927,7 @@ def legacy_import():
     error = None
     contract_checks = None
     imported_count = None
+    batch_id = None
     error_status = 400
     uploaded = request.files.get("file")
     if not uploaded or not uploaded.filename:
@@ -5965,8 +5949,12 @@ def legacy_import():
                     raise ValueError("ยังไม่ได้ปรับฐานข้อมูลสำหรับการนำเข้า กรุณารัน migration บนฐานทดสอบก่อน")
                 contract_checks = _legacy_contract_checks(report)
                 ready_checks = [check for check in contract_checks if check.ready_after_migration]
+                duplicate_checks = [
+                    check for check in contract_checks
+                    if getattr(check, "duplicate_in_database", False)
+                ]
                 imported_count = 0
-                if ready_checks:
+                if ready_checks or duplicate_checks:
                     private_dir = os.path.join(current_app.instance_path, "legacy_cash_advance_sources")
                     os.makedirs(private_dir, exist_ok=True)
                     final_path = os.path.join(private_dir, f"{uuid.uuid4().hex}.xls")
@@ -5979,6 +5967,7 @@ def legacy_import():
                     )
                     db.session.add(batch)
                     db.session.flush()
+                    batch_id = batch.id
                     approved_status = _status_id("borrowing_ticket", code="APPROVED")
                     partial_status = _status_id("borrowing_ticket", code="PARTIAL_RETURN")
                     closed_status = _status_id("borrowing_ticket", code="CLOSED")
@@ -6062,6 +6051,7 @@ def legacy_import():
         rejected.append(item)
     return jsonify({
         "filename": filename,
+        "batch_id": batch_id,
         "found_count": len(report.rows),
         "imported_count": imported_count,
         "rejected": rejected,
@@ -6071,21 +6061,20 @@ def legacy_import():
 @bp.route("/finance/legacy-import/adjust", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def legacy_import_adjust():
-    """Apply a reviewed F/G/I snapshot to an existing contract, never create one."""
-    uploaded = request.files.get("file")
-    if not uploaded or not (uploaded.filename or "").lower().endswith(".xls"):
-        return jsonify({"error": "กรุณาเลือกไฟล์ .xls เดิมอีกครั้ง"}), 400
-    file_bytes = uploaded.read(LEGACY_XLS_MAX_FILE_BYTES + 1)
+    """Overwrite an existing contract's balance using its reviewed upload batch."""
     try:
+        batch_id = int(request.form.get("batch_id") or "")
+        batch = db.session.get(CashAdvanceImportBatch, batch_id)
+        if batch is None or batch.uploaded_by_id != current_user.id:
+            raise ValueError("ไม่พบ batch ของไฟล์ที่อัปโหลด กรุณาอัปโหลดไฟล์อีกครั้ง")
+        with open(batch.source_file_path, "rb") as source_file:
+            file_bytes = source_file.read(LEGACY_XLS_MAX_FILE_BYTES + 1)
         report = parse_legacy_cash_advance_xls(file_bytes)
         if report.report_date is None:
             raise ValueError("อ่านวันที่รายงานจากไฟล์ไม่ได้")
         ticket_id = int(request.form.get("ticket_id") or "")
         source_row = int(request.form.get("source_row") or "")
         number = (request.form.get("ticket_number") or "").strip()
-        reason = (request.form.get("reason") or "").strip()
-        if not reason or len(reason) > 2000:
-            raise ValueError("กรุณาระบุเหตุผลการปรับยอด")
         source = next(
             (row for row in report.rows
              if row.source_row == source_row and row.ticket_number.strip() == number),
@@ -6134,24 +6123,11 @@ def legacy_import_adjust():
                 _calculate_return_form_group_totals(group_ids),
             )
 
-        source_path = _save_adjustment_source(file_bytes)
-        db.session.add(CashAdvanceBalanceAdjustment(
-            ticket_id=ticket.id,
-            old_borrowed_amount=current["borrowed"],
-            old_repaid_amount=current["repaid"],
-            old_pending_amount=current["pending"],
-            new_borrowed_amount=borrowed,
-            new_repaid_amount=repaid,
-            new_pending_amount=pending,
-            reason=reason,
-            source_file_path=source_path,
-            source_report_date=report.report_date,
-            edited_by_id=current_user.id,
-        ))
         ticket.required_budget = borrowed
         ticket.historical_repaid_amount = baseline_repaid
         ticket.historical_pending_amount = baseline_pending
         ticket.opening_balance_amount = opening_budget
+        ticket.balance_adjustment_batch_id = batch.id
         for linked_ticket_id in group_ids:
             _recalculate_borrowing_ticket_status(
                 linked_ticket_id, commit=False, notify=False, recalculate_settlement=False

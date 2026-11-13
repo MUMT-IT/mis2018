@@ -158,29 +158,7 @@ class CashAdvanceImportBatch(db.Model):
     source_file_path = Column(String(1024), nullable=False)
     uploaded_by_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     uploaded_on = Column(Date, nullable=False)
-
-
-class CashAdvanceBalanceAdjustment(db.Model):
-    """Finance-confirmed replacement of one contract's receivable snapshot."""
-
-    __tablename__ = "cash_advance_balance_adjustments"
-
-    id = Column(Integer, primary_key=True)
-    ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=False, index=True)
-    old_borrowed_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
-    old_repaid_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
-    old_pending_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
-    new_borrowed_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
-    new_repaid_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
-    new_pending_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False)
-    reason = Column(String(2000), nullable=False)
-    source_file_path = Column(String(1024), nullable=False)
-    source_report_date = Column(Date, nullable=True)
-    edited_by_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-
-    ticket = relationship("CashAdvanceBorrowingTicket", back_populates="balance_adjustments")
-    edited_by = relationship(StaffAccount, foreign_keys=[edited_by_id])
+    uploaded_by = relationship(StaffAccount, foreign_keys=[uploaded_by_id])
 
 
 class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
@@ -211,6 +189,7 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     historical_repaid_amount = Column(Numeric(12, 2, asdecimal=True), nullable=True)
     historical_pending_amount = Column(Numeric(12, 2, asdecimal=True), nullable=True)
     import_batch_id = Column(Integer, ForeignKey("cash_advance_import_batches.id"), nullable=True)
+    balance_adjustment_batch_id = Column(Integer, ForeignKey("cash_advance_import_batches.id"), nullable=True)
     account_number = Column(String(100), nullable=False)
     bank_account_info_id = Column(Integer, ForeignKey("cash_mng_bank_account_infos.id"), nullable=True)
     borrowing_ticket_start_date = Column(Date, nullable=True)
@@ -234,9 +213,7 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
         foreign_keys=[bank_account_info_id],
     )
     import_batch = relationship("CashAdvanceImportBatch", foreign_keys=[import_batch_id])
-    balance_adjustments = relationship(
-        "CashAdvanceBalanceAdjustment", back_populates="ticket", order_by="CashAdvanceBalanceAdjustment.id"
-    )
+    balance_adjustment_batch = relationship("CashAdvanceImportBatch", foreign_keys=[balance_adjustment_batch_id])
     creator_user = relationship(
         StaffAccount,
         foreign_keys=[creator_id],

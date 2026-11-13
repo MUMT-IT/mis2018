@@ -27,26 +27,11 @@
   </div>
   {% endif %}
 
-  {% if advance_payment_role == 'finance' and borrowing_ticket.balance_adjustments %}
-  <details class="border rounded-3 p-3 mb-4 bg-white">
-    <summary class="fw-semibold">ประวัติการปรับยอดสัญญา ({{ borrowing_ticket.balance_adjustments|length }})</summary>
-    <div class="table-responsive mt-3">
-      <table class="table table-sm align-middle mb-0">
-        <thead><tr><th>วันที่แก้ไข</th><th>ผู้แก้ไข</th><th>ยอดเดิม F / G / I</th><th>ยอดใหม่ F / G / I</th><th>เหตุผล</th></tr></thead>
-        <tbody>
-          {% for adjustment in borrowing_ticket.balance_adjustments|reverse %}
-          <tr>
-            <td>{{ adjustment.created_at|thai_date }}</td>
-            <td>{{ adjustment.edited_by.fullname if adjustment.edited_by else '-' }}</td>
-            <td>{{ '{:,.2f}'.format(adjustment.old_borrowed_amount) }} / {{ '{:,.2f}'.format(adjustment.old_repaid_amount) }} / {{ '{:,.2f}'.format(adjustment.old_pending_amount) }}</td>
-            <td>{{ '{:,.2f}'.format(adjustment.new_borrowed_amount) }} / {{ '{:,.2f}'.format(adjustment.new_repaid_amount) }} / {{ '{:,.2f}'.format(adjustment.new_pending_amount) }}</td>
-            <td>{{ adjustment.reason }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </details>
+  {% if advance_payment_role == 'finance' and borrowing_ticket.balance_adjustment_batch %}
+  <div class="alert alert-secondary">
+    ยอดสัญญานี้ปรับจากไฟล์ที่อัปโหลดเมื่อวันที่ {{ borrowing_ticket.balance_adjustment_batch.uploaded_on|thai_date }}
+    โดย {{ borrowing_ticket.balance_adjustment_batch.uploaded_by.fullname if borrowing_ticket.balance_adjustment_batch.uploaded_by else '-' }}
+  </div>
   {% endif %}
 
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">

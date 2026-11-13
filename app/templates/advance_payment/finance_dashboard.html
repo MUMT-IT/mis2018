@@ -367,16 +367,13 @@
       const importError = document.getElementById("legacyImportError");
       const importResult = document.getElementById("legacyImportResult");
       const importButton = document.getElementById("legacyImportSubmit");
-      let uploadedLegacyFile = null;
       document.getElementById("legacyImportModal").addEventListener("hidden.bs.modal", function() {
         importForm.reset();
-        uploadedLegacyFile = null;
         importError.classList.add("d-none");
         importResult.classList.add("d-none");
       });
       importForm.addEventListener("submit", async function(event) {
         event.preventDefault();
-        uploadedLegacyFile = document.getElementById("legacyImportFile").files[0] || null;
         importButton.disabled = true;
         importButton.textContent = "กำลังนำเข้า...";
         importError.classList.add("d-none");
@@ -430,7 +427,7 @@
             });
             row.appendChild(reasonCell);
             const actionCell = document.createElement("td");
-            if (item.duplicate && uploadedLegacyFile) {
+            if (item.duplicate && result.batch_id) {
               const useExistingButton = document.createElement("button");
               useExistingButton.type = "button";
               useExistingButton.className = "btn btn-sm btn-outline-secondary me-1 mb-1";
@@ -473,11 +470,6 @@
                 fields.appendChild(wrapper);
                 inputs[key] = input;
               });
-              const reason = document.createElement("textarea");
-              reason.className = "form-control form-control-sm mt-2";
-              reason.maxLength = 2000;
-              reason.placeholder = "เหตุผลและหลักฐานที่ใช้ยืนยันยอด";
-              reason.required = true;
               const calculated = document.createElement("div");
               calculated.className = "small text-muted my-2";
               const updateCalculated = () => {
@@ -494,7 +486,7 @@
               saveButton.textContent = "บันทึกยอดที่แก้";
               const feedback = document.createElement("div");
               feedback.className = "small mt-2";
-              editor.append(fields, reason, calculated, saveButton, feedback);
+              editor.append(fields, calculated, saveButton, feedback);
               detailCell.appendChild(editor);
               editButton.addEventListener("click", () => editor.classList.toggle("d-none"));
               useExistingButton.addEventListener("click", () => {
@@ -502,9 +494,9 @@
                 detailRow.remove();
               });
               saveButton.addEventListener("click", async () => {
-                if (!reason.value.trim() || Object.values(inputs).some((input) => !input.checkValidity())) {
+                if (Object.values(inputs).some((input) => !input.checkValidity())) {
                   feedback.className = "small text-danger mt-2";
-                  feedback.textContent = "กรุณากรอกยอดและเหตุผลให้ครบ";
+                  feedback.textContent = "กรุณากรอกยอด F, G และ I ให้ครบ";
                   return;
                 }
                 saveButton.disabled = true;
@@ -512,11 +504,10 @@
                 try {
                   const formData = new FormData();
                   formData.set("csrf_token", importForm.querySelector('[name="csrf_token"]').value);
-                  formData.set("file", uploadedLegacyFile);
+                  formData.set("batch_id", result.batch_id);
                   formData.set("ticket_id", detail.ticket_id);
                   formData.set("ticket_number", item.ticket_number);
                   formData.set("source_row", item.source_row);
-                  formData.set("reason", reason.value.trim());
                   ["borrowed", "repaid", "pending"].forEach((key) => {
                     formData.set(key, inputs[key].value);
                     formData.set("expected_" + key, detail.current[key]);
