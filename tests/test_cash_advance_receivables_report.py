@@ -22,6 +22,34 @@ spec.loader.exec_module(report_module)
 
 
 class ReceivablesReportTests(unittest.TestCase):
+    def test_source_lookup_uses_ticket_number_not_excel_row(self):
+        source = ast.parse(
+            (ROOT / "app/advance_payment/views.py").read_text(encoding="utf-8-sig")
+        )
+        function = next(
+            node for node in source.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_legacy_source_row_for_report"
+        )
+        first = SimpleNamespace(ticket_number="88/67", source_row=99)
+        wanted = SimpleNamespace(ticket_number="77/67", source_row=5)
+        ticket = SimpleNamespace(
+            import_batch_id=3, number="77/67",
+            import_batch=SimpleNamespace(id=3, source_file_path="unused.xls"),
+        )
+        context = {
+            "open": lambda path, mode: BytesIO(b"source"),
+            "parse_legacy_cash_advance_xls": lambda content: SimpleNamespace(
+                rows=[first, wanted]
+            ),
+        }
+        exec(compile(ast.Module(body=[function], type_ignores=[]), "views.py", "exec"), context)
+        self.assertIs(context["_legacy_source_row_for_report"](ticket, {}), wanted)
+        with self.assertRaises(ValueError):
+            context["_legacy_source_row_for_report"](
+                ticket, {3: {"77/67": [first, wanted]}}
+            )
+
     def test_imported_and_current_amounts_reconcile(self):
         ticket = SimpleNamespace(
             number="77/67", borrower_name="ผู้ยืม ทดสอบ",
@@ -127,11 +155,11 @@ class ReceivablesReportTests(unittest.TestCase):
         context = {
             "Decimal": Decimal,
             "_ticket_group_ids": lambda ticket_id: {ticket_id},
-            "_calculate_ticket_group_totals": lambda ids: {
-                "allocated_by_ticket": {1: Decimal("20.00")}
-            },
-            "_calculate_return_form_group_totals": lambda ids: {
-                "allocated_by_ticket": {1: Decimal("25.00")}
+            "_calculate_ticket_group_totals": lambda ids, report_stage: {
+                "allocated_by_ticket": {
+                    1: Decimal("20.00") if report_stage == "settled"
+                    else Decimal("25.00")
+                }
             },
             "_money_decimal": lambda value: Decimal(str(value or 0)),
             "_legacy_source_row_for_report": lambda ticket, cache: SimpleNamespace(
@@ -151,6 +179,42 @@ class ReceivablesReportTests(unittest.TestCase):
         self.assertEqual(row["repaid"], Decimal("60.00"))
         self.assertEqual(row["pending"], Decimal("15.00"))
         self.assertEqual(row["remaining"], Decimal("25.00"))
+
+    def test_report_keeps_requisition_debt_when_net_balance_is_zero(self):
+        source = ast.parse(
+            (ROOT / "app/advance_payment/views.py").read_text(encoding="utf-8-sig")
+        )
+        function = next(
+            node for node in source.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_receivables_report_rows"
+        )
+        ticket = SimpleNamespace(
+            id=1, number="77/67", borrower_name="ผู้ยืม ทดสอบ",
+            approved_at=datetime(2024, 5, 14), due_date=date(2024, 8, 14),
+            borrowing_ticket_purpose="ค่าเดินทาง",
+            required_budget=Decimal("100.00"),
+        )
+        source_row = SimpleNamespace(
+            repaid_amount=Decimal("70.00"),
+            pending_documents_amount=Decimal("30.00"),
+            first_name_with_title="ผู้ยืม", last_name="ทดสอบ",
+            borrow_text="พค.14",
+        )
+        context = {
+            "Decimal": Decimal,
+            "_ticket_group_ids": lambda ticket_id: {ticket_id},
+            "_calculate_ticket_group_totals": lambda ids, report_stage: {
+                "allocated_by_ticket": {1: Decimal("0.00")}
+            },
+            "_money_decimal": lambda value: Decimal(str(value or 0)),
+            "_legacy_source_row_for_report": lambda ticket, cache: source_row,
+            "build_receivable_row": report_module.build_receivable_row,
+        }
+        exec(compile(ast.Module(body=[function], type_ignores=[]), "views.py", "exec"), context)
+        rows = context["_receivables_report_rows"]([ticket])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["before_pending"], Decimal("30.00"))
+        self.assertEqual(rows[0]["remaining"], Decimal("0.00"))
 
 
 if __name__ == "__main__":

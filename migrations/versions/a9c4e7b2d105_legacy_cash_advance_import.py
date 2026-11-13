@@ -24,7 +24,6 @@ def upgrade():
     )
     op.add_column("cash_advance_borrowing_tickets", sa.Column("opening_balance_amount", sa.Numeric(12, 2), nullable=True))
     op.add_column("cash_advance_borrowing_tickets", sa.Column("import_batch_id", sa.Integer(), nullable=True))
-    op.add_column("cash_advance_borrowing_tickets", sa.Column("import_source_row", sa.Integer(), nullable=True))
     op.create_foreign_key(
         "fk_cash_advance_ticket_import_batch",
         "cash_advance_borrowing_tickets", "cash_advance_import_batches",
@@ -56,7 +55,6 @@ def downgrade():
     for column in ("aip_ref_date", "borrowing_ticket_start_date", "borrowing_ticket_end_date"):
         op.alter_column("cash_advance_borrowing_tickets", column, existing_type=sa.Date(), nullable=False)
     op.drop_constraint("fk_cash_advance_ticket_import_batch", "cash_advance_borrowing_tickets", type_="foreignkey")
-    op.drop_column("cash_advance_borrowing_tickets", "import_source_row")
     op.drop_column("cash_advance_borrowing_tickets", "import_batch_id")
     op.drop_column("cash_advance_borrowing_tickets", "opening_balance_amount")
     op.drop_table("cash_advance_import_batches")

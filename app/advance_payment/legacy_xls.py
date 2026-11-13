@@ -321,8 +321,6 @@ def _parse_row(sheet, row: int, datemode: int, report_date: date | None):
         issue("amount_out_of_range", "ยอดเงินไม่อยู่ในช่วงที่นำเข้าได้")
     if f - g != h or h - i != j:
         issue("amount_mismatch", "ยอดเงินไม่ตรงสูตร F−G=H และ H−I=J")
-    if j == 0:
-        issue("zero_opening_balance", "คงเหลือสุทธิเป็นศูนย์; รอข้อสรุปการนำเข้า")
     return ticket
 
 

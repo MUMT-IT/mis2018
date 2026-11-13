@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def _load_helpers():
     source = ast.parse((ROOT / "app/advance_payment/views.py").read_text(encoding="utf-8-sig"))
     names = {
-        "_money_decimal", "_ticket_opening_budget",
+        "_money_decimal", "_ticket_opening_budget", "_ticket_accounting_opening_balance",
         "_legacy_verification_display_summary", "_allocate_settled_records_to_tickets",
         "_ticket_has_imported_reduction", "_recalculate_borrowing_ticket_status",
     }
@@ -38,6 +38,14 @@ class LegacyOpeningBalanceTests(unittest.TestCase):
     def test_imported_ticket_uses_j_even_when_zero(self):
         ticket = SimpleNamespace(required_budget=Decimal("100.00"), opening_balance_amount=Decimal("0.00"))
         self.assertEqual(self.helpers["_ticket_opening_budget"](ticket), Decimal("0.00"))
+
+    def test_accounting_balance_keeps_pending_requisition_as_debt(self):
+        ticket = SimpleNamespace(required_budget=Decimal("100.00"))
+        source = SimpleNamespace(repaid_amount=Decimal("70.00"))
+        self.assertEqual(
+            self.helpers["_ticket_accounting_opening_balance"](ticket, source),
+            Decimal("30.00"),
+        )
 
     def test_reduced_imported_balance_marks_partial_return(self):
         reduced = SimpleNamespace(
@@ -92,6 +100,31 @@ class LegacyOpeningBalanceTests(unittest.TestCase):
         self.assertEqual(result["allocated_by_ticket"][5], Decimal("60.00"))
         self.assertEqual(result["anomalies"], [])
 
+    def test_zero_imported_balance_stays_closed_after_recalculation(self):
+        ticket = SimpleNamespace(
+            status_id=2, import_batch_id=10, required_budget=Decimal("100.00"),
+            opening_balance_amount=Decimal("0.00"), closed_date=None,
+        )
+        context = self.helpers
+        context["db"] = SimpleNamespace(session=SimpleNamespace(
+            query=lambda model: SimpleNamespace(filter_by=lambda **kwargs: SimpleNamespace(
+                first=lambda: ticket
+            ))
+        ))
+        context["BorrowingTicket"] = object()
+        context["_ticket_has_bounced_return"] = lambda ticket_id: False
+        context["_calculate_ticket_return_totals"] = lambda ticket_id: {
+            "cumulative_total": Decimal("0.00"), "budget": Decimal("0.00"),
+        }
+        context["_status_id"] = lambda group, code: {
+            "APPROVED": 1, "PARTIAL_RETURN": 2, "CLOSED": 3,
+        }[code]
+        result = context["_recalculate_borrowing_ticket_status"](
+            9, commit=False, notify=False, recalculate_settlement=False
+        )
+        self.assertEqual(result, 3)
+        self.assertIsNone(ticket.closed_date)
+
     def test_verification_cards_show_historical_and_current_amounts(self):
         summary = {
             "budget": Decimal("100.00"),
@@ -104,7 +137,10 @@ class LegacyOpeningBalanceTests(unittest.TestCase):
             repaid_amount=Decimal("64900.00"),
             pending_documents_amount=Decimal("0.00"),
         )
-        display = self.helpers["_legacy_verification_display_summary"](summary, ticket, source)
+        display = self.helpers["_legacy_verification_display_summary"](
+            summary, ticket, source,
+            settled_amount=Decimal("0.00"), documented_amount=Decimal("0.00"),
+        )
         self.assertEqual(
             (display["budget"], display["cumulative_total"],
              display["pending_amount"], display["unsubmitted_amount"]),
@@ -125,9 +161,12 @@ class LegacyOpeningBalanceTests(unittest.TestCase):
             repaid_amount=Decimal("800.00"),
             pending_documents_amount=Decimal("100.00"),
         )
-        display = self.helpers["_legacy_verification_display_summary"](summary, ticket, source)
-        self.assertEqual(display["cumulative_total"], Decimal("820.00"))
-        self.assertEqual(display["pending_amount"], Decimal("110.00"))
+        display = self.helpers["_legacy_verification_display_summary"](
+            summary, ticket, source,
+            settled_amount=Decimal("10.00"), documented_amount=Decimal("30.00"),
+        )
+        self.assertEqual(display["cumulative_total"], Decimal("810.00"))
+        self.assertEqual(display["pending_amount"], Decimal("120.00"))
         self.assertEqual(
             display["cumulative_total"] + display["pending_amount"]
             + display["unsubmitted_amount"],

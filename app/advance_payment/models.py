@@ -186,7 +186,6 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     required_budget = Column(Numeric(12, 2, asdecimal=True), nullable=False)
     opening_balance_amount = Column(Numeric(12, 2, asdecimal=True), nullable=True)
     import_batch_id = Column(Integer, ForeignKey("cash_advance_import_batches.id"), nullable=True)
-    import_source_row = Column(Integer, nullable=True)
     account_number = Column(String(100), nullable=False)
     bank_account_info_id = Column(Integer, ForeignKey("cash_mng_bank_account_infos.id"), nullable=True)
     borrowing_ticket_start_date = Column(Date, nullable=True)
