@@ -1,0 +1,52 @@
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+<div class="modal is-active animate__animated" id="head-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">แก้ไขข้อมูล</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('staff.change_head_position', head_position_id=head_position.id) }}">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">ชื่อ</label>
+                    <div class="select">
+                        {{ form.staff(required=True, class="js-example-basic-single", style="width:100%") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">ตำแหน่ง</label>
+                    <div class="control">
+                        {{ form.position(class="input", required=True) }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">หน่วยงาน (ถ้ามี)</label>
+                    <div class="select">
+                        {{ form.org }}
+                    </div>
+                </div>
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button class="button is-success" id="save-btn" type="submit">Save</button>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#head-modal'), 'is-active')
+    })
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#head-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#head-modal'), 'is-active')
+    })
+    $(document).ready(() => {
+        $('.js-example-basic-single').select2({
+            width: '100%'
+        });
+    });
+</script>

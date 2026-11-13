@@ -40,7 +40,7 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
-from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm
+from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm, HeadPositionForm
 from app.roles import (admin_permission, hr_permission, secretary_permission, manager_permission,
                        event_staff_permission, head_permission)
 from app.staff.models import *
@@ -1902,7 +1902,7 @@ def edit_leave_request(req_id=None):
                 start_travel_dt, end_travel_dt = request.form.get('traveldates').split(' - ')
                 start_travel_datetime = datetime.strptime(start_travel_dt, '%d/%m/%Y')
                 end_travel_datetime = datetime.strptime(end_travel_dt, '%d/%m/%Y')
-                if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
+                if not (start_travel_datetime.date() <= start_datetime.date() and end_travel_datetime.date() >= end_datetime.date()):
                     flash('ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
                     return redirect(request.referrer)
                 else:
@@ -6010,15 +6010,27 @@ def send_summary_data():
                     'type': 'wfh'
                 })
         if tab in ['smr', 'all']:
-            approved_seminar_attendances = emp.staff_account.seminar_attends.join(
-                StaffSeminarApproval
-            ).filter(
-                StaffSeminarApproval.is_final_approved.is_(True)
-            ).distinct()
+            approved_seminar_attendances = emp.staff_account.seminar_attends.all()
+            attend_ids = [smr.id for smr in approved_seminar_attendances]
+            final_approved_attend_ids = set()
+            if attend_ids:
+                final_approved_attend_ids = {
+                    attend_id for (attend_id,) in db.session.query(
+                        StaffSeminarApproval.seminar_attend_id
+                    ).filter(
+                        StaffSeminarApproval.seminar_attend_id.in_(attend_ids),
+                        StaffSeminarApproval.is_final_approved.is_(True)
+                    ).distinct().all()
+                }
             for smr in approved_seminar_attendances:
-                text_color = '#ffffff'
-                bg_color = '#FF33A5'
-                border_color = '#ffffff'
+                if smr.id in final_approved_attend_ids:
+                    text_color = '#ffffff'
+                    bg_color = '#FF33A5'
+                    border_color = '#ffffff'
+                else:
+                    text_color = '#ffffff'
+                    bg_color = '#FFBDE1'
+                    border_color = '#109AD3'
                 # Attendance records can contain the QR scan time or employee-specific
                 # values. The calendar event represents the seminar itself, so prefer
                 # the shared seminar schedule to keep the event consistent for all
@@ -6501,6 +6513,8 @@ def seminar_add_approval(attend_id):
         attends.transaction_fee = form.get('transaction_fee') or None
         db.session.add(attends)
         db.session.commit()
+        if attends.start_datetime:
+            get_seminar_yearly_budget(attends.staff_account_id, attends.start_datetime)
 
         if form.get('approval') == 'True':
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติเรียบร้อยแล้ว' \
@@ -6751,7 +6765,7 @@ def seminar_suggest():
     prev_start, prev_end = get_start_end_date_for_fiscal_year(current_fy - 1)
     _, next_end = get_start_end_date_for_fiscal_year(current_fy + 1)
     if q:
-        seminars = StaffSeminar.query.filter(
+        seminars = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None,
             StaffSeminar.topic.ilike(f"%{q}%"),
             StaffSeminar.start_datetime >= prev_start,
             StaffSeminar.start_datetime <= next_end
@@ -6951,13 +6965,13 @@ def seminar_create_record(seminar_id):
         return redirect(url_for('staff.show_seminar_info_each_person', record_id=is_attend.id))
     selected_staff_ids = []
     form_staff = current_user
+    MyStaffSeminarAttendForm = create_seminar_attend_form(form_staff)
+    form = MyStaffSeminarAttendForm()
     if is_secretary_proxy:
         selected_staff_ids = (request.form.getlist('bulk_staff_ids') if request.method == 'POST'
                               else request.args.getlist('bulk_staff_ids'))
         if len(selected_staff_ids) == 1 and selected_staff_ids[0].isdigit():
             form_staff = StaffAccount.query.get(int(selected_staff_ids[0])) or current_user
-    MyStaffSeminarAttendForm = create_seminar_attend_form(form_staff)
-    form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     form_initial = {
         'start_datetime': seminar.start_datetime.isoformat(),
@@ -8943,6 +8957,7 @@ def staff_edit_info(staff_id):
         staff.th_lastname = form.get('th_lastname')
         staff.image_url = (form.get('image_url') or '').strip() or None
         staff.sap_id = form.get('sap_id')
+        staff.position = form.get('position')
         if not staff.academic_staff:
             staff.position_level = form.get('position_level')
         staff.employed_date = start_date
@@ -8951,7 +8966,7 @@ def staff_edit_info(staff_id):
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         if staff.employment_id:
-            if staff.employment_id != form.get('employment_id'):
+            if not int(staff.employment_id) == int(form.get('employment_id')):
                 staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
                 if staff_account:
                     _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
@@ -9600,7 +9615,36 @@ def edit_organizations():
             flash('บันทึกสถานะหน่วยงานเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.edit_organizations'))
     orgs = Org.query.all()
-    return render_template('staff/organizations.html', orgs=orgs)
+    head_positions = StaffHeadPosition.query.all()
+    return render_template('staff/organizations.html', orgs=orgs, head_positions=head_positions)
+
+
+@staff.route('/for-hr/organizations/head-position/<int:head_position_id>', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def change_head_position(head_position_id):
+    head_position = StaffHeadPosition.query.get(head_position_id)
+    form = HeadPositionForm(obj=head_position)
+    if form.validate_on_submit():
+        form.populate_obj(head_position)
+        db.session.add(head_position)
+        if head_position.org_id:
+            org = Org.query.filter_by(id=head_position.org_id).first()
+            if org.head:
+                if not org.head == head_position.org.head:
+                    org.head = head_position.staff.email
+            else:
+                org.head = head_position.staff.email
+            db.session.add(org)
+        db.session.commit()
+        flash('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
+        resp = make_response("")
+        resp.headers["HX-Refresh"] = "true"
+        return resp
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('staff/modal/staff_change_head_position.html', form=form, head_position=head_position)
 
 
 @staff.route('/for-hr/organizations/<int:org_id>/staff', methods=['GET', 'POST'])

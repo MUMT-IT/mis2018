@@ -1,8 +1,49 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
-
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
 {% block page_content %}
     <section class="section">
+    {% include 'messages.html' %}
+        <h1 class="title">แก้ไขข้อมูลตำแหน่ง</h1>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="headTable">
+                    <thead>
+                        <th>head</th>
+                        <th>ตำแหน่ง</th>
+                        <th>หน่วยงาน</th>
+                        <th>แก้ไข</th>
+                    </thead>
+                    <tbody>
+                    <div id="head-modal-container">
+                        </div>
+                    {% for head in head_positions %}
+                    <tr>
+                        <td>
+                            {{ head.staff.personal_info }}
+                        </td>
+                        <td>
+                            {{ head.position }}
+                        </td>
+                        <td>{% if head.org %}<a href="{{ url_for('staff.list_org_staff', org_id=head.org.id) }}">
+                            {{ head.org }}</a>{% endif %}
+                        </td>
+                        <td>
+                            <a hx-get="{{ url_for('staff.change_head_position', head_position_id=head.id) }}" hx-target="#head-modal-container"
+                               hx-swap="innerHTML">
+                                <i class="fas fa-pencil-alt"></i>
+                            </a>
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
         <h1 class="title">แก้ไขข้อมูลหน่วยงาน</h1>
         <div class="columns">
             <div class="column is-one-third is-offset-4">
@@ -35,4 +76,12 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#headTable').DataTable();
+    });
+</script>
 {% endblock %}
