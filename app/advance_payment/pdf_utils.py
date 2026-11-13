@@ -2717,14 +2717,12 @@ def build_reminder_letter(ticket, *, as_of, remaining_amount, dean_name=None):
     if not number or not borrower_name:
         raise ValueError(f"Ticket {ticket.id} has no number or borrower name")
     approval_date = ticket.borrowing_approval_date
-    received_date = ticket.approved_at.date() if ticket.approved_at else None
     if approval_date:
         date_phrase = f"ลงวันที่ {thai_long_date(approval_date)}"
-    elif received_date:
-        # Imported tickets record payment day, not the missing contract date.
-        date_phrase = f"ซึ่งได้รับเงินยืมเมื่อวันที่ {thai_long_date(received_date)}"
     else:
-        date_phrase = ""
+        # An imported ticket's approved_at is the payment date, not the
+        # contract date requested by the reference letter.
+        date_phrase = "ลงวันที่ ................................"
     return {
         "ticket_number": number,
         "borrower_name": borrower_name,
