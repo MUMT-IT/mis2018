@@ -460,10 +460,24 @@ def student_outcome_skill_students(revision_id, skill_id):
         stat['evidence'].clo.course.en_code or '',
         stat['evidence'].title or '', stat['version'].form.name or ''))
 
+    status_filter = request.args.get('status', '').strip()
+    if status_filter not in ('passed', 'failed'):
+        status_filter = ''
+    filtered_student_rows = student_rows
+    if status_filter:
+        expected_passed = status_filter == 'passed'
+        filtered_student_rows = [
+            row for row in student_rows
+            if row['latest'] and
+            row['latest']['submission'].passed is expected_passed
+        ]
+
     return render_template(
         'eduqa/QA/staff/student_outcome_skill_students.html',
         revision=revision, skill=skill, academic_year=academic_year,
         student_rows=student_rows, evaluated_count=evaluated_count,
+        filtered_student_rows=filtered_student_rows,
+        status_filter=status_filter,
         evaluation_stats=evaluation_stats)
 
 
