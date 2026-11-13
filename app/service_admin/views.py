@@ -9243,6 +9243,9 @@ def generate_sds_page_quotation():
                         else:
                             values = 'การวิเคราะห์ภาพเจลโดยเครื่อง Image Scanner (ตามชั่วโมงการใช้งานจริง)'
                         quantity = 1
+                    elif field.label.text == 'Staining':
+                        p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                        quantity = len(form.sds_page_condition_field)
                     else:
                         p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
                         quantity = 1
