@@ -335,6 +335,8 @@ def _borrowing_passthrough_validation_message():
 
 from .pdf_utils import (
     generate_fnar02_pdf,
+    build_reminder_letter,
+    generate_overdue_reminders_pdf,
     generate_fund_request_pdf,
     generate_petty_claim,
     generate_ticket_return,
@@ -6126,8 +6128,6 @@ def legacy_import_adjust():
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def export_overdue_reminders():
     """Print one reminder per ticket in the finance overdue list."""
-    from .overdue_letters import build_reminder_letter, generate_overdue_reminders_pdf
-
     today = datetime.now(ZoneInfo("Asia/Bangkok")).date()
     excluded = _status_ids("borrowing_ticket", {"CLOSED", "REJECTED", "PENDING", "IN_PROGRESS"})
     tickets = (

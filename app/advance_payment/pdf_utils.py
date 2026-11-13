@@ -2705,3 +2705,152 @@ def append_petty_cash_monthly_attachments(report_pdf, *, setting, month_start,
     writer.write(output)
     writer.close()
     return output.getvalue()
+
+
+def build_reminder_letter(ticket, *, as_of, remaining_amount, dean_name=None):
+    """Capture the values shown in one overdue borrowing reminder."""
+    amount = Decimal(str(remaining_amount)).quantize(Decimal("0.01"))
+    if not ticket.due_date or ticket.due_date >= as_of or amount <= 0:
+        raise ValueError("Only overdue tickets with an outstanding balance can be printed")
+    number = (ticket.number or "").strip()
+    borrower_name = (ticket.borrower_name or "").strip()
+    if not number or not borrower_name:
+        raise ValueError(f"Ticket {ticket.id} has no number or borrower name")
+    approval_date = ticket.borrowing_approval_date
+    received_date = ticket.approved_at.date() if ticket.approved_at else None
+    if approval_date:
+        date_phrase = f"ลงวันที่ {thai_long_date(approval_date)}"
+    elif received_date:
+        # Imported tickets record payment day, not the missing contract date.
+        date_phrase = f"ซึ่งได้รับเงินยืมเมื่อวันที่ {thai_long_date(received_date)}"
+    else:
+        date_phrase = ""
+    return {
+        "ticket_number": number,
+        "borrower_name": borrower_name,
+        "date_phrase": date_phrase,
+        "due_date": thai_long_date(ticket.due_date),
+        "as_of": thai_long_date(as_of),
+        "overdue_days": (as_of - ticket.due_date).days,
+        "remaining_amount": amount,
+        "amount_text": bahttext(amount),
+        "dean_name": (dean_name or "").strip(),
+    }
+
+
+def _overdue_reminder_paragraphs(letter):
+    """Preserve the reference letter's wording, bold runs and underline."""
+    e = lambda value: html.escape(str(value), quote=True)
+    return (
+        "ตามที่ คณะเทคนิคการแพทย์ ได้มีการจ่ายเงินยืมตามสัญญาการยืมเงินเลขที่ "
+        f"{e(letter['ticket_number'])} {e(letter['date_phrase'])} "
+        f"ซึ่งได้ครบกำหนดส่งคืนเมื่อวันที่ {e(letter['due_date'])} แล้วนั้น",
+        "บัดนี้ได้ล่วงเลยกำหนดระยะเวลาการส่งคืนเงินดังกล่าว ณ วันที่ "
+        f"{e(letter['as_of'])} เป็น<b>ระยะเวลา {letter['overdue_days']} วัน</b> "
+        "ตามสัญญาที่ท่านลงนามไว้ (ตามเอกสารแนบ) โดยมียอดคงค้าง "
+        f"เป็นจำนวนเงินรวมทั้งสิ้น {letter['remaining_amount']:,.2f} บาท "
+        f"({e(letter['amount_text'])})",
+        "ทางคณะเทคนิคการแพทย์ จึงใคร่ขอให้ท่านโปรดส่งคืนภายใน 15 วันหลังจากได้รับหนังสือฉบับนี้ "
+        "หากไม่สามารถคืนภายใน 60 วัน หลังครบกำหนดตามสัญญา ต้องทำ"
+        "<u>หนังสือชี้แจงเหตุผลที่ชัดเจนและส่งล่วงหน้า 7 วัน</u> "
+        "<b>หากไม่ดำเนินการตามกำหนด คณะฯ จะดำเนินการหักเงินเดือน ค่าจ้าง เบี้ยหวัด "
+        "บำเหน็จ บำนาญ หรือเงินอื่นใดตามที่ท่านได้ลงนามในสัญญาการยืมเงิน</b> "
+        "ทั้งนี้หากท่านดำเนินการส่งใช้เงินยืมแล้วในระหว่างการจัดส่งหนังสือฉบับนี้ "
+        "ต้องขออภัยมา ณ โอกาสนี้",
+        "จึงเรียนมาเพื่อโปรดดำเนินการด้วย จักเป็นพระคุณยิ่ง",
+    )
+
+
+def _build_overdue_reminders_html(letters):
+    """Lay out the source letter on A4 using the existing PDF assets."""
+    pages = []
+    for letter in letters:
+        paragraphs = _overdue_reminder_paragraphs(letter)
+        signature = html.escape(letter["dean_name"] or "................................................", quote=True)
+        pages.append(f"""
+<main class="letter-page">
+  <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
+  <div class="organization">งานคลังและพัสดุ<br>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>โทร. 0-2441-4372-5 ต่อ 2820, 2830</div>
+  <div class="document-info">
+    <div>ที่</div>
+    <div>วันที่ {html.escape(letter['as_of'], quote=True)}</div>
+    <div>เรื่อง&nbsp;&nbsp;ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม</div>
+    <div>เรียน&nbsp;&nbsp;{html.escape(letter['borrower_name'], quote=True)}</div>
+  </div>
+  <section class="letter-body">
+    <p>{paragraphs[0]}</p>
+    <p>{paragraphs[1]}</p>
+    <p>{paragraphs[2]}</p>
+    <p class="closing">{paragraphs[3]}</p>
+  </section>
+  <div class="signature">({signature})<br>คณบดีคณะเทคนิคการแพทย์</div>
+</main>""")
+    return f"""<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><title>หนังสือเร่งรัดการส่งใช้เงินยืม</title>
+<style>
+@font-face {{ font-family: SarabunPDF; src: url("{PDF_REGULAR_FONT_DATA_URI}") format("truetype"); font-weight: 400; }}
+@font-face {{ font-family: SarabunPDF; src: url("{PDF_BOLD_FONT_DATA_URI}") format("truetype"); font-weight: 700; }}
+@page {{ size: A4; margin: 0; }}
+* {{ box-sizing: border-box; }}
+html, body {{ margin: 0; padding: 0; color: #000; font-family: SarabunPDF, sans-serif; }}
+.letter-page {{ position: relative; width: 210mm; height: 297mm; break-after: page; page-break-after: always; font-size: 15.5pt; line-height: 1.28; }}
+.letter-page:last-child {{ break-after: auto; page-break-after: auto; }}
+.logo {{ position: absolute; top: 19mm; left: 50%; width: 24mm; height: 24mm; object-fit: contain; transform: translateX(-50%); }}
+.organization {{ position: absolute; top: 43mm; right: 19.5mm; text-align: right; }}
+.document-info {{ position: absolute; top: 63.5mm; left: 20mm; right: 20mm; line-height: 1.25; }}
+.letter-body {{ position: absolute; top: 100mm; left: 20mm; right: 20mm; text-align: justify; text-justify: inter-word; }}
+.letter-body p {{ margin: 0 0 2.1mm; text-indent: 25mm; }}
+.letter-body .closing {{ text-indent: 25mm; }}
+.letter-body b {{ font-weight: 700; }}
+.letter-body u {{ text-decoration: underline; text-underline-offset: 1px; }}
+.signature {{ position: absolute; top: 229mm; left: 50%; right: 20mm; text-align: center; line-height: 1.3; }}
+</style></head><body>{''.join(pages)}</body></html>"""
+
+
+def _render_overdue_reminders_with_reportlab(letters):
+    """Fallback when Chromium is unavailable, retaining source emphasis."""
+    pdfmetrics.registerFontFamily("Sarabun", normal="Sarabun", bold="SarabunBold")
+    output = BytesIO()
+    doc = SimpleDocTemplate(
+        output, pagesize=A4, leftMargin=53, rightMargin=53,
+        topMargin=36, bottomMargin=38,
+        title="หนังสือเร่งรัดการส่งใช้เงินยืม",
+    )
+    normal = ParagraphStyle("OverdueNormal", fontName="Sarabun", fontSize=15.5, leading=21, wordWrap="CJK")
+    right = ParagraphStyle("OverdueRight", parent=normal, alignment=TA_RIGHT)
+    center = ParagraphStyle("OverdueCenter", parent=normal, alignment=TA_CENTER)
+    body = ParagraphStyle("OverdueBody", parent=normal, alignment=TA_JUSTIFY, firstLineIndent=70, spaceAfter=8)
+    story = []
+    for index, letter in enumerate(letters):
+        if index:
+            story.append(PageBreak())
+        logo = Image(str(PDF_LOGO_PATH), width=63, height=63)
+        logo.hAlign = "CENTER"
+        story.extend([Spacer(1, 12), logo, Paragraph(
+            "งานคลังและพัสดุ<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>โทร. 0-2441-4372-5 ต่อ 2820, 2830", right,
+        ), Spacer(1, 13)])
+        story.extend([
+            Paragraph("ที่", normal),
+            Paragraph(f"วันที่ {html.escape(letter['as_of'])}", normal),
+            Paragraph("เรื่อง&nbsp;&nbsp;ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม", normal),
+            Paragraph(f"เรียน&nbsp;&nbsp;{html.escape(letter['borrower_name'])}", normal),
+            Spacer(1, 17),
+        ])
+        for paragraph in _overdue_reminder_paragraphs(letter):
+            story.append(Paragraph(paragraph, body))
+        story.append(Spacer(1, 95))
+        signature = html.escape(letter["dean_name"] or "................................................")
+        story.append(Paragraph(f"({signature})<br/>คณบดีคณะเทคนิคการแพทย์", center))
+    doc.build(story)
+    return output.getvalue()
+
+
+def generate_overdue_reminders_pdf(letters):
+    """Create a combined PDF with one reminder page per overdue ticket."""
+    if not letters:
+        raise ValueError("No overdue letters to generate")
+    return _render_with_reportlab_fallback(
+        lambda: _render_html_with_chromium(_build_overdue_reminders_html(letters)),
+        lambda: _render_overdue_reminders_with_reportlab(letters),
+        "overdue borrowing reminders",
+    )
