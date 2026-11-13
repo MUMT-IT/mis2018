@@ -43,3 +43,37 @@ def register_commands(app):
 
         if failed:
             raise click.ClickException('{} date(s) failed during reconciliation.'.format(len(failed)))
+
+    @app.cli.group('staff-reminders')
+    def staff_reminders_cli():
+        """Personal check-in reminder maintenance."""
+
+    @staff_reminders_cli.command('refresh-times')
+    @click.option('--date', 'as_of', type=click.DateTime(formats=['%Y-%m-%d']),
+                  help='Calculation date in Bangkok; only earlier records are used.')
+    @click.option('--dry-run', is_flag=True, help='Preview without saving or sending messages.')
+    @with_appcontext
+    def refresh_times(as_of, dry_run):
+        from .reminder_times import refresh_reminder_times
+        try:
+            summaries = refresh_reminder_times(as_of.date() if as_of else None, dry_run=dry_run)
+        except Exception:
+            db.session.rollback()
+            raise
+        for summary in summaries:
+            click.echo('staff_id={staff_id} days={sample_days} average={average_checkin_time} reminder={reminder_time}'.format(**summary))
+        click.echo('{} {} preferences; no messages sent.'.format(
+            'Previewed' if dry_run else 'Updated', len(summaries)))
+
+    @staff_reminders_cli.command('send-due')
+    @click.option('--dry-run', is_flag=True, help='Preview recipients without sending or claiming deliveries.')
+    @with_appcontext
+    def send_due(dry_run):
+        """Send due personalized reminders during 08:00–09:00 Bangkok time."""
+        from .views import send_personalized_checkin_reminders
+        summary = send_personalized_checkin_reminders(dry_run=dry_run)
+        for recipient in summary['recipients']:
+            click.echo('staff_id={staff_id} time={time}'.format(**recipient))
+        click.echo('Due: {recipient_count}; sent: {sent_count}; skipped: {skipped_count}; failed: {failed_count}'.format(**summary))
+        if summary['failed_count']:
+            raise click.ClickException('Some reminders failed; inspect delivery logs before retrying.')
