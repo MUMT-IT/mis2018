@@ -44,7 +44,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 
-from ..staff.models import Role
+from ..staff.models import Role, StaffAccount
 
 CREDIT_DATE = 60
 CREDIT_OVERDUE_DATE = 30
@@ -2326,8 +2326,8 @@ def menu():
 
 @service_admin.route('/customer/register/index')
 def customer_register_index():
-    user_type = session.get('user_type')
-    return render_template('service_admin/customer_register_index.html', user_type=user_type)
+    is_staff = current_user.is_authenticated and isinstance(current_user, StaffAccount)
+    return render_template('service_admin/customer_register_index.html', is_staff=is_staff)
 
 
 @service_admin.route('/admin/register/search')
@@ -7037,13 +7037,18 @@ def view_request(request_id=None):
     request_data = request_data_paths[service_request.sub_lab.code]
     datas = request_data(service_request, type='form')
     result_id = None
+    is_admin = None
+    if current_user.is_authenticated:
+        admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+        if admin and (not admin.is_supervisor and not admin.is_assistant and not admin.is_central_admin):
+            is_admin = True
     if service_request.results:
         for result in service_request.results:
             result_id = result.id
     else:
         result_id = None
-    return render_template('service_admin/view_request.html', service_request=service_request, menu=menu,
-                           sub_lab=sub_lab, datas=datas, result_id=result_id)
+    return render_template('service_admin/view_request.html', service_request=service_request,
+                           menu=menu, sub_lab=sub_lab, datas=datas, result_id=result_id, is_admin=is_admin)
 
 
 @service_admin.route('/request/pdf/<int:request_id>', methods=['GET'])
@@ -9243,6 +9248,9 @@ def generate_sds_page_quotation():
                         else:
                             values = 'การวิเคราะห์ภาพเจลโดยเครื่อง Image Scanner (ตามชั่วโมงการใช้งานจริง)'
                         quantity = 1
+                    elif field.label.text == 'Staining':
+                        p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                        quantity = len(form.sds_page_condition_field)
                     else:
                         p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
                         quantity = 1
