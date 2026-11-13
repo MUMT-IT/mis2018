@@ -4,6 +4,24 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <style>
+        .repair-quick-entry { margin-bottom: 1.25rem; }
+        .repair-quick-entry h2 { color: #263a5b; font-size: 1.15rem; font-weight: 700; margin-bottom: .25rem; }
+        .repair-quick-entry p { color: #637896; font-size: .9rem; margin-bottom: .8rem; }
+        .repair-chip-row { display: flex; flex-wrap: wrap; gap: .55rem; }
+        .repair-chip {
+            align-items: center; background: #f1f5fd; border: 1px solid #d0dbed; border-radius: 999px;
+            color: #203b67; cursor: pointer; display: inline-flex; font: 600 .9rem/1.25 "Segoe UI", Tahoma, sans-serif;
+            min-height: 2.45rem; padding: .55rem .85rem; transition: background .15s, border-color .15s;
+        }
+        .repair-chip:hover, .repair-chip:focus-visible { background: #e8effb; border-color: #8ca7d0; outline: none; }
+        .repair-chip-icon { color: #315b98; margin-right: .45rem; }
+        .repair-more { background: none; border: 0; color: #315e9d; cursor: pointer; font-size: .85rem; margin: .7rem 0 .6rem; padding: .2rem 0; }
+        .repair-more:hover { text-decoration: underline; }
+        #repairOtherChips { display: none; }
+        #repairOtherChips.is-open { display: flex; }
+        @media (max-width: 600px) { .repair-chip { font-size: .82rem; padding: .5rem .7rem; } }
+    </style>
 {% endblock %}
 {% block page_content %}
 <section class="section">
@@ -27,6 +45,9 @@
                     >
                         {{ form.hidden_tag() }}
                         <input type="hidden" name="has_procurement" value="{{ has_procurement }}">
+                        {% if topic.category.no == 1 %}
+                            <input type="hidden" id="repairIssueId" name="issue_id" value="{{ request.form.get('issue_id', '') }}">
+                        {% endif %}
                         {% if procurement %}
                             <input type="hidden" name="procurement_no" value="{{ procurement.procurement_no }}">
                         {% elif request.args.get('pro_number') %}
@@ -174,6 +195,20 @@
                                 </div>
                             </div>
                         {% endif %}
+                        {% if topic.category.no == 1 %}
+                            <div class="repair-quick-entry">
+                                <label class="label">ปัญหาที่พบบ่อย</label>
+                                <div class="repair-chip-row" id="repairCommonChips" aria-label="ตัวอย่างปัญหาที่พบบ่อย">
+                                    {% for issue in issues %}
+                                        <button type="button" class="repair-chip" data-repair-id="{{ issue.id }}" data-repair-text="{{ issue.issue }}">
+                                            <span class="repair-chip-icon" aria-hidden="true">
+                                                {{ issue.icon|safe }}
+                                            </span>{{ issue.issue }}
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
@@ -278,6 +313,28 @@
         $('.js-example-basic-multiple').select2({
             width: '100%',
         });
+        document.querySelectorAll('[data-repair-text]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const detail = document.getElementById('{{ form.desc.id }}');
+                const issueId = document.getElementById('repairIssueId');
+                const text = button.dataset.repairText;
+                detail.value = text;
+                if (issueId) issueId.value = button.dataset.repairId;
+                detail.focus();
+                detail.setSelectionRange(detail.value.length, detail.value.length);
+                detail.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+        const repairMore = document.getElementById('repairMore');
+        if (repairMore) {
+            repairMore.addEventListener('click', () => {
+                const otherChips = document.getElementById('repairOtherChips');
+                const open = otherChips.classList.toggle('is-open');
+                repairMore.setAttribute('aria-expanded', String(open));
+                const otherIssueCount = otherChips.querySelectorAll('[data-repair-text]').length;
+                repairMore.textContent = open ? '− ซ่อนหัวข้ออื่น' : `＋ หัวข้ออื่นอีก ${otherIssueCount} รายการ`;
+            });
+        }
         window.document.addEventListener("closeModal", function() {
             htmx.removeClass(htmx.find('#add-pro-number-modal'), "is-active")
         })

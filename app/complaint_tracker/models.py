@@ -141,6 +141,24 @@ class ComplaintType(db.Model):
         return self.type
 
 
+class ComplaintIssue(db.Model):
+    __tablename__ = 'complaint_issues'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    issue = db.Column('issue', db.String())
+    icon = db.Column('icon', db.String())
+
+    def __str__(self):
+        return self.issue
+
+
+class ComplaintTopicIssueAssociation(db.Model):
+    __tablename__ = 'complaint_topic_issue_associations'
+    topic_id = db.Column(db.ForeignKey('complaint_topics.id'), primary_key=True)
+    topic = db.relationship(ComplaintTopic, backref=db.backref('issue_associations', cascade='all, delete-orphan'))
+    issue_id = db.Column(db.ForeignKey('complaint_issues.id'), primary_key=True)
+    issue = db.relationship(ComplaintIssue, backref=db.backref('topics_associations', cascade='all, delete-orphan'))
+
+
 class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -186,6 +204,8 @@ class ComplaintRecord(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     tags = db.relationship(ComplaintTag, secondary=complaint_record_tag_assoc, backref=db.backref('records'))
+    issue_id = db.Column('issue_id', db.ForeignKey('complaint_issues.id'))
+    issue = db.relationship(ComplaintIssue, backref=db.backref('complaints'))
     cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
     cost_center = db.relationship(CostCenter, backref=db.backref('complaints'))
     io_code_id = db.Column('io_code_id', db.ForeignKey('iocodes.id'))
