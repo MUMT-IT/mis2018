@@ -4798,6 +4798,15 @@ def login_scan():
     return _handle_login_scan_request('staff/login_scan.html', note='qrcode')
 
 
+def _has_existing_checkin(staff_id, date_id):
+    records = StaffWorkLogin.query.filter_by(staff_id=staff_id, date_id=date_id).all()
+    return any(
+        record.start_datetime is not None
+        and record.correction_type != 'checkout'
+        for record in records
+    )
+
+
 @staff.route('/clockin-clockout/request/', methods=['GET', 'POST'])
 @login_required
 def request_for_clockin_clockout():
@@ -4810,6 +4819,9 @@ def request_for_clockin_clockout():
         work_datetime = tz.localize(work_datetime)
         date_id = StaffRequestWorkLogin.generate_date_id(work_datetime)
         work_datetime_display = work_datetime.strftime('%d/%m/%Y %H:%M')
+        if request.form.get('clock') == 'checkin' and _has_existing_checkin(current_user.id, date_id):
+            flash('มีข้อมูลเข้างานในวันที่เลือกแล้ว ไม่สามารถขอรับรองเวลาเข้างานซ้ำได้', 'warning')
+            return redirect(url_for('staff.show_time_report'))
         # TODO: check duplicate request
         # checkin_request = StaffRequestWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
         if work_datetime < today:
@@ -4988,6 +5000,11 @@ def approved_for_clockin_clockout(request_id):
             return redirect(url_for('staff.approved_for_clockin_clockout', request_id=request_id))
         clock_request.approver = current_user
         if approved == 'yes':
+            if clock_request.is_checkin and _has_existing_checkin(
+                clock_request.staff_account_id, clock_request.date_id
+            ):
+                flash('มีข้อมูลเข้างานในวันที่เลือกแล้ว ไม่สามารถอนุมัติรับรองเวลาเข้างานซ้ำได้', 'warning')
+                return redirect(url_for('staff.approved_for_clockin_clockout', request_id=request_id))
             clock_request.approved_at = datetime.now(pytz.utc)
 
             approval = StaffWorkLogin(
@@ -5104,7 +5121,24 @@ def _parse_checkin_reminder_date(date_value):
     return datetime.now(tz).date() if not date_value else datetime.strptime(date_value, '%d/%m/%Y').date()
 
 
-def _build_missing_checkin_recipients(target_date, records=None, staff_email=None):
+def _checkin_reminder_excused_staff_ids(target_date):
+    excused = set()
+    for model in (StaffLeaveRequest, StaffWorkFromHomeRequest):
+        requests_for_day = model.query.filter(
+            cast(func.timezone('Asia/Bangkok', model.start_datetime), Date) <= target_date,
+            cast(func.timezone('Asia/Bangkok', model.end_datetime), Date) >= target_date,
+            model.cancelled_at.is_(None),
+        ).all()
+        excused.update(item.staff_account_id for item in requests_for_day if item.get_approved)
+    return excused
+
+
+def _build_missing_checkin_recipients(target_date, records=None, staff_email=None,
+                                     reminder_mode='system', now=None):
+    from .reminder_delivery import reminder_due
+    if target_date.weekday() >= 5:
+        return []
+    excused_staff_ids = _checkin_reminder_excused_staff_ids(target_date)
     target_date_id = target_date.strftime('%Y%m%d')
     if records is None:
         records = StaffWorkLogin.query.filter_by(date_id=target_date_id).all()
@@ -5118,17 +5152,27 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
         staff.id for staff in special_wfh_day.staff
     } if special_wfh_day else set()
 
+    # Load preferences once; accounts without settings retain the system default.
+    settings_by_staff = {
+        setting.staff_id: setting
+        for setting in StaffCheckinReminderSetting.query.all()
+    }
     recipients = []
     for staff_account in StaffAccount.get_active_accounts():
         if not getattr(staff_account, 'line_id', None):
             continue
-        if getattr(staff_account.personal_info, 'academic_staff', None) is True:
+        setting = settings_by_staff.get(staff_account.id)
+        if (getattr(staff_account.personal_info, 'academic_staff', None) is True
+                and setting is None):
+            # Academic staff receive reminders only after saving an opt-in.
             continue
         if staff_email and (staff_account.email or '').strip().lower() != staff_email:
             continue
         if staff_account.id in checked_in_staff_ids:
             continue
-        if staff_account.id in special_wfh_staff_ids:
+        if staff_account.id in special_wfh_staff_ids or staff_account.id in excused_staff_ids:
+            continue
+        if not reminder_due(setting, target_date, reminder_mode, now):
             continue
         recipients.append(staff_account)
     return recipients
@@ -5464,6 +5508,55 @@ def _is_valid_checkin_scheduler_request():
     return bool(request_token and request_token == configured_token)
 
 
+def _deliver_checkin_reminder(account, target_date, mode, scheduled_time, message):
+    from .reminder_delivery import deliver_once
+    return deliver_once(account, target_date, mode, scheduled_time, message,
+                        line_bot_api.push_message)
+
+
+def _personalized_checkin_reminder_message(setting):
+    average = setting.average_checkin_time
+    if average < time(8):
+        usual = 'ก่อนช่วงนี้'
+    elif average > time(9):
+        usual = 'ประมาณ ' + average.strftime('%H:%M') + ' น.'
+    else:
+        usual = 'ประมาณช่วงนี้'
+    return TextSendMessage(text=(
+        'สวัสดีค่ะ 😊 ปกติคุณจะลงเวลาเข้างาน' + usual +
+        ' วันนี้อาจยุ่งจนลืมลงเวลา หากเริ่มปฏิบัติงานแล้ว อย่าลืมเช็คอินนะคะ\n\n'
+        'ลงเวลาเข้างาน: ' + external_url('staff.geo_checkin')
+    ))
+
+
+def send_personalized_checkin_reminders(now=None, dry_run=False):
+    now = _to_bangkok(now or datetime.now(tz))
+    target_date = now.date()
+    summary = dict(date=target_date.isoformat(), recipient_count=0,
+                   sent_count=0, failed_count=0, skipped_count=0, recipients=[])
+    if (target_date.weekday() >= 5 or not time(8) <= now.time().replace(second=0, microsecond=0) <= time(9)
+            or _get_holiday_for_date(target_date)):
+        return summary
+    recipients = _build_missing_checkin_recipients(
+        target_date, reminder_mode='average', now=now)
+    settings = {setting.staff_id: setting for setting in StaffCheckinReminderSetting.query.all()}
+    for account in recipients:
+        setting = settings[account.id]
+        summary['recipients'].append(dict(staff_id=account.id, time=setting.reminder_time.isoformat()))
+        summary['recipient_count'] += 1
+        if dry_run:
+            continue
+        # Recheck attendance immediately before claiming/sending.
+        if StaffWorkLogin.query.filter_by(staff_id=account.id, date_id=target_date.strftime('%Y%m%d')).first():
+            summary['skipped_count'] += 1
+            continue
+        outcome = _deliver_checkin_reminder(
+            account, target_date, 'average', setting.reminder_time,
+            _personalized_checkin_reminder_message(setting))
+        summary[outcome + '_count'] += 1
+    return summary
+
+
 def send_missing_checkin_reminders(target_date, staff_email=None, recipients=None):
     holiday = _get_holiday_for_date(target_date)
     if holiday:
@@ -5480,13 +5573,14 @@ def send_missing_checkin_reminders(target_date, staff_email=None, recipients=Non
     sent_count = 0
     failed_count = 0
     for staff_account in recipients:
-        try:
-            line_bot_api.push_message(
-                to=staff_account.line_id,
-                messages=_build_missing_checkin_reminder_flex(tz.localize(datetime.combine(target_date, datetime.min.time()))),
-            )
+        if StaffWorkLogin.query.filter_by(staff_id=staff_account.id, date_id=target_date.strftime('%Y%m%d')).first():
+            continue
+        outcome = _deliver_checkin_reminder(
+            staff_account, target_date, 'system', time(8, 29),
+            _build_missing_checkin_reminder_flex(tz.localize(datetime.combine(target_date, time.min))))
+        if outcome == 'sent':
             sent_count += 1
-        except LineBotApiError:
+        elif outcome == 'failed':
             failed_count += 1
     return {
         'date': target_date.isoformat(),
@@ -8518,6 +8612,31 @@ def get_hr_login_quota_summary(staff_id):
         ),
     })
     return jsonify(quota)
+
+
+@staff.route('/time-report/reminder-settings', methods=['POST'])
+@login_required
+def save_checkin_reminder_settings():
+    enabled = request.form.get('enabled') == 'on'
+    modes = request.form.getlist('reminder_modes')
+    weekdays = request.form.getlist('weekdays')
+    if (any(mode not in {'system', 'average'} for mode in modes)
+            or any(day not in {'0', '1', '2', '3', '4', '5', '6'} for day in weekdays)
+            or (enabled and (not weekdays or not modes))):
+        abort(400)
+    setting = StaffCheckinReminderSetting.query.filter_by(staff_id=current_user.id).first()
+    if setting is None:
+        setting = StaffCheckinReminderSetting(staff_id=current_user.id)
+        db.session.add(setting)
+    setting.enabled = enabled
+    setting.system_reminder = 'system' in modes
+    setting.average_reminder = 'average' in modes
+    if setting.reminder_time is None:
+        setting.reminder_time = time(8, 29)
+    setting.weekdays = ','.join(sorted(set(weekdays)))
+    db.session.commit()
+    flash('บันทึกการตั้งค่าแจ้งเตือนแล้ว', 'success')
+    return redirect(url_for('staff.show_time_report'))
 
 
 @staff.route('/time-report/report')

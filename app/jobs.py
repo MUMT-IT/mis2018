@@ -490,6 +490,24 @@ def reconcile_daily_attendance():
     _run_job(job_name, _job)
 
 
+def refresh_staff_reminder_times():
+    job_name = 'refresh_staff_reminder_times'
+
+    def _job():
+        _run_flask_cli(job_name, ['staff-reminders', 'refresh-times'], 1800)
+
+    _run_job(job_name, _job)
+
+
+def send_personalized_checkin_reminders():
+    job_name = 'send_personalized_checkin_reminders'
+
+    def _job():
+        _run_flask_cli(job_name, ['staff-reminders', 'send-due'], 240)
+
+    _run_job(job_name, _job)
+
+
 scheduler = BlockingScheduler()
 scheduler.add_job(send_event_notification,
                   'cron', day_of_week='mon-fri',
@@ -575,5 +593,14 @@ scheduler.add_job(reconcile_daily_attendance,
                   'cron',
                   hour='0',
                   minute='15',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(refresh_staff_reminder_times,
+                  'cron', hour='4', minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_personalized_checkin_reminders,
+                  'cron', day_of_week='mon-fri', hour='8', minute='*/5',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_personalized_checkin_reminders,
+                  'cron', day_of_week='mon-fri', hour='9', minute='0',
                   timezone='Asia/Bangkok')
 scheduler.start()

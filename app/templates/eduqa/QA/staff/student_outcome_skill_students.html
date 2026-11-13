@@ -110,14 +110,33 @@
 
         <div class="box">
             <h2 class="title is-5">รายชื่อนักศึกษา</h2>
-            {% if student_rows %}
+            <form method="get" class="mb-4">
+                <input type="hidden" name="academic_year" value="{{ academic_year }}">
+                <div class="field">
+                    <label class="label" for="student-status">สถานะผลประเมินล่าสุด</label>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <div class="select">
+                                <select id="student-status" name="status">
+                                    <option value="" {% if not status_filter %}selected{% endif %}>ทั้งหมด</option>
+                                    <option value="passed" {% if status_filter == 'passed' %}selected{% endif %}>ผ่าน</option>
+                                    <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>ไม่ผ่าน</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control"><button type="submit" class="button is-info">กรอง</button></div>
+                    </div>
+                </div>
+                <p class="help">แสดง {{ filtered_student_rows|length }} จาก {{ student_rows|length }} คน · กรองตามผลประเมินล่าสุดของนักศึกษา</p>
+            </form>
+            {% if filtered_student_rows %}
             <div class="table-container">
                 <table class="table is-fullwidth is-hoverable">
                     <thead>
-                    <tr><th>รหัสนักศึกษา</th><th>ชื่อ</th><th>รายวิชาที่ลงทะเบียน</th></tr>
+                    <tr><th>รหัสนักศึกษา</th><th>ชื่อ</th><th>รายวิชาที่ลงทะเบียน</th><th>ผลประเมินล่าสุด</th></tr>
                     </thead>
                     <tbody>
-                    {% for row in student_rows %}
+                    {% for row in filtered_student_rows %}
                     <tr>
                         <td>{{ row.student.student_id }}</td>
                         <td>
@@ -130,13 +149,23 @@
                             <span class="tag is-info is-light mb-1">{{ course.en_code }} · ภาคเรียน {{ course.semester or '-' }}</span>
                             {% endfor %}
                         </td>
+                        <td>
+                            {% if not row.latest %}<span class="tag is-warning is-light">รอประเมิน</span>
+                            {% elif row.latest.submission.passed is sameas true %}<span class="tag is-success">ผ่าน</span>
+                            {% elif row.latest.submission.passed is sameas false %}<span class="tag is-danger">ไม่ผ่าน</span>
+                            {% else %}<span class="tag is-light">ไม่กำหนดเกณฑ์</span>{% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
             </div>
             {% else %}
+            {% if status_filter and student_rows %}
+            <p class="has-text-grey">ไม่พบนักศึกษาที่ตรงกับสถานะที่เลือก</p>
+            {% else %}
             <p class="has-text-grey">ไม่พบนักศึกษาที่ลงทะเบียนในรายวิชาที่เชื่อมโยงสำหรับปีการศึกษานี้</p>
+            {% endif %}
             {% endif %}
         </div>
     </div>

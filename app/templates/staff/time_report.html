@@ -798,6 +798,10 @@
                         <h1 class="staff-login-title">ตารางแสดงการเข้าออกงานประจำเดือน</h1>
                         <p class="staff-login-subtitle">{{ current_user.personal_info }} · ตรวจสอบเวลาเข้าออกงานและวันหยุดประจำเดือน</p>
                     </div>
+                    <button type="button" class="button is-link is-light is-rounded" id="openReminderSettings" aria-haspopup="dialog" aria-controls="reminderSettingsModal">
+                        <span class="icon"><i class="fas fa-bell" aria-hidden="true"></i></span>
+                        <span>ตั้งค่าการแจ้งเตือน</span>
+                    </button>
                     <span class="staff-login-badge">
                         <i class="far fa-calendar-alt" aria-hidden="true"></i>
                         Personal calendar
@@ -938,6 +942,51 @@
     </div>
 </section>
 
+{% set reminder = current_user.checkin_reminder_setting %}
+{% set reminder_days = reminder.weekdays.split(',') if reminder else ['0', '1', '2', '3', '4'] %}
+<div class="modal" id="reminderSettingsModal" aria-hidden="true">
+    <div class="modal-background" data-close-reminder></div>
+    <form class="modal-card" method="post" action="{{ url_for('staff.save_checkin_reminder_settings') }}" role="dialog" aria-modal="true" aria-labelledby="reminderSettingsTitle" style="max-width: calc(100% - 2rem)">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <header class="modal-card-head">
+            <p class="modal-card-title" id="reminderSettingsTitle">ตั้งค่าแจ้งเตือนเข้างาน</p>
+            <button type="button" class="delete" aria-label="ปิด" data-close-reminder></button>
+        </header>
+        <section class="modal-card-body">
+            <p class="notification is-info is-light">แจ้งเตือนเฉพาะวันที่ยังไม่ลงเวลาเข้างาน ตัวเลือกตามเวลาเฉลี่ยจะแจ้งช่วง 8:00–9:00 น. โดยตรวจสอบทุก 5 นาที หากข้อมูลไม่เพียงพอจะใช้เวลา 8:29 น. หากเลือกทั้งสองแบบ อาจได้รับสองครั้งเมื่อยังไม่ลงเวลาเข้างาน</p>
+            {% if not current_user.line_id %}<p class="notification is-warning is-light">กรุณาเชื่อมต่อบัญชี LINE เพื่อรับการแจ้งเตือน</p>{% endif %}
+            {% if current_user.personal_info.academic_staff and not reminder %}
+            <p class="notification is-info is-light">บุคลากรสายวิชาการจะไม่ได้รับการแจ้งเตือนโดยอัตโนมัติ หากต้องการรับ กรุณาเปิดรับการแจ้งเตือนและกดบันทึก</p>
+            {% endif %}
+            <div class="field"><label class="checkbox"><input type="checkbox" name="enabled" {% if not reminder or reminder.enabled %}checked{% endif %}> เปิดรับการแจ้งเตือนเข้างานผ่าน LINE</label></div>
+            <fieldset class="field">
+                <legend class="label">รูปแบบการแจ้งเตือน (เลือกได้มากกว่าหนึ่งข้อ)</legend>
+                <div class="field"><label class="checkbox"><input type="checkbox" name="reminder_modes" value="system" {% if not reminder or reminder.system_reminder %}checked{% endif %}> ตามระบบปกติ (เวลา 8:29 น.)</label></div>
+                <div class="field"><label class="checkbox"><input type="checkbox" name="reminder_modes" value="average" {% if reminder and reminder.average_reminder %}checked{% endif %}> ตามเวลาเข้างานโดยเฉลี่ยของแต่ละคน</label></div>
+                {% if reminder and reminder.calculated_for %}
+                <p class="help">เวลาที่คำนวณได้: {{ reminder.reminder_time.strftime('%H:%M') }} น.
+                    {% if reminder.average_checkin_time %}(เวลาเข้างานเฉลี่ย {{ reminder.average_checkin_time.strftime('%H:%M') }} น.){% else %}(ใช้เวลาเริ่มต้น เนื่องจากมีข้อมูลไม่ถึง 10 วัน){% endif %}
+                    · ข้อมูล {{ reminder.sample_days }} วัน · คำนวณวันที่ {{ reminder.calculated_for.strftime('%d/%m/%Y') }}</p>
+                {% endif %}
+                <p class="help">เวลาประเทศไทย (Asia/Bangkok)</p>
+                <p class="help is-danger" id="reminderModesError" role="alert" hidden>กรุณาเลือกรูปแบบการแจ้งเตือนอย่างน้อยหนึ่งข้อ</p>
+            </fieldset>
+            <fieldset class="field">
+                <legend class="label">วันที่ต้องการรับการแจ้งเตือน</legend>
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem">
+                {% for day in ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'] %}
+                    <label class="checkbox"><input type="checkbox" name="weekdays" value="{{ loop.index0 }}" {% if loop.index0|string in reminder_days %}checked{% endif %}> {{ day }}</label>
+                {% endfor %}
+                </div>
+                <p class="help is-danger" id="reminderDaysError" role="alert" hidden>กรุณาเลือกอย่างน้อยหนึ่งวัน</p>
+            </fieldset>
+        </section>
+        <footer class="modal-card-foot">
+            <button type="submit" class="button is-primary">บันทึก</button>
+            <button type="button" class="button" data-close-reminder>ยกเลิก</button>
+        </footer>
+    </form>
+</div>
 <div class="modal" id="clockinRequestModal" aria-hidden="true">
     <div class="modal-background" data-close-clockin-request></div>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="clockinRequestModalTitle">
@@ -1024,6 +1073,39 @@
                 $('#loginQuotaPeriod').text('ไม่สามารถโหลดข้อมูลโควตาได้');
                 $('#loginQuotaChart').html('<div class="staff-login-quota-item">ไม่สามารถโหลดข้อมูลโควตาได้</div>');
             });
+
+        var reminderModal = document.getElementById('reminderSettingsModal');
+        var reminderForm = reminderModal.querySelector('form');
+        function closeReminderSettings() {
+            if (!reminderModal.classList.contains('is-active')) return;
+            reminderModal.classList.remove('is-active');
+            reminderModal.setAttribute('aria-hidden', 'true');
+            document.getElementById('openReminderSettings').focus();
+        }
+        $('#openReminderSettings').on('click', function() {
+            reminderForm.reset();
+            document.getElementById('reminderDaysError').hidden = true;
+            document.getElementById('reminderModesError').hidden = true;
+            reminderModal.classList.add('is-active');
+            reminderModal.setAttribute('aria-hidden', 'false');
+            reminderForm.elements.enabled.focus();
+        });
+        $('[data-close-reminder]').on('click', closeReminderSettings);
+        reminderModal.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') closeReminderSettings();
+            if (event.key !== 'Tab') return;
+            var controls = reminderForm.querySelectorAll('button, input:not([type="hidden"])');
+            var first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        });
+        reminderForm.addEventListener('submit', function(event) {
+            var invalid = reminderForm.elements.enabled.checked && !reminderForm.querySelector('[name="weekdays"]:checked');
+            document.getElementById('reminderDaysError').hidden = !invalid;
+            var invalidModes = reminderForm.elements.enabled.checked && !reminderForm.querySelector('[name="reminder_modes"]:checked');
+            document.getElementById('reminderModesError').hidden = !invalidModes;
+            if (invalid || invalidModes) event.preventDefault();
+        });
 
         var requestForm = document.querySelector('#clockinRequestModal form');
         var requestDate = document.getElementById('calendarRequestDate');
