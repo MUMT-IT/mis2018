@@ -395,6 +395,9 @@ def student_outcome_skill_students(revision_id, skill_id):
 
     for row in student_rows:
         row['latest'] = latest_submission_by_student.get(row['student'].id)
+        row['passed'] = (
+            row['latest']['student_evidence'].effective_passed(
+                row['latest']['submission']) if row['latest'] else None)
 
     evaluated_count = len(latest_submission_by_student)
     evidence_by_id = {evidence.id: evidence for evidence in related_evidence}
@@ -443,11 +446,12 @@ def student_outcome_skill_students(revision_id, skill_id):
         stat['average_maximum'] = (
             sum(submission.maximum_score for submission in scored) /
             len(scored) if scored else None)
-        classified = [submission for submission in stat['submissions']
-                      if submission.passed is not None]
+        decisions = [student_evidence_by_id[submission.subject_id].effective_passed(
+            submission) for submission in stat['submissions']]
+        classified = [decision for decision in decisions if decision is not None]
         stat['passing_percentage'] = stat['version'].passing_percentage
         stat['passed_count'] = sum(
-            1 for submission in classified if submission.passed)
+            1 for decision in classified if decision)
         stat['failed_count'] = len(classified) - stat['passed_count']
         stat['pass_rate'] = (
             stat['passed_count'] / len(classified) * 100
@@ -469,7 +473,7 @@ def student_outcome_skill_students(revision_id, skill_id):
         filtered_student_rows = [
             row for row in student_rows
             if row['latest'] and
-            row['latest']['submission'].passed is expected_passed
+            row['passed'] is expected_passed
         ]
 
     return render_template(
@@ -582,6 +586,13 @@ def student_outcome_skill_student_summary(revision_id, skill_id, student_id):
         if summary['latest_submission'] is None:
             summary['latest_submission'] = submission
 
+    for item in summaries_by_key.values():
+        record = student_evidence_by_evidence_id.get(item['evidence'].id)
+        item['passed'] = (record.effective_passed(item['latest_submission'])
+                          if record else None)
+        item['approved'] = bool(record and record.endorsed
+                                and record.endorsed_passed is not None)
+
     evaluation_summaries = sorted(summaries_by_key.values(), key=lambda item: (
         item['evidence'].clo.course.en_code or '',
         item['evidence'].title or '', item['version'].form.name or ''))
@@ -599,10 +610,10 @@ def student_outcome_skill_student_summary(revision_id, skill_id, student_id):
         1 for item in evaluation_summaries if item['latest_submission'])
     passed_count = sum(
         1 for item in evaluation_summaries
-        if item['latest_submission'] and item['latest_submission'].passed is True)
+        if item['latest_submission'] and item['passed'] is True)
     failed_count = sum(
         1 for item in evaluation_summaries
-        if item['latest_submission'] and item['latest_submission'].passed is False)
+        if item['latest_submission'] and item['passed'] is False)
 
     return render_template(
         'eduqa/QA/staff/student_outcome_skill_student_summary.html',
@@ -976,6 +987,7 @@ def delete_student_skill_evidence_submission(revision_id, skill_id, clo_id,
         # Remove references before deleting the submission and its answers.
         db.session.flush()
         db.session.delete(submission)
+        student_evidence.endorsed_passed = None
         student_evidence.endorsed = False
         student_evidence.endorsed_by = None
         student_evidence.endorsed_at = None
@@ -1011,12 +1023,16 @@ def endorse_student_skill_evidence(revision_id, skill_id, clo_id, evidence_id, s
         abort(404)
     student_evidence = EduQAStudentSkillEvidence.query.filter_by(
         evidence_id=evidence.id, student_id=student.id).first_or_404()
+    decision = request.form.get('decision')
+    if decision not in ('passed', 'failed'):
+        abort(400)
     submission_exists = DynamicFormSubmission.query.filter_by(
         subject_type='eduqa_student_skill_evidence',
         subject_id=student_evidence.id, status='Submitted').first()
     if not submission_exists:
         flash('ยังไม่สามารถรับรองได้ เนื่องจากยังไม่มีผลการประเมินที่บันทึกไว้', 'warning')
     elif not student_evidence.endorsed:
+        student_evidence.endorsed_passed = decision == 'passed'
         student_evidence.endorsed = True
         student_evidence.endorsed_by = current_user
         student_evidence.endorsed_at = db.func.now()

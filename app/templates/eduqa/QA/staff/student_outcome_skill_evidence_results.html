@@ -29,6 +29,14 @@
         {% if submissions %}
         {% for submission in submissions %}
         <div class="box">
+            {% set approved = student_evidence and student_evidence.endorsed and student_evidence.endorsed_passed is not none %}
+            {% set passed = student_evidence.effective_passed(submission) if student_evidence else submission.passed %}
+            <p class="mb-3">
+                <span class="is-size-7 has-text-grey">{{ 'ผลจากผู้รับรอง' if approved else 'ผลจากผู้ประเมิน' }}</span>
+                {% if passed is sameas true %}<span class="tag is-success">ผ่าน</span>
+                {% elif passed is sameas false %}<span class="tag is-danger">ไม่ผ่าน</span>
+                {% else %}<span class="tag is-light">ไม่กำหนดเกณฑ์</span>{% endif %}
+            </p>
             <div class="level mb-4">
                 <div class="level-left"><div>
                     <h2 class="title is-5 mb-1"><span class="icon has-text-info"><i class="fas fa-clipboard-list"></i></span> {{ submission.version.form.name }}</h2>
@@ -96,6 +104,7 @@
         {% if student_evidence and student_evidence.endorsed %}
         <div class="notification is-success is-light">
             <p class="has-text-weight-semibold"><span class="icon"><i class="fas fa-certificate"></i></span> รับรองผลการประเมินแล้ว</p>
+            <p>ผลรับรอง: {% if student_evidence.endorsed_passed is sameas true %}<strong class="has-text-success">ผ่าน</strong>{% elif student_evidence.endorsed_passed is sameas false %}<strong class="has-text-danger">ไม่ผ่าน</strong>{% else %}ไม่ระบุผล (ใช้ผลของผู้ประเมิน){% endif %}</p>
             <p class="is-size-7">รับรองโดย {{ student_evidence.endorsed_by.fullname if student_evidence.endorsed_by else '-' }} เมื่อ {{ student_evidence.endorsed_at.strftime('%d/%m/%Y %H:%M') if student_evidence.endorsed_at else '-' }}</p>
         </div>
         {% elif student_evidence %}
@@ -105,7 +114,19 @@
                 <div class="level-right">
                     <form method="post" action="{{ url_for('eduqa.endorse_student_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, student_id=student.id) }}" onsubmit="return confirm('ยืนยันการรับรองผลการประเมินของนักศึกษารายนี้หรือไม่')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="button is-success"><span class="icon"><i class="fas fa-certificate"></i></span><span>รับรองผลการประเมิน</span></button>
+                        <div class="dropdown is-right" id="approval-dropdown">
+                            <div class="dropdown-trigger">
+                                <button type="button" class="button is-success" aria-haspopup="true" aria-controls="approval-dropdown-menu" aria-expanded="false">
+                                    <span class="icon"><i class="fas fa-certificate" aria-hidden="true"></i></span><span>รับรองผลการประเมิน</span><span class="icon"><i class="fas fa-angle-down" aria-hidden="true"></i></span>
+                                </button>
+                            </div>
+                            <div class="dropdown-menu" id="approval-dropdown-menu">
+                                <div class="dropdown-content">
+                                    <button type="submit" name="decision" value="passed" class="dropdown-item button is-white has-text-success">ผ่าน</button>
+                                    <button type="submit" name="decision" value="failed" class="dropdown-item button is-white has-text-danger">ไม่ผ่าน</button>
+                                </div>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -120,4 +141,30 @@
         {% endif %}
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const dropdown = document.getElementById('approval-dropdown');
+        if (!dropdown) return;
+        const trigger = dropdown.querySelector('.dropdown-trigger button');
+        function setOpen(open) {
+            dropdown.classList.toggle('is-active', open);
+            trigger.setAttribute('aria-expanded', String(open));
+        }
+        trigger.addEventListener('click', function () {
+            setOpen(!dropdown.classList.contains('is-active'));
+        });
+        document.addEventListener('click', function (event) {
+            if (!dropdown.contains(event.target)) setOpen(false);
+        });
+        dropdown.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                setOpen(false);
+                trigger.focus();
+            }
+        });
+    });
+</script>
 {% endblock %}
