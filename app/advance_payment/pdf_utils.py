@@ -798,7 +798,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
 
 
 def _build_fnar02_context(ticket):
-    """Collect the values shared by both Chromium-rendered FNAR02 pages."""
+    """Collect the values shared by both FNAR02 pages."""
     borrower_name = getattr(ticket, "borrower_name", None) or PDF_BLANK
     borrower_user = (
         getattr(ticket, "borrower_user", None)
@@ -886,7 +886,7 @@ def _build_fnar02_context(ticket):
 
 
 def _pdf_asset_data_uri(path, mime_type):
-    """Embed a local font or image so Chromium can render self-contained HTML."""
+    """Embed a local font or image for the legacy HTML template."""
     asset_path = Path(path)
     if not asset_path.is_file():
         raise FileNotFoundError(f"PDF asset not found: {asset_path}")
@@ -901,7 +901,7 @@ PDF_LOGO_DATA_URI = _pdf_asset_data_uri(PDF_LOGO_PATH, "image/png")
 
 
 def _build_fnar02_html(memo_context):
-    """Build both FNAR02 pages as Thai print HTML for Chromium."""
+    """Build both FNAR02 pages as Thai print HTML (legacy template)."""
     escaped = {
         key: html.escape(str(value), quote=True)
         for key, value in memo_context.items()
@@ -1216,68 +1216,19 @@ def _build_fnar02_html(memo_context):
 </html>"""
 
 
-def _render_html_with_chromium(html_source):
-    from playwright.sync_api import sync_playwright
-
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(
-            headless=True,
-            executable_path=os.environ.get("CHROMIUM_EXECUTABLE_PATH") or None,
-            args=["--no-sandbox", "--disable-setuid-sandbox"],
-        )
-        try:
-            page = browser.new_page()
-            page.set_content(html_source, wait_until="load")
-            page.evaluate("() => document.fonts.ready")
-            return page.pdf(
-                format="A4",
-                print_background=True,
-                prefer_css_page_size=True,
-                display_header_footer=False,
-                margin={
-                    "top": "0",
-                    "right": "0",
-                    "bottom": "0",
-                    "left": "0",
-                },
-            )
-        finally:
-            browser.close()
-
-
-def _render_fnar02_with_chromium(fnar02_context):
-    return _render_html_with_chromium(_build_fnar02_html(fnar02_context))
-
-
 _pdf_log = logging.getLogger(__name__)
 
 
-def _render_with_reportlab_fallback(chromium_render, reportlab_render, document_name):
-    # if os.environ.get("ADVANCE_PAYMENT_PDF_RENDERER", "").strip().lower() == "reportlab":
-    #     pdf = reportlab_render()
-    #     _pdf_log.warning(
-    #         "PDF generated: document=%s renderer=ReportLab mode=forced bytes=%d",
-    #         document_name, len(pdf),
-    #     )
-    #     return pdf
-    """Only rendering failures trigger the fallback; data collection stays upstream."""
-    try:
-        pdf = chromium_render()
-        if not pdf or not pdf.startswith(b"%PDF-"):
-            raise ValueError("Chromium returned an invalid PDF")
-        _pdf_log.warning(
-            "PDF generated: document=%s renderer=Chromium mode=primary bytes=%d",
-            document_name, len(pdf),
-        )
-        return pdf
-    except Exception:
-        _pdf_log.exception("Chromium failed to render %s; trying ReportLab", document_name)
-        pdf = reportlab_render()
-        _pdf_log.warning(
-            "PDF generated: document=%s renderer=ReportLab mode=fallback bytes=%d",
-            document_name, len(pdf),
-        )
-        return pdf
+def _render_with_reportlab(reportlab_render, document_name):
+    """Render a PDF exclusively with ReportLab."""
+    pdf = reportlab_render()
+    if not pdf or not pdf.startswith(b"%PDF-"):
+        raise ValueError("ReportLab returned an invalid PDF")
+    _pdf_log.warning(
+        "PDF generated: document=%s renderer=ReportLab bytes=%d",
+        document_name, len(pdf),
+    )
+    return pdf
 
 
 def _rl_paragraph(value, style=None):
@@ -1717,26 +1668,13 @@ def _render_fnar02_with_reportlab(context):
 
 
 def generate_fnar02_pdf(ticket):
-    """Generate both FNAR02 pages, with a ReportLab fallback."""
-    from pypdf import PdfReader
-
+    """Generate both FNAR02 pages with ReportLab."""
     fnar02_context = _build_fnar02_context(ticket)
-    def render_chromium():
-        pdf = _render_fnar02_with_chromium(fnar02_context)
-        page_count = len(PdfReader(BytesIO(pdf)).pages)
-        if page_count != 2:
-            raise ValueError(f"Chromium rendered {page_count} FNAR02 pages; expected exactly 2")
-        return pdf
-
-    return _render_with_reportlab_fallback(
-        render_chromium,
-        lambda: _render_fnar02_with_reportlab(fnar02_context),
-        "FNAR02",
-    )
+    return _render_with_reportlab(lambda: _render_fnar02_with_reportlab(fnar02_context), "FNAR02")
 
 
 def _build_reimbursement_letter_html(context):
-    """Build a one-page Thai reimbursement letter for Chromium printing."""
+    """Build a one-page Thai reimbursement letter (legacy template)."""
     def escaped(value):
         return html.escape(str(value), quote=True)
 
@@ -2079,11 +2017,7 @@ def generate_petty_claim(claim, claim_type="1"):
         "leave_approver_signatures": approver_signatures,
         "extra_header_space": no_approval_letter,
     }
-    return _render_with_reportlab_fallback(
-        lambda: _render_html_with_chromium(_build_reimbursement_letter_html(document_context)),
-        lambda: _render_reimbursement_with_reportlab(document_context),
-        "petty claim",
-    )
+    return _render_with_reportlab(lambda: _render_reimbursement_with_reportlab(document_context), "petty claim")
 
 
 generate_petty_claim_pdf = generate_petty_claim
@@ -2158,18 +2092,14 @@ def generate_ticket_return(return_detail):
         ),
         "leave_approver_signatures": approver_signatures,
     }
-    return _render_with_reportlab_fallback(
-        lambda: _render_html_with_chromium(_build_reimbursement_letter_html(document_context)),
-        lambda: _render_reimbursement_with_reportlab(document_context),
-        "ticket return",
-    )
+    return _render_with_reportlab(lambda: _render_reimbursement_with_reportlab(document_context), "ticket return")
 
 
 generate_ticket_return_pdf = generate_ticket_return
 
 
 def _build_fund_request_html(context):
-    """Build the MT-Petty Cash-02 form for Playwright Chromium."""
+    """Build the MT-Petty Cash-02 form (legacy HTML template)."""
     def escaped(value):
         return html.escape(str(value), quote=True)
 
@@ -2277,7 +2207,7 @@ def _build_fund_request_html(context):
 
 
 def generate_fund_request_pdf(fund_request):
-    """Generate the MT-Petty Cash-02 form with Playwright Chromium."""
+    """Generate the MT-Petty Cash-02 form with ReportLab."""
     form_type = str(fund_request.form_type or "")
     is_interest_form = form_type == FUND_REQUEST_FORM_INTEREST
     is_borrowing_form = form_type == FUND_REQUEST_FORM_BORROWING_TICKET
@@ -2534,11 +2464,7 @@ def generate_fund_request_pdf(fund_request):
             ("ลงชื่อผู้อนุมัติ", head_signature_line, head_name, head_position, approver_signature_date),
         ],
     }
-    return _render_with_reportlab_fallback(
-        lambda: _render_html_with_chromium(_build_fund_request_html(context)),
-        lambda: _render_fund_request_with_reportlab(context),
-        "fund request",
-    )
+    return _render_with_reportlab(lambda: _render_fund_request_with_reportlab(context), "fund request")
 
 
 def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
@@ -2806,7 +2732,7 @@ html, body {{ margin: 0; padding: 0; color: #000; font-family: SarabunPDF, sans-
 
 
 def _render_overdue_reminders_with_reportlab(letters):
-    """Fallback when Chromium is unavailable, retaining source emphasis."""
+    """Render overdue reminders with ReportLab, retaining source emphasis."""
     pdfmetrics.registerFontFamily("Sarabun", normal="Sarabun", bold="SarabunBold")
     output = BytesIO()
     doc = SimpleDocTemplate(
@@ -2847,8 +2773,4 @@ def generate_overdue_reminders_pdf(letters):
     """Create a combined PDF with one reminder page per overdue ticket."""
     if not letters:
         raise ValueError("No overdue letters to generate")
-    return _render_with_reportlab_fallback(
-        lambda: _render_html_with_chromium(_build_overdue_reminders_html(letters)),
-        lambda: _render_overdue_reminders_with_reportlab(letters),
-        "overdue borrowing reminders",
-    )
+    return _render_with_reportlab(lambda: _render_overdue_reminders_with_reportlab(letters), "overdue borrowing reminders")
