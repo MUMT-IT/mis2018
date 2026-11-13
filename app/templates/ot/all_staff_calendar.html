@@ -61,6 +61,29 @@
                 </div>
             </div>
         </div>
+        <div class="modal" id="pdfLayoutModal" role="dialog" aria-modal="true" aria-labelledby="pdfLayoutTitle">
+            <div class="modal-background" onclick="closePdfLayoutModal()"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title" id="pdfLayoutTitle">เลือกรูปแบบดาวน์โหลด PDF</p>
+                    <button class="delete" aria-label="close" type="button" onclick="closePdfLayoutModal()"></button>
+                </header>
+                <section class="modal-card-body">
+                    <label class="box radio" style="display:block; cursor:pointer;">
+                        <input type="radio" name="pdf-layout" value="combined" checked>
+                        รวมเจ้าหน้าที่ทุกคนใน PDF ไฟล์เดียว
+                    </label>
+                    <label class="box radio" style="display:block; cursor:pointer;">
+                        <input type="radio" name="pdf-layout" value="separate">
+                        แยก PDF รายบุคคล และดาวน์โหลดรวมเป็น ZIP
+                    </label>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button is-link" type="button" onclick="downloadSignatoryReport('finance-pdf', $('input[name=pdf-layout]:checked').val())">ดาวน์โหลด</button>
+                    <button class="button" type="button" onclick="closePdfLayoutModal()">ยกเลิก</button>
+                </footer>
+            </div>
+        </div>
         <div class="modal" id="signatoryModal">
             <div class="modal-background" onclick="closeSignatoryModal()"></div>
             <div class="modal-card">
@@ -253,8 +276,19 @@
         $('#signatoryModal').removeData('download-format');
     }
     function confirmSignatoryDownload() {
-        const selectedSignatory = $('input[name="finance-signatory-id"]:checked').val();
         const format = $('#signatoryModal').data('download-format') || 'report';
+        if (format === 'finance-pdf') {
+            closeSignatoryModal();
+            $('#pdfLayoutModal').addClass('is-active');
+            return;
+        }
+        downloadSignatoryReport(format);
+    }
+    function closePdfLayoutModal() {
+        $('#pdfLayoutModal').removeClass('is-active');
+    }
+    function downloadSignatoryReport(format, pdfLayout = 'combined') {
+        const selectedSignatory = $('input[name="finance-signatory-id"]:checked').val();
         const params = new URLSearchParams({
             download: 'yes',
             format: format,
@@ -264,6 +298,10 @@
         if (selectedSignatory) {
             params.set('signatory_id', selectedSignatory);
         }
+        if (format === 'finance-pdf') {
+            params.set('pdf_layout', pdfLayout);
+        }
+        closePdfLayoutModal();
         window.location = baseURL + '&' + params.toString()
     }
 

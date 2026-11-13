@@ -4798,6 +4798,15 @@ def login_scan():
     return _handle_login_scan_request('staff/login_scan.html', note='qrcode')
 
 
+def _has_existing_checkin(staff_id, date_id):
+    records = StaffWorkLogin.query.filter_by(staff_id=staff_id, date_id=date_id).all()
+    return any(
+        record.start_datetime is not None
+        and record.correction_type != 'checkout'
+        for record in records
+    )
+
+
 @staff.route('/clockin-clockout/request/', methods=['GET', 'POST'])
 @login_required
 def request_for_clockin_clockout():
@@ -4810,6 +4819,9 @@ def request_for_clockin_clockout():
         work_datetime = tz.localize(work_datetime)
         date_id = StaffRequestWorkLogin.generate_date_id(work_datetime)
         work_datetime_display = work_datetime.strftime('%d/%m/%Y %H:%M')
+        if request.form.get('clock') == 'checkin' and _has_existing_checkin(current_user.id, date_id):
+            flash('มีข้อมูลเข้างานในวันที่เลือกแล้ว ไม่สามารถขอรับรองเวลาเข้างานซ้ำได้', 'warning')
+            return redirect(url_for('staff.show_time_report'))
         # TODO: check duplicate request
         # checkin_request = StaffRequestWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
         if work_datetime < today:
@@ -4988,6 +5000,11 @@ def approved_for_clockin_clockout(request_id):
             return redirect(url_for('staff.approved_for_clockin_clockout', request_id=request_id))
         clock_request.approver = current_user
         if approved == 'yes':
+            if clock_request.is_checkin and _has_existing_checkin(
+                clock_request.staff_account_id, clock_request.date_id
+            ):
+                flash('มีข้อมูลเข้างานในวันที่เลือกแล้ว ไม่สามารถอนุมัติรับรองเวลาเข้างานซ้ำได้', 'warning')
+                return redirect(url_for('staff.approved_for_clockin_clockout', request_id=request_id))
             clock_request.approved_at = datetime.now(pytz.utc)
 
             approval = StaffWorkLogin(

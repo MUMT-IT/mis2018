@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import io
 import json
+import zipfile
 from collections import defaultdict, namedtuple
 
 import dateutil.parser
@@ -2250,8 +2251,8 @@ def build_finance_pdf(records_df, cal_start, cal_end, selected_signatory=None):
             Paragraph('อัตราจ่าย', center_style),
             Paragraph('เวลาเข้างานจริง', center_style),
             Paragraph('เวลาออกงานจริง', center_style),
-            Paragraph('จำนวนเวลาปฏิบัติงาน', center_style),
-            Paragraph('จำนวนเงินที่ได้รับ', center_style),
+            Paragraph('จำนวนเวลา<br/>ปฏิบัติงาน', center_style),
+            Paragraph('จำนวนเงิน<br/>ที่ได้รับ', center_style),
         ]
         rows = [header_row]
         for record in staff_df[['เวลาเริ่มปฏิบัติงาน', 'เวลาเลิกปฏิบัติงาน', 'อัตรา', 'เวลาเข้างานจริง',
@@ -2320,6 +2321,21 @@ def build_finance_pdf(records_df, cal_start, cal_end, selected_signatory=None):
         story.append(footer_table)
 
     doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
+def build_finance_pdf_zip(records_df, cal_start, cal_end, selected_signatory=None):
+    """Bundle the same payable report rows into one PDF per staff account."""
+    records_df = _normalize_ot_export_frame(records_df)
+    payable = records_df[records_df['payment'].notna()]
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+        staff_groups = payable.groupby('checkin_staff_id', sort=True) if not payable.empty else []
+        for staff_id, staff_df in staff_groups:
+            filename = secure_filename(f'{staff_id}_{staff_df.iloc[0]["sap"]}')
+            pdf = build_finance_pdf(staff_df, cal_start, cal_end, selected_signatory=selected_signatory)
+            archive.writestr(f'{filename}_{cal_start:%m-%Y}_ot.pdf', pdf.getvalue())
     buffer.seek(0)
     return buffer
 
@@ -2763,18 +2779,18 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                 output = build_custom_ot_report_workbook(df, cal_start, cal_end,
                                                          selected_signatory=selected_signatory)
             elif format == 'finance-pdf':
-                output = build_finance_pdf(df, cal_start, cal_end, selected_signatory=selected_signatory)
+                builder = build_finance_pdf_zip if request.args.get('pdf_layout') == 'separate' else build_finance_pdf
+                output = builder(df, cal_start, cal_end, selected_signatory=selected_signatory)
             else:
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     write_ot_report_workbook(writer, df, format=format)
         output.seek(0)
+        ext = ('zip' if request.args.get('pdf_layout') == 'separate' else 'pdf') if format == 'finance-pdf' else 'xlsx'
         if staff_id:
             staff = StaffAccount.query.get(staff_id)
-            ext = 'pdf' if format == 'finance-pdf' else 'xlsx'
             download_name = f'{staff.email}_{cal_start.strftime("%m-%Y")}_ot_{format}.{ext}'
         else:
-            ext = 'pdf' if format == 'finance-pdf' else 'xlsx'
             download_name = f'{cal_start.strftime("%m-%Y")}_ot_{format}_all.{ext}'
         return send_file(output, download_name=download_name)
     return jsonify({'data': all_records})
