@@ -3340,21 +3340,19 @@ def _ticket_opening_budget(ticket):
     return _money_decimal(opening if opening is not None else ticket.required_budget)
 
 
-def _ticket_accounting_opening_balance(ticket, source_row=None):
-    """Use H as debt; source I is still awaiting accounting settlement."""
+def _ticket_accounting_opening_balance(ticket):
+    """Use H as debt; pending requisitions are still awaiting settlement."""
     borrowed = _money_decimal(ticket.required_budget)
-    historical_repaid, _ = _historical_ticket_amounts(ticket, source_row)
+    historical_repaid, _ = _historical_ticket_amounts(ticket)
     return borrowed - historical_repaid
 
 
-def _historical_ticket_amounts(ticket, source_row=None):
-    """Use a finance correction when present, otherwise the immutable XLS snapshot."""
-    repaid = getattr(ticket, "historical_repaid_amount", None)
-    pending = getattr(ticket, "historical_pending_amount", None)
-    if repaid is None:
-        repaid = getattr(source_row, "repaid_amount", 0)
-    if pending is None:
-        pending = getattr(source_row, "pending_documents_amount", 0)
+def _historical_ticket_amounts(ticket):
+    """Read imported balances from the ticket, never from the archived XLS."""
+    repaid = ticket.historical_repaid_amount
+    pending = ticket.historical_pending_amount
+    if ticket.import_batch_id is not None and (repaid is None or pending is None):
+        raise ValueError(f"สัญญา {ticket.number} ยังไม่มียอดย้อนหลังในฐานข้อมูล")
     return _money_decimal(repaid), _money_decimal(pending)
 
 
@@ -3366,13 +3364,13 @@ def _ticket_has_imported_reduction(ticket):
 
 
 def _legacy_verification_display_summary(
-    summary, ticket, source_row, *, settled_amount=None, documented_amount=None
+    summary, ticket, *, settled_amount=None, documented_amount=None
 ):
     """Display accounting settlement separately from requisitions in progress."""
     display = dict(summary)
     if settled_amount is None or documented_amount is None:
         return display
-    historical_repaid, historical_pending = _historical_ticket_amounts(ticket, source_row)
+    historical_repaid, historical_pending = _historical_ticket_amounts(ticket)
     display["budget"] = _money_decimal(ticket.required_budget)
     display["cumulative_total"] = (
         historical_repaid
@@ -3404,17 +3402,10 @@ def _advance_payment_dashboard_amounts():
     """Calculate the five finance revolving-fund dashboard amounts."""
     active_tickets = (
         _finance_revolving_borrowing_ticket_query()
-        .options(joinedload(BorrowingTicket.import_batch))
         .all()
     )
-    source_cache = {}
     active_ticket_balances = [
-        (
-            ticket,
-            _ticket_accounting_opening_balance(
-                ticket, _legacy_source_row_for_report(ticket, source_cache)
-            ),
-        )
+        (ticket, _ticket_accounting_opening_balance(ticket))
         for ticket in active_tickets
     ]
     active_ticket_balances = [
@@ -5787,34 +5778,13 @@ def _legacy_import_schema_ready():
     if not inspector.has_table("cash_advance_import_batches"):
         return False
     columns = {column["name"] for column in inspector.get_columns("cash_advance_borrowing_tickets")}
-    return {"opening_balance_amount", "import_batch_id"} <= columns
+    return {"opening_balance_amount", "import_batch_id",
+            "historical_repaid_amount", "historical_pending_amount"} <= columns
 
 
-def _legacy_source_row_for_report(ticket, cache):
-    if ticket.import_batch_id is None:
-        return None
-    batch = ticket.import_batch
-    if batch is None:
-        raise ValueError(f"ไม่พบไฟล์ต้นฉบับของสัญญา {ticket.number}")
-    if batch.id not in cache:
-        with open(batch.source_file_path, "rb") as source_file:
-            report = parse_legacy_cash_advance_xls(source_file.read())
-        rows_by_number = {}
-        for row in report.rows:
-            rows_by_number.setdefault(row.ticket_number.strip(), []).append(row)
-        cache[batch.id] = rows_by_number
-    matches = cache[batch.id].get((ticket.number or "").strip(), [])
-    if len(matches) != 1:
-        raise ValueError(f"เลขที่ยืม {ticket.number} ต้องตรงกับหนึ่งแถวในไฟล์ต้นฉบับ")
-    return matches[0]
-
-
-def _ticket_receivable_snapshot(ticket, source_cache=None):
+def _ticket_receivable_snapshot(ticket):
     """Current F/G/I/J, including the system's settled and documented returns."""
-    source_row = _legacy_source_row_for_report(
-        ticket, source_cache if source_cache is not None else {}
-    )
-    historical_repaid, historical_pending = _historical_ticket_amounts(ticket, source_row)
+    historical_repaid, historical_pending = _historical_ticket_amounts(ticket)
     group_ids = _ticket_group_ids(ticket.id)
     settled = _calculate_ticket_group_totals(group_ids, report_stage="settled")
     documented = _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled")
@@ -5843,7 +5813,6 @@ def _snapshot_json(snapshot):
 
 def _receivables_report_rows(tickets):
     group_cache = {}
-    source_cache = {}
     rows = []
     for ticket in tickets:
         group_ids = frozenset(_ticket_group_ids(ticket.id))
@@ -5859,18 +5828,11 @@ def _receivables_report_rows(tickets):
         documented_amount = _money_decimal(
             documented.get("allocated_by_ticket", {}).get(ticket.id)
         )
-        source_row = _legacy_source_row_for_report(ticket, source_cache)
-        historical_repaid, historical_pending = _historical_ticket_amounts(ticket, source_row)
+        historical_repaid, historical_pending = _historical_ticket_amounts(ticket)
         person = getattr(getattr(ticket, "borrower_user", None), "personal_info", None)
-        first_name_with_title = (
-            source_row.first_name_with_title if source_row else
-            "".join((getattr(person, "th_title", "") or "",
-                     getattr(person, "th_firstname", "") or "")) or None
-        )
-        last_name = (
-            source_row.last_name if source_row else
-            getattr(person, "th_lastname", None)
-        )
+        first_name_with_title = "".join((getattr(person, "th_title", "") or "",
+                                         getattr(person, "th_firstname", "") or "")) or None
+        last_name = getattr(person, "th_lastname", None)
         report_row = build_receivable_row(
             ticket,
             approved_amount=approved_amount,
@@ -5879,7 +5841,6 @@ def _receivables_report_rows(tickets):
             historical_pending=historical_pending,
             first_name_with_title=first_name_with_title,
             last_name=last_name,
-            borrow_text=source_row.borrow_text if source_row else None,
         )
         # A completely cleared loan is no longer a receivable. A J=0 source
         # row with I>0 remains here because the requisition is not settled.
@@ -5894,7 +5855,6 @@ def export_receivables_report():
     """Download the current receivables snapshot using the system's return totals."""
     tickets = (
         db.session.query(BorrowingTicket)
-        .options(joinedload(BorrowingTicket.import_batch))
         .filter(
             BorrowingTicket.approved_at.isnot(None),
             BorrowingTicket.status_id.notin_(_status_ids("borrowing_ticket", {"REJECTED"})),
@@ -5985,6 +5945,8 @@ def legacy_import():
                             borrowing_ticket_purpose=row.purpose,
                             required_budget=row.borrowed_amount,
                             opening_balance_amount=row.opening_balance_amount,
+                            historical_repaid_amount=row.repaid_amount,
+                            historical_pending_amount=row.pending_documents_amount,
                             import_batch_id=batch.id,
                             account_number="",
                             borrowing_ticket_start_date=None,
@@ -6465,19 +6427,12 @@ def verification_view(ticket_id):
         StaffAccount, StaffAccount.personal_id == StaffPersonalInfo.id
     ).filter(StaffAccount.id == borrowing_ticket.borrower_id).scalar()
 
-    legacy_source_row = None
-    if borrowing_ticket.import_batch_id:
-        try:
-            legacy_source_row = _legacy_source_row_for_report(borrowing_ticket, {})
-        except (OSError, LegacyXlsError, ValueError):
-            current_app.logger.warning("Could not read legacy XLS for ticket %s", ticket_id)
-
     settled_totals = _calculate_ticket_group_totals(ticket_group_ids, report_stage="settled")
     documented_totals = _calculate_ticket_group_totals(
         ticket_group_ids, report_stage="documented_or_settled"
     )
     display_summary = _legacy_verification_display_summary(
-        summary, borrowing_ticket, legacy_source_row,
+        summary, borrowing_ticket,
         settled_amount=settled_totals.get("allocated_by_ticket", {}).get(ticket_id),
         documented_amount=documented_totals.get("allocated_by_ticket", {}).get(ticket_id),
     )
