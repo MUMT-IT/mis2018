@@ -25,7 +25,8 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required as flask_login_required
-from flask_wtf.csrf import generate_csrf
+from flask_principal import PermissionDenied
+from flask_wtf.csrf import CSRFError, generate_csrf
 from flask_mail import Message
 from app.roles import (
     cash_management_coordinator_permission,
@@ -34,6 +35,7 @@ from app.roles import (
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import Forbidden
 
 from .borrowing_ticket_eligibility import (
     ACTIVE_BORROWING_MESSAGE,
@@ -1189,8 +1191,10 @@ def module_role_required(permission, role, system):
                 and _can_use_module_system(current_user, system)
             ):
                 _set_selected_system(system)
-            if _selected_system() != system or _current_module_role() != role:
-                abort(403)
+            if _selected_system() != system:
+                abort(403, description="ระบบงานที่เลือกไว้ไม่ตรงกับรายการนี้ กรุณาเปิดหน้านี้ใหม่แล้วส่งอีกครั้ง")
+            if _current_module_role() != role:
+                abort(403, description="บทบาทของบัญชีนี้ไม่อนุญาตให้ดำเนินการรายการดังกล่าว")
             return view_func(*args, **kwargs)
 
         return flask_login_required(permission.require()(wrapped))
@@ -1226,11 +1230,10 @@ def module_system_required(systems):
                 )
                 if selected_system:
                     _set_selected_system(selected_system)
-            if (
-                selected_system not in allowed_systems
-                or not _can_use_module_system(current_user, selected_system)
-            ):
-                abort(403)
+            if selected_system not in allowed_systems:
+                abort(403, description="ระบบงานที่เลือกไว้ไม่ตรงกับรายการนี้ กรุณาเปิดหน้านี้ใหม่แล้วส่งอีกครั้ง")
+            if not _can_use_module_system(current_user, selected_system):
+                abort(403, description="บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบงานที่เลือก")
             if (
                 selected_system == ADVANCE_PAYMENT_SYSTEM
                 and request.method not in {"GET", "HEAD", "OPTIONS"}
@@ -4552,7 +4555,7 @@ def coordinator_dashboard():
             editing_ticket.creator_id,
             editing_ticket.borrower_id,
         }:
-            abort(403)
+            abort(403, description="บัญชีนี้ไม่ใช่ผู้สร้างหรือผู้ยืมของสัญญาเงินยืมรายการนี้")
         if not _can_edit_borrowing_ticket(current_user.id, editing_ticket):
             if request.method == "GET":
                 abort(403)
@@ -5072,8 +5075,8 @@ def coordinator_dashboard():
                 # the user on the dashboard with the old form still visible.
                 return verification_view(saved_ticket.id)
         form_errors = "; ".join(
-            ", ".join(errors)
-            for errors in form.errors.values()
+            f"{form[field_name].label.text}: {', '.join(errors)}"
+            for field_name, errors in form.errors.items()
         )
         return _validation_error_response(form_errors or "ข้อมูลไม่ครบหรือไม่ถูกต้อง")
 
@@ -6617,7 +6620,7 @@ def submit_return_details():
         except (TypeError, ValueError):
             return _validation_error_response("พบเอกสารสัญญาเงินยืมที่ไม่ถูกต้อง")
     if len(selected_ticket_ids) > MAX_RETURN_LINKED_TICKETS:
-        return _validation_error_response("สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ")
+        return _validation_error_response("สามารถเลือกคืนพร้อมกันได้ไม่เกิน 2 สัญญา")
 
     borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if borrowing_ticket is None:
@@ -6642,7 +6645,7 @@ def submit_return_details():
             abort(403)
         selected_ticket_ids.update(_return_ticket_ids(edit_return_detail))
         if len(selected_ticket_ids) > MAX_RETURN_LINKED_TICKETS:
-            return _validation_error_response("สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ")
+            return _validation_error_response("สามารถเลือกคืนพร้อมกันได้ไม่เกิน 2 สัญญา")
 
     selected_tickets = db.session.query(BorrowingTicket).filter(
         BorrowingTicket.id.in_(selected_ticket_ids)
@@ -9545,8 +9548,37 @@ def update_finance_note(ticket_id):
 
     return verification_view(ticket_id)
 
+@bp.errorhandler(CSRFError)
+def csrf_error(error):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(
+            ok=False,
+            title="การยืนยันแบบฟอร์มไม่ผ่าน",
+            message="แบบฟอร์มอาจหมดอายุ กรุณาโหลดหน้าใหม่แล้วส่งอีกครั้ง",
+        ), 400
+    return error.get_response()
+
+
 @bp.errorhandler(403)
-def forbidden(_exception):
+def forbidden(error):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        message = (
+            error.description
+            if error.description != Forbidden.description
+            else "บัญชีนี้ไม่ได้รับอนุญาตให้ทำรายการตามบทบาทหรือผู้รับผิดชอบที่กำหนด"
+        )
+        return jsonify(ok=False, title="ไม่มีสิทธิ์ทำรายการ", message=message), 403
+    return render_template("advance_payment/403.html"), 403
+
+
+@bp.errorhandler(PermissionDenied)
+def permission_denied(_error):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(
+            ok=False,
+            title="ไม่มีสิทธิ์ทำรายการ",
+            message="บทบาทของบัญชีนี้ไม่อนุญาตให้ดำเนินการรายการดังกล่าว",
+        ), 403
     return render_template("advance_payment/403.html"), 403
 
 @bp.route("/staff/fund-request", methods=["GET", "POST"])

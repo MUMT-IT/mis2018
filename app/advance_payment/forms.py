@@ -1,7 +1,8 @@
 from flask import current_app
 from wtforms import DateField, DecimalField, Form, PasswordField, SelectField, StringField, SubmitField
-from wtforms.validators import DataRequired, NumberRange, Optional, ValidationError, Length
+from wtforms.validators import DataRequired, InputRequired, NumberRange, Optional, ValidationError, Length
 from datetime import date
+from decimal import Decimal
 from .date_utils import coerce_date
 from .models import db, StaffAccount
 
@@ -13,7 +14,15 @@ class AdvanceDateField(DateField):
         raw = valuelist[0] if valuelist else ""
         self.data = coerce_date(raw)
         if raw and self.data is None:
-            raise ValueError("Not a valid date value.")
+            raise ValueError("กรุณาระบุวันที่ให้ถูกต้อง")
+
+
+class BorrowingAmountField(DecimalField):
+    def process_formdata(self, valuelist):
+        try:
+            super().process_formdata(valuelist)
+        except ValueError as error:
+            raise ValueError("ยอดเงินยืมต้องเป็นตัวเลข") from error
 
 
 class RegistrationForm(Form):
@@ -43,17 +52,37 @@ class BorrowingTicketForm(Form):
     borrowing_ticket_purpose = StringField("ชื่อโครงการ/วัตถุประสงค์", validators=[DataRequired(message="กรุณากรอกชื่อโครงการ/วัตถุประสงค์")])
     aip_ref_no = StringField(
         "อนุมัติในหลักการ (เลขที่หนังสือ)",
-        validators=[DataRequired(message="กรุณากรอกเลขที่หนังสืออนุมัติในหลักการ")],
+        validators=[
+            DataRequired(message="กรุณากรอกเลขที่หนังสืออนุมัติในหลักการ"),
+            Length(max=255, message="เลขที่หนังสืออนุมัติในหลักการยาวเกินกำหนด"),
+        ],
     )
     aip_ref_date = AdvanceDateField(
         "วันที่หนังสือได้รับการอนุมัติ",
-        validators=[DataRequired(message="กรุณาระบุวันที่หนังสือได้รับการอนุมัติ")],
+        validators=[InputRequired(message="กรุณาระบุวันที่หนังสือได้รับการอนุมัติ")],
     )
-    required_budget = DecimalField("ยอดเงินยืม", validators=[DataRequired(message="กรุณาระบุยอดเงินยืมที่ถูกต้อง")])
-    account_number = StringField("เลขที่บัญชี", validators=[DataRequired(message="กรุณากรอกเลขที่บัญชี")])
-    borrowing_ticket_start_date = AdvanceDateField("วันที่เริ่มต้นโครงการ", validators=[DataRequired(message="กรุณาระบุวันที่เริ่มต้นโครงการ")])
-    borrowing_ticket_end_date = AdvanceDateField("วันที่สิ้นสุดโครงการ", validators=[DataRequired(message="กรุณาระบุวันที่สิ้นสุดโครงการ")])
+    required_budget = BorrowingAmountField("ยอดเงินยืม", validators=[InputRequired(message="กรุณาระบุยอดเงินยืม")])
+    account_number = StringField(
+        "เลขที่บัญชี",
+        validators=[
+            DataRequired(message="กรุณากรอกเลขที่บัญชี"),
+            Length(max=100, message="เลขที่บัญชียาวเกินกำหนด (สูงสุด 100 ตัวอักษร)"),
+        ],
+    )
+    borrowing_ticket_start_date = AdvanceDateField("วันที่เริ่มต้นโครงการ", validators=[InputRequired(message="กรุณาระบุวันที่เริ่มต้นโครงการ")])
+    borrowing_ticket_end_date = AdvanceDateField("วันที่สิ้นสุดโครงการ", validators=[InputRequired(message="กรุณาระบุวันที่สิ้นสุดโครงการ")])
     submit = SubmitField("ส่งสัญญาเงินยืม")
+
+    def validate_required_budget(self, field):
+        amount = field.data
+        if amount is None or not amount.is_finite():
+            raise ValidationError("ยอดเงินยืมต้องเป็นตัวเลขที่ถูกต้อง")
+        if amount <= 0:
+            raise ValidationError("ยอดเงินยืมต้องมากกว่า 0 บาท")
+        if amount > Decimal("9999999999.99"):
+            raise ValidationError("ยอดเงินยืมต้องไม่เกิน 9,999,999,999.99 บาท")
+        if amount != amount.quantize(Decimal("0.01")):
+            raise ValidationError("ยอดเงินยืมต้องมีทศนิยมไม่เกิน 2 ตำแหน่ง")
 
     def validate_borrowing_ticket_end_date(self, field):
         if self.borrowing_ticket_start_date.data and field.data and field.data < self.borrowing_ticket_start_date.data:
