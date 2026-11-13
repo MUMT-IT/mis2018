@@ -7037,13 +7037,18 @@ def view_request(request_id=None):
     request_data = request_data_paths[service_request.sub_lab.code]
     datas = request_data(service_request, type='form')
     result_id = None
+    is_admin = None
+    if current_user.is_authenticated:
+        admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+        if admin and (not admin.is_supervisor and not admin.is_assistant and not admin.is_central_admin):
+            is_admin = True
     if service_request.results:
         for result in service_request.results:
             result_id = result.id
     else:
         result_id = None
-    return render_template('service_admin/view_request.html', service_request=service_request, menu=menu,
-                           sub_lab=sub_lab, datas=datas, result_id=result_id)
+    return render_template('service_admin/view_request.html', service_request=service_request,
+                           menu=menu, sub_lab=sub_lab, datas=datas, result_id=result_id, is_admin=is_admin)
 
 
 @service_admin.route('/request/pdf/<int:request_id>', methods=['GET'])
