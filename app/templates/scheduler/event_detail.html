@@ -353,6 +353,11 @@
                             </p>
                         </div>
                         <div class="event-actions">
+{#                            <a href="{{ url_for('room.download_event_participants', event_id=event.id) }}"#}
+{#                               class="button is-link is-light">#}
+{#                                <span class="icon"><i class="fas fa-download"></i></span>#}
+{#                                <span>ดาวน์โหลดใบรายชื่อผู้เข้าร่วม</span>#}
+{#                            </a>#}
                             <a href="{{ url_for('room.room_reserve', room_id=event.room_id) }}" class="button is-info">
                                 <span class="icon"><i class="fa-solid fa-plus"></i></span>
                                 <span>จองเพิ่ม</span>
