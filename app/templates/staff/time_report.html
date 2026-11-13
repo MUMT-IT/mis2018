@@ -434,6 +434,7 @@
     }
 
     .staff-login-calendar-button {
+        gap: 0.35rem;
         align-items: center;
         background: #fff;
         border: 1px solid rgba(18, 39, 84, 0.1);
@@ -798,10 +799,6 @@
                         <h1 class="staff-login-title">ตารางแสดงการเข้าออกงานประจำเดือน</h1>
                         <p class="staff-login-subtitle">{{ current_user.personal_info }} · ตรวจสอบเวลาเข้าออกงานและวันหยุดประจำเดือน</p>
                     </div>
-                    <button type="button" class="button is-link is-light is-rounded" id="openReminderSettings" aria-haspopup="dialog" aria-controls="reminderSettingsModal">
-                        <span class="icon"><i class="fas fa-bell" aria-hidden="true"></i></span>
-                        <span>ตั้งค่าการแจ้งเตือน</span>
-                    </button>
                     <span class="staff-login-badge">
                         <i class="far fa-calendar-alt" aria-hidden="true"></i>
                         Personal calendar
@@ -871,6 +868,10 @@
                             <div class="staff-login-calendar-date" id="calendarSubtitle"></div>
                         </div>
                         <div class="staff-login-calendar-controls">
+                            <button type="button" class="staff-login-calendar-button" id="openReminderSettings" aria-haspopup="dialog" aria-controls="reminderSettingsModal">
+                                <i class="fas fa-bell" aria-hidden="true"></i>
+                                <span>ตั้งค่าการแจ้งเตือน</span>
+                            </button>
                             <button type="button" class="staff-login-calendar-button is-icon" id="calendarPrev" aria-label="เดือนก่อนหน้า">
                                 <i class="fas fa-chevron-left" aria-hidden="true"></i>
                             </button>
@@ -953,12 +954,11 @@
             <button type="button" class="delete" aria-label="ปิด" data-close-reminder></button>
         </header>
         <section class="modal-card-body">
-            <p class="notification is-info is-light">แจ้งเตือนเฉพาะวันที่ยังไม่ลงเวลาเข้างาน ตัวเลือกตามเวลาเฉลี่ยจะแจ้งช่วง 8:00–9:00 น. โดยตรวจสอบทุก 5 นาที หากข้อมูลไม่เพียงพอจะใช้เวลา 8:29 น. หากเลือกทั้งสองแบบ อาจได้รับสองครั้งเมื่อยังไม่ลงเวลาเข้างาน</p>
             {% if not current_user.line_id %}<p class="notification is-warning is-light">กรุณาเชื่อมต่อบัญชี LINE เพื่อรับการแจ้งเตือน</p>{% endif %}
             {% if current_user.personal_info.academic_staff and not reminder %}
             <p class="notification is-info is-light">บุคลากรสายวิชาการจะไม่ได้รับการแจ้งเตือนโดยอัตโนมัติ หากต้องการรับ กรุณาเปิดรับการแจ้งเตือนและกดบันทึก</p>
             {% endif %}
-            <div class="field"><label class="checkbox"><input type="checkbox" name="enabled" {% if not reminder or reminder.enabled %}checked{% endif %}> เปิดรับการแจ้งเตือนเข้างานผ่าน LINE</label></div>
+            <div class="field"><label class="checkbox"><input type="checkbox" name="enabled" {% if (reminder and reminder.enabled) or (not reminder and not current_user.personal_info.academic_staff) %}checked{% endif %}> เปิดรับการแจ้งเตือนเข้างานผ่าน LINE</label></div>
             <fieldset class="field">
                 <legend class="label">รูปแบบการแจ้งเตือน (เลือกได้มากกว่าหนึ่งข้อ)</legend>
                 <div class="field"><label class="checkbox"><input type="checkbox" name="reminder_modes" value="system" {% if not reminder or reminder.system_reminder %}checked{% endif %}> ตามระบบปกติ (เวลา 8:29 น.)</label></div>
