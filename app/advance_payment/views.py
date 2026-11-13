@@ -6125,6 +6125,15 @@ def legacy_import_adjust():
             db.session.rollback()
             return jsonify({"updated": False, "current": _snapshot_json(current)})
 
+        group_ids = _ticket_group_ids(ticket.id)
+        other_ticket_ids = group_ids - {ticket.id}
+        if other_ticket_ids:
+            before_allocations = (
+                _calculate_ticket_group_totals(group_ids, report_stage="settled"),
+                _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled"),
+                _calculate_return_form_group_totals(group_ids),
+            )
+
         source_path = _save_adjustment_source(file_bytes)
         db.session.add(CashAdvanceBalanceAdjustment(
             ticket_id=ticket.id,
@@ -6143,7 +6152,6 @@ def legacy_import_adjust():
         ticket.historical_repaid_amount = baseline_repaid
         ticket.historical_pending_amount = baseline_pending
         ticket.opening_balance_amount = opening_budget
-        group_ids = _ticket_group_ids(ticket.id)
         for linked_ticket_id in group_ids:
             _recalculate_borrowing_ticket_status(
                 linked_ticket_id, commit=False, notify=False, recalculate_settlement=False
@@ -6152,6 +6160,19 @@ def legacy_import_adjust():
         updated = _ticket_receivable_snapshot(ticket)
         if (updated["borrowed"], updated["repaid"], updated["pending"]) != (borrowed, repaid, pending):
             raise ValueError("ยอดนี้ทำให้การจัดสรรรายการคืนร่วมกับสัญญาอื่นเปลี่ยน กรุณาตรวจสอบรายการคืนก่อน")
+        if other_ticket_ids:
+            after_allocations = (
+                _calculate_ticket_group_totals(group_ids, report_stage="settled"),
+                _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled"),
+                _calculate_return_form_group_totals(group_ids),
+            )
+            if any(
+                _money_decimal(before.get("allocated_by_ticket", {}).get(other_id))
+                != _money_decimal(after.get("allocated_by_ticket", {}).get(other_id))
+                for before, after in zip(before_allocations, after_allocations)
+                for other_id in other_ticket_ids
+            ):
+                raise ValueError("การแก้ยอดนี้จะเปลี่ยนยอดของสัญญาอื่นที่ใช้รายการคืนร่วมกัน กรุณาตรวจสอบก่อน")
         db.session.commit()
         return jsonify({"updated": True, "current": _snapshot_json(updated)})
     except (LegacyXlsError, ValueError, TypeError) as exc:
