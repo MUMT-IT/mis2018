@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import hashlib
 from io import BytesIO
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -44,7 +45,7 @@ from .borrowing_ticket_eligibility import (
     calculate_borrowing_ticket_eligibility,
 )
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, CashAdvanceBalanceAdjustment, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
 from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
@@ -3343,9 +3344,19 @@ def _ticket_opening_budget(ticket):
 def _ticket_accounting_opening_balance(ticket, source_row=None):
     """Use H as debt; source I is still awaiting accounting settlement."""
     borrowed = _money_decimal(ticket.required_budget)
-    if source_row is None:
-        return borrowed
-    return borrowed - _money_decimal(source_row.repaid_amount)
+    historical_repaid, _ = _historical_ticket_amounts(ticket, source_row)
+    return borrowed - historical_repaid
+
+
+def _historical_ticket_amounts(ticket, source_row=None):
+    """Use a finance correction when present, otherwise the immutable XLS snapshot."""
+    repaid = getattr(ticket, "historical_repaid_amount", None)
+    pending = getattr(ticket, "historical_pending_amount", None)
+    if repaid is None:
+        repaid = getattr(source_row, "repaid_amount", 0)
+    if pending is None:
+        pending = getattr(source_row, "pending_documents_amount", 0)
+    return _money_decimal(repaid), _money_decimal(pending)
 
 
 def _ticket_has_imported_reduction(ticket):
@@ -3362,13 +3373,14 @@ def _legacy_verification_display_summary(
     display = dict(summary)
     if settled_amount is None or documented_amount is None:
         return display
+    historical_repaid, historical_pending = _historical_ticket_amounts(ticket, source_row)
     display["budget"] = _money_decimal(ticket.required_budget)
     display["cumulative_total"] = (
-        _money_decimal(source_row.repaid_amount if source_row else 0)
+        historical_repaid
         + _money_decimal(settled_amount)
     )
     display["pending_amount"] = (
-        _money_decimal(source_row.pending_documents_amount if source_row else 0)
+        historical_pending
         + max(_money_decimal(documented_amount) - _money_decimal(settled_amount), Decimal("0.00"))
     )
     display["unsubmitted_amount"] = max(
@@ -4456,9 +4468,9 @@ def _recalculate_borrowing_ticket_status(
 
     new_status_id = old_status_id
 
-    if borrowing_ticket.import_batch_id is not None and budget == 0:
-        # J=0 permits a new loan. Historical settlement has no known date;
-        # a pending requisition may still remain in the original report.
+    if borrowing_ticket.opening_balance_amount is not None and budget == 0:
+        # J=0 permits a new loan, including a finance-adjusted old contract.
+        # Historical settlement has no known date; I may still be pending.
         new_status_id = _status_id("borrowing_ticket", code="CLOSED")
         borrowing_ticket.closed_date = None
     elif budget_covered:
@@ -4471,7 +4483,7 @@ def _recalculate_borrowing_ticket_status(
 
     else:
         if (
-            borrowing_ticket.import_batch_id is not None
+            borrowing_ticket.opening_balance_amount is not None
             and old_status_id in _status_ids("borrowing_ticket", {"CLOSED", "PARTIAL_RETURN"})
         ):
             new_status_id = _status_id("borrowing_ticket", code="APPROVED")
@@ -5798,6 +5810,54 @@ def _legacy_source_row_for_report(ticket, cache):
     return matches[0]
 
 
+def _ticket_receivable_snapshot(ticket, source_cache=None):
+    """Current F/G/I/J, including the system's settled and documented returns."""
+    source_row = _legacy_source_row_for_report(
+        ticket, source_cache if source_cache is not None else {}
+    )
+    historical_repaid, historical_pending = _historical_ticket_amounts(ticket, source_row)
+    group_ids = _ticket_group_ids(ticket.id)
+    settled = _calculate_ticket_group_totals(group_ids, report_stage="settled")
+    documented = _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled")
+    submitted = _calculate_return_form_group_totals(group_ids)
+    system_settled = _money_decimal(settled.get("allocated_by_ticket", {}).get(ticket.id))
+    system_documented = _money_decimal(documented.get("allocated_by_ticket", {}).get(ticket.id))
+    system_pending = max(system_documented - system_settled, Decimal("0.00"))
+    borrowed = _money_decimal(ticket.required_budget)
+    repaid = historical_repaid + system_settled
+    pending = historical_pending + system_pending
+    return {
+        "borrowed": borrowed,
+        "repaid": repaid,
+        "before_pending": borrowed - repaid,
+        "pending": pending,
+        "remaining": borrowed - repaid - pending,
+        "system_settled": system_settled,
+        "system_pending": system_pending,
+        "system_submitted": _money_decimal(submitted.get("allocated_by_ticket", {}).get(ticket.id)),
+    }
+
+
+def _snapshot_json(snapshot):
+    return {key: format(value, ".2f") for key, value in snapshot.items()}
+
+
+def _save_adjustment_source(file_bytes):
+    """Keep one immutable private copy per distinct adjustment source file."""
+    private_dir = os.path.join(current_app.instance_path, "legacy_cash_advance_sources")
+    os.makedirs(private_dir, exist_ok=True)
+    digest = hashlib.sha256(file_bytes).hexdigest()
+    path = os.path.join(private_dir, f"adjustment_{digest}.xls")
+    try:
+        with open(path, "xb") as source_file:
+            source_file.write(file_bytes)
+    except FileExistsError:
+        with open(path, "rb") as source_file:
+            if hashlib.sha256(source_file.read()).hexdigest() != digest:
+                raise OSError("Stored adjustment source has changed")
+    return path
+
+
 def _receivables_report_rows(tickets):
     group_cache = {}
     source_cache = {}
@@ -5817,6 +5877,7 @@ def _receivables_report_rows(tickets):
             documented.get("allocated_by_ticket", {}).get(ticket.id)
         )
         source_row = _legacy_source_row_for_report(ticket, source_cache)
+        historical_repaid, historical_pending = _historical_ticket_amounts(ticket, source_row)
         person = getattr(getattr(ticket, "borrower_user", None), "personal_info", None)
         first_name_with_title = (
             source_row.first_name_with_title if source_row else
@@ -5831,8 +5892,8 @@ def _receivables_report_rows(tickets):
             ticket,
             approved_amount=approved_amount,
             pending_amount=max(documented_amount - approved_amount, Decimal("0.00")),
-            historical_repaid=source_row.repaid_amount if source_row else 0,
-            historical_pending=source_row.pending_documents_amount if source_row else 0,
+            historical_repaid=historical_repaid,
+            historical_pending=historical_pending,
             first_name_with_title=first_name_with_title,
             last_name=last_name,
             borrow_text=source_row.borrow_text if source_row else None,
@@ -5959,22 +6020,147 @@ def legacy_import():
 
     if error:
         return jsonify({"error": error}), error_status
-    rejected = [
-        {
+    duplicate_numbers = {
+        check.row.ticket_number.strip() for check in contract_checks
+        if getattr(check, "duplicate_in_database", False)
+    }
+    duplicate_tickets = {
+        ticket.number.strip(): ticket
+        for ticket in db.session.query(BorrowingTicket)
+        .filter(func.trim(BorrowingTicket.number).in_(duplicate_numbers)).all()
+    } if duplicate_numbers else {}
+    rejected = []
+    for check in contract_checks:
+        if check.ready_after_migration:
+            continue
+        item = {
             "source_row": check.row.source_row,
             "ticket_number": check.row.ticket_number,
             "borrower_name": check.row.borrower_name,
             "reasons": check.reasons,
         }
-        for check in contract_checks
-        if not check.ready_after_migration
-    ]
+        existing = duplicate_tickets.get(check.row.ticket_number.strip())
+        if existing:
+            try:
+                item["duplicate"] = {
+                    "ticket_id": existing.id,
+                    "borrower_name": existing.borrower_name,
+                    "current": _snapshot_json(_ticket_receivable_snapshot(existing)),
+                    "uploaded": {
+                        key: format(_money_decimal(value), ".2f") if value is not None else None
+                        for key, value in (
+                            ("borrowed", check.row.borrowed_amount),
+                            ("repaid", check.row.repaid_amount),
+                            ("before_pending", check.row.balance_before_pending),
+                            ("pending", check.row.pending_documents_amount),
+                            ("remaining", check.row.opening_balance_amount),
+                        )
+                    },
+                }
+            except (OSError, LegacyXlsError, ValueError):
+                item["reasons"].append("อ่านยอดปัจจุบันของสัญญาเดิมไม่ได้ กรุณาตรวจไฟล์ต้นฉบับ")
+        rejected.append(item)
     return jsonify({
         "filename": filename,
         "found_count": len(report.rows),
         "imported_count": imported_count,
         "rejected": rejected,
     })
+
+
+@bp.route("/finance/legacy-import/adjust", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def legacy_import_adjust():
+    """Apply a reviewed F/G/I snapshot to an existing contract, never create one."""
+    uploaded = request.files.get("file")
+    if not uploaded or not (uploaded.filename or "").lower().endswith(".xls"):
+        return jsonify({"error": "กรุณาเลือกไฟล์ .xls เดิมอีกครั้ง"}), 400
+    file_bytes = uploaded.read(LEGACY_XLS_MAX_FILE_BYTES + 1)
+    try:
+        report = parse_legacy_cash_advance_xls(file_bytes)
+        if report.report_date is None:
+            raise ValueError("อ่านวันที่รายงานจากไฟล์ไม่ได้")
+        ticket_id = int(request.form.get("ticket_id") or "")
+        source_row = int(request.form.get("source_row") or "")
+        number = (request.form.get("ticket_number") or "").strip()
+        reason = (request.form.get("reason") or "").strip()
+        if not reason or len(reason) > 2000:
+            raise ValueError("กรุณาระบุเหตุผลการปรับยอด")
+        source = next(
+            (row for row in report.rows
+             if row.source_row == source_row and row.ticket_number.strip() == number),
+            None,
+        )
+        if source is None:
+            raise ValueError("ไม่พบเลขที่ยืมและแถวที่เลือกในไฟล์ที่อัปโหลด")
+        ticket = db.session.query(BorrowingTicket).filter(
+            BorrowingTicket.id == ticket_id,
+            func.trim(BorrowingTicket.number) == number,
+        ).with_for_update().first()
+        if ticket is None:
+            raise ValueError("ไม่พบสัญญาเดิมตามเลขที่ยืม")
+        current = _ticket_receivable_snapshot(ticket)
+        for key in ("borrowed", "repaid", "pending"):
+            if not (request.form.get("expected_" + key) or "").strip():
+                raise ValueError("ข้อมูลยอดเดิมไม่ครบ กรุณาอัปโหลดไฟล์อีกครั้ง")
+            if _parse_money_input(request.form.get("expected_" + key)) != current[key]:
+                db.session.rollback()
+                return jsonify({"error": "ยอดสัญญาเดิมเปลี่ยนไปแล้ว กรุณาอัปโหลดไฟล์อีกครั้งเพื่อตรวจยอดล่าสุด"}), 409
+        for key in ("borrowed", "repaid", "pending"):
+            if not (request.form.get(key) or "").strip():
+                raise ValueError("กรุณากรอกยอด F, G และ I ให้ครบ")
+        borrowed = _parse_money_input(request.form.get("borrowed"))
+        repaid = _parse_money_input(request.form.get("repaid"))
+        pending = _parse_money_input(request.form.get("pending"))
+        if borrowed <= 0 or repaid < 0 or pending < 0 or repaid + pending > borrowed:
+            raise ValueError("ยอดต้องเป็นบวกและเป็นไปตาม F − G − I ≥ 0")
+        baseline_repaid = repaid - current["system_settled"]
+        baseline_pending = pending - current["system_pending"]
+        if baseline_repaid < 0 or baseline_pending < 0:
+            raise ValueError("ยอดที่กรอกต่ำกว่ายอดคืนหรือยอดรอเบิกที่บันทึกในระบบแล้ว")
+        opening_budget = borrowed - baseline_repaid - baseline_pending
+        if opening_budget < current["system_submitted"]:
+            raise ValueError("ยอดคงเหลือใหม่ต่ำกว่ารายการส่งใช้ที่บันทึกในระบบแล้ว")
+        if (borrowed, repaid, pending) == (current["borrowed"], current["repaid"], current["pending"]):
+            db.session.rollback()
+            return jsonify({"updated": False, "current": _snapshot_json(current)})
+
+        source_path = _save_adjustment_source(file_bytes)
+        db.session.add(CashAdvanceBalanceAdjustment(
+            ticket_id=ticket.id,
+            old_borrowed_amount=current["borrowed"],
+            old_repaid_amount=current["repaid"],
+            old_pending_amount=current["pending"],
+            new_borrowed_amount=borrowed,
+            new_repaid_amount=repaid,
+            new_pending_amount=pending,
+            reason=reason,
+            source_file_path=source_path,
+            source_report_date=report.report_date,
+            edited_by_id=current_user.id,
+        ))
+        ticket.required_budget = borrowed
+        ticket.historical_repaid_amount = baseline_repaid
+        ticket.historical_pending_amount = baseline_pending
+        ticket.opening_balance_amount = opening_budget
+        group_ids = _ticket_group_ids(ticket.id)
+        for linked_ticket_id in group_ids:
+            _recalculate_borrowing_ticket_status(
+                linked_ticket_id, commit=False, notify=False, recalculate_settlement=False
+            )
+        _recalculate_borrowing_ticket_settlement(group_ids)
+        updated = _ticket_receivable_snapshot(ticket)
+        if (updated["borrowed"], updated["repaid"], updated["pending"]) != (borrowed, repaid, pending):
+            raise ValueError("ยอดนี้ทำให้การจัดสรรรายการคืนร่วมกับสัญญาอื่นเปลี่ยน กรุณาตรวจสอบรายการคืนก่อน")
+        db.session.commit()
+        return jsonify({"updated": True, "current": _snapshot_json(updated)})
+    except (LegacyXlsError, ValueError, TypeError) as exc:
+        db.session.rollback()
+        return jsonify({"error": str(exc)}), 400
+    except (OSError, SQLAlchemyError):
+        db.session.rollback()
+        current_app.logger.exception("Could not adjust an existing cash advance contract")
+        return jsonify({"error": "ปรับยอดสัญญาไม่สำเร็จ กรุณาลองใหม่"}), 500
 
 
 @bp.route("/finance/tickets", methods=["GET"])
