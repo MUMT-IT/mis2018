@@ -6122,11 +6122,66 @@ def legacy_import_adjust():
         return jsonify({"error": "ปรับยอดสัญญาไม่สำเร็จ กรุณาลองใหม่"}), 500
 
 
+@bp.route("/finance/overdue-reminders.pdf", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_overdue_reminders():
+    """Print one reminder per ticket in the finance overdue list."""
+    from .overdue_letters import build_reminder_letter, generate_overdue_reminders_pdf
+
+    today = datetime.now(ZoneInfo("Asia/Bangkok")).date()
+    excluded = _status_ids("borrowing_ticket", {"CLOSED", "REJECTED", "PENDING", "IN_PROGRESS"})
+    tickets = (
+        db.session.query(BorrowingTicket)
+        .filter(
+            BorrowingTicket.approved_at.isnot(None),
+            BorrowingTicket.settled_at.is_(None),
+            BorrowingTicket.due_date < today,
+            BorrowingTicket.status_id.notin_(excluded),
+        )
+        .order_by(BorrowingTicket.due_date.asc(), BorrowingTicket.id.asc())
+        .all()
+    )
+    faculty = db.session.query(Org).filter(func.trim(Org.name) == "คณะเทคนิคการแพทย์").first()
+    head_email = (getattr(faculty, "head", None) or "").strip()
+    dean = db.session.query(StaffAccount).filter_by(email=head_email).first() if head_email else None
+    if dean is None:
+        dean_position = (
+            db.session.query(StaffHeadPosition)
+            .filter(func.replace(StaffHeadPosition.position, " ", "") == "คณบดีคณะเทคนิคการแพทย์")
+            .order_by(StaffHeadPosition.id.desc())
+            .first()
+        )
+        dean = getattr(dean_position, "staff", None)
+    dean_person = getattr(dean, "personal_info", None)
+    dean_name = getattr(dean_person, "fullname", None) if dean_person is not None else None
+    letters = []
+    try:
+        for ticket in tickets:
+            remaining = _money_decimal(_calculate_ticket_return_totals(ticket.id)["remaining_amount"])
+            if remaining <= 0:
+                continue
+            letters.append(build_reminder_letter(
+                ticket, as_of=today, remaining_amount=remaining, dean_name=dean_name,
+            ))
+        if not letters:
+            flash("ไม่มีสัญญาเลยกำหนดที่ยังมียอดต้องส่งใช้", "info")
+            return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
+        pdf_bytes = generate_overdue_reminders_pdf(letters)
+    except ValueError as exc:
+        current_app.logger.warning("Could not generate overdue reminders: %s", exc)
+        flash("สร้างหนังสือเร่งรัดไม่ได้ กรุณาตรวจข้อมูลสัญญาที่เลยกำหนด", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
+    return send_file(
+        BytesIO(pdf_bytes), mimetype="application/pdf", as_attachment=True,
+        download_name=f"overdue_borrowing_reminders_{today.isoformat()}.pdf",
+    )
+
+
 @bp.route("/finance/tickets", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def tickets_view():
     filter_type = request.args.get("filter", "").strip()
-    today_date = datetime.now().date()
+    today_date = datetime.now(ZoneInfo("Asia/Bangkok")).date()
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
 
     # Query ข้อมูลตั๋วเงินยืมทั้งหมด

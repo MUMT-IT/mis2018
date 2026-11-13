@@ -12,6 +12,9 @@
     <a class="btn btn-outline-success fw-bold mb-3" href="{{ url_for('advance_payment.export_receivables_report') }}">
       <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงานลูกหนี้เงินยืม
     </a>
+    <a class="btn btn-outline-danger fw-bold mb-3" href="{{ url_for('advance_payment.export_overdue_reminders') }}">
+      <i class="bi bi-file-earmark-pdf me-1"></i> สร้างหนังสือเร่งรัดลูกหนี้
+    </a>
     <form method="post" action="{{ url_for('advance_payment.toggle_cash_mng_finance_state') }}" class="d-flex align-items-center gap-2">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <span class="fw-bold">
