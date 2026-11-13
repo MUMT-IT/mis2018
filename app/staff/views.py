@@ -6746,13 +6746,13 @@ def seminar_create_record(seminar_id):
         return redirect(url_for('staff.show_seminar_info_each_person', record_id=is_attend.id))
     selected_staff_ids = []
     form_staff = current_user
+    MyStaffSeminarAttendForm = create_seminar_attend_form(form_staff)
+    form = MyStaffSeminarAttendForm()
     if is_secretary_proxy:
         selected_staff_ids = (request.form.getlist('bulk_staff_ids') if request.method == 'POST'
                               else request.args.getlist('bulk_staff_ids'))
         if len(selected_staff_ids) == 1 and selected_staff_ids[0].isdigit():
             form_staff = StaffAccount.query.get(int(selected_staff_ids[0])) or current_user
-    MyStaffSeminarAttendForm = create_seminar_attend_form(form_staff)
-    form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     form_initial = {
         'start_datetime': seminar.start_datetime.isoformat(),
