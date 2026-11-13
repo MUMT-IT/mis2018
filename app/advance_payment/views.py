@@ -6732,7 +6732,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     combined_total = claim_total + parcel_total
     target_total = _money_decimal(fund_request.amount)
 
-    if combined_total == target_total and target_total > 0:
+    if combined_total >= target_total and target_total > 0:
         # A petty-cash parcel return is not complete until finance records the
         # transfer. While it is only received, keep the fund request at the
         # submission-complete stage, just like a petty-cash claim awaiting transfer.
