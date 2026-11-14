@@ -45,10 +45,11 @@
                             </div>
                         </div>
                     </form>
+                    {% set tab_organization = organization if tab != 'new' or organization != 'all' else none %}
                     <div class="tabs is-boxed">
                         <ul>
                             <li {% if tab == 'new' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='new', organization=organization) }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='new') }}">
                                     <span class="icon is-small"><i class="fas fa-times"></i></span>
                                     <span>ยังไม่ดำเนินการ</span>
                                     {% if new_record_count > 0 %}
@@ -57,7 +58,7 @@
                                 </a>
                             </li>
                             <li {% if tab == 'pending' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='pending', organization=organization) }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='pending', organization=tab_organization) }}">
                                     <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                     <span>รอดำเนินการ</span>
                                     {% if pending_record_count > 0 %}
@@ -66,7 +67,7 @@
                                 </a>
                             </li>
                             <li {% if tab == 'progress' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='progress', organization=organization) }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='progress', organization=tab_organization) }}">
                                     <span class="icon is-small"><i class="fas fa-history"></i></span>
                                     <span>อยู่ระหว่างดำเนินการ</span>
                                     {% if progress_record_count > 0 %}
@@ -75,19 +76,19 @@
                                 </a>
                             </li>
                             <li {% if tab == 'completed' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='completed', organization=organization) }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='completed', organization=tab_organization) }}">
                                     <span class="icon is-small"><i class="fas fa-check"></i></span>
                                     <span>ดำเนินการเสร็จสิ้น</span>
                                 </a>
                             </li>
                              <li {% if tab == 'cancelled' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='cancelled', organization=organization) }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='cancelled', organization=tab_organization) }}">
                                     <span class="icon is-small"><i class="fas fa-ban"></i></span>
                                     <span>ยกเลิก</span>
                                 </a>
                             </li>
                             <li {% if tab == 'repair_record' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('comp_tracker.admin_index', tab='repair_record', organization=organization) }}">
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='repair_record', organization=tab_organization) }}">
                                     <span class="icon is-small"><i class="fas fa-file-pdf"></i></span>
                                     <span>ใบแจ้งซ่อม/ใบอนุมัติหลักการซ่อม</span>
                                     {% if repair_record_count > 0 %}
