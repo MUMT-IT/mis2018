@@ -1425,13 +1425,10 @@ def delete_quotation_file(repair_company_id):
 def admin_index():
     tab = request.args.get('tab')
     organization = request.args.get('organization')
-    if tab == 'new':
+    if organization is None:
+        organization = 'all' if tab == 'new' else _default_complaint_organization()
+    if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
         organization = 'all'
-    else:
-        if organization is None:
-            organization = _default_complaint_organization()
-        if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
-            organization = 'all'
     admin_rows = ComplaintAdmin.query.with_entities(
         ComplaintAdmin.id,
         ComplaintAdmin.topic_id
