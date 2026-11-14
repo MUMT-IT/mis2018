@@ -1226,10 +1226,6 @@ def closing_page():
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
     organization = request.args.get('organization')
-    if organization is None:
-        organization = _default_complaint_organization()
-    if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
-        organization = 'all'
     procurement_no = request.args.get('procurement_no')
     pro_number = request.args.get('pro_number')
     statuses = ComplaintStatus.query.all()
