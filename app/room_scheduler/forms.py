@@ -6,6 +6,7 @@ from wtforms import Field, IntegerField, StringField, TextAreaField, TimeField
 from wtforms.validators import DataRequired, NumberRange, Optional
 from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
+from app.models import IOCode
 from app.room_scheduler.models import *
 from app.staff.models import StaffAccount, StaffGroupDetail
 
@@ -45,6 +46,18 @@ class RoomEventForm(ModelForm):
     category = QuerySelectField(query_factory=lambda: EventCategory.query.all())
     participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(
                                  StaffAccount.personal_info.has(retired=False)).all(), get_label='fullname')
+
+class RoomParticipantListForm(ModelForm):
+    class Meta:
+        model = RoomEvent
+        exclude = ['title', 'start', 'end']
+
+    cost_center = QuerySelectField(query_factory=lambda: CostCenter.query.all(), get_label='id',
+                                   allow_blank=True, blank_text='กรุณาเลือกรหัสศูนย์ต้นทุน')
+    io_code = QuerySelectField(query_factory=lambda: IOCode.query.all(), get_label='id', allow_blank=True,
+                               blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน')
+    product_code = QuerySelectField(query_factory=lambda: ProductCode.query.all(), get_label='product_code',
+                                    allow_blank=True, blank_text='กรุณาเลือกผลผลิต')
 
 
 class RoomAdminForm(FlaskForm):
