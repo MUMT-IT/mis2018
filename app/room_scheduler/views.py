@@ -1833,7 +1833,7 @@ def edit_participant_list(event_id):
     form = RoomParticipantListForm(obj=event)
     if form.validate_on_submit():
         form.populate_obj(event)
-        if (form.cost_center.data and form.io_code.data and form.product_code.data):
+        if (form.cost_center.data and form.iocode.data and form.product_code.data):
             db.session.add(event)
             db.session.commit()
             flash('อัปเดตข้อมูลสำเร็จ', 'success')
