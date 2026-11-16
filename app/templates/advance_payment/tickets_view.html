@@ -17,9 +17,30 @@
       <a class="btn btn-outline-success fw-bold" href="{{ url_for('advance_payment.export_receivables_report') }}">
         <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงานลูกหนี้เงินยืม
       </a>
-      <a class="btn btn-outline-danger fw-bold" href="{{ url_for('advance_payment.export_overdue_reminders') }}">
+      <button type="button" class="btn btn-outline-danger fw-bold" data-bs-toggle="modal" data-bs-target="#overdueReminderDateModal">
         <i class="bi bi-file-earmark-pdf me-1"></i> สร้างหนังสือเร่งรัดลูกหนี้
-      </a>
+      </button>
+    </div>
+  </div>
+
+  <div class="modal fade" id="overdueReminderDateModal" tabindex="-1" aria-labelledby="overdueReminderDateModalTitle" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="get" action="{{ url_for('advance_payment.export_overdue_reminders') }}">
+          <div class="modal-header">
+            <h2 class="modal-title fs-5" id="overdueReminderDateModalTitle">เลือกวันที่หนังสือเร่งรัด</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+          </div>
+          <div class="modal-body">
+            <label for="overdueReminderTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>
+            <input id="overdueReminderTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-danger"><i class="bi bi-file-earmark-pdf me-1"></i>สร้างหนังสือ</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </header>
@@ -200,9 +221,9 @@
     </div>
     <div class="d-flex gap-2">
       {% if overdue_count %}
-        <a href="{{ url_for('advance_payment.export_overdue_reminders') }}" class="btn btn-sm btn-danger">
+        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#overdueReminderDateModal">
           <i class="bi bi-file-earmark-pdf me-1"></i> สร้างหนังสือเร่งรัด ({{ overdue_count }} ใบ)
-        </a>
+        </button>
       {% endif %}
       <a href="{{ url_for('advance_payment.tickets_view') }}" class="btn btn-sm btn-outline-danger bg-white">
         <i class="bi bi-x-circle me-1"></i> แสดงรายการสัญญาทั้งหมด

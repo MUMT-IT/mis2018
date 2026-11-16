@@ -161,6 +161,19 @@ class CashAdvanceImportBatch(db.Model):
     uploaded_by = relationship(StaffAccount, foreign_keys=[uploaded_by_id])
 
 
+class OverdueReminderLog(db.Model):
+    __tablename__ = "cash_advance_overdue_reminder_logs"
+
+    id = Column(Integer, primary_key=True)
+    borrowing_ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id", ondelete="CASCADE"), nullable=False, index=True)
+    creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False, index=True)
+    target_date = Column(Date, nullable=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    borrowing_ticket = relationship("CashAdvanceBorrowingTicket")
+    creator = relationship(StaffAccount, foreign_keys=[creator_id])
+
+
 class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
     __table_args__ = (

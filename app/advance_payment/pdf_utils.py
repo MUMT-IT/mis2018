@@ -2633,10 +2633,10 @@ def append_petty_cash_monthly_attachments(report_pdf, *, setting, month_start,
     return output.getvalue()
 
 
-def build_reminder_letter(ticket, *, as_of, remaining_amount, dean_name=None):
+def build_reminder_letter(ticket, *, target_date, remaining_amount, dean_name=None):
     """Capture the values shown in one overdue borrowing reminder."""
     amount = Decimal(str(remaining_amount)).quantize(Decimal("0.01"))
-    if not ticket.due_date or ticket.due_date >= as_of or amount <= 0:
+    if not ticket.due_date or ticket.due_date >= target_date or amount <= 0:
         raise ValueError("Only overdue tickets with an outstanding balance can be printed")
     number = (ticket.number or "").strip()
     borrower_name = (ticket.borrower_name or "").strip()
@@ -2654,8 +2654,8 @@ def build_reminder_letter(ticket, *, as_of, remaining_amount, dean_name=None):
         "borrower_name": borrower_name,
         "date_phrase": date_phrase,
         "due_date": thai_long_date(ticket.due_date),
-        "as_of": thai_long_date(as_of),
-        "overdue_days": (as_of - ticket.due_date).days,
+        "target_date": thai_long_date(target_date),
+        "overdue_days": (target_date - ticket.due_date).days,
         "remaining_amount": amount,
         "amount_text": bahttext(amount),
         "dean_name": (dean_name or "").strip(),
@@ -2670,7 +2670,7 @@ def _overdue_reminder_paragraphs(letter):
         f"{e(letter['ticket_number'])} {e(letter['date_phrase'])} "
         f"ซึ่งได้ครบกำหนดส่งคืนเมื่อวันที่ {e(letter['due_date'])} แล้วนั้น",
         "บัดนี้ได้ล่วงเลยกำหนดระยะเวลาการส่งคืนเงินดังกล่าว ณ วันที่ "
-        f"{e(letter['as_of'])} เป็น<b>ระยะเวลา {letter['overdue_days']} วัน</b> "
+        f"{e(letter['target_date'])} เป็น<b>ระยะเวลา {letter['overdue_days']} วัน</b> "
         "ตามสัญญาที่ท่านลงนามไว้ (ตามเอกสารแนบ) โดยมียอดคงค้าง "
         f"เป็นจำนวนเงินรวมทั้งสิ้น {letter['remaining_amount']:,.2f} บาท "
         f"({e(letter['amount_text'])})",
@@ -2678,7 +2678,7 @@ def _overdue_reminder_paragraphs(letter):
         "หากไม่สามารถคืนภายใน 60 วัน หลังครบกำหนดตามสัญญา ต้องทำ"
         "<u width=\"0.35\">หนังสือชี้แจงเหตุผลที่ชัดเจนและส่งล่วงหน้า 7 วัน</u> "
         "<b>หากไม่ดำเนินการตามกำหนด คณะฯ จะดำเนินการหักเงินเดือน ค่าจ้าง เบี้ยหวัด "
-        "บำเหน็จ บำนาญ หรือเงินอื่นใดตามที่ท่านได้ลงนามในสัญญาการยืมเงิน</b> "
+        "บำเหน็จ บำนาญ หรือเงินอื่นใด ตามที่ท่านได้ลงนามในสัญญาการยืมเงิน</b> "
         "ทั้งนี้หากท่านดำเนินการส่งใช้เงินยืมแล้วในระหว่างการจัดส่งหนังสือฉบับนี้ "
         "ต้องขออภัยมา ณ โอกาสนี้",
         "จึงเรียนมาเพื่อโปรดดำเนินการด้วย จักเป็นพระคุณยิ่ง",
@@ -2697,7 +2697,7 @@ def _build_overdue_reminders_html(letters):
   <div class="organization">งานคลังและพัสดุ<br>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>โทร. 0-2441-4372-5 ต่อ 2820, 2830</div>
   <div class="document-info">
     <div>ที่</div>
-    <div>วันที่ {html.escape(letter['as_of'], quote=True)}</div>
+    <div>วันที่ {html.escape(letter['target_date'], quote=True)}</div>
     <div>เรื่อง&nbsp;&nbsp;ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม</div>
     <div>เรียน&nbsp;&nbsp;{html.escape(letter['borrower_name'], quote=True)}</div>
   </div>
@@ -2759,7 +2759,7 @@ def _render_overdue_reminders_with_reportlab(letters):
         ), Spacer(1, 13)])
         story.extend([
             Paragraph("ที่", normal),
-            Paragraph(f"วันที่ {html.escape(letter['as_of'])}", normal),
+            Paragraph(f"วันที่ {html.escape(letter['target_date'])}", normal),
             Paragraph("เรื่อง&nbsp;&nbsp;ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม", normal),
             Paragraph(f"เรียน&nbsp;&nbsp;{html.escape(letter['borrower_name'])}", normal),
             Spacer(1, 17),

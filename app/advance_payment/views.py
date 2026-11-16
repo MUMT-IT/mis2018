@@ -44,7 +44,7 @@ from .borrowing_ticket_eligibility import (
     calculate_borrowing_ticket_eligibility,
 )
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, OverdueReminderLog, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
 from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
@@ -6128,14 +6128,19 @@ def legacy_import_adjust():
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def export_overdue_reminders():
     """Print one reminder per ticket in the finance overdue list."""
-    today = datetime.now(ZoneInfo("Asia/Bangkok")).date()
+    target_date_text = request.args.get("target_date", "").strip()
+    try:
+        target_date = date.fromisoformat(target_date_text)
+    except ValueError:
+        flash("กรุณาเลือกวันที่สำหรับหนังสือเร่งรัด", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
     excluded = _status_ids("borrowing_ticket", {"CLOSED", "REJECTED", "PENDING", "IN_PROGRESS"})
     tickets = (
         db.session.query(BorrowingTicket)
         .filter(
             BorrowingTicket.approved_at.isnot(None),
             BorrowingTicket.settled_at.is_(None),
-            BorrowingTicket.due_date < today,
+            BorrowingTicket.due_date < target_date,
             BorrowingTicket.status_id.notin_(excluded),
         )
         .order_by(BorrowingTicket.due_date.asc(), BorrowingTicket.id.asc())
@@ -6155,25 +6160,36 @@ def export_overdue_reminders():
     dean_person = getattr(dean, "personal_info", None)
     dean_name = getattr(dean_person, "fullname", None) if dean_person is not None else None
     letters = []
+    logged_ticket_ids = []
     try:
         for ticket in tickets:
             remaining = _money_decimal(_calculate_ticket_return_totals(ticket.id)["remaining_amount"])
             if remaining <= 0:
                 continue
             letters.append(build_reminder_letter(
-                ticket, as_of=today, remaining_amount=remaining, dean_name=dean_name,
+                ticket, target_date=target_date, remaining_amount=remaining, dean_name=dean_name,
             ))
+            logged_ticket_ids.append(ticket.id)
         if not letters:
             flash("ไม่มีสัญญาเลยกำหนดที่ยังมียอดต้องส่งใช้", "info")
             return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
         pdf_bytes = generate_overdue_reminders_pdf(letters)
+        db.session.add_all(
+            OverdueReminderLog(
+                borrowing_ticket_id=ticket_id,
+                creator_id=current_user.id,
+                target_date=target_date,
+            )
+            for ticket_id in logged_ticket_ids
+        )
+        db.session.commit()
     except ValueError as exc:
         current_app.logger.warning("Could not generate overdue reminders: %s", exc)
         flash("สร้างหนังสือเร่งรัดไม่ได้ กรุณาตรวจข้อมูลสัญญาที่เลยกำหนด", "warning")
         return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
     return send_file(
         BytesIO(pdf_bytes), mimetype="application/pdf", as_attachment=True,
-        download_name=f"overdue_borrowing_reminders_{today.isoformat()}.pdf",
+        download_name=f"overdue_borrowing_reminders_{target_date.isoformat()}.pdf",
     )
 
 
@@ -6310,6 +6326,7 @@ def tickets_view():
         overdue_count=overdue_count,
         shadow_sum_debt=shadow_sum_debt,
         org_options=org_options,
+        today_date=today_date,
     )
 
 @bp.route("/tickets/<int:ticket_id>/verification")
