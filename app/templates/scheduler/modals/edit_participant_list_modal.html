@@ -1,0 +1,166 @@
+<div class="modal is-active animate__animated" id="participant-list-modal">
+    <style>
+        #participant-list-modal .modal-card {
+            width: min(600px, calc(100vw - 2rem));
+            margin: 0;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 24px 64px rgba(17, 32, 58, .22);
+        }
+
+        #participant-list-modal .modal-card-head {
+            align-items: flex-start;
+            background: #f7f9fc;
+            border-bottom: 1px solid #e8edf4;
+            padding: 1.25rem 1.5rem;
+        }
+
+        #participant-list-modal .modal-card-title {
+            color: #18345f;
+            font-size: 1.35rem;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        #participant-list-modal .js-close-participant-modal {
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        #participant-list-modal .participant-list-subtitle {
+            color: #66758b;
+            font-size: .95rem;
+            margin-top: .25rem;
+        }
+
+        #participant-list-modal .modal-card-body {
+            padding: 1.5rem;
+        }
+
+        #participant-list-modal .participant-list-fields {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        #participant-list-modal .participant-list-fields .field {
+            margin: 0;
+            min-width: 0;
+        }
+
+        #participant-list-modal .participant-list-fields .label {
+            line-height: 1.35;
+            margin-bottom: .55rem;
+        }
+
+        #participant-list-modal .select2-container {
+            width: 100% !important;
+        }
+
+        #participant-list-modal .select2-container--default .select2-selection--single {
+            align-items: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            height: 2.6rem;
+        }
+
+        #participant-list-modal .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 2.5rem;
+            padding-left: .8rem;
+            padding-right: 2rem;
+        }
+
+        #participant-list-modal .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 2.5rem;
+        }
+
+        #participant-list-modal .participant-list-actions {
+            border-top: 1px solid #edf0f5;
+            display: flex;
+            gap: .6rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+        }
+
+        @media (max-width: 700px) {
+            #participant-list-modal .modal-card-body {
+                max-height: calc(100vh - 170px);
+                overflow-y: auto;
+            }
+        }
+    </style>
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <div>
+                <p class="modal-card-title">แก้ไขข้อมูล</p>
+            </div>
+            <button type="button" class="delete js-close-participant-modal" aria-label="ปิด"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('room.edit_participant_list', event_id=event_id) }}">
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <div class="participant-list-fields">
+                    <div class="field">
+                        <label class="label">
+                            รหัสศูนย์ต้นทุน <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.cost_center(class='js-example-basic-single') }}
+                        </div>
+                        {% for error in form.cost_center.errors %}
+                            <p class="help is-danger">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            รหัสใบสั่งงานภายใน <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.io_code(class='js-example-basic-single') }}
+                        </div>
+                        {% for error in form.io_code.errors %}
+                            <p class="help is-danger">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            ผลผลิต / หมวดค่าใช้จ่าย <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.product_code(class='js-example-basic-single') }}
+                        </div>
+                        {% for error in form.product_code.errors %}
+                            <p class="help is-danger">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="participant-list-actions">
+                    <button type="button" class="button is-light js-close-participant-modal">ยกเลิก</button>
+                    <button type="submit" class="button is-success">
+                        <span class="icon"><i class="fas fa-save"></i></span>
+                        <span>บันทึก</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    document.querySelectorAll('#participant-list-modal .js-close-participant-modal').forEach(function (button) {
+        button.addEventListener('click', function () {
+            htmx.addClass(htmx.find('#participant-list-modal'), 'animate__fadeOut');
+            window.setTimeout(function () {
+                htmx.find('#participant-list-modal').remove();
+            }, 250);
+        });
+    })
+    $(document).ready(() => {
+        $('#participant-list-modal .js-example-basic-single').select2({
+            width: '100%',
+            dropdownParent: $('#participant-list-modal')
+        });
+    });
+</script>
