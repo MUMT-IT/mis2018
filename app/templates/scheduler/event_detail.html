@@ -182,6 +182,23 @@
                 border-radius: 999px;
             }
 
+            .event-action-group + .event-action-group {
+                border-top: 1px solid rgba(18, 39, 84, 0.1);
+                margin-top: 1rem;
+                padding-top: 0.85rem;
+            }
+
+            .event-action-group-title {
+                color: var(--theme-muted);
+                font-size: 0.85rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+            }
+
+            .event-action-group .event-actions {
+                margin-top: 0;
+            }
+
             .event-eval-wrap {
                 margin-top: 1rem;
             }
@@ -352,26 +369,39 @@
                                 <strong>หน่วยงาน:</strong> {{ event.creator.personal_info.org if event.creator.personal_info else '-' }}
                             </p>
                         </div>
-                        <div class="event-actions">
-{#                            <a href="{{ url_for('room.download_event_participants', event_id=event.id) }}"#}
-{#                               class="button is-link is-light">#}
-{#                                <span class="icon"><i class="fas fa-download"></i></span>#}
-{#                                <span>ดาวน์โหลดใบรายชื่อผู้เข้าร่วม</span>#}
-{#                            </a>#}
-                            <a href="{{ url_for('room.room_reserve', room_id=event.room_id) }}" class="button is-info">
-                                <span class="icon"><i class="fa-solid fa-plus"></i></span>
-                                <span>จองเพิ่ม</span>
-                            </a>
-                            {% if current_user == event.creator and not event.cancelled_at %}
-                                <a href="{{ url_for('room.edit_detail', event_id=event.id) }}" class="button is-warning">
-                                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
-                                    <span>แก้ไข</span>
+                        <div class="event-action-group" style="margin-top: .5em">
+                            <p class="event-action-group-title">จัดการ</p>
+                            <div class="event-actions">
+                                <a href="{{ url_for('room.room_reserve', room_id=event.room_id) }}" class="button is-info">
+                                    <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                                    <span>จองเพิ่ม</span>
                                 </a>
-                                <a href="{{ url_for('room.cancel', event_id=event.id) }}" class="button is-danger is-light">
-                                    <span class="icon"><i class="far fa-trash-alt"></i></span>
-                                    <span>ยกเลิก</span>
+                                {% if current_user == event.creator and not event.cancelled_at %}
+                                    <a href="{{ url_for('room.edit_detail', event_id=event.id) }}" class="button is-warning">
+                                        <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                        <span>แก้ไข</span>
+                                    </a>
+                                    <a href="{{ url_for('room.cancel', event_id=event.id) }}" class="button is-danger is-light">
+                                        <span class="icon"><i class="far fa-trash-alt"></i></span>
+                                        <span>ยกเลิก</span>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="event-action-group">
+                            <p class="event-action-group-title">เอกสาร</p>
+                            <div class="event-actions">
+                                <a href="{{ url_for('room.download_participant_list_word', event_id=event.id) }}"
+                                   class="button is-link is-outlined">
+                                    <span class="icon"><i class="fas fa-file-word"></i></span>
+                                    <span>ใบรายชื่อ (Word)</span>
                                 </a>
-                            {% endif %}
+                                <a href="{{ url_for('room.download_participant_list_pdf', event_id=event.id) }}"
+                                   class="button is-primary is-outlined">
+                                    <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                                    <span>ใบรายชื่อ (PDF)</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div class="columns is-mobile is-variable is-2" style="margin-top: 1rem;">
