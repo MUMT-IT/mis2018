@@ -77,3 +77,28 @@ def register_commands(app):
         click.echo('Due: {recipient_count}; sent: {sent_count}; skipped: {skipped_count}; failed: {failed_count}'.format(**summary))
         if summary['failed_count']:
             raise click.ClickException('Some reminders failed; inspect delivery logs before retrying.')
+
+    @staff_reminders_cli.command('diagnose')
+    @click.option('--staff-id', required=True, type=click.IntRange(min=1))
+    @click.option('--at', 'inspect_at', type=click.DateTime(formats=['%Y-%m-%d %H:%M']),
+                  help='Inspect eligibility at this Bangkok date/time; defaults to now.')
+    @with_appcontext
+    def diagnose(staff_id, inspect_at):
+        """Explain personalized reminder eligibility without sending or changing data."""
+        from .reminder_diagnostics import diagnose_reminder
+        at = pytz.timezone('Asia/Bangkok').localize(inspect_at) if inspect_at else None
+        try:
+            result = diagnose_reminder(staff_id, at)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+        click.echo('Staff {} at {}'.format(result['staff_id'], result['at']))
+        click.echo('Read-only: current settings, account state and approvals; historical state is not retained.')
+        for check in result['checks']:
+            click.echo('{} {}: {}'.format('PASS' if check['passed'] else 'BLOCK', check['name'], check['detail']))
+        for scan in result['later_scans']:
+            click.echo('Later attendance ignored: id={id} start={start}'.format(**scan))
+        for attempt in result['later_attempts']:
+            click.echo('Later delivery attempt: {mode} {scheduled_time} {status} at {attempted_at}'.format(**attempt))
+        click.echo('ELIGIBLE under inspected conditions; verify clock logs to confirm execution.'
+                   if result['eligible'] else 'NOT ELIGIBLE: see BLOCK checks above.')
+        click.echo('No notifications sent or data changed.')
