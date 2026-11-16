@@ -1219,7 +1219,7 @@ def _participant_document_download_name(event, extension):
     return f'ใบรายชื่อ{safe_title or event.id}.{extension}'
 
 
-def generate_participant_list_document(event):
+def generate_participant_list_word(event):
     from io import BytesIO
 
     from docx import Document
@@ -1303,7 +1303,7 @@ def generate_participant_list_document(event):
     section = document.sections[0]
     section.page_width = Cm(21)
     section.page_height = Cm(29.7)
-    section.top_margin = Cm(1.2)
+    section.top_margin = Cm(1.6)
     section.bottom_margin = Cm(1.8)
     section.left_margin = Cm(2)
     section.right_margin = Cm(2)
@@ -1333,7 +1333,7 @@ def generate_participant_list_document(event):
     add_centered_line('รายชื่อผู้เข้าร่วม', size=16, bold=True)
     add_centered_line(_participant_meeting_title(event), size=16, bold=True)
     add_centered_line(date_line, size=16, bold=True)
-    add_centered_line(room_location, size=16, bold=True, space_after=8)
+    add_centered_line(room_location, size=16, bold=True, space_after=24)
 
     participant_table = document.add_table(rows=1, cols=2)
     participant_table.style = 'Table Grid'
@@ -1396,7 +1396,7 @@ def generate_participant_list_document(event):
         cells[1].width = Cm(11.8)
         for cell, text in zip(cells, (label, value)):
             cell.paragraphs[0].paragraph_format.space_after = Pt(0)
-            set_run_font(cell.paragraphs[0].add_run(text))
+            set_run_font(cell.paragraphs[0].add_run(text), bold=True)
 
     buffer = BytesIO()
     document.save(buffer)
@@ -1404,14 +1404,14 @@ def generate_participant_list_document(event):
     return buffer
 
 
-@room.route('/events/<int:event_id>/participants.docx')
+@room.route('/events/participants/word/<int:event_id>')
 @login_required
-def download_event_participants(event_id):
+def download_participant_list_word(event_id):
     event = RoomEvent.query.get(event_id)
     if not event:
         abort(404)
 
-    buffer = generate_participant_list_document(event)
+    buffer = generate_participant_list_word(event)
     return send_file(
         buffer,
         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -1509,6 +1509,9 @@ def generate_participant_list_pdf(event):
     body_style = ParagraphStyle(
         'ParticipantPdfBody', fontName=regular_font, fontSize=16, leading=18,
     )
+    details_style = ParagraphStyle(
+        'ParticipantPdfDetails', fontName=bold_font, fontSize=16, leading=18,
+    )
     body_center_style = ParagraphStyle(
         'ParticipantPdfBodyCenter', parent=body_style, alignment=TA_CENTER,
     )
@@ -1522,7 +1525,7 @@ def generate_participant_list_pdf(event):
         Paragraph(escape(_participant_meeting_title(event)), title_style),
         Paragraph(escape(date_line), title_style),
         Paragraph(escape(room_location), title_style),
-        Spacer(1, 8 * mm),
+        Spacer(1, 8.5 * mm),
     ]
 
     rows = [[Paragraph('ลำดับ', header_style), Paragraph('ชื่อ-สกุล', header_style)]]
@@ -1552,7 +1555,7 @@ def generate_participant_list_pdf(event):
         else '-'
     )
     details = [
-        [Paragraph(label, body_style), Paragraph(escape(str(value)), body_style)]
+        [Paragraph(label, details_style), Paragraph(escape(str(value)), details_style)]
         for label, value in (
             ('รหัสชุดต้นทุน', cost_centers),
             ('รหัสใบสั่งงานภายใน', iocode_id),
@@ -1577,7 +1580,7 @@ def generate_participant_list_pdf(event):
         pagesize=A4,
         rightMargin=20 * mm,
         leftMargin=20 * mm,
-        topMargin=12 * mm,
+        topMargin=16 * mm,
         bottomMargin=18 * mm,
         title=f'ใบรายชื่อ{_participant_meeting_title(event)}',
     )
@@ -1586,9 +1589,9 @@ def generate_participant_list_pdf(event):
     return buffer
 
 
-@room.route('/events/<int:event_id>/participants.pdf')
+@room.route('/events/participants/pdf/<int:event_id>')
 @login_required
-def download_event_participants_pdf(event_id):
+def download_participant_list_pdf(event_id):
     event = RoomEvent.query.get(event_id)
     if not event:
         abort(404)
