@@ -20,6 +20,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Circle
+from reportlab.lib.units import mm
 from wcwidth import center
 
 from .models import (
@@ -41,6 +42,26 @@ from app.staff.models import StaffHeadPosition, StaffLeaveApprover, StaffPersona
 # Non-breaking spaces keep a writable gap in ReportLab paragraphs.
 # Unicode whitespace also remains empty under strip() in data checks.
 PDF_BLANK = "\u00a0" * 24
+SIGNATURE_FIRST_GAP_MM = 16
+SIGNATURE_NEXT_GAP_MM = 22
+SIGNATURE_FIRST_GAP = SIGNATURE_FIRST_GAP_MM * mm
+SIGNATURE_NEXT_GAP = SIGNATURE_NEXT_GAP_MM * mm
+
+
+def _letter_signature_markup(name, position, *, separator="<br/>"):
+    """Format a letter signer's name and position for HTML or ReportLab."""
+    return (
+        f"({html.escape(str(name), quote=True)}){separator}"
+        f"{html.escape(str(position), quote=True)}"
+    )
+
+
+def _letter_signature_html(name, position, *, class_name="letter-signature"):
+    return f'<div class="{class_name}">{_letter_signature_markup(name, position, separator="<br>")}</div>'
+
+
+def _letter_signature_paragraph(name, position, style):
+    return Paragraph(_letter_signature_markup(name, position), style)
 
 INTEREST_PERIOD_MONTH_LABELS = {
     "06": "มิถุนายน",
@@ -811,12 +832,12 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
                                ("TOPPADDING", (0, 0), (-1, -1), 3),
                                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
     story.extend([table, _rl_thai_edge_paragraph("จึงเรียนมาเพื่อโปรดทราบ", official, doc.width)])
-    for signer_name, signer_position in approver_signatures:
+    for index, (signer_name, signer_position) in enumerate(approver_signatures):
         signature = Table([[
             "",
-            p(f"({html.escape(str(signer_name))})<br/>{html.escape(str(signer_position))}", center),
+            _letter_signature_paragraph(signer_name, signer_position, center),
         ]], colWidths=[doc.width * 0.45, doc.width * 0.55])
-        story.extend([Spacer(1, 38), signature])
+        story.extend([Spacer(1, SIGNATURE_FIRST_GAP if index == 0 else SIGNATURE_NEXT_GAP), signature])
     doc.build(story)
     return buffer.getvalue()
 
@@ -931,15 +952,10 @@ def _build_fnar02_html(memo_context):
         for key, value in memo_context.items()
         if key != "leave_approver_signatures"
     }
-    signature_blocks = []
-    for signer_name, signer_position in memo_context["leave_approver_signatures"]:
-        signature_blocks.append(
-            '<div class="signature">'
-            f"({html.escape(str(signer_name))})<br>"
-            f"{html.escape(str(signer_position))}"
-            "</div>"
-        )
-    signatures_html = "".join(signature_blocks)
+    signatures_html = "".join(
+        _letter_signature_html(name, position, class_name="signature")
+        for name, position in memo_context["leave_approver_signatures"]
+    )
 
     paragraph_one = (
         f"ด้วย{escaped['department_name']} มีความประสงค์จะขอยืมเงินทดรองจ่าย "
@@ -1030,13 +1046,14 @@ def _build_fnar02_html(memo_context):
     margin: 0 0 4.2mm;
     text-indent: 24.7mm;
   }}
+  .memo-body .government-text:last-child {{ margin-bottom: 0; }}
   .signatures {{
     margin-left: 51%;
-    padding-top: 10mm;
+    padding-top: {SIGNATURE_FIRST_GAP_MM}mm;
     text-align: center;
   }}
   .signature {{ break-inside: avoid; }}
-  .signature + .signature {{ margin-top: 22mm; }}
+  .signature + .signature {{ margin-top: {SIGNATURE_NEXT_GAP_MM}mm; }}
   .contract-page {{
     font-size: 16pt;
     line-height: 1.15;
@@ -1446,19 +1463,40 @@ def _render_reimbursement_with_reportlab(context):
         _rl_thai_edge_paragraph(context["reference_text"], body_style, width),
         Spacer(1, 12),
         _rl_paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", styles["ThaiCenter"]),
-        Spacer(1, 30),
+        Spacer(1, SIGNATURE_FIRST_GAP),
     ])
-    for signer_name, signer_position in context["leave_approver_signatures"]:
-        signature = Table([["", Paragraph(
-            f"({html.escape(str(signer_name))})<br/>"
-            f"{html.escape(str(signer_position))}", styles["ThaiCenter"])]],
+    approvers = context["leave_approver_signatures"]
+    for index, (signer_name, signer_position) in enumerate(approvers[:-1]):
+        signature = Table([["", _letter_signature_paragraph(
+            signer_name, signer_position, styles["ThaiCenter"])]],
             colWidths=[width * .36, width * .64])
-        story.extend([signature, Spacer(1, 38)])
-    approval = Table([[Paragraph(
-        f"อนุมัติ<br/><br/><br/>({html.escape(_get_dean_name())})"
-        "<br/>คณบดีคณะเทคนิคการแพทย์", styles["ThaiCenter"]), ""]],
-        colWidths=[width * .64, width * .36])
-    story.append(approval)
+        if index:
+            story.append(Spacer(1, SIGNATURE_NEXT_GAP))
+        story.append(signature)
+    if len(approvers) > 1:
+        story.append(Spacer(1, SIGNATURE_NEXT_GAP))
+    last_approver = (
+        _letter_signature_paragraph(
+            approvers[-1][0], approvers[-1][1], styles["ThaiCenter"]
+        ) if approvers else ""
+    )
+    approver_row = Table([["", last_approver]], colWidths=[width * .5, width * .5])
+    approver_row.setStyle(TableStyle([
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    dean_approval = Table([[
+        Paragraph(
+            "อนุมัติ<br/><br/><br/>" + _letter_signature_markup(
+                _get_dean_name(), "คณบดีคณะเทคนิคการแพทย์"
+            ), styles["ThaiCenter"],
+        ), "",
+    ]], colWidths=[width * .5, width * .5])
+    dean_approval.setStyle(TableStyle([
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    story.extend([approver_row, dean_approval])
     doc.build(story)
     return output.getvalue()
 
@@ -1597,10 +1635,10 @@ def _render_fnar02_with_reportlab(context):
     ]
     for paragraph in paragraphs:
         story.extend([_rl_thai_edge_paragraph(paragraph, memo_style, width), Spacer(1, 12)])
-    for name, position in context["leave_approver_signatures"]:
-        sign = Table([["", Paragraph(f"({html.escape(str(name))})<br/>{html.escape(str(position))}",
-                                    styles["ThaiCenter"])]], colWidths=[width * .49, width * .51])
-        story.extend([Spacer(1, 38), sign])
+    for index, (name, position) in enumerate(context["leave_approver_signatures"]):
+        sign = Table([["", _letter_signature_paragraph(name, position, styles["ThaiCenter"])]],
+                     colWidths=[width * .49, width * .51])
+        story.extend([Spacer(1, SIGNATURE_FIRST_GAP - 12 if index == 0 else SIGNATURE_NEXT_GAP), sign])
     story.append(PageBreak())
     def cell(value, style=None):
         return _rl_paragraph(value, style)
@@ -1738,6 +1776,17 @@ def _build_reimbursement_letter_html(context):
         for index, description, amount in context["items"]
     )
     extra_header_class = " extra-header-space" if context.get("extra_header_space") else ""
+    approvers = context["leave_approver_signatures"]
+    earlier_signatures_html = "".join(
+        _letter_signature_html(name, position, class_name="head-signature")
+        for name, position in approvers[:-1]
+    )
+    last_approver_html = (
+        '<section class="last-approver-row">'
+        + _letter_signature_html(*approvers[-1], class_name="last-approver")
+        + '</section>'
+        if approvers else ""
+    )
 
     return f"""<!doctype html>
 <html lang="th">
@@ -1839,20 +1888,31 @@ def _build_reimbursement_letter_html(context):
   }}
   .head-signature {{
     width: 50%;
-    margin-top: 16mm ;
+    margin-top: {SIGNATURE_FIRST_GAP_MM}mm;
     margin-left: 51%;
     text-align: center;
     break-inside: avoid;
   }}
-  .head-signature + .head-signature {{ margin-top: 22mm; }}
-  .approval-signature {{
-    width: 50%;
-    margin-top: 16mm ;
-    margin-right: 51%;
+  .head-signature + .head-signature {{ margin-top: {SIGNATURE_NEXT_GAP_MM}mm; }}
+  .last-approver-row {{
+    display: grid;
+    grid-template-columns: 50% 50%;
+    margin-top: {SIGNATURE_FIRST_GAP_MM}mm;
     text-align: center;
     break-inside: avoid;
+    page-break-inside: avoid;
   }}
-  .approval-title {{ margin-bottom: 14mm; }}
+  .head-signature + .last-approver-row {{ margin-top: {SIGNATURE_NEXT_GAP_MM}mm; }}
+  .last-approver {{ grid-column: 2; }}
+  .dean-approval {{
+    width: 50%;
+    margin-top: {SIGNATURE_FIRST_GAP_MM}mm;
+    text-align: center;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }}
+  .last-approver-row + .dean-approval {{ margin-top: 0; }}
+  .approval-title {{ margin-bottom: 21mm; }}
 </style>
 </head>
 <body>
@@ -1882,16 +1942,11 @@ def _build_reimbursement_letter_html(context):
     <p class="government-text">{escaped(context['reference_text'])}</p>
     <p class="closing">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง</p>
   </section>
-  {''.join(
-      '<section class="head-signature">'
-      f'<div>({escaped(name)})</div><div>{escaped(position)}</div>'
-      '</section>'
-      for name, position in context['leave_approver_signatures']
-  )}
-  <section class="approval-signature">
+  {earlier_signatures_html}
+  {last_approver_html}
+  <section class="dean-approval">
     <div class="approval-title">อนุมัติ</div>
-    <div>({html.escape(_get_dean_name())})</div>
-    <div>คณบดีคณะเทคนิคการแพทย์</div>
+    {_letter_signature_html(_get_dean_name(), 'คณบดีคณะเทคนิคการแพทย์')}
   </section>
 </main>
 </body>
@@ -2765,7 +2820,6 @@ def _build_overdue_reminders_html(letters):
     pages = []
     for letter in letters:
         paragraphs = _overdue_reminder_paragraphs(letter)
-        signature = html.escape(letter["dean_name"] or "................................................", quote=True)
         pages.append(f"""
 <main class="letter-page">
   <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
@@ -2781,8 +2835,8 @@ def _build_overdue_reminders_html(letters):
     <p>{paragraphs[1]}</p>
     <p>{paragraphs[2]}</p>
     <p class="closing">{paragraphs[3]}</p>
+    {_letter_signature_html(letter['dean_name'] or '................................................', 'คณบดีคณะเทคนิคการแพทย์', class_name='signature')}
   </section>
-  <div class="signature">({signature})<br>คณบดีคณะเทคนิคการแพทย์</div>
 </main>""")
     return f"""<!doctype html>
 <html lang="th"><head><meta charset="utf-8"><title>หนังสือเร่งรัดการส่งใช้เงินยืม</title>
@@ -2799,10 +2853,10 @@ html, body {{ margin: 0; padding: 0; color: #000; font-family: SarabunPDF, sans-
 .document-info {{ position: absolute; top: 41.3mm; left: 19.4mm; right: 19.4mm; line-height: 1.25; }}
 .letter-body {{ position: absolute; top: 72mm; left: 20mm; right: 20mm; text-align: justify; text-justify: inter-word; }}
 .letter-body p {{ margin: 0 0 2.1mm; text-indent: 25mm; }}
-.letter-body .closing {{ text-indent: 25mm; }}
+.letter-body .closing {{ text-indent: 25mm; margin-bottom: 0; }}
 .letter-body b {{ font-weight: 700; }}
 .letter-body u {{ text-decoration: underline; text-decoration-thickness: 0.4px; text-underline-offset: 1px; }}
-.signature {{ position: absolute; top: 189mm; left: 50%; right: 20mm; text-align: center; line-height: 1.3; }}
+.signature {{ margin-top: {SIGNATURE_FIRST_GAP_MM}mm; margin-left: 51%; text-align: center; line-height: 1.3; break-inside: avoid; }}
 </style></head><body>{''.join(pages)}</body></html>"""
 
 
@@ -2823,6 +2877,7 @@ def _render_overdue_reminders_with_reportlab(letters):
     right = ParagraphStyle("OverdueRight", parent=normal, alignment=TA_RIGHT)
     center = ParagraphStyle("OverdueCenter", parent=normal, alignment=TA_CENTER)
     body = ParagraphStyle("OverdueBody", parent=normal, alignment=TA_JUSTIFY, firstLineIndent=70, spaceAfter=8)
+    closing_style = ParagraphStyle("OverdueClosing", parent=body, spaceAfter=0)
     story = []
     for index, letter in enumerate(letters):
         if index:
@@ -2843,11 +2898,14 @@ def _render_overdue_reminders_with_reportlab(letters):
             Paragraph(f"เรียน&nbsp;&nbsp;{html.escape(letter['borrower_name'])}", normal),
             Spacer(1, 17),
         ])
-        for paragraph in _overdue_reminder_paragraphs(letter):
-            story.append(Paragraph(paragraph, body))
-        story.append(Spacer(1, 17))
-        signature = html.escape(letter["dean_name"] or "................................................")
-        story.append(Paragraph(f"({signature})<br/>คณบดีคณะเทคนิคการแพทย์", center))
+        paragraphs = _overdue_reminder_paragraphs(letter)
+        for index, paragraph in enumerate(paragraphs):
+            story.append(Paragraph(paragraph, closing_style if index == len(paragraphs) - 1 else body))
+        story.append(Spacer(1, SIGNATURE_FIRST_GAP))
+        story.append(_letter_signature_paragraph(
+            letter["dean_name"] or "................................................",
+            "คณบดีคณะเทคนิคการแพทย์", center,
+        ))
     doc.build(story)
     return output.getvalue()
 
