@@ -2088,6 +2088,7 @@ from app.advance_payment.models import (
     CashAdvanceAccountManager,
     CashAdvanceBorrowingTicket,
     CashAdvanceImportBatch,
+    OverdueReminderLog,
     CashManagementNotifications,
     ClosingDocument,
     ClosingDocumentLink,
@@ -2190,6 +2191,7 @@ admin.add_view(AdvancePaymentStatusAdminModelView(
 
 admin.add_view(BorrowingTicketAdminModelView(CashAdvanceBorrowingTicket, db.session, category='Advance Payment'))
 admin.add_view(ModelView(CashAdvanceImportBatch, db.session, category='Advance Payment'))
+admin.add_view(ModelView(OverdueReminderLog, db.session, category='Advance Payment'))
 admin.add_view(ModelView(CashManagementNotifications, db.session, category='Advance Payment'))
 admin.add_view(ReturnDetailAdminModelView(ReturnDetail, db.session, category='Advance Payment'))
 admin.add_view(ModelView(ReturnReceiptItem, db.session, category='Advance Payment'))

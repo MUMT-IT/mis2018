@@ -6159,6 +6159,13 @@ def export_overdue_reminders():
         dean = getattr(dean_position, "staff", None)
     dean_person = getattr(dean, "personal_info", None)
     dean_name = getattr(dean_person, "fullname", None) if dean_person is not None else None
+    creator_org = _get_staff_org(current_user)
+    header_org = getattr(creator_org, "parent", None) or creator_org
+    header_department_name = getattr(header_org, "name", None)
+    header_telephone = (
+        getattr(creator_org, "phone_number", None)
+        or getattr(header_org, "phone_number", None)
+    )
     letters = []
     logged_ticket_ids = []
     try:
@@ -6167,7 +6174,12 @@ def export_overdue_reminders():
             if remaining <= 0:
                 continue
             letters.append(build_reminder_letter(
-                ticket, target_date=target_date, remaining_amount=remaining, dean_name=dean_name,
+                ticket,
+                target_date=target_date,
+                remaining_amount=remaining,
+                dean_name=dean_name,
+                header_department_name=header_department_name,
+                header_telephone=header_telephone,
             ))
             logged_ticket_ids.append(ticket.id)
         if not letters:

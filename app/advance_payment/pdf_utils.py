@@ -229,7 +229,7 @@ def _build_global_header(
                         fillColor=colors.white))
 
     header_right = Paragraph(
-        f"<br/><br/>{department_name}<br/>"
+        f"{department_name}<br/>"
         f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
         f"โทร.{telephone_number}",
         paragraph_style,
@@ -250,6 +250,7 @@ def _build_global_header(
         )
     header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("VALIGN", (2, 0), (2, 0), "TOP"),
         ("ALIGN", (1, 0), (1, 0), "CENTER"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
         ("RIGHTPADDING", (0, 0), (-1, -1), 0),
@@ -751,13 +752,10 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=68, rightMargin=50,
                             topMargin=36, bottomMargin=40,
                             title=f"รายงานสถานะเงินสดย่อย ประจำเดือน{month_label}")
-    story = [p("MT-Petty Cash-004", right)]
-    if PDF_LOGO_PATH.is_file():
-        logo = Image(str(PDF_LOGO_PATH), width=70, height=70)
-        logo.hAlign = "CENTER"
-        story.append(logo)
+    story = [p("MT-Petty Cash-004", right), _build_global_header(
+        department, telephone, right, logo_size=73,
+    )]
     story.extend([
-        p(f"{department}<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>โทร.{telephone}", right),
         Spacer(1, 24), p("ที่"), p("วันที่"),
         p(f"เรื่อง รายงานสถานะเงินสดย่อยของ{department} ประจำเดือน{month_label}"),
         Spacer(1, 8), p("เรียน คณบดีคณะเทคนิคการแพทย์"), Spacer(1, 8),
@@ -963,27 +961,27 @@ def _build_fnar02_html(memo_context):
     break-after: page;
   }}
   .memo-page {{
-    width: 200mm;
-    padding: 12.7mm 14.82mm 7mm;
+    width: 210mm;
+    padding: 7.8mm 19.4mm 7mm;
   }}
   .contract-page {{
     width: 190mm;
     padding: 14.8mm 0 5mm;
     break-after: auto;
   }}
-  .memo-header {{ height: 37mm; position: relative; }}
+  .memo-header {{ height: 27.5mm; position: relative; margin-bottom: 6mm; }}
   .logo {{
     position: absolute;
     top: 0;
     left: 50%;
-    width: 25.75mm;
-    height: 25.75mm;
+    width: 23.3mm;
+    height: 23.3mm;
     transform: translateX(-50%);
     object-fit: contain;
   }}
   .organization {{
     position: absolute;
-    top: 7mm;
+    top: 6mm;
     right: 0;
     width: 77mm;
     text-align: right;
@@ -1349,50 +1347,11 @@ def _rl_doc(output, title, *, left=55, right=55, top=25, bottom=25):
 
 
 def _rl_letterhead(department, telephone):
-    # Match the five-column letterhead in the original ReportLab forms.
-    logo = Image(str(PDF_LOGO_PATH), width=73, height=73)
-    logo.hAlign = "CENTER"
-    right = Paragraph(
-        f"<br/><br/>{html.escape(str(department))}<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล"
-        f"<br/>โทร.{html.escape(str(telephone))}", styles["ThaiRight"],
-    )
-    column_widths = [100, 92, 66, 212, 1]
-    table = Table([["", "", logo, right, ""]], colWidths=column_widths, hAlign="LEFT")
-    table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (2, 0), (2, 0), "CENTER"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    return table
+    return _build_global_header(department, telephone, styles["ThaiRight"], logo_size=73)
 
 
 def _rl_fnar02_letterhead(department, telephone, width):
-    """Center the FNAR02 seal on the page, independent of the right-hand text."""
-    logo_size = 73
-    side_width = (width - logo_size) / 2
-    logo = Image(str(PDF_LOGO_PATH), width=logo_size, height=logo_size)
-    organization = Paragraph(
-        f"<br/><br/>{html.escape(str(department))}<br/>"
-        "คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
-        f"โทร.{html.escape(str(telephone))}",
-        styles["ThaiRight"],
-    )
-    table = Table(
-        [["", logo, organization]],
-        colWidths=[side_width, logo_size, side_width],
-        hAlign="CENTER",
-    )
-    table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    return table
+    return _build_global_header(department, telephone, styles["ThaiRight"], logo_size=73)
 
 
 def _rl_document_info(subject, width):
@@ -2299,7 +2258,7 @@ def generate_fund_request_pdf(fund_request):
         requester_user = getattr(borrowing_ticket, "borrower_user", None) or _get_user_by_id(getattr(borrowing_ticket, "borrower_id", None))
         requester_pos = getattr(requester_user, "position", "") or requester_pos
         purpose = f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {_pdf_text(borrowing_ticket.number)}"
-    
+
     # Resolve the organization by its stable ID; department_name is legacy display data.
     org = db.session.query(Org).get(getattr(fund_request, "org_id", None))
     dept_lookup = getattr(fund_request, "org_id", None) or getattr(org, "name", None)
@@ -2479,7 +2438,7 @@ def generate_fund_request_pdf(fund_request):
 
         # ส่วนดอกเบี้ยเติมข้อมูลจริง
         box_interest = chk_box_checked
-        
+
         # รองรับทั้งค่าเก่าแบบ "มิถุนายน พ.ศ. 2567" และค่าใหม่แบบ "06/2567"
         period_value = str(fund_request.period_year or "")
         period_label = _format_interest_period_label(period_value)
@@ -2707,7 +2666,10 @@ def append_petty_cash_monthly_attachments(report_pdf, *, setting, month_start,
     return output.getvalue()
 
 
-def build_reminder_letter(ticket, *, target_date, remaining_amount, dean_name=None):
+def build_reminder_letter(
+    ticket, *, target_date, remaining_amount, dean_name=None,
+    header_department_name=None, header_telephone=None,
+):
     """Capture the values shown in one overdue borrowing reminder."""
     amount = Decimal(str(remaining_amount)).quantize(Decimal("0.01"))
     if not ticket.due_date or ticket.due_date >= target_date or amount <= 0:
@@ -2716,6 +2678,17 @@ def build_reminder_letter(ticket, *, target_date, remaining_amount, dean_name=No
     borrower_name = (ticket.borrower_name or "").strip()
     if not number or not borrower_name:
         raise ValueError(f"Ticket {ticket.id} has no number or borrower name")
+    if not header_department_name:
+        borrower_org = getattr(
+            getattr(getattr(ticket, "borrower_user", None), "personal_info", None),
+            "org", None,
+        )
+        header_org = getattr(borrower_org, "parent", None) or borrower_org
+        header_department_name = getattr(header_org, "name", None) or PDF_BLANK
+        header_telephone = (
+            getattr(borrower_org, "phone_number", None)
+            or getattr(header_org, "phone_number", None)
+        )
     approval_date = ticket.borrowing_approval_date
     if approval_date:
         date_phrase = f"ลงวันที่ {thai_long_date(approval_date)}"
@@ -2733,6 +2706,8 @@ def build_reminder_letter(ticket, *, target_date, remaining_amount, dean_name=No
         "remaining_amount": amount,
         "amount_text": bahttext(amount),
         "dean_name": (dean_name or "").strip(),
+        "header_department_name": header_department_name,
+        "telephone_number": _pdf_telephone_number(header_telephone or PDF_BLANK),
     }
 
 
@@ -2752,7 +2727,7 @@ def _overdue_reminder_paragraphs(letter):
         "หากไม่สามารถคืนภายใน 60 วัน หลังครบกำหนดตามสัญญา ต้องทำ"
         "<u width=\"0.35\">หนังสือชี้แจงเหตุผลที่ชัดเจนและส่งล่วงหน้า 7 วัน</u> "
         "<b>หากไม่ดำเนินการตามกำหนด คณะฯ จะดำเนินการหักเงินเดือน ค่าจ้าง เบี้ยหวัด "
-        "บำเหน็จ บำนาญ หรือเงินอื่นใด ตามที่ท่านได้ลงนามในสัญญาการยืมเงิน</b> "
+        "บำเหน็จ บำนาญ หรือเงินอื่นใดตามที่ท่านได้ลงนามในสัญญาการยืมเงิน</b> "
         "ทั้งนี้หากท่านดำเนินการส่งใช้เงินยืมแล้วในระหว่างการจัดส่งหนังสือฉบับนี้ "
         "ต้องขออภัยมา ณ โอกาสนี้",
         "จึงเรียนมาเพื่อโปรดดำเนินการด้วย จักเป็นพระคุณยิ่ง",
@@ -2768,7 +2743,7 @@ def _build_overdue_reminders_html(letters):
         pages.append(f"""
 <main class="letter-page">
   <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
-  <div class="organization">งานคลังและพัสดุ<br>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>โทร. 0-2441-4372-5 ต่อ 2820, 2830</div>
+  <div class="organization">{html.escape(letter['header_department_name'], quote=True)}<br>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>โทร.{html.escape(letter['telephone_number'], quote=True)}</div>
   <div class="document-info">
     <div>ที่</div>
     <div>วันที่ {html.escape(letter['target_date'], quote=True)}</div>
@@ -2791,11 +2766,11 @@ def _build_overdue_reminders_html(letters):
 @page {{ size: A4; margin: 0; }}
 * {{ box-sizing: border-box; }}
 html, body {{ margin: 0; padding: 0; color: #000; font-family: SarabunPDF, sans-serif; }}
-.letter-page {{ position: relative; width: 210mm; height: 297mm; break-after: page; page-break-after: always; font-size: 15.5pt; line-height: 1.28; }}
+  .letter-page {{ position: relative; width: 210mm; height: 297mm; break-after: page; page-break-after: always; padding: 7.8mm 19.4mm; font-size: 15.5pt; line-height: 1.28; }}
 .letter-page:last-child {{ break-after: auto; page-break-after: auto; }}
-.logo {{ position: absolute; top: 19mm; left: 50%; width: 24mm; height: 24mm; object-fit: contain; transform: translateX(-50%); }}
-.organization {{ position: absolute; top: 43mm; right: 19.5mm; text-align: right; }}
-.document-info {{ position: absolute; top: 63.5mm; left: 20mm; right: 20mm; line-height: 1.25; }}
+.logo {{ position: absolute; top: 7.8mm; left: 50%; width: 23.3mm; height: 23.3mm; object-fit: contain; transform: translateX(-50%); }}
+.organization {{ position: absolute; top: 18.8mm; right: 19.4mm; text-align: right; }}
+.document-info {{ position: absolute; top: 41.3mm; left: 19.4mm; right: 19.4mm; line-height: 1.25; }}
 .letter-body {{ position: absolute; top: 100mm; left: 20mm; right: 20mm; text-align: justify; text-justify: inter-word; }}
 .letter-body p {{ margin: 0 0 2.1mm; text-indent: 25mm; }}
 .letter-body .closing {{ text-indent: 25mm; }}
@@ -2810,8 +2785,8 @@ def _render_overdue_reminders_with_reportlab(letters):
     pdfmetrics.registerFontFamily("Sarabun", normal="Sarabun", bold="SarabunBold")
     output = BytesIO()
     doc = SimpleDocTemplate(
-        output, pagesize=A4, leftMargin=53, rightMargin=53,
-        topMargin=36, bottomMargin=38,
+        output, pagesize=A4, leftMargin=68, rightMargin=50,
+        topMargin=16, bottomMargin=38,
         title="หนังสือเร่งรัดการส่งใช้เงินยืม",
     )
     # Do not use CJK wrapping here. ReportLab treats many CJK-split lines as
@@ -2826,21 +2801,25 @@ def _render_overdue_reminders_with_reportlab(letters):
     for index, letter in enumerate(letters):
         if index:
             story.append(PageBreak())
-        logo = Image(str(PDF_LOGO_PATH), width=63, height=63)
-        logo.hAlign = "CENTER"
-        story.extend([Spacer(1, 12), logo, Paragraph(
-            "งานคลังและพัสดุ<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>โทร. 0-2441-4372-5 ต่อ 2820, 2830", right,
-        ), Spacer(1, 13)])
+        story.extend([
+            _build_global_header(
+                letter["header_department_name"],
+                letter["telephone_number"],
+                right,
+                logo_size=63,
+            ),
+            Spacer(1, 13),
+        ])
         story.extend([
             Paragraph("ที่", normal),
-            Paragraph(f"วันที่ {html.escape(letter['target_date'])}", normal),
+            Paragraph(f"วันที่", normal),
             Paragraph("เรื่อง&nbsp;&nbsp;ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม", normal),
             Paragraph(f"เรียน&nbsp;&nbsp;{html.escape(letter['borrower_name'])}", normal),
             Spacer(1, 17),
         ])
         for paragraph in _overdue_reminder_paragraphs(letter):
             story.append(Paragraph(paragraph, body))
-        story.append(Spacer(1, 95))
+        story.append(Spacer(1, 17))
         signature = html.escape(letter["dean_name"] or "................................................")
         story.append(Paragraph(f"({signature})<br/>คณบดีคณะเทคนิคการแพทย์", center))
     doc.build(story)
