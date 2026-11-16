@@ -511,4 +511,11 @@
             },
         });
     </script>
+    <script>
+        $(document).ready(function () {
+            window.document.addEventListener("closeModal", function () {
+                htmx.removeClass(htmx.find('#participant-list-modal'), "is-active")
+            })
+        })
+    </script>
 {% endblock %}
