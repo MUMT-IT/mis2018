@@ -487,6 +487,25 @@ def _get_staff_org(staff):
     return org
 
 
+def _find_dean_name(org=None):
+    """Return the current dean name from staff head-position records."""
+    query = db.session.query(StaffHeadPosition).filter(
+        func.replace(StaffHeadPosition.position, " ", "").contains("คณบดีคณะ")
+    )
+    if org is not None and getattr(org, "id", None):
+        scoped = query.filter(StaffHeadPosition.org_id == org.id).order_by(
+            StaffHeadPosition.id.desc()
+        ).first()
+        if scoped is not None:
+            dean = getattr(scoped, "staff", None)
+            person = getattr(dean, "personal_info", None)
+            return getattr(person, "fullname", None) if person is not None else None
+    record = query.order_by(StaffHeadPosition.id.desc()).first()
+    dean = getattr(record, "staff", None) if record is not None else None
+    person = getattr(dean, "personal_info", None)
+    return getattr(person, "fullname", None) if person is not None else None
+
+
 def _is_staff_org_head(staff):
     org = _get_staff_org(staff)
     return bool(
@@ -6146,21 +6165,9 @@ def export_overdue_reminders():
         .order_by(BorrowingTicket.due_date.asc(), BorrowingTicket.id.asc())
         .all()
     )
-    faculty = db.session.query(Org).filter(func.trim(Org.name) == "คณะเทคนิคการแพทย์").first()
-    head_email = (getattr(faculty, "head", None) or "").strip()
-    dean = db.session.query(StaffAccount).filter_by(email=head_email).first() if head_email else None
-    if dean is None:
-        dean_position = (
-            db.session.query(StaffHeadPosition)
-            .filter(func.replace(StaffHeadPosition.position, " ", "") == "คณบดีคณะเทคนิคการแพทย์")
-            .order_by(StaffHeadPosition.id.desc())
-            .first()
-        )
-        dean = getattr(dean_position, "staff", None)
-    dean_person = getattr(dean, "personal_info", None)
-    dean_name = getattr(dean_person, "fullname", None) if dean_person is not None else None
     creator_org = _get_staff_org(current_user)
     header_org = getattr(creator_org, "parent", None) or creator_org
+    dean_name = _find_dean_name(header_org)
     header_department_name = getattr(header_org, "name", None)
     header_telephone = (
         getattr(creator_org, "phone_number", None)

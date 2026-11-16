@@ -269,6 +269,19 @@ def missing_department_notice():
     return PDF_BLANK
 
 
+def _get_dean_name():
+    """Return the latest staff member assigned to a dean head position."""
+    record = (
+        db.session.query(StaffHeadPosition)
+        .filter(func.replace(StaffHeadPosition.position, " ", "").contains("คณบดี"))
+        .order_by(StaffHeadPosition.id.desc())
+        .first()
+    )
+    staff = getattr(record, "staff", None) if record is not None else None
+    personal_info = getattr(staff, "personal_info", None)
+    return getattr(personal_info, "fullname", None) or PDF_BLANK
+
+
 def _get_user_by_id(user_id):
     if not user_id:
         return None
@@ -1187,7 +1200,7 @@ def _build_fnar02_html(memo_context):
         <div class="signature-grid">
           <div class="signature-block">
             <div class="signature-line"><span>ลงชื่อผู้อนุมัติ</span><span class="signature-rule"></span><span></span></div>
-            <div class="signature-name">(&nbsp;ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง&nbsp;)</div>
+            <div class="signature-name">(&nbsp;{html.escape(_get_dean_name())}&nbsp;)</div>
             <div class="signature-position">คณบดีคณะเทคนิคการแพทย์</div>
           </div>
           <div class="date-line"><span>วันที่</span><span class="signature-rule"></span></div>
@@ -1429,7 +1442,7 @@ def _render_reimbursement_with_reportlab(context):
             colWidths=[width * .36, width * .64])
         story.extend([signature, Spacer(1, 38)])
     approval = Table([[Paragraph(
-        "อนุมัติ<br/><br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)"
+        f"อนุมัติ<br/><br/><br/>({html.escape(_get_dean_name())})"
         "<br/>คณบดีคณะเทคนิคการแพทย์", styles["ThaiCenter"]), ""]],
         colWidths=[width * .64, width * .36])
     story.append(approval)
@@ -1652,7 +1665,7 @@ def _render_fnar02_with_reportlab(context):
         [cell("คำอนุมัติ", styles["ThaiCenterBold"]),
          cell(f"อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นจำนวนเงิน {context['amount_numeric']} บาท "
               f"({context['amount_text']})"),
-         signature("ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง", "คณบดีคณะเทคนิคการแพทย์", "ลงชื่อผู้อนุมัติ")],
+         signature(_get_dean_name(), "คณบดีคณะเทคนิคการแพทย์", "ลงชื่อผู้อนุมัติ")],
         [cell("ใบรับเงิน", styles["ThaiCenterBold"]),
          cell(f"ได้รับเงินยืมจำนวนเงิน {context['amount_numeric']} บาท "
               f"({context['amount_text']}) ไว้เป็นการถูกต้องแล้ว"),
@@ -1864,7 +1877,7 @@ def _build_reimbursement_letter_html(context):
   )}
   <section class="approval-signature">
     <div class="approval-title">อนุมัติ</div>
-    <div>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)</div>
+    <div>({html.escape(_get_dean_name())})</div>
     <div>คณบดีคณะเทคนิคการแพทย์</div>
   </section>
 </main>
@@ -2771,12 +2784,12 @@ html, body {{ margin: 0; padding: 0; color: #000; font-family: SarabunPDF, sans-
 .logo {{ position: absolute; top: 7.8mm; left: 50%; width: 23.3mm; height: 23.3mm; object-fit: contain; transform: translateX(-50%); }}
 .organization {{ position: absolute; top: 18.8mm; right: 19.4mm; text-align: right; }}
 .document-info {{ position: absolute; top: 41.3mm; left: 19.4mm; right: 19.4mm; line-height: 1.25; }}
-.letter-body {{ position: absolute; top: 100mm; left: 20mm; right: 20mm; text-align: justify; text-justify: inter-word; }}
+.letter-body {{ position: absolute; top: 72mm; left: 20mm; right: 20mm; text-align: justify; text-justify: inter-word; }}
 .letter-body p {{ margin: 0 0 2.1mm; text-indent: 25mm; }}
 .letter-body .closing {{ text-indent: 25mm; }}
 .letter-body b {{ font-weight: 700; }}
 .letter-body u {{ text-decoration: underline; text-decoration-thickness: 0.4px; text-underline-offset: 1px; }}
-.signature {{ position: absolute; top: 229mm; left: 50%; right: 20mm; text-align: center; line-height: 1.3; }}
+.signature {{ position: absolute; top: 189mm; left: 50%; right: 20mm; text-align: center; line-height: 1.3; }}
 </style></head><body>{''.join(pages)}</body></html>"""
 
 
