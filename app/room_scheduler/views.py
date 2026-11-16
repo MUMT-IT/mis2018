@@ -1212,6 +1212,13 @@ def _participant_meeting_title(event):
     return meeting_title or 'ประชุม'
 
 
+def _participant_document_download_name(event, extension):
+    meeting_title = _participant_meeting_title(event)
+    safe_title = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', ' ', meeting_title)
+    safe_title = ' '.join(safe_title.split()).strip(' .')[:100].rstrip(' .')
+    return f'ใบรายชื่อ{safe_title or event.id}.{extension}'
+
+
 def generate_participant_list_document(event):
     from io import BytesIO
 
@@ -1405,14 +1412,193 @@ def download_event_participants(event_id):
         abort(404)
 
     buffer = generate_participant_list_document(event)
-    meeting_title = _participant_meeting_title(event)
-    safe_title = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', ' ', meeting_title)
-    safe_title = ' '.join(safe_title.split()).strip(' .')[:100].rstrip(' .')
     return send_file(
         buffer,
         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         as_attachment=True,
-        download_name=f'ใบรายชื่อ{safe_title or event.id}.docx',
+        download_name=_participant_document_download_name(event, 'docx'),
+    )
+
+
+def generate_participant_list_pdf(event):
+    from io import BytesIO
+    from xml.sax.saxutils import escape
+
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    font_dir = os.path.join(current_app.root_path, 'static', 'fonts')
+    regular_font = 'TH SarabunPSK'
+    bold_font = 'TH SarabunPSK-Bold'
+    registered_fonts = pdfmetrics.getRegisteredFontNames()
+    if regular_font not in registered_fonts:
+        pdfmetrics.registerFont(TTFont(regular_font, os.path.join(font_dir, 'THSarabunNew.ttf')))
+    if bold_font not in registered_fonts:
+        pdfmetrics.registerFont(TTFont(bold_font, os.path.join(font_dir, 'THSarabunNewBold.ttf')))
+    pdfmetrics.registerFontFamily(
+        regular_font,
+        normal=regular_font,
+        bold=bold_font,
+        italic=regular_font,
+        boldItalic=bold_font,
+    )
+
+    def local_datetime(value):
+        if value.tzinfo is None:
+            return localtz.localize(value)
+        return value.astimezone(localtz)
+
+    thai_months = (
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    )
+    thai_weekdays = (
+        'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี',
+        'วันศุกร์', 'วันเสาร์', 'วันอาทิตย์',
+    )
+    start = local_datetime(event.start)
+    end = local_datetime(event.end)
+
+    def thai_date(value):
+        return f'{value.day} {thai_months[value.month - 1]} {value.year + 543}'
+
+    if start.date() == end.date():
+        date_line = (
+            f'ใน{thai_weekdays[start.weekday()]} ที่ {thai_date(start)} '
+            f'เวลา {start:%H.%M} - {end:%H.%M} น.'
+        )
+    else:
+        date_line = (
+            f'ใน{thai_weekdays[start.weekday()]} ที่ {thai_date(start)} เวลา {start:%H.%M} น. '
+            f'ถึง{thai_weekdays[end.weekday()]} ที่ {thai_date(end)} เวลา {end:%H.%M} น.'
+        )
+
+    room_location = f'ห้องประชุม {event.room_names}'
+    room_floors = list(dict.fromkeys(
+        str(booked_room.floor).strip()
+        for booked_room in event.booked_rooms
+        if booked_room.floor and str(booked_room.floor).strip()
+    ))
+    if room_floors:
+        floor_text = ' / '.join(
+            floor if floor.startswith('ชั้น') else f'ชั้น {floor}'
+            for floor in room_floors
+        )
+        room_location += f' {floor_text}'
+    campus = (event.room.location or '').strip() if event.room else ''
+    campus_lower = campus.lower()
+    if 'ศิริราช' in campus or 'siriraj' in campus_lower:
+        building_location = 'อาคารคณะเทคนิคการแพทย์ ศิริราช'
+    elif 'ศาลายา' in campus or 'salaya' in campus_lower:
+        building_location = 'อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ ศาลายา'
+    else:
+        building_location = campus
+    if building_location:
+        room_location += f' {building_location}'
+
+    title_style = ParagraphStyle(
+        'ParticipantPdfTitle', fontName=bold_font, fontSize=16, leading=18,
+        alignment=TA_CENTER, spaceAfter=0,
+    )
+    body_style = ParagraphStyle(
+        'ParticipantPdfBody', fontName=regular_font, fontSize=16, leading=18,
+    )
+    body_center_style = ParagraphStyle(
+        'ParticipantPdfBodyCenter', parent=body_style, alignment=TA_CENTER,
+    )
+    header_style = ParagraphStyle(
+        'ParticipantPdfHeader', fontName=bold_font, fontSize=16, leading=18,
+        alignment=TA_CENTER,
+    )
+
+    story = [
+        Paragraph('รายชื่อผู้เข้าร่วม', title_style),
+        Paragraph(escape(_participant_meeting_title(event)), title_style),
+        Paragraph(escape(date_line), title_style),
+        Paragraph(escape(room_location), title_style),
+        Spacer(1, 8 * mm),
+    ]
+
+    rows = [[Paragraph('ลำดับ', header_style), Paragraph('ชื่อ-สกุล', header_style)]]
+    for index, participant in enumerate(event.participants or [], start=1):
+        rows.append([
+            Paragraph(str(index), body_center_style),
+            Paragraph(escape(participant.fullname or ''), body_style),
+        ])
+    participant_table = Table(rows, colWidths=[24 * mm, 146 * mm], repeatRows=1)
+    participant_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.extend([participant_table, Spacer(1, 8 * mm)])
+
+    cost_centers = ', '.join(center.id for center in (event.iocode.cost_center or [])) if event.iocode else '-'
+    iocode_id = event.iocode.id if event.iocode else '-'
+    iocode_name = event.iocode.name if event.iocode else '-'
+    organizer_name = event.creator.fullname if event.creator else '-'
+    organizer_org = (
+        event.creator.personal_info.org.display_name
+        if event.creator and event.creator.personal_info and event.creator.personal_info.org
+        else '-'
+    )
+    details = [
+        [Paragraph(label, body_style), Paragraph(escape(str(value)), body_style)]
+        for label, value in (
+            ('รหัสชุดต้นทุน', cost_centers),
+            ('รหัสใบสั่งงานภายใน', iocode_id),
+            ('ผลผลิต / หมวดค่าใช้จ่าย', iocode_name),
+            ('ชื่อผู้จอง', organizer_name),
+            ('ชื่อหน่วยงานผู้จอง', organizer_org),
+        )
+    ]
+    details_table = Table(details, colWidths=[48 * mm, 122 * mm], hAlign='LEFT')
+    details_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    story.append(details_table)
+
+    buffer = BytesIO()
+    pdf = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=20 * mm,
+        leftMargin=20 * mm,
+        topMargin=12 * mm,
+        bottomMargin=18 * mm,
+        title=f'ใบรายชื่อ{_participant_meeting_title(event)}',
+    )
+    pdf.build(story)
+    buffer.seek(0)
+    return buffer
+
+
+@room.route('/events/<int:event_id>/participants.pdf')
+@login_required
+def download_event_participants_pdf(event_id):
+    event = RoomEvent.query.get(event_id)
+    if not event:
+        abort(404)
+
+    buffer = generate_participant_list_pdf(event)
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=_participant_document_download_name(event, 'pdf'),
     )
 
 
