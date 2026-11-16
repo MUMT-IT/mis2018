@@ -1363,9 +1363,9 @@ def generate_participant_list_word(event):
 
     document.add_paragraph().paragraph_format.space_after = Pt(4)
 
-    cost_centers = ', '.join(center.id for center in (event.iocode.cost_center or [])) if event.iocode else '-'
+    cost_centers = event.cost_center.id if event.cost_center else '-'
     iocode_id = event.iocode.id if event.iocode else '-'
-    iocode_name = event.iocode.name if event.iocode else '-'
+    product_code_name = event.product_code.name if event.product_code else '-'
     organizer_name = event.creator.fullname if event.creator else '-'
     organizer_org = (
         event.creator.personal_info.org.display_name
@@ -1375,7 +1375,7 @@ def generate_participant_list_word(event):
     details = (
         ('รหัสชุดต้นทุน', cost_centers),
         ('รหัสใบสั่งงานภายใน', iocode_id),
-        ('ผลผลิต / หมวดค่าใช้จ่าย', iocode_name),
+        ('ผลผลิต / หมวดค่าใช้จ่าย', product_code_name),
         ('ชื่อผู้จอง', organizer_name),
         ('ชื่อหน่วยงานผู้จอง', organizer_org),
     )
@@ -1545,9 +1545,9 @@ def generate_participant_list_pdf(event):
     ]))
     story.extend([participant_table, Spacer(1, 8 * mm)])
 
-    cost_centers = ', '.join(center.id for center in (event.iocode.cost_center or [])) if event.iocode else '-'
+    cost_centers = event.cost_center.id if event.cost_center else '-'
     iocode_id = event.iocode.id if event.iocode else '-'
-    iocode_name = event.iocode.name if event.iocode else '-'
+    product_code_name = event.product_code.name if event.product_code else '-'
     organizer_name = event.creator.fullname if event.creator else '-'
     organizer_org = (
         event.creator.personal_info.org.display_name
@@ -1559,7 +1559,7 @@ def generate_participant_list_pdf(event):
         for label, value in (
             ('รหัสชุดต้นทุน', cost_centers),
             ('รหัสใบสั่งงานภายใน', iocode_id),
-            ('ผลผลิต / หมวดค่าใช้จ่าย', iocode_name),
+            ('ผลผลิต / หมวดค่าใช้จ่าย', product_code_name),
             ('ชื่อผู้จอง', organizer_name),
             ('ชื่อหน่วยงานผู้จอง', organizer_org),
         )
