@@ -193,6 +193,13 @@ class RoomEvent(db.Model):
     secondary = db.relationship('RoomEvent', backref=db.backref('master', remote_side=[id]))
 
     @property
+    def has_code(self):
+        if self.cost_center and self.iocode and self.product_code:
+            return True
+        else:
+            return False
+
+    @property
     def booked_rooms(self):
         """Rooms held by this event, with a legacy fallback during backfill."""
         if self.rooms:
