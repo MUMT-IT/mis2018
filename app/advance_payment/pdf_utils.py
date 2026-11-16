@@ -287,6 +287,48 @@ def _build_global_header(
     return header_table
 
 
+_LETTERHEAD_HTML_CSS = """
+  .global-letterhead {
+    position: relative;
+    height: 27.5mm;
+    margin-bottom: 6mm;
+    font-size: 16pt;
+    line-height: 1.25;
+  }
+  .global-letterhead .logo {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 23.3mm;
+    height: 23.3mm;
+    transform: translateX(-50%);
+    object-fit: contain;
+  }
+  .global-letterhead .organization {
+    position: absolute;
+    top: 6mm;
+    right: 0;
+    width: 74.8mm;
+    text-align: right;
+  }
+"""
+
+
+def _letterhead_html(department_name, telephone_number):
+    """Use the same Chromium letterhead for memo, claim/return, and reminder."""
+    department = html.escape(str(department_name), quote=True)
+    telephone = html.escape(str(telephone_number), quote=True)
+    return (
+        '<header class="global-letterhead">'
+        f'<img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">'
+        '<div class="organization">'
+        f'<br>{department}<br>'
+        'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>'
+        f'โทร.{telephone}</div>'
+        '</header>'
+    )
+
+
 def missing_department_notice():
     return PDF_BLANK
 
@@ -800,7 +842,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
                             topMargin=36, bottomMargin=40,
                             title=f"รายงานสถานะเงินสดย่อย ประจำเดือน{month_label}")
     story = [p("MT-Petty Cash-004", right), _build_global_header(
-        department, telephone, right, logo_size=73,
+        department, telephone, styles["ThaiRight"], logo_size=73,
     )]
     story.extend([
         Spacer(1, 24), p("ที่"), p("วันที่"),
@@ -1011,23 +1053,7 @@ def _build_fnar02_html(memo_context):
     padding: 14.8mm 0 5mm;
     break-after: auto;
   }}
-  .memo-header {{ height: 27.5mm; position: relative; margin-bottom: 6mm; }}
-  .logo {{
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 23.3mm;
-    height: 23.3mm;
-    transform: translateX(-50%);
-    object-fit: contain;
-  }}
-  .organization {{
-    position: absolute;
-    top: 6mm;
-    right: 0;
-    width: 77mm;
-    text-align: right;
-  }}
+  {_LETTERHEAD_HTML_CSS}
   .memo-info {{
     display: grid;
     grid-template-columns: 17mm 1fr;
@@ -1147,14 +1173,7 @@ def _build_fnar02_html(memo_context):
 </head>
 <body>
 <main class="page memo-page">
-  <header class="memo-header">
-    <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
-    <div class="organization">
-      <br>{escaped['header_department_name']}<br>
-      คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>
-      โทร.{escaped['telephone_number']}
-    </div>
-  </header>
+  {_letterhead_html(memo_context['header_department_name'], memo_context['telephone_number'])}
   <section class="memo-info">
     <span>ที่</span><span>&nbsp;</span>
     <span>วันที่</span><span>&nbsp;</span>
@@ -1389,14 +1408,6 @@ def _rl_doc(output, title, *, left=55, right=55, top=25, bottom=25):
     )
 
 
-def _rl_letterhead(department, telephone):
-    return _build_global_header(department, telephone, styles["ThaiRight"], logo_size=73)
-
-
-def _rl_fnar02_letterhead(department, telephone, width):
-    return _build_global_header(department, telephone, styles["ThaiRight"], logo_size=73)
-
-
 def _rl_document_info(subject, width):
     rows = [[_rl_paragraph(label), _rl_paragraph(value)] for label, value in (
         ("ที่", PDF_BLANK), ("วันที่", PDF_BLANK), ("เรื่อง", subject),
@@ -1424,7 +1435,10 @@ def _render_reimbursement_with_reportlab(context):
         firstLineIndent=70,
     )
     story = [
-        _rl_letterhead(context["department_name"], context["telephone_number"]),
+        _build_global_header(
+            context["department_name"], context["telephone_number"],
+            styles["ThaiRight"], logo_size=73,
+        ),
         Spacer(1, 30 if context.get("extra_header_space") else 10),
         _rl_document_info(context["subject"], width), Spacer(1, 18),
     ]
@@ -1622,7 +1636,10 @@ def _render_fnar02_with_reportlab(context):
     agreement_style = ParagraphStyle(
         "ThaiFnar02Agreement", parent=styles["ThaiNormal"], firstLineIndent=45,
     )
-    story = [_rl_fnar02_letterhead(context["header_department_name"], context["telephone_number"], width),
+    story = [_build_global_header(
+        context["header_department_name"], context["telephone_number"],
+        styles["ThaiRight"], logo_size=73,
+    ),
              Spacer(1, 14), _rl_document_info("ขออนุมัติยืมเงินทดรองจ่าย", width), Spacer(1, 18)]
     paragraphs = [
         f"ด้วย{context['department_name']} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน "
@@ -1821,28 +1838,8 @@ def _build_reimbursement_letter_html(context):
     margin: 0 auto;
     padding: 7.8mm 19.4mm;
   }}
-  .letterhead {{
-    position: relative;
-    height: 27.5mm;
-    margin-bottom: 6mm;
-  }}
+  {_LETTERHEAD_HTML_CSS}
   .letter-page.extra-header-space .document-info {{ margin-top: 7mm; }}
-  .logo {{
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 23.3mm;
-    height: 23.3mm;
-    transform: translateX(-50%);
-    object-fit: contain;
-  }}
-  .organization {{
-    position: absolute;
-    top: 6mm;
-    right: 0;
-    width: 74.8mm;
-    text-align: right;
-  }}
   .document-info {{
     display: grid;
     grid-template-columns: 16.9mm minmax(0, 1fr);
@@ -1917,14 +1914,7 @@ def _build_reimbursement_letter_html(context):
 </head>
 <body>
 <main class="letter-page{extra_header_class}">
-  <header class="letterhead">
-    <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
-    <div class="organization">
-      <br>{escaped(context['department_name'])}<br>
-      คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>
-      โทร.{escaped(context['telephone_number'])}
-    </div>
-  </header>
+  {_letterhead_html(context['department_name'], context['telephone_number'])}
   <section class="document-info">
     <span>ที่</span><span>&nbsp;</span>
     <span>วันที่</span><span>&nbsp;</span>
@@ -2822,8 +2812,7 @@ def _build_overdue_reminders_html(letters):
         paragraphs = _overdue_reminder_paragraphs(letter)
         pages.append(f"""
 <main class="letter-page">
-  <img class="logo" src="{PDF_LOGO_DATA_URI}" alt="ตรามหาวิทยาลัยมหิดล">
-  <div class="organization">{html.escape(letter['header_department_name'], quote=True)}<br>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>โทร.{html.escape(letter['telephone_number'], quote=True)}</div>
+  {_letterhead_html(letter['header_department_name'], letter['telephone_number'])}
   <div class="document-info">
     <div>ที่</div>
     <div>วันที่ {html.escape(letter['target_date'], quote=True)}</div>
@@ -2848,8 +2837,7 @@ def _build_overdue_reminders_html(letters):
 html, body {{ margin: 0; padding: 0; color: #000; font-family: SarabunPDF, sans-serif; }}
   .letter-page {{ position: relative; width: 210mm; height: 297mm; break-after: page; page-break-after: always; padding: 7.8mm 19.4mm; font-size: 15.5pt; line-height: 1.28; }}
 .letter-page:last-child {{ break-after: auto; page-break-after: auto; }}
-.logo {{ position: absolute; top: 7.8mm; left: 50%; width: 23.3mm; height: 23.3mm; object-fit: contain; transform: translateX(-50%); }}
-.organization {{ position: absolute; top: 18.8mm; right: 19.4mm; text-align: right; }}
+{_LETTERHEAD_HTML_CSS}
 .document-info {{ position: absolute; top: 41.3mm; left: 19.4mm; right: 19.4mm; line-height: 1.25; }}
 .letter-body {{ position: absolute; top: 72mm; left: 20mm; right: 20mm; text-align: justify; text-justify: inter-word; }}
 .letter-body p {{ margin: 0 0 2.1mm; text-indent: 25mm; }}
@@ -2874,7 +2862,6 @@ def _render_overdue_reminders_with_reportlab(letters):
     # The regular wrapper can handle the Thai spaces in these paragraphs and
     # allows justification to work on every non-final line.
     normal = ParagraphStyle("OverdueNormal", fontName="Sarabun", fontSize=15.5, leading=21)
-    right = ParagraphStyle("OverdueRight", parent=normal, alignment=TA_RIGHT)
     center = ParagraphStyle("OverdueCenter", parent=normal, alignment=TA_CENTER)
     body = ParagraphStyle("OverdueBody", parent=normal, alignment=TA_JUSTIFY, firstLineIndent=70, spaceAfter=8)
     closing_style = ParagraphStyle("OverdueClosing", parent=body, spaceAfter=0)
@@ -2886,8 +2873,8 @@ def _render_overdue_reminders_with_reportlab(letters):
             _build_global_header(
                 letter["header_department_name"],
                 letter["telephone_number"],
-                right,
-                logo_size=63,
+                styles["ThaiRight"],
+                logo_size=73,
             ),
             Spacer(1, 13),
         ])
