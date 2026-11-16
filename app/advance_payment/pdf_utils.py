@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from .date_utils import reference_date_long, thai_long_date
 from bahttext import bahttext
+from sqlalchemy import func
 
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether, PageBreak, HRFlowable
@@ -269,17 +270,29 @@ def missing_department_notice():
     return PDF_BLANK
 
 
-def _get_dean_name():
-    """Return the latest staff member assigned to a dean head position."""
+def _get_head_position_name(position_keyword):
+    """Return the latest staff member assigned to a matching head position."""
     record = (
         db.session.query(StaffHeadPosition)
-        .filter(func.replace(StaffHeadPosition.position, " ", "").contains("คณบดี"))
+        .filter(
+            func.replace(StaffHeadPosition.position, " ", "").contains(
+                position_keyword.replace(" ", "")
+            )
+        )
         .order_by(StaffHeadPosition.id.desc())
         .first()
     )
     staff = getattr(record, "staff", None) if record is not None else None
     personal_info = getattr(staff, "personal_info", None)
     return getattr(personal_info, "fullname", None) or PDF_BLANK
+
+
+def _get_dean_name():
+    return _get_head_position_name("คณบดีคณะเทคนิคการแพทย์")
+
+
+def _get_finance_deputy_dean_name():
+    return _get_head_position_name("รองคณบดีฝ่ายการคลัง")
 
 
 def _get_user_by_id(user_id):
@@ -1186,7 +1199,7 @@ def _build_fnar02_html(memo_context):
         <div class="signature-grid">
           <div class="signature-block">
             <div class="signature-line"><span>ลงชื่อ</span><span class="signature-rule"></span><span></span></div>
-            <div class="signature-name">(&nbsp;รองศาสตราจารย์ ดร.วิลาสินี จึงประสบสุข&nbsp;)</div>
+            <div class="signature-name">(&nbsp;{html.escape(_get_finance_deputy_dean_name())}&nbsp;)</div>
             <div class="signature-position">รองคณบดีฝ่ายการคลังและสินทรัพย์</div>
           </div>
           <div class="date-line"><span>วันที่</span><span class="signature-rule"></span></div>
@@ -1661,7 +1674,7 @@ def _render_fnar02_with_reportlab(context):
         [cell("เสนอ คณบดี", styles["ThaiBold"]),
          cell(f"ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมตามใบยืมฉบับนี้ได้ จำนวนเงิน "
               f"{context['amount_numeric']} บาท ({context['amount_text']})"),
-         signature("รองศาสตราจารย์ ดร.วิลาสินี จึงประสบสุข", "รองคณบดีฝ่ายการคลังและสินทรัพย์")],
+         signature(_get_finance_deputy_dean_name(), "รองคณบดีฝ่ายการคลังและสินทรัพย์")],
         [cell("คำอนุมัติ", styles["ThaiCenterBold"]),
          cell(f"อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นจำนวนเงิน {context['amount_numeric']} บาท "
               f"({context['amount_text']})"),

@@ -490,7 +490,7 @@ def _get_staff_org(staff):
 def _find_dean_name(org=None):
     """Return the current dean name from staff head-position records."""
     query = db.session.query(StaffHeadPosition).filter(
-        func.replace(StaffHeadPosition.position, " ", "").contains("คณบดีคณะ")
+        func.replace(StaffHeadPosition.position, " ", "").contains("คณบดีคณะเทคนิคการแพทย์")
     )
     if org is not None and getattr(org, "id", None):
         scoped = query.filter(StaffHeadPosition.org_id == org.id).order_by(
