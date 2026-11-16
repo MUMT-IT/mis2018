@@ -3,6 +3,8 @@ from sqlalchemy.sql import func
 from app.asset.models import AssetItem
 from sqlalchemy_utils import DateTimeRangeType
 
+from app.models import CostCenter, ProductCode
+
 event_participant_assoc = db.Table('event_participant_assoc',
                                    db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
                                    db.Column('event_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
@@ -154,7 +156,6 @@ class RoomEvent(db.Model):
                                                                                          'ทุกวัน (ไม่รวมเสาร์-อาทิตย์)'),
                                                                                         ('ทุกสัปดาห์', 'ทุกสัปดาห์')]
                                                       })
-    iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     occupancy = db.Column('occupancy', db.Integer())
     refreshment = db.Column('refreshment', db.Integer(), default=0)
     request = db.Column('request', db.Text(), info={'label': 'ความต้องการเพิ่มเติม'})
@@ -174,7 +175,12 @@ class RoomEvent(db.Model):
     extra_items = db.Column('extra_items', db.JSON)
     note = db.Column('note', db.Text())
     comment = db.Column('comment', db.Text())
+    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
+    cost_center = db.relationship(CostCenter, backref=db.backref('events', lazy='dynamic'))
+    iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     iocode = db.relationship('IOCode', backref=db.backref('events', lazy='dynamic'))
+    product_code_id = db.Column('product_code_id', db.ForeignKey('product_codes.id'))
+    product_code = db.relationship(ProductCode, backref=db.backref('events', lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
     participants = db.relationship('StaffAccount', secondary=event_participant_assoc,
