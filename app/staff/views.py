@@ -6691,13 +6691,22 @@ def seminar_records():
             start_date, end_date = end_date, start_date
 
         seminar_list = []
+        # seminar_query = db.session.query(StaffSeminar). \
+        #     outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
+        #     outerjoin(staff_seminar_mission_assoc_table,
+        #               staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
+        #     outerjoin(StaffSeminarMission,
+        #               StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
+        #     filter(StaffSeminar.cancelled_at == None,
+        #            func.date(func.coalesce(StaffSeminar.end_datetime, StaffSeminar.start_datetime)) >= start_date,
+        #            func.date(StaffSeminar.start_datetime) <= end_date).all()
         seminar_query = db.session.query(StaffSeminar). \
             outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
             outerjoin(staff_seminar_mission_assoc_table,
                       staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
             outerjoin(StaffSeminarMission,
                       StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
-            filter(StaffSeminar.cancelled_at == None,
+            filter(
                    func.date(func.coalesce(StaffSeminar.end_datetime, StaffSeminar.start_datetime)) >= start_date,
                    func.date(StaffSeminar.start_datetime) <= end_date).all()
         for seminar in seminar_query:
@@ -6718,6 +6727,7 @@ def seminar_records():
                 missions.append(mission.mission)
 
             record["missions"] = missions
+            record["cancelled_at"] = seminar.cancelled_at
             seminar_list.append(record)
         return render_template('staff/seminar_records.html', seminar_list=seminar_list,
                                start_date=start_date.isoformat(), end_date=end_date.isoformat())
