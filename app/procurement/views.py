@@ -561,6 +561,21 @@ def edit_procurement_plan(plan_id):
                            page_title=u'แก้ไขแผนการจัดซื้อจัดจ้าง')
 
 
+@procurement.route('/planning/plans/<int:plan_id>/delete', methods=['POST'])
+@login_required
+@procurement_plan_permission.require()
+def delete_procurement_plan(plan_id):
+    plan = ProcurementPlan.query.get_or_404(plan_id)
+    if plan.besttime_polls.count():
+        flash(u'ไม่สามารถลบแผนนี้ได้ เนื่องจากมีแบบสำรวจคณะกรรมการเชื่อมโยงอยู่', 'warning')
+        return redirect(url_for('procurement.edit_procurement_plan', plan_id=plan.id))
+
+    db.session.delete(plan)
+    db.session.commit()
+    flash(u'ลบแผนการจัดซื้อจัดจ้างเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.procurement_plans'))
+
+
 def _procurement_plan_gantt_data(plan):
     """Build completed milestone markers for the plan's fiscal-year timeline."""
     milestones = [
