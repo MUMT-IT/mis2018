@@ -13,7 +13,7 @@ from bahttext import bahttext
 from sqlalchemy import func
 
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether, PageBreak, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether, PageBreak, HRFlowable, Flowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
@@ -1424,6 +1424,53 @@ def _rl_document_info(subject, width):
     return table
 
 
+class _AlignedFinalApproval(Flowable):
+    """Align the dean title with the approver position, splitting only between signers."""
+
+    def __init__(self, approver, dean, width, line_height):
+        super().__init__()
+        self.approver = approver
+        self.dean = dean
+        self.width = width
+        self.line_height = line_height
+
+    def wrap(self, avail_width, avail_height):
+        half_width = self.width / 2
+        _, self.approver_height = self.approver.wrap(half_width, avail_height)
+        _, self.dean_height = self.dean.wrap(half_width, avail_height)
+        self.height = max(self.approver_height, self.line_height + self.dean_height)
+        return self.width, self.height
+
+    def draw(self):
+        self.approver.drawOn(
+            self.canv, self.width / 2, self.height - self.approver_height,
+        )
+        self.dean.drawOn(
+            self.canv, 0, self.height - self.line_height - self.dean_height,
+        )
+
+    def split(self, avail_width, avail_height):
+        # The dean paragraph is one cell, so its title and signature move together.
+        half_width = self.width / 2
+        approver_row = Table([["", self.approver]], colWidths=[half_width] * 2)
+        approver_row.setStyle(TableStyle([
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        if approver_row.wrap(avail_width, avail_height)[1] > avail_height:
+            return []
+        dean_row = Table([[self.dean, ""]], colWidths=[half_width] * 2)
+        dean_row.setStyle(TableStyle([
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        return [approver_row, dean_row]
+
+
 def _render_reimbursement_with_reportlab(context):
     """The one-page letter layout shared by claims and ticket returns."""
     output = BytesIO()
@@ -1489,28 +1536,20 @@ def _render_reimbursement_with_reportlab(context):
         story.append(signature)
     if len(approvers) > 1:
         story.append(Spacer(1, SIGNATURE_NEXT_GAP))
-    last_approver = (
-        _letter_signature_paragraph(
-            approvers[-1][0], approvers[-1][1], styles["ThaiCenter"]
-        ) if approvers else ""
+    dean_approval = Paragraph(
+        "อนุมัติ<br/><br/><br/>" + _letter_signature_markup(
+            _get_dean_name(), "คณบดีคณะเทคนิคการแพทย์"
+        ), styles["ThaiCenter"],
     )
-    approver_row = Table([["", last_approver]], colWidths=[width * .5, width * .5])
-    approver_row.setStyle(TableStyle([
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    dean_approval = Table([[
-        Paragraph(
-            "อนุมัติ<br/><br/><br/>" + _letter_signature_markup(
-                _get_dean_name(), "คณบดีคณะเทคนิคการแพทย์"
-            ), styles["ThaiCenter"],
-        ), "",
-    ]], colWidths=[width * .5, width * .5])
-    dean_approval.setStyle(TableStyle([
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.extend([approver_row, dean_approval])
+    if approvers:
+        last_approver = _letter_signature_paragraph(
+            approvers[-1][0], approvers[-1][1], styles["ThaiCenter"],
+        )
+        story.append(_AlignedFinalApproval(
+            last_approver, dean_approval, width, styles["ThaiCenter"].leading,
+        ))
+    else:
+        story.append(Table([[dean_approval, ""]], colWidths=[width * .5] * 2))
     doc.build(story)
     return output.getvalue()
 
@@ -1908,7 +1947,7 @@ def _build_reimbursement_letter_html(context):
     break-inside: avoid;
     page-break-inside: avoid;
   }}
-  .last-approver-row + .dean-approval {{ margin-top: 0; }}
+  .last-approver-row + .dean-approval {{ margin-top: -1.25em; }}
   .approval-title {{ margin-bottom: 21mm; }}
 </style>
 </head>
