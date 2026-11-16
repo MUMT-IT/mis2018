@@ -28,7 +28,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import text
 from app.main import mail
-from .forms import RoomAdminForm, RoomEventForm
+from .forms import RoomAdminForm, RoomEventForm, RoomParticipantListForm
 from ..auth.views import line_bot_api
 from ..complaint_tracker.models import ComplaintRecord, ComplaintStatus, ComplaintTopic
 from ..main import db
@@ -1824,6 +1824,29 @@ def edit_detail(event_id):
             flash(f'{field}: {error}', 'danger')
     return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room,
                            start=start, end=end, complaints=complaints, repeat_end=repeat_end)
+
+
+@room.route('/events/participant_list/edit/<int:event_id>', methods=['GET', 'POST'])
+@login_required
+def edit_participant_list(event_id):
+    event = RoomEvent.query.get(event_id)
+    form = RoomParticipantListForm(obj=event)
+    if form.validate_on_submit():
+        form.populate_obj(event)
+        if (form.cost_center.data and form.io_code.data and form.product_code.data):
+            db.session.add(event)
+            db.session.commit()
+            flash('อัปเดตข้อมูลสำเร็จ', 'success')
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
+        else:
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            resp = make_response(render_template('scheduler/modals/edit_participant_list_modal.html',
+                                                 form=form, event_id=event_id))
+            resp.headers['HX-Trigger'] = 'closeModal'
+        return resp
+    return render_template('scheduler/modals/edit_participant_list_modal.html', form=form,
+                           event_id=event_id)
 
 
 @room.route('/list', methods=['POST', 'GET'])
