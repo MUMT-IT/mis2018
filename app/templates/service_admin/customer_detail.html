@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS | รายละเอียดลผู้รับบริการ{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+{% endblock %}
 {% block page_content %}
     {% include "nav.html" %}
     <section class="customer-detail-page section">
@@ -8,7 +12,7 @@
             <div class="customer-detail-heading">
                 <div class="customer-detail-heading-copy">
                     <span class="customer-detail-heading-icon" aria-hidden="true">
-                        <i class="fas fa-user-check"></i>
+                        <i class="fas fa-user"></i>
                     </span>
                     <div>
                         <p class="customer-detail-eyebrow">CUSTOMER PROFILE</p>
@@ -17,8 +21,25 @@
                     </div>
                 </div>
                 <div class="buttons customer-detail-heading-actions">
+                    {% if is_admin == 'true' %}
+                        <a class="button is-warning is-light customer-detail-edit"
+                           href="{{ url_for('service_admin.create_customer_for_admin', customer_id=customer.id, tab='all',
+                           source='registration', is_admin=is_admin) }}">
+                            <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                            <span>แก้ไขข้อมูล</span>
+                        </a>
+                    {% else %}
+                        <a class="Warn button is-warning is-light customer-detail-edit">
+                            <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                            <span>แก้ไขข้อมูล</span>
+                        </a>
+                    {% endif %}
                     <a class="button customer-detail-back"
-                       href="{{ url_for('service_admin.search_customer', customer_name=customer.cus_name) }}">
+                       {% if is_admin == 'true' %}
+                            href="{{ url_for('service_admin.search_customer_for_admin', customer_name=customer.cus_name) }}">
+                        {% else %}
+                            href="{{ url_for('service_admin.search_customer_for_user', customer_name=customer.cus_name) }}">
+                        {% endif %}
                         <span class="icon"><i class="fas fa-arrow-left"></i></span>
                         <span>กลับ</span>
                     </a>
@@ -67,6 +88,26 @@
                     <div class="customer-detail-info-item">
                         <span class="customer-detail-info-label"><i class="fas fa-fax"></i> โทรสาร</span>
                         <strong>{{ customer.fax_no or '-' }}</strong>
+                    </div>
+                    <div class="customer-detail-info-item">
+                        <span class="customer-detail-info-label"><i class="fas fa-envelope-circle-check"></i> ยืนยันอีเมล</span>
+                        <strong>
+                            {% if customer.verify_email %}
+                                <span class="tag is-success is-light is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                    </span>
+                                    <span>ยืนยันแล้ว {{ customer.verify_email|localdate }}</span>
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger is-light is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-circle-xmark" aria-hidden="true"></i>
+                                    </span>
+                                    <span>ยังไม่ยืนยัน</span>
+                                </span>
+                            {% endif %}
+                        </strong>
                     </div>
                 </div>
             </div>
@@ -203,12 +244,21 @@
                                         <td>{{ item.note or '-' }}</td>
                                         <td class="has-text-centered">
                                             {% if item.attachment %}
-                                                <a class="button is-small is-link is-light is-rounded"
+                                                <div class="field has-addons is-justify-content-center">
+                                                <div class="control">
+                                                <a class="button is-small is-primary is-outlined is-rounded" target="_blank" rel="noopener" href="{{ url_for('service_admin.download_file', key=item.attachment, download_filename=item.attachment, inline=1) }}">
+                                                    <span class="icon" title="ดูเอกสาร" aria-label="ดูเอกสาร"><i class="fas fa-eye"></i></span>
+                                                </a>
+                                                </div>
+                                                <div class="control">
+                                                <a class="button is-small is-info is-outlined is-rounded"
                                                    href="{{ url_for('service_admin.download_file', key=item.attachment,
                                                    download_filename=item.attachment) }}">
-                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                    <span>ดาวน์โหลด</span>
+                                                    <span class="icon" title="ดาวน์โหลด" aria-label="ดาวน์โหลด"><i class="fas fa-download"></i></span>
+
                                                 </a>
+                                                </div>
+                                                </div>
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -224,12 +274,21 @@
                                         <td>{{ item.note or '-' }}</td>
                                         <td class="has-text-centered">
                                             {% if item.attachment %}
-                                                <a class="button is-small is-link is-light is-rounded"
+                                                <div class="field has-addons is-justify-content-center">
+                                                <div class="control">
+                                                <a class="button is-small is-primary is-outlined is-rounded" target="_blank" rel="noopener" href="{{ url_for('service_admin.download_file', key=item.attachment, download_filename=item.attachment, inline=1) }}">
+                                                    <span class="icon" title="ดูเอกสาร" aria-label="ดูเอกสาร"><i class="fas fa-eye"></i></span>
+                                                </a>
+                                                </div>
+                                                <div class="control">
+                                                <a class="button is-small is-info is-outlined is-rounded"
                                                    href="{{ url_for('service_admin.download_file', key=item.attachment,
                                                    download_filename=item.attachment) }}">
-                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                    <span>ดาวน์โหลด</span>
+                                                    <span class="icon" title="ดาวน์โหลด" aria-label="ดาวน์โหลด"><i class="fas fa-download"></i></span>
+
                                                 </a>
+                                                </div>
+                                                </div>
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -250,15 +309,17 @@
                         <h2><i class="fas fa-flask-vial"></i> บริการล่าสุด</h2>
                     </div>
                     <div class="buttons mb-0">
-                        <a class="button is-small is-primary is-rounded"
-                           href="{{ url_for('service_admin.external_lab_index', customer_id=customer.id) }}">
-                            <span class="icon"><i class="fas fa-plus"></i></span>
-                            <span>สร้าง Request ID</span>
-                        </a>
+                        {% if is_admin == 'true' %}
+                            <a class="button is-small is-primary is-rounded"
+                               href="{{ url_for('service_admin.external_lab_index', customer_id=customer.id,
+                               is_admin=is_admin) }}">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>สร้าง Request ID</span>
+                            </a>
+                        {% endif %}
                         <span class="customer-detail-section-count">{{ latest_service_requests|length }}</span>
                     </div>
                 </div>
-
                 {% if latest_service_requests %}
                     <div class="table-container">
                         <table class="table is-fullwidth customer-detail-request-table">
@@ -370,10 +431,10 @@
                                     </td>
                                     <td class="has-text-right">{{ "{:,.2f}".format(invoice_item.invoice.grand_total) }}</td>
                                     <td class="has-text-centered">
-                                        <a class="button is-small is-info is-light is-rounded"
+                                        <a class="button is-small is-info is-outlined is-rounded"
                                            href="{{ url_for('service_admin.view_overdue_invoice',
-                                           invoice_id=invoice_item.invoice.id, customer_id=customer.id) }}">
-                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                           invoice_id=invoice_item.invoice.id, customer_id=customer.id, is_admin=is_admin) }}">
+                                            <span class="icon" title="ดูเอกสาร" aria-label="ดูเอกสาร"><i class="fas fa-eye"></i></span>
                                             <span>ดูรายละเอียด</span>
                                         </a>
                                     </td>
@@ -407,7 +468,7 @@
         .customer-detail-payment-status-tag { margin-left: auto; text-decoration: none; }
         .customer-detail-type-tag, .customer-detail-section-count { background: #edf8f0; border-radius: 999px; color: #237348; font-weight: 700; }
         .customer-detail-section-count { margin-left: auto; }
-        .customer-detail-info-grid { display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0,1fr)); padding-top: 1.25rem; }
+        .customer-detail-info-grid { display: grid; gap: 1rem; grid-template-columns: repeat(6, minmax(0,1fr)); padding-top: 1.25rem; }
         .customer-detail-info-item strong { color: #1e3152; display: block; overflow-wrap: anywhere; }
         .customer-detail-info-label { display: block; }
         .customer-detail-info-label i, .customer-detail-section-heading h2 i, .customer-detail-contact-meta i, .customer-detail-address-meta i { color: #2f80c9; margin-right: .25rem; }
@@ -472,4 +533,28 @@
         @media screen and (max-width: 768px) { .customer-detail-page { padding: 2rem 0; } .customer-detail-heading { align-items: flex-start; flex-direction: column; } .customer-detail-heading-actions { width: 100%; } .customer-detail-heading-actions .button { flex: 1; } }
         @media screen and (max-width: 480px) { .customer-detail-heading-copy { align-items: flex-start; flex-direction: column; } .customer-detail-info-grid { grid-template-columns: 1fr; } .customer-detail-profile-header, .customer-detail-address-topline { align-items: flex-start; flex-direction: column; } }
     </style>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(() => {
+            $('.Warn').click(() => {
+                Swal.fire({
+                    title: 'ยืนยันคำขอแก้ไขข้อมูล',
+                    icon: 'warning',
+                    text: 'ท่านต้องการส่งคำขอแก้ไขข้อมูลใช่หรือไม่',
+                    confirmButtonText: "ยืนยัน",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        var is_admin = '{{ is_admin }}';
+                        var customer_id = '{{ customer.id }}';
+                        window.location.href = "/service_admin/customer/email/send?customer_id=" + customer_id +
+                            '&is_admin=' + is_admin;
+                        {#Swal.fire("ส่งอีเมลแล้ว!", "กรุณาดำเนินการภายใน <strong>24 ชั่วโมง</strong> เพื่อให้สามารถดำเนินการต่อได้", "success");#}
+                    }
+                });
+            })
+        })
+    </script>
 {% endblock %}

@@ -363,6 +363,19 @@
         width: var(--staff-login-progress-width, 0%);
     }
 
+    .staff-login-locations { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(18,39,84,.12); }
+    .staff-login-location-legend { display: flex; gap: 1rem; margin: .75rem 0; font-size: .8rem; }
+    .staff-login-location-legend span:first-child { color: #276b59; }
+    .staff-login-location-legend span:last-child { color: #325a9c; }
+    #locationFrequencyChart { overflow-x: auto; }
+    .staff-login-location-bars { display: flex; gap: 1.25rem; padding: 1.5rem .5rem .5rem; min-width: min-content; }
+    .staff-login-location-group { flex: 1; min-width: 135px; text-align: center; }
+    .staff-login-location-columns { display: flex; align-items: flex-end; justify-content: center; gap: .5rem; height: 200px; border-bottom: 1px solid rgba(18,39,84,.25); background: repeating-linear-gradient(to top, transparent 0, transparent 49px, rgba(18,39,84,.06) 49px, rgba(18,39,84,.06) 50px); }
+    .staff-login-location-bar { position: relative; width: 36px; max-width: 40%; border-radius: 5px 5px 0 0; }
+    .staff-login-location-value { position: absolute; top: -1.4rem; left: 0; width: 100%; font-size: .8rem; font-weight: 600; color: var(--theme-navy-deep); }
+    .staff-login-location-label { max-width: 180px; margin: .65rem auto 0; font-size: .8rem; overflow-wrap: anywhere; }
+    .staff-login-location-in { background: #276b59; }
+    .staff-login-location-out { background: #325a9c; }
     .staff-login-chart {
         align-items: end;
         display: grid;
@@ -572,6 +585,7 @@
     .staff-login-calendar-legend-swatch.is-leave { background: #c5e8c9; border-color: #2b8c36; color: #247346; }
     .staff-login-calendar-legend-swatch.is-wfh { background: #c5ecfb; border-color: #109ad3; color: #285d9b; }
     .staff-login-calendar-legend-swatch.is-seminar { background: #ff33a5; border-color: #ff33a5; color: #fff; }
+    .staff-login-calendar-legend-swatch.is-seminar-req { background: #ffBDE1; border-color: #FFBDE1; color: #fff; }
     .staff-login-calendar-legend-swatch.is-holiday { background: #ff9f1a; border-color: #ff9f1a; color: #fff; }
     .staff-login-calendar-legend-swatch.is-correction { background: #fff; border-color: rgba(18, 39, 84, 0.1); color: #b8433f; }
 
@@ -624,111 +638,7 @@
         box-shadow: inset 0 0 0 1px rgba(184, 67, 63, 0.12);
     }
 
-    .staff-login-calendar .fc-event {
-        border: 0;
-        border-radius: 12px;
-        box-shadow: inset 0 0 0 1px rgba(18, 39, 84, 0.04);
-        color: #1f2f57;
-        font-size: 0.72rem;
-        font-weight: 700;
-        line-height: 1.25;
-        margin-bottom: 2px;
-        padding: 0.2rem 0.35rem;
-    }
-
-    .staff-login-calendar .fc-event .fc-content {
-        display: block;
-        white-space: normal;
-    }
-
-    .staff-login-calendar .fc-event .fc-title {
-        display: block;
-    }
-
-    .staff-login-calendar .fc-event.is-late-login {
-        background: rgba(248, 202, 202, 0.98);
-        border-color: rgba(229, 155, 155, 0.96);
-    }
-
-    .staff-login-calendar .fc-event.is-short-hours {
-        background: #fff3bf;
-        border-color: #e6cf73;
-    }
-
-    .staff-login-calendar .fc-event.is-complete-hours {
-        background: #e4f3e9;
-        border-color: #b8ddc4;
-        color: #245b38;
-    }
-
-    .staff-login-calendar .staff-login-event-content {
-        align-items: stretch;
-        display: flex;
-        flex-direction: column;
-        gap: 0.12rem;
-        line-height: 1.25;
-        min-width: 0;
-        width: 100%;
-    }
-
-    .staff-login-calendar .staff-login-event-head {
-        align-items: baseline;
-        display: flex;
-        gap: 0.35rem;
-        justify-content: space-between;
-        min-width: 0;
-    }
-
-    .staff-login-calendar .staff-login-event-name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .staff-login-calendar .staff-login-event-alert {
-        color: #b8433f;
-        margin-right: 0.3rem;
-    }
-
-    .staff-login-calendar .staff-login-event-hours {
-        flex-shrink: 0;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .staff-login-calendar .staff-login-event-hours.is-total {
-        color: var(--theme-navy-deep);
-    }
-
-    .staff-login-calendar .staff-login-event-hours.is-negative {
-        color: #b83f3f;
-    }
-
-    .staff-login-calendar .staff-login-event-meter {
-        background: rgba(18, 39, 84, 0.08);
-        border-radius: 999px;
-        height: 0.35rem;
-        overflow: hidden;
-        width: 100%;
-    }
-
-    .staff-login-calendar .staff-login-event-meter-fill {
-        display: block;
-        height: 100%;
-        width: var(--staff-login-meter-width, 0%);
-    }
-
-    .staff-login-calendar .staff-login-event-meter-fill.is-negative {
-        background: linear-gradient(90deg, rgba(184, 63, 63, 0.95), rgba(221, 123, 123, 0.95));
-    }
-
-    .staff-login-calendar .staff-login-event-meter-fill.is-positive {
-        background: linear-gradient(90deg, #4f8f67, #76ad89);
-    }
-
-    .staff-login-calendar .staff-login-event-meter-fill.is-late {
-        background: linear-gradient(90deg, #a85f5f, #c98787);
-    }
+    {% include 'staff/_login_calendar_event_styles.html' %}
 
     .staff-login-calendar .fc-more {
         color: var(--theme-muted);
@@ -967,6 +877,13 @@
                         <div class="delta">สะสมทั้งช่วงวันที่เลือก</div>
                     </div>
                 </div>
+                <section class="staff-login-locations" aria-labelledby="locationFrequencyHeading">
+                    <h2 id="locationFrequencyHeading" class="staff-login-board-title">ความถี่การเข้า–ออกงานตามสถานที่</h2>
+                    <p class="staff-login-export-note">จำนวนครั้งที่ลงชื่อของบุคลากรในสังกัด รวมทุกหน่วยงานย่อย ตามช่วงวันที่เลือก · ไม่รวมรายการรับรองเวลาและบันทึกโดย HR</p>
+                    <div class="staff-login-location-legend"><span>■ เข้างาน</span><span>■ ออกงาน</span></div>
+                    <div id="locationFrequencyChart" aria-live="polite"><p class="staff-login-chart-empty">กำลังโหลดข้อมูลสถานที่…</p></div>
+                    <p class="staff-login-export-note">ไม่ระบุสถานที่: รายการที่ไม่มีรหัสสถานที่ เช่น การสแกน QR Code บางรายการ</p>
+                </section>
             </div>
         </div>
         {% endif %}
@@ -1082,7 +999,8 @@
                     <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-leave"><i class="fas fa-face-frown-open" aria-hidden="true"></i></span> ลาป่วย</span>
                     <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-leave"><i class="fas fa-plane-departure" aria-hidden="true"></i></span> ลาพักร้อน/พักผ่อน</span>
                     <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-wfh"><i class="fas fa-house-chimney-user" aria-hidden="true"></i></span> WFH</span>
-                    <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-seminar"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span> อบรม/สัมมนา</span>
+                    <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-seminar"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span>
+                        <span class="staff-login-calendar-legend-swatch is-seminar-req"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span>อบรม/สัมมนา</span>
                     <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-holiday"><i class="fas fa-calendar-day" aria-hidden="true"></i></span> วันหยุด</span>
                     <span class="staff-login-calendar-legend-item"><span class="staff-login-calendar-legend-swatch is-correction"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span> มีการแก้ไขเวลา</span>
                 </div>
@@ -1182,6 +1100,7 @@
 
 {% block scripts %}
 {{ super() }}
+{% include 'staff/_login_calendar_event_script.html' %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/locale-all.js" integrity="sha512-vTlIpCig7Yl48kFM3fyxWwW7t+cf+U7Bi22g/o2D4hbGKXnN//6hNZYtIZKSmXQJ5BTdr1jMBz6BUZV030LmuQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
@@ -1219,6 +1138,32 @@
         return '<img src="' + escapeHtml(employee.image_url) + '" alt="" ' +
             'onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline-flex\';">' +
             '<span class="staff-login-avatar-fallback">' + fallback + '</span>';
+    }
+
+    function renderLocationFrequencies(locations) {
+        const target = $('#locationFrequencyChart');
+        if (!locations.length) {
+            target.html('<p class="staff-login-chart-empty">ไม่มีข้อมูลการลงชื่อในช่วงวันที่เลือก</p>');
+            return;
+        }
+        const maximum = Math.max(...locations.map(item => Math.max(item.checkins, item.checkouts)), 1);
+        const chart = $('<div class="staff-login-location-bars"/>');
+        target.empty().append(chart);
+        locations.forEach(item => {
+            const group = $('<div class="staff-login-location-group"/>');
+            const columns = $('<div class="staff-login-location-columns" aria-hidden="true"/>');
+            [['checkins', 'in'], ['checkouts', 'out']].forEach(([key, kind]) => {
+                const bar = $('<div class="staff-login-location-bar"/>')
+                    .addClass('staff-login-location-' + kind)
+                    .css('height', (item[key] / maximum * 100) + '%');
+                $('<span class="staff-login-location-value"/>').text(item[key]).appendTo(bar);
+                bar.appendTo(columns);
+            });
+            const label = $('<p class="staff-login-location-label"/>').text(item.name);
+            const description = $('<span class="is-sr-only"/>')
+                .text('เข้างาน ' + item.checkins + ' ครั้ง ออกงาน ' + item.checkouts + ' ครั้ง รวม ' + item.total + ' ครั้ง');
+            group.append(columns, label, description).appendTo(chart);
+        });
     }
 
     function renderSummaryCards(data) {
@@ -1425,11 +1370,13 @@
     }
 
     function loadSummary(startDate, endDate) {
+        $('#locationFrequencyChart').html('<p class="staff-login-chart-empty">กำลังโหลดข้อมูลสถานที่…</p>');
         $('#summaryCount').text('Loading employees...');
         $('#employeeList').html('<div class="staff-login-chart-empty">Loading summary...</div>');
         $.getJSON(summaryApiUrl, {start: startDate, end: endDate})
             .done(function(response) {
                 renderSummaryCards(response);
+                renderLocationFrequencies(response.location_frequencies || []);
                 renderEmployeeList(response.employees || []);
                 $('#exportDatePicker').val(startDate + ' - ' + endDate);
             })
@@ -1437,6 +1384,7 @@
                 $('#summaryStats').html(
                     '<div class="staff-login-summary-card is-accent"><span class="eyebrow">Error</span><div class="value">--</div><div class="delta">Unable to load summary</div></div>'
                 );
+                $('#locationFrequencyChart').html('<p class="staff-login-chart-empty">ไม่สามารถโหลดข้อมูลสถานที่ได้</p>');
                 $('#summaryCount').text('Summary unavailable');
                 $('#employeeList').html('<div class="staff-login-chart-empty">Unable to load summary data</div>');
             });
@@ -1496,33 +1444,7 @@
                     }
                     return;
                 }
-                var name = $('<span/>').text(event.title || '').html();
-                var workedHours = event.worked_hours_display ? $('<span/>').text(event.worked_hours_display).html() : '';
-                var requiredHours = event.required_hours || 8;
-                var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / requiredHours) * 100, 12), 100) : 0;
-                var hoursClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
-                var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
-                var correctionLabel = event.approved_checkin && event.approved_checkout
-                    ? 'มีการแก้ไขเวลาเข้าและออก'
-                    : (event.approved_checkin ? 'มีการแก้ไขเวลาเข้า' : 'มีการแก้ไขเวลากลับ');
-                var alertIcon = event.has_approved_correction
-                    ? '<i class="fas fa-triangle-exclamation staff-login-event-alert" role="img" title="' +
-                      escapeHtml(correctionLabel) + '" aria-label="' + escapeHtml(correctionLabel) + '"></i>'
-                    : '';
-                var content = '<span class="staff-login-event-content">';
-                content += '<span class="staff-login-event-head">';
-                content += '<span class="staff-login-event-name">' + alertIcon + name + '</span>';
-                if (workedHours) {
-                    content += '<span class="staff-login-event-hours is-total ' + hoursClass + '">' + workedHours + '</span>';
-                }
-                content += '</span>';
-                if (workedHours) {
-                    content += '<span class="staff-login-event-meter" aria-hidden="true">';
-                    content += '<span class="staff-login-event-meter-fill ' + meterClass + '" style="--staff-login-meter-width: ' + meterWidth + '%"></span>';
-                    content += '</span>';
-                }
-                content += '</span>';
-                element.find('.fc-title').html(content);
+                renderStaffLoginCalendarEvent(event, element);
             },
             viewRender: function(view) {
                 const monthStart = moment(view.intervalStart).startOf('month');

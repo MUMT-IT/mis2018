@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-162 0 324 324">
+  <title>Double Tap</title>
+  <defs>
+    <linearGradient id="mint" x2="0" y2="1">
+      <stop stop-color="#236458"/><stop offset=".53" stop-color="#164039"/>
+      <stop offset="1" stop-color="#102a31"/>
+    </linearGradient>
+    <linearGradient id="mint-rim" x2=".8" y2="1">
+      <stop stop-color="#356c58"/><stop offset=".23" stop-color="#dbfff0"/>
+      <stop offset=".45" stop-color="#7dd7ac"/><stop offset=".68" stop-color="#2e7962"/>
+      <stop offset="1" stop-color="#c0f9d9"/>
+    </linearGradient>
+    <linearGradient id="gloss" x2="0" y2="1">
+      <stop stop-color="#fff" stop-opacity=".4"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feGaussianBlur stdDeviation="11"/>
+    </filter>
+    <circle id="medal" cy="157" r="146"/>
+    <path id="shine" d="M-111 100a125 125 0 0 1 216-8c-75-32-151-26-216 8z"/>
+    <path id="rim-glint" d="M-117 79a140 140 0 0 1 68-51" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  </defs>
+  <ellipse cy="282" rx="119" ry="31" fill="#122b30" opacity=".34" filter="url(#shadow)"/>
+  <use href="#medal" fill="#122b30" transform="translate(0 8)"/>
+  <use href="#medal" fill="url(#mint-rim)" stroke="#122b30" stroke-width="2"/>
+  <circle cy="157" r="133" fill="url(#mint)" stroke="#122b30" stroke-width="2.5"/>
+  <circle cy="157" r="129" fill="none" stroke="#84e9c3" opacity=".45"/>
+  <use href="#shine" fill="url(#gloss)"/>
+  <use href="#rim-glint" opacity=".78"/>
+  <g transform="translate(0 154) scale(1.65)" fill="none" stroke="#8ff8cd" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="-63" y="-26" width="53" height="53" rx="13" fill="#21524e" stroke-width="2.5"/>
+    <rect x="10" y="-26" width="53" height="53" rx="13" fill="#21524e" stroke-width="2.5"/>
+    <path d="m-48 0 8 8 15-16m50 8 8 8 15-16"/>
+    <path d="M-6 0H6" stroke-width="2.5" opacity=".7"/>
+  </g>
+</svg>

@@ -282,16 +282,13 @@ def maintenance_system_check():
             if is_unavailable and not remark:
                 errors.append(f'{system.name}: กรุณาระบุหมายเหตุเมื่อเลือกไม่พร้อมใช้งาน')
                 continue
-            missing_required = [
-                item.label for item in check_items
-                if item.is_required and item.id not in system_checked_item_ids
-            ]
-            if missing_required and not is_unavailable:
-                errors.append(f'{system.name}: กรุณาตรวจรายการบังคับ ' + ', '.join(missing_required))
-                continue
+            has_missing_required = any(
+                item.is_required and item.id not in system_checked_item_ids
+                for item in check_items
+            )
             status = (
                 'unavailable' if is_unavailable
-                else ('normal' if check_items and len(system_checked_item_ids) == len(check_items) else 'minor_issue')
+                else ('minor_issue' if has_missing_required else 'normal')
             )
             systems_to_save.append((system, check_items, system_checked_item_ids, remark, status))
 

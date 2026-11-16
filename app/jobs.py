@@ -387,6 +387,24 @@ def send_checkin_reminder():
     _run_job(job_name, _job)
 
 
+def send_checkout_reminder(round_time):
+    job_name = f'send_checkout_reminder_{round_time}'
+
+    def _job():
+        params = {'round': round_time}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'POST',
+            f'{BASE_URL}/staff/admin/line-remind-missing-checkout',
+            params=params,
+            timeout=60,
+        )
+
+    _run_job(job_name, _job)
+
+
 def send_overdue_checkin_request_reminder():
     job_name = 'send_overdue_checkin_request_reminder'
 
@@ -472,6 +490,24 @@ def reconcile_daily_attendance():
     _run_job(job_name, _job)
 
 
+def refresh_staff_reminder_times():
+    job_name = 'refresh_staff_reminder_times'
+
+    def _job():
+        _run_flask_cli(job_name, ['staff-reminders', 'refresh-times'], 1800)
+
+    _run_job(job_name, _job)
+
+
+def send_personalized_checkin_reminders():
+    job_name = 'send_personalized_checkin_reminders'
+
+    def _job():
+        _run_flask_cli(job_name, ['staff-reminders', 'send-due'], 240)
+
+    _run_job(job_name, _job)
+
+
 scheduler = BlockingScheduler()
 scheduler.add_job(send_event_notification,
                   'cron', day_of_week='mon-fri',
@@ -533,6 +569,16 @@ scheduler.add_job(send_checkin_reminder,
                   hour='8',
                   minute='29',
                   timezone='Asia/Bangkok')
+scheduler.add_job(send_checkout_reminder,
+                  'cron', day_of_week='mon-fri',
+                  hour='16', minute='30',
+                  kwargs={'round_time': '16:30'},
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_checkout_reminder,
+                  'cron', day_of_week='mon-fri',
+                  hour='17', minute='00',
+                  kwargs={'round_time': '17:00'},
+                  timezone='Asia/Bangkok')
 scheduler.add_job(send_overdue_checkin_request_reminder,
                   'cron',
                   hour='10',
@@ -547,5 +593,14 @@ scheduler.add_job(reconcile_daily_attendance,
                   'cron',
                   hour='0',
                   minute='15',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(refresh_staff_reminder_times,
+                  'cron', hour='4', minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_personalized_checkin_reminders,
+                  'cron', day_of_week='mon-fri', hour='8', minute='*/5',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_personalized_checkin_reminders,
+                  'cron', day_of_week='mon-fri', hour='9', minute='0',
                   timezone='Asia/Bangkok')
 scheduler.start()

@@ -447,6 +447,7 @@ class PAFunctionalCompetencyEvaluation(db.Model):
     pa_id = db.Column(db.ForeignKey('pa_agreements.id'))
     updated_at = db.Column(db.DateTime(timezone=True))
     confirm_at = db.Column(db.DateTime(timezone=True))
+    is_active = db.Column(db.Boolean(), default=True)
 
     def __str__(self):
         return "{}->{}".format(self.evaluator.email, self.staff.email)

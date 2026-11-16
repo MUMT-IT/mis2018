@@ -67,7 +67,7 @@
                         <td><strong>{{ item.version.form.name }}</strong><br><span class="is-size-7 has-text-grey">v{{ item.version.version }}</span></td>
                         {% if item.latest_submission %}
                         <td>{% if item.latest_submission.maximum_score %}{{ '%.2f'|format(item.latest_submission.weighted_score) }} / {{ '%.2f'|format(item.latest_submission.maximum_score) }}{% else %}ประเมินแล้ว{% endif %}<br><span class="is-size-7 has-text-grey">{{ item.latest_submission.submitted_at|localdatetime if item.latest_submission.submitted_at else 'ไม่ระบุเวลา' }}</span></td>
-                        <td>{% if item.latest_submission.passed is sameas true %}<span class="tag is-success">ผ่าน</span>{% elif item.latest_submission.passed is sameas false %}<span class="tag is-danger">ไม่ผ่าน</span>{% else %}<span class="tag is-light">ไม่กำหนดเกณฑ์</span>{% endif %}</td>
+                        <td>{% if item.approved %}<p class="is-size-7 has-text-grey">ผลจากผู้รับรอง</p>{% endif %}{% if item.passed is sameas true %}<span class="tag is-success">ผ่าน</span>{% elif item.passed is sameas false %}<span class="tag is-danger">ไม่ผ่าน</span>{% else %}<span class="tag is-light">ไม่กำหนดเกณฑ์</span>{% endif %}</td>
                         <td><a class="button is-small is-info is-light" href="{{ url_for('eduqa.view_student_skill_evidence_results', revision_id=revision.id, skill_id=skill.id, clo_id=item.evidence.clo_id, evidence_id=item.evidence.id, student_id=student.id) }}"><span class="icon"><i class="fas fa-history"></i></span><span>ดู {{ item.result_count }} รายการ</span></a></td>
                         {% else %}
                         <td><span class="has-text-grey">-</span></td>

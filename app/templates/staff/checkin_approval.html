@@ -52,7 +52,10 @@
                             </td>
                         </tr>
                     </table>
-                    {% if clock_request.approved_at %}
+                    {% if clock_request.revoked_approved_at %}
+                        <p class="notification is-danger is-light">เพิกถอนการอนุมัติโดย HR เมื่อ {{ clock_request.cancelled_at|localdatetime }}<br>
+                            เหตุผล: {{ clock_request.revocation_reason }}</p>
+                    {% elif clock_request.approved_at %}
                         <div class="has-text-centered">
                             <span>คำขอนี้ถูกอนุมัติเรียบร้อยแล้ว</span>
                         </div>

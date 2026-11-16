@@ -1,0 +1,11 @@
+{% for badge, name in [
+    ('double-tap', 'Double Tap · ลงเวลาเข้า–ออกครบถ้วน'),
+    ('clockwork', 'Clockwork · เข้างานและออกงานตรงเวลา'),
+] %}
+    {% set earned = badge in attendance_badges %}
+    {% set label = name if earned else name ~ ' (ยังไม่ได้รับ)' %}
+    <img class="attendance-badge{% if not earned %} is-unearned{% endif %}"
+         width="32" height="32"
+         src="{{ url_for('static', filename='img/attendance/' ~ badge ~ '.svg') }}"
+         alt="{{ label }}" title="{{ label }}">
+{% endfor %}

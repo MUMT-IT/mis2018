@@ -1,0 +1,68 @@
+:root {
+    --holiday-evergreen: #184e3a;
+    --holiday-cranberry: #993744;
+    --holiday-gold: #c49b46;
+    --holiday-accent: linear-gradient(90deg, var(--holiday-evergreen), var(--holiday-gold) 52%, var(--holiday-cranberry));
+}
+
+html body,
+body > .main-content {
+    background: #e5efe7 url("../img/christmas-background.svg") repeat;
+}
+
+body .navbar,
+body .navbar.app-navbar,
+body .box.login-card {
+    background-image: var(--holiday-accent);
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-size: 100% 3px;
+}
+
+.home-shell .home-hero {
+    background: linear-gradient(120deg, #f4f9f3, #fffaf0 62%, #faeeee);
+}
+
+.home-shell .home-hero::before {
+    background: var(--holiday-accent);
+}
+
+.app-navbar .app-navbar-title,
+.home-shell .home-panel-title {
+    color: var(--holiday-evergreen);
+}
+
+body::before,
+body::after {
+    --snow-tile: 220px;
+    animation: holiday-snowfall 12s linear infinite;
+    background-image:
+        radial-gradient(circle at 17% 12%, #fff 1.5px, transparent 2.5px),
+        radial-gradient(circle at 72% 38%, #fff 2px, transparent 3px),
+        radial-gradient(circle at 35% 75%, #fff 1.5px, transparent 2.5px),
+        radial-gradient(circle at 91% 91%, #fff 2.5px, transparent 3.5px);
+    background-size: var(--snow-tile) var(--snow-tile);
+    content: "";
+    inset: calc(-1 * var(--snow-tile)) 0 0;
+    pointer-events: none;
+    position: fixed;
+    z-index: 3;
+}
+
+body::after {
+    --snow-tile: 310px;
+    animation-duration: 21s;
+    background-position: 80px 45px;
+    opacity: 0.65;
+}
+
+@keyframes holiday-snowfall {
+    to { transform: translateY(var(--snow-tile)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body::before,
+    body::after {
+        animation: none;
+    }
+}

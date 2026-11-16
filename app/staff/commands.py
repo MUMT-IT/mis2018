@@ -43,3 +43,62 @@ def register_commands(app):
 
         if failed:
             raise click.ClickException('{} date(s) failed during reconciliation.'.format(len(failed)))
+
+    @app.cli.group('staff-reminders')
+    def staff_reminders_cli():
+        """Personal check-in reminder maintenance."""
+
+    @staff_reminders_cli.command('refresh-times')
+    @click.option('--date', 'as_of', type=click.DateTime(formats=['%Y-%m-%d']),
+                  help='Calculation date in Bangkok; only earlier records are used.')
+    @click.option('--dry-run', is_flag=True, help='Preview without saving or sending messages.')
+    @with_appcontext
+    def refresh_times(as_of, dry_run):
+        from .reminder_times import refresh_reminder_times
+        try:
+            summaries = refresh_reminder_times(as_of.date() if as_of else None, dry_run=dry_run)
+        except Exception:
+            db.session.rollback()
+            raise
+        for summary in summaries:
+            click.echo('staff_id={staff_id} days={sample_days} average={average_checkin_time} reminder={reminder_time}'.format(**summary))
+        click.echo('{} {} preferences; no messages sent.'.format(
+            'Previewed' if dry_run else 'Updated', len(summaries)))
+
+    @staff_reminders_cli.command('send-due')
+    @click.option('--dry-run', is_flag=True, help='Preview recipients without sending or claiming deliveries.')
+    @with_appcontext
+    def send_due(dry_run):
+        """Send due personalized reminders during 08:00–09:00 Bangkok time."""
+        from .views import send_personalized_checkin_reminders
+        summary = send_personalized_checkin_reminders(dry_run=dry_run)
+        for recipient in summary['recipients']:
+            click.echo('staff_id={staff_id} time={time}'.format(**recipient))
+        click.echo('Due: {recipient_count}; sent: {sent_count}; skipped: {skipped_count}; failed: {failed_count}'.format(**summary))
+        if summary['failed_count']:
+            raise click.ClickException('Some reminders failed; inspect delivery logs before retrying.')
+
+    @staff_reminders_cli.command('diagnose')
+    @click.option('--staff-id', required=True, type=click.IntRange(min=1))
+    @click.option('--at', 'inspect_at', type=click.DateTime(formats=['%Y-%m-%d %H:%M']),
+                  help='Inspect eligibility at this Bangkok date/time; defaults to now.')
+    @with_appcontext
+    def diagnose(staff_id, inspect_at):
+        """Explain personalized reminder eligibility without sending or changing data."""
+        from .reminder_diagnostics import diagnose_reminder
+        at = pytz.timezone('Asia/Bangkok').localize(inspect_at) if inspect_at else None
+        try:
+            result = diagnose_reminder(staff_id, at)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+        click.echo('Staff {} at {}'.format(result['staff_id'], result['at']))
+        click.echo('Read-only: current settings, account state and approvals; historical state is not retained.')
+        for check in result['checks']:
+            click.echo('{} {}: {}'.format('PASS' if check['passed'] else 'BLOCK', check['name'], check['detail']))
+        for scan in result['later_scans']:
+            click.echo('Later attendance ignored: id={id} start={start}'.format(**scan))
+        for attempt in result['later_attempts']:
+            click.echo('Later delivery attempt: {mode} {scheduled_time} {status} at {attempted_at}'.format(**attempt))
+        click.echo('ELIGIBLE under inspected conditions; verify clock logs to confirm execution.'
+                   if result['eligible'] else 'NOT ELIGIBLE: see BLOCK checks above.')
+        click.echo('No notifications sent or data changed.')

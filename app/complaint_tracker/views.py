@@ -58,6 +58,16 @@ TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 # json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+COMPLAINT_RESPONSIBLE_ORGANIZATIONS = {'หน่วยข้อมูลและสารสนเทศ', 'หน่วยซ่อมบำรุง'}
+
+
+def _default_complaint_organization():
+    personal_info = getattr(current_user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    org_name = getattr(org, 'name', None)
+    if isinstance(org_name, str):
+        org_name = org_name.strip()
+    return org_name if org_name in COMPLAINT_RESPONSIBLE_ORGANIZATIONS else 'all'
 
 
 class NumberedCanvas(canvas.Canvas):
@@ -1075,23 +1085,37 @@ def get_committee_staff():
 
 @complaint_tracker.route('/')
 def index():
-    categories = ComplaintCategory.query.all()
+    categories = ComplaintCategory.query.filter(ComplaintCategory.no.notin_([1, 5]))
     return render_template('complaint_tracker/index.html', categories=categories)
 
 
 @complaint_tracker.route('/request/index')
 def repair_request_landing():
-    topics = ComplaintTopic.query.filter(ComplaintTopic.code.in_(['room', 'runied'])).all()
-    topic_ids = {topic.code: topic.id for topic in topics}
-    room_id = topic_ids.get('room')
-    procurement_id = topic_ids.get('runied')
-    return render_template('complaint_tracker/repair_request_landing.html', room_id=room_id,
-                           procurement_id=procurement_id)
+    category = ComplaintCategory.query.filter_by(no=1).first()
+    topics = []
+    damaged_equipment_topic = None
+    if category:
+        topics = ComplaintTopic.query.filter_by(category_id=category.id).all()
+        for topic in topics:
+            if topic.code == 'runied':
+                damaged_equipment_topic = topic
+                break
+    return render_template('complaint_tracker/repair_request_landing.html',
+                           category=category, topics=topics, damaged_equipment_topic=damaged_equipment_topic)
 
 
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
-    topic = ComplaintTopic.query.get_or_404(topic_id)
+    topic = ComplaintTopic.query.get(topic_id)
+    issues = None
+    if topic.category and topic.category.no == 1:
+        topic_issue_associations = ComplaintTopicIssueAssociation.query.options(
+            joinedload(ComplaintTopicIssueAssociation.issue)
+        ).filter_by(topic_id=topic_id).order_by(
+            ComplaintTopicIssueAssociation.issue_id.asc()
+        ).all()
+        issues = [association.issue for association in topic_issue_associations]
+    has_procurement = request.values.get('has_procurement', 'false')
     ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
     room_number = request.values.get('number')
@@ -1101,7 +1125,7 @@ def new_record(topic_id, room=None, procurement=None):
     erp_code = request.values.get('erp_code')
     channel_receive = request.values.get('channel_receive')
     is_admin = False
-    if not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด':
+    if (not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด' and has_procurement == 'true'):
         return redirect(url_for('auth.login'))
     if current_user.is_authenticated:
         is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user, topic_id=topic_id).first() else False
@@ -1119,10 +1143,14 @@ def new_record(topic_id, room=None, procurement=None):
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
-        if topic.code == 'runied' and not procurement:
+        issue_id = request.form.get('issue_id', type=int)
+        if issue_id:
+            record.issue_id = issue_id
+        if topic.code == 'runied' and has_procurement == 'true' and not procurement:
             flash('กรุณาเพิ่มข้อมูลครุภัณฑ์ โดยสแกน QR Code หรือกรอกเลขครุภัณฑ์', 'danger')
             resp = make_response()
-            resp.headers['HX-Redirect'] = url_for('comp_tracker.new_record', topic_id=topic_id)
+            resp.headers['HX-Redirect'] = url_for('comp_tracker.new_record', topic_id=topic_id,
+                                                  has_procurement=has_procurement)
             return resp
         file = form.file_upload.data
         record.topic = topic
@@ -1185,7 +1213,7 @@ def new_record(topic_id, room=None, procurement=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
-                           is_admin=is_admin, procurement=procurement)
+                           is_admin=is_admin, procurement=procurement, has_procurement=has_procurement, issues=issues)
 
 
 @complaint_tracker.route('issue/closing-page')
@@ -1197,6 +1225,11 @@ def closing_page():
 @login_required
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
+    organization = request.args.get('organization')
+    if organization is None:
+        organization = _default_complaint_organization()
+    if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
+        organization = 'all'
     procurement_no = request.args.get('procurement_no')
     pro_number = request.args.get('pro_number')
     statuses = ComplaintStatus.query.all()
@@ -1251,14 +1284,15 @@ def edit_record_admin(record_id):
                         flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                                                tab=tab, file_url=file_url, admins=admins, investigators=investigators,
-                                               coordinators=coordinators, repair_approval_id=repair_approval_id, statuses=statuses)
+                                               coordinators=coordinators, repair_approval_id=repair_approval_id,
+                                               statuses=statuses, organization=organization)
                 elif old_status and not new_status:
                     form.status.data = old_status
                     flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                                            tab=tab, file_url=file_url, admins=admins, investigators=investigators,
                                            coordinators=coordinators, repair_approval_id=repair_approval_id,
-                                           statuses=statuses)
+                                           statuses=statuses, organization=organization)
                 elif not old_status and new_status:
                     first_status = ComplaintStatus.query.filter_by(no=1).first()
                     if not first_status:
@@ -1271,14 +1305,15 @@ def edit_record_admin(record_id):
                         flash('ไม่พบสถานะแรกของกระบวนการ กรุณาติดต่อผู้ดูแลระบบ', 'danger')
                         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                                               repair_approval_id=repair_approval_id, statuses=statuses)
+                                               repair_approval_id=repair_approval_id, statuses=statuses,
+                                               organization=organization)
                     if (first_status.no != new_status.no):
                         form.status.data = None
                         flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                                                tab=tab, file_url=file_url, admins=admins, investigators=investigators,
                                                coordinators=coordinators, repair_approval_id=repair_approval_id,
-                                               statuses=statuses)
+                                               statuses=statuses, organization=organization)
             form.populate_obj(record)
             record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
             for i, company_form in enumerate(form.repair_companies):
@@ -1366,10 +1401,10 @@ def edit_record_admin(record_id):
                                   'message_email', message)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                               statuses=statuses)
+                               statuses=statuses, organization=organization)
     else:
         return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id,
-                               tab=tab)
+                               tab=tab, organization=organization)
 
 
 @complaint_tracker.route('/issue/repair_company/file/delete/<int:repair_company_id>', methods=['GET', 'POST'])
@@ -1389,6 +1424,11 @@ def delete_quotation_file(repair_company_id):
 @login_required
 def admin_index():
     tab = request.args.get('tab')
+    organization = request.args.get('organization')
+    if organization is None:
+        organization = _default_complaint_organization()
+    if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
+        organization = 'all'
     admin_rows = ComplaintAdmin.query.with_entities(
         ComplaintAdmin.id,
         ComplaintAdmin.topic_id
@@ -1416,6 +1456,13 @@ def admin_index():
         .all()
         if record_id
     )
+
+    if organization != 'all' and record_ids:
+        record_ids = {
+            record_id for record_id, in db.session.query(ComplaintRecord.id)
+            .filter(ComplaintRecord.id.in_(record_ids), ComplaintRecord.organization == organization)
+            .all()
+        }
 
     records = []
     new_record_count = 0
@@ -1480,7 +1527,7 @@ def admin_index():
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab,
                            new_record_count=new_record_count, pending_record_count=pending_record_count,
                            progress_record_count=progress_record_count, repair_record_count=repair_record_count,
-                           admin_record_ids=admin_record_ids)
+                           admin_record_ids=admin_record_ids, organization=organization)
 
 
 @complaint_tracker.route('/topics/<code>')
@@ -1495,9 +1542,29 @@ def scan_qr_code_complaint(code):
     cat = request.args.get('cat')
     tab = request.args.get('tab')
     record_id = request.args.get('record_id', type=int)
+    has_procurement = request.args.get('has_procurement', 'false')
     topic = ComplaintTopic.query.filter_by(code=code).first()
     return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic_id=topic.id, cat=cat,
-                           tab=tab, record_id=record_id)
+                           tab=tab, record_id=record_id, has_procurement=has_procurement)
+
+
+@complaint_tracker.route('/add-procurement-number/complaint/<code>', methods=['GET', 'POST'])
+def add_procurement_number(code):
+    cat = request.args.get('cat')
+    tab = request.args.get('tab')
+    record_id = request.args.get('record_id', type=int)
+    has_procurement = request.values.get('has_procurement', 'false')
+    topic = ComplaintTopic.query.filter_by(code=code).first()
+    if request.method == 'POST':
+        pro_number = request.form.get('pro_number')
+        if cat and cat == 'admin':
+            return redirect(url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id,
+                                    pro_number=pro_number))
+        else:
+            return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, pro_number=pro_number,
+                                    has_procurement=has_procurement))
+    return render_template('complaint_tracker/add_procurement_number.html', code=code, topic_id=topic.id,
+                           cat=cat, tab=tab, record_id=record_id, has_procurement=has_procurement)
 
 
 @complaint_tracker.route('/issue/comment/add/<int:record_id>', methods=['GET', 'POST'])
@@ -2002,23 +2069,6 @@ def view_record_complaint_for_admin(record_id):
         file_url = None
     return render_template('complaint_tracker/view_record_complaint_for_admin.html', file_url=file_url,
                            record=record, menu=menu, statuses=statuses)
-
-
-@complaint_tracker.route('/add-procurement-number/complaint/<code>', methods=['GET', 'POST'])
-def add_procurement_number(code):
-    cat = request.args.get('cat')
-    tab = request.args.get('tab')
-    record_id = request.args.get('record_id', type=int)
-    topic = ComplaintTopic.query.filter_by(code=code).first()
-    if request.method == 'POST':
-        pro_number = request.form.get('pro_number')
-        if cat and cat == 'admin':
-            return redirect(url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id,
-                                    pro_number=pro_number))
-        else:
-            return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, pro_number=pro_number))
-    return render_template('complaint_tracker/add_procurement_number.html', code=code, topic_id=topic.id,
-                           cat=cat, tab=tab, record_id=record_id)
 
 
 @complaint_tracker.route('/admin/record-complaint-summary')

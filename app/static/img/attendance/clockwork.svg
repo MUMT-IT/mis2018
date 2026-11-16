@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-162 0 324 324">
+  <title>Clockwork</title>
+  <defs>
+    <linearGradient id="gold" x2="0" y2="1">
+      <stop stop-color="#754956"/><stop offset=".53" stop-color="#4b3148"/>
+      <stop offset="1" stop-color="#29203a"/>
+    </linearGradient>
+    <linearGradient id="gold-rim" x2=".8" y2="1">
+      <stop stop-color="#a96737"/><stop offset=".23" stop-color="#fff2bc"/>
+      <stop offset=".45" stop-color="#efbc68"/><stop offset=".68" stop-color="#996339"/>
+      <stop offset="1" stop-color="#ffe4a4"/>
+    </linearGradient>
+    <linearGradient id="gloss" x2="0" y2="1">
+      <stop stop-color="#fff" stop-opacity=".4"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feGaussianBlur stdDeviation="11"/>
+    </filter>
+    <circle id="medal" cy="157" r="146"/>
+    <path id="shine" d="M-111 100a125 125 0 0 1 216-8c-75-32-151-26-216 8z"/>
+    <path id="rim-glint" d="M-117 79a140 140 0 0 1 68-51" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <path id="spark" d="M0-11 2.7-2.7 11 0 2.7 2.7 0 11-2.7 2.7-11 0-2.7-2.7z"/>
+  </defs>
+  <ellipse cy="282" rx="119" ry="31" fill="#261836" opacity=".34" filter="url(#shadow)"/>
+  <use href="#medal" fill="#261836" transform="translate(0 8)"/>
+  <use href="#medal" fill="url(#gold-rim)" stroke="#261836" stroke-width="2"/>
+  <circle cy="157" r="133" fill="url(#gold)" stroke="#261836" stroke-width="2.5"/>
+  <circle cy="157" r="129" fill="none" stroke="#ffc979" opacity=".45"/>
+  <use href="#shine" fill="url(#gloss)"/>
+  <use href="#rim-glint" opacity=".78"/>
+  <g transform="translate(0 154) scale(1.65)" stroke="#ffd38c" fill="none" stroke-linecap="round">
+    <circle r="35" fill="#654251" stroke-width="3"/>
+    <path d="M0-21V0l15-8" stroke-width="5" stroke-linejoin="round"/>
+    <circle r="3" fill="#ffd38c" stroke="none"/>
+    <use href="#spark" x="-57" y="1" fill="#ffd38c" stroke="none"/>
+    <use href="#spark" x="57" y="1" fill="#ffd38c" stroke="none"/>
+  </g>
+</svg>

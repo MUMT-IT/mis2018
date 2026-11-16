@@ -197,12 +197,21 @@
                                                         <td>{{ item.note or '-' }}</td>
                                                         <td class="has-text-centered">
                                                             {% if item.attachment %}
-                                                                <a class="button is-small is-link is-light is-rounded"
+                                                                <div class="field has-addons is-justify-content-center">
+                                                                <div class="control">
+                                                                <a class="button is-small is-primary is-outlined is-rounded" target="_blank" rel="noopener" href="{{ url_for('service_admin.download_file', key=item.attachment, download_filename=item.attachment, inline=1) }}">
+                                                                    <span class="icon" title="ดูเอกสาร" aria-label="ดูเอกสาร"><i class="fas fa-eye"></i></span>
+                                                                </a>
+                                                                </div>
+                                                                <div class="control">
+                                                                <a class="button is-small is-info is-outlined is-rounded"
                                                                    href="{{ url_for('service_admin.download_file', key=item.attachment,
                                                                    download_filename=item.attachment) }}">
-                                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                                    <span>ดาวน์โหลด</span>
+                                                                    <span class="icon" title="ดาวน์โหลด" aria-label="ดาวน์โหลด"><i class="fas fa-download"></i></span>
+
                                                                 </a>
+                                                                </div>
+                                                                </div>
                                                             {% else %}
                                                                 -
                                                             {% endif %}
@@ -218,12 +227,21 @@
                                                         <td>{{ item.note or '-' }}</td>
                                                         <td class="has-text-centered">
                                                             {% if item.attachment %}
-                                                                <a class="button is-small is-link is-light is-rounded"
+                                                                <div class="field has-addons is-justify-content-center">
+                                                                <div class="control">
+                                                                <a class="button is-small is-primary is-outlined is-rounded" target="_blank" rel="noopener" href="{{ url_for('service_admin.download_file', key=item.attachment, download_filename=item.attachment, inline=1) }}">
+                                                                    <span class="icon" title="ดูเอกสาร" aria-label="ดูเอกสาร"><i class="fas fa-eye"></i></span>
+                                                                </a>
+                                                                </div>
+                                                                <div class="control">
+                                                                <a class="button is-small is-info is-outlined is-rounded"
                                                                    href="{{ url_for('service_admin.download_file', key=item.attachment,
                                                                    download_filename=item.attachment) }}">
-                                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                                    <span>ดาวน์โหลด</span>
+                                                                    <span class="icon" title="ดาวน์โหลด" aria-label="ดาวน์โหลด"><i class="fas fa-download"></i></span>
+
                                                                 </a>
+                                                                </div>
+                                                                </div>
                                                             {% else %}
                                                                 -
                                                             {% endif %}

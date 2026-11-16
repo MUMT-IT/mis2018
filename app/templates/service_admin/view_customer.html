@@ -5,11 +5,10 @@
     <section class="service-customer-view section">
         <div class="container service-customer-container">
             {% include "messages.html" %}
-
             <div class="service-customer-heading">
                 <div class="service-customer-heading-copy">
                     <span class="service-customer-heading-icon" aria-hidden="true">
-                        <i class="fas fa-user-check"></i>
+                        <i class="fas fa-user"></i>
                     </span>
                     <div>
                         <p class="service-customer-eyebrow">CUSTOMER PROFILE</p>
@@ -45,7 +44,7 @@
                 <div class="service-customer-info-grid">
                     <div class="service-customer-info-item">
                         <span><i class="fas fa-user-tag"></i> ประเภท</span>
-                        <strong><span class="tag service-customer-type-tag">{{ customer.type or '-' }}</span></strong>
+                        <strong><span class="tag customer-detail-type-tag">{{ customer.type.type or '-' }}</span></strong>
                     </div>
                     <div class="service-customer-info-item">
                         <span><i class="fas fa-id-card"></i> เลขประจำตัวผู้เสียภาษีอากร</span>
@@ -63,6 +62,22 @@
                         <span><i class="fas fa-fax"></i> โทรสาร</span>
                         <strong>{{ customer.fax_no or '-' }}</strong>
                     </div>
+                    <div class="service-customer-info-item">
+                        <span><i class="fas fa-envelope-circle-check"></i> ยืนยันอีเมล</span>
+                        <strong>
+                            {% if customer.verify_email %}
+                                <span class="tag is-success is-light is-rounded">
+                                    <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                    ยืนยันแล้ว {{ customer.verify_email|localdate }}
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger is-light is-rounded">
+                                    <i class="fas fa-circle-xmark" aria-hidden="true"></i>
+                                    ยังไม่ยืนยัน
+                                </span>
+                            {% endif %}
+                        </strong>
+                    </div>
                 </div>
             </div>
 
@@ -72,25 +87,23 @@
                         <p class="service-customer-section-eyebrow">CONTACTS</p>
                         <h2><i class="fas fa-address-book"></i> ข้อมูลผู้ประสานงาน</h2>
                     </div>
-                    <span class="service-customer-section-count">{{ customer.customer_contacts|length }} คน</span>
                 </div>
-                <div class="service-customer-contact-grid">
-                    {% for contact in customer.customer_contacts %}
-                        <div class="service-customer-contact-card">
-                            <span class="service-customer-contact-icon"><i class="fas fa-user"></i></span>
-                            <div class="service-customer-contact-content">
-                                <strong>{{ contact.contact_name or '-' }}</strong>
+                {% for contact in customer.customer_contacts %}
+                    <div class="service-customer-contact-item">
+                        <div class="service-customer-contact-avatar" aria-hidden="true"><i class="fas fa-user"></i></div>
+                        <div class="service-customer-contact-copy">
+                            <strong>{{ contact.contact_name or '-' }}</strong>
+                            <span>{{ contact.type or 'ผู้ประสานงาน' }}</span>
+                            <div class="service-customer-contact-meta">
                                 <span><i class="fas fa-phone"></i> {{ contact.phone_number or '-' }}</span>
                                 <span><i class="fas fa-envelope"></i> {{ contact.email or '-' }}</span>
-                                {% if contact.remark %}
-                                    <small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>
-                                {% endif %}
                             </div>
+                            {% if contact.remark %}<small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>{% endif %}
                         </div>
-                    {% else %}
-                        <div class="service-customer-empty">ยังไม่มีข้อมูลผู้ประสานงาน</div>
-                    {% endfor %}
-                </div>
+                    </div>
+                {% else %}
+                    <div class="service-customer-empty">ยังไม่มีข้อมูลผู้ประสานงาน</div>
+                {% endfor %}
             </div>
 
             <div class="service-customer-section-card">
@@ -177,12 +190,22 @@
                                         <td>{{ item.note or '-' }}</td>
                                         <td class="has-text-centered">
                                             {% if item.attachment %}
-                                                <a class="button is-small is-link is-light is-rounded"
+                                                <div class="field has-addons is-justify-content-center">
+                                                <div class="control">
+                                                <a class="button is-small is-primary is-outlined is-rounded" target="_blank" rel="noopener"
+                                                   href="{{ url_for('service_admin.download_file', key=item.attachment, download_filename=item.attachment, inline=1) }}">
+                                                    <span class="icon" title="ดูเอกสาร" aria-label="ดูเอกสาร"><i class="fas fa-eye"></i></span>
+                                                </a>
+                                                </div>
+                                                <div class="control">
+                                                <a class="button is-small is-info is-outlined is-rounded"
                                                    href="{{ url_for('service_admin.download_file', key=item.attachment,
                                                    download_filename=item.attachment) }}">
-                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                    <span>ดาวน์โหลด</span>
+                                                    <span class="icon" title="ดาวน์โหลด" aria-label="ดาวน์โหลด"><i class="fas fa-download"></i></span>
+
                                                 </a>
+                                                </div>
+                                                </div>
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -198,12 +221,23 @@
                                         <td>{{ item.note or '-' }}</td>
                                         <td class="has-text-centered">
                                             {% if item.attachment %}
-                                                <a class="button is-small is-link is-light is-rounded"
+                                                <div class="field has-addons is-justify-content-center">
+                                                <div class="control">
+                                                <a class="button is-small is-primary is-outlined is-rounded" target="_blank" rel="noopener"
+                                                   href="{{ url_for('service_admin.download_file', key=item.attachment, download_filename=item.attachment, inline=1) }}">
+                                                    <span class="icon" title="ดูเอกสาร" aria-label="ดูเอกสาร"><i class="fas fa-eye"></i></span>
+
+                                                </a>
+                                                </div>
+                                                <div class="control">
+                                                <a class="button is-small is-info is-outlined is-rounded"
                                                    href="{{ url_for('service_admin.download_file', key=item.attachment,
                                                    download_filename=item.attachment) }}">
-                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                    <span>ดาวน์โหลด</span>
+                                                    <span class="icon" title="ดาวน์โหลด" aria-label="ดาวน์โหลด"><i class="fas fa-download"></i></span>
+
                                                 </a>
+                                                </div>
+                                                </div>
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -224,22 +258,28 @@
                             <strong>ตรวจสอบเอกสารผู้รับบริการ</strong>
                             <p>กรุณาตรวจสอบข้อมูลและเอกสารก่อนเลือกผลการพิจารณา</p>
                         </div>
-                        <div class="buttons mb-0">
-                            <a class="button is-success is-rounded"
+                        <div class="customer-review-progress is-hidden" id="customer-review-progress" role="status" aria-live="polite">
+                            <span class="icon"><i class="fas fa-spinner fa-pulse"></i></span>
+                            <span>กำลังดำเนินการ โปรดรอสักครู่</span>
+                        </div>
+                        <div class="buttons mb-0" id="customer-document-review-actions">
+                            <a class="button is-success is-rounded customer-document-review-action"
                                hx-post="{{ url_for('service_admin.approve_document_customer', tab=tab,
                                customer_id=customer.id) }}"
                                hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
                                hx-confirm="ท่านต้องการอนุมัติใช่หรือไม่">
                                 <span class="icon"><i class="fas fa-check"></i></span>
-                                <span>อนุมัติ</span>
+                                <span class="customer-review-label">อนุมัติ</span>
+                                <span class="icon is-hidden customer-review-spinner"><i class="fas fa-spinner fa-pulse"></i></span>
                             </a>
-                            <a class="button is-danger is-light is-rounded"
+                            <a class="button is-danger is-rounded customer-document-review-action"
                                hx-post="{{ url_for('service_admin.disapprove_document_customer', tab=tab,
                                customer_id=customer.id) }}"
                                hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
                                hx-confirm="ท่านต้องการไม่อนุมัติใช่หรือไม่">
                                 <span class="icon"><i class="fas fa-xmark"></i></span>
-                                <span>ไม่อนุมัติ</span>
+                                <span class="customer-review-label">ไม่อนุมัติ</span>
+                                <span class="icon is-hidden customer-review-spinner"><i class="fas fa-spinner fa-pulse"></i></span>
                             </a>
                         </div>
                     </div>
@@ -259,25 +299,34 @@
         .service-customer-subtitle { color: #66738d; font-size: .9rem; margin: 0; }
         .service-customer-back { border-radius: 10px; color: #294a78; font-weight: 700; }
         .service-customer-profile-card, .service-customer-section-card, .service-customer-review-card { background: rgba(255,255,255,.96); border: 1px solid rgba(58,101,184,.17); border-radius: 18px; box-shadow: 0 14px 32px rgba(18,39,84,.08); margin: 0 auto 1.25rem; max-width: 70rem; }
+        .customer-review-progress { align-items: center; color: #327fc1; display: flex; font-size: .95rem; font-weight: 700; gap: .5rem; margin: .75rem 0; }
+        .customer-review-progress .icon { color: #327fc1; }
+        .customer-document-review-action.is-success.is-light .customer-review-label,
+        .customer-document-review-action.is-success.is-light .icon { color: #257953 !important; }
+        .customer-document-review-action.is-danger.is-light .customer-review-label,
+        .customer-document-review-action.is-danger.is-light .icon { color: #cc0f35 !important; }
+        .customer-document-review-action .customer-review-label { display: inline-block !important; opacity: 1 !important; visibility: visible !important; }
+        .customer-document-review-action.is-loading::after { display: none !important; }
         .service-customer-profile-card { padding: 1.25rem 1.4rem; }
         .service-customer-profile-header { align-items: center; display: flex; gap: 1rem; justify-content: space-between; }
         .service-customer-profile-main { align-items: center; display: flex; gap: .9rem; min-width: 0; }
         .service-customer-profile-icon { align-items: center; background: #eef6ff; border-radius: 13px; color: #2f80c9; display: inline-flex; flex: 0 0 3rem; font-size: 1.15rem; height: 3rem; justify-content: center; }
         .service-customer-profile-label { color: #8292a9; font-size: .75rem; font-weight: 700; margin-bottom: .15rem; }
         .service-customer-profile-main h2 { color: #1e3152; font-size: 1.25rem; margin: 0 0 .4rem; overflow-wrap: anywhere; }
-        .service-customer-type-tag { background: #f0f5fb; color: #425675; font-size: .78rem; }
+        .service-customer-info-item .customer-detail-type-tag { background: #f5f5f5; color: #15284d; font-weight: 700; }
         .service-customer-verification .tag { font-weight: 700; padding: .55rem .8rem; }
         .service-customer-section-card { padding: 1.25rem 1.4rem; }
         .service-customer-contact-section { border-color: #cfe5fb; box-shadow: 0 12px 28px rgba(47,128,201,.1); }
         .service-customer-section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1rem; }
         .service-customer-section-heading h2 { color: #102f58; font-size: 1.08rem; font-weight: 800; margin: 0; }
         .service-customer-section-heading h2 i { color: #2f80c9; margin-right: .35rem; }
-        .service-customer-section-count { background: #eef6ff; border-radius: 999px; color: #2f80c9; font-size: .78rem; font-weight: 800; padding: .35rem .7rem; white-space: nowrap; }
-        .service-customer-info-grid { border-top: 1px solid #edf1f7; display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 1.15rem; padding-top: 1rem; }
+        .service-customer-section-count { background: #eef6ff; color: #2f80c9; font-size: .78rem; font-weight: 800; padding: .35rem .7rem; white-space: nowrap; }
+        .service-customer-info-grid { border-top: 1px solid #edf1f7; display: grid; gap: 1rem; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 1.15rem; padding-top: 1rem; }
         .service-customer-info-item { display: flex; flex-direction: column; gap: .35rem; min-width: 0; padding: 0 .15rem; }
         .service-customer-info-item span { color: #8292a9; font-size: .78rem; }
         .service-customer-info-item span i { color: #2f80c9; margin-right: .25rem; }
         .service-customer-info-item strong { color: #425675; font-size: .92rem; overflow-wrap: anywhere; }
+        .service-customer-info-item strong .tag i { color: inherit; margin-right: .3rem; }
         .service-customer-address-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .service-customer-address-card { background: #fbfdff; border: 1px solid #e1edf8; border-radius: 12px; padding: 1rem; }
         .service-customer-address-heading { align-items: flex-start; display: flex; gap: .6rem; justify-content: space-between; margin-bottom: .6rem; }
@@ -287,13 +336,15 @@
         .service-customer-address-meta { color: #667d9b; display: flex; flex-wrap: wrap; font-size: .78rem; gap: .8rem; margin-top: .55rem; }
         .service-customer-address-meta i, .service-customer-address-remark i { color: #2f80c9; margin-right: .2rem; }
         .service-customer-address-remark { color: #667d9b; display: block; font-size: .78rem; margin-top: .55rem; }
-        .service-customer-contact-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .service-customer-contact-card { align-items: flex-start; background: transparent; border: 0; border-radius: 12px; display: flex; gap: .75rem; padding: .35rem 0; }
-        .service-customer-contact-icon { align-items: center; background: #eef6ff; border-radius: 9px; color: #2f80c9; display: inline-flex; flex: 0 0 2rem; height: 2rem; justify-content: center; }
-        .service-customer-contact-content { display: flex; flex-direction: column; gap: .18rem; min-width: 0; }
-        .service-customer-contact-content strong { color: #1e3152; font-size: .92rem; }
-        .service-customer-contact-content span, .service-customer-contact-content small { color: #667d9b; font-size: .8rem; overflow-wrap: anywhere; }
-        .service-customer-contact-content i { color: #2f80c9; margin-right: .2rem; }
+        .service-customer-contact-item { align-items: flex-start; border-top: 1px solid #edf1f7; display: flex; gap: .75rem; padding-top: 1rem; }
+        .service-customer-contact-item + .service-customer-contact-item { margin-top: 1rem; }
+        .service-customer-contact-avatar { align-items: center; background: #eef6ff; border-radius: 12px; color: #2f80c9; display: inline-flex; flex: 0 0 2.75rem; height: 2.75rem; justify-content: center; }
+        .service-customer-contact-copy { min-width: 0; }
+        .service-customer-contact-copy strong { color: #1e3152; display: block; }
+        .service-customer-contact-copy > span { color: #8391a8; display: block; font-size: .8rem; margin-top: .1rem; }
+        .service-customer-contact-meta { color: #5c6c86; display: flex; flex-wrap: wrap; font-size: .8rem; gap: .65rem 1rem; margin-top: .45rem; }
+        .service-customer-contact-meta i { color: #2f80c9; margin-right: .25rem; }
+        .service-customer-contact-copy small { color: #8391a8; display: block; margin-top: .45rem; }
         .service-customer-document-table th { background: #f3f7fc; color: #425675; font-size: .8rem; }
         .service-customer-document-table td { color: #425675; vertical-align: middle; }
         .service-customer-empty { background: #f8fbff; border: 1px dashed #d7e0ee; border-radius: 10px; color: #8391a8; padding: 1rem; text-align: center; }
@@ -308,7 +359,7 @@
             .service-customer-view { padding-top: 2rem; }
             .service-customer-heading { align-items: flex-start; flex-direction: column; }
             .service-customer-profile-header, .service-customer-review-card { align-items: flex-start; flex-direction: column; }
-            .service-customer-info-grid, .service-customer-address-grid, .service-customer-contact-grid { grid-template-columns: 1fr; }
+            .service-customer-info-grid, .service-customer-address-grid { grid-template-columns: 1fr; }
             .service-customer-review-card .buttons { width: 100%; }
             .service-customer-review-card .button { flex: 1; }
         }
@@ -318,4 +369,19 @@
             .service-customer-section-card { padding: 1rem; }
         }
     </style>
+    <script>
+        document.addEventListener('htmx:beforeRequest', function (event) {
+            const triggeringElement = event.detail.elt;
+            if (!triggeringElement || !triggeringElement.classList.contains('customer-document-review-action')) return;
+            document.getElementById('customer-review-progress').classList.remove('is-hidden');
+            document.querySelectorAll('.customer-document-review-action').forEach(function (button) {
+                button.classList.remove('is-loading');
+                button.classList.add('is-light');
+                button.style.color = button.classList.contains('is-success') ? '#257953' : '#cc0f35';
+                button.setAttribute('aria-disabled', 'true');
+                button.style.pointerEvents = 'none';
+                button.querySelector('.customer-review-spinner').classList.remove('is-hidden');
+            });
+        });
+    </script>
 {% endblock %}
