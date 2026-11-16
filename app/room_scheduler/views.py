@@ -1205,6 +1205,13 @@ def show_event_detail(event_id=None):
         return 'No event ID specified.'
 
 
+def _participant_meeting_title(event):
+    meeting_title = (event.title or '').strip()
+    if 'ประชุม' not in meeting_title:
+        meeting_title = f'ประชุม{meeting_title}'.strip()
+    return meeting_title or 'ประชุม'
+
+
 def generate_participant_list_document(event):
     from io import BytesIO
 
@@ -1317,7 +1324,7 @@ def generate_participant_list_document(event):
         return paragraph
 
     add_centered_line('รายชื่อผู้เข้าร่วม', size=16, bold=True)
-    add_centered_line(event.title, size=16, bold=True)
+    add_centered_line(_participant_meeting_title(event), size=16, bold=True)
     add_centered_line(date_line, size=16, bold=True)
     add_centered_line(room_location, size=16, bold=True, space_after=8)
 
@@ -1398,11 +1405,14 @@ def download_event_participants(event_id):
         abort(404)
 
     buffer = generate_participant_list_document(event)
+    meeting_title = _participant_meeting_title(event)
+    safe_title = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', ' ', meeting_title)
+    safe_title = ' '.join(safe_title.split()).strip(' .')[:100].rstrip(' .')
     return send_file(
         buffer,
         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         as_attachment=True,
-        download_name=f'participant-list-{event.id}.docx',
+        download_name=f'ใบรายชื่อ{safe_title or event.id}.docx',
     )
 
 
