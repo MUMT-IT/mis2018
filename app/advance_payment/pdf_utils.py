@@ -2740,7 +2740,11 @@ def _render_overdue_reminders_with_reportlab(letters):
         topMargin=36, bottomMargin=38,
         title="หนังสือเร่งรัดการส่งใช้เงินยืม",
     )
-    normal = ParagraphStyle("OverdueNormal", fontName="Sarabun", fontSize=15.5, leading=21, wordWrap="CJK")
+    # Do not use CJK wrapping here. ReportLab treats many CJK-split lines as
+    # hard breaks, which prevents TA_JUSTIFY from distributing word spacing.
+    # The regular wrapper can handle the Thai spaces in these paragraphs and
+    # allows justification to work on every non-final line.
+    normal = ParagraphStyle("OverdueNormal", fontName="Sarabun", fontSize=15.5, leading=21)
     right = ParagraphStyle("OverdueRight", parent=normal, alignment=TA_RIGHT)
     center = ParagraphStyle("OverdueCenter", parent=normal, alignment=TA_CENTER)
     body = ParagraphStyle("OverdueBody", parent=normal, alignment=TA_JUSTIFY, firstLineIndent=70, spaceAfter=8)
