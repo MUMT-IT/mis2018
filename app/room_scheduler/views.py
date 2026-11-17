@@ -8,7 +8,18 @@ import re
 import requests
 from datetime import datetime, timedelta
 from dateutil import parser
-from flask import render_template, jsonify, request, flash, redirect, url_for, current_app, make_response
+from flask import (
+    abort,
+    current_app,
+    flash,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 from flask_login import login_required, current_user
 from flask_admin.helpers import is_safe_url
 from app.linebot_compat import LineBotApiError, TextSendMessage
@@ -17,7 +28,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import text
 from app.main import mail
-from .forms import RoomAdminForm, RoomEventForm
+from .forms import RoomAdminForm, RoomEventForm, RoomParticipantListForm
 from ..auth.views import line_bot_api
 from ..complaint_tracker.models import ComplaintRecord, ComplaintStatus, ComplaintTopic
 from ..main import db
@@ -1197,6 +1208,406 @@ def show_event_detail(event_id=None):
         return 'No event ID specified.'
 
 
+def _participant_meeting_title(event):
+    meeting_title = (event.title or '').strip()
+    if 'ประชุม' not in meeting_title:
+        meeting_title = f'ประชุม{meeting_title}'.strip()
+    return meeting_title or 'ประชุม'
+
+
+def _participant_document_download_name(event, extension):
+    meeting_title = _participant_meeting_title(event)
+    safe_title = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', ' ', meeting_title)
+    safe_title = ' '.join(safe_title.split()).strip(' .')[:100].rstrip(' .')
+    return f'ใบรายชื่อ{safe_title or event.id}.{extension}'
+
+
+def generate_participant_list_word(event):
+    from io import BytesIO
+
+    from docx import Document
+    from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    from docx.shared import Cm, Pt
+
+    font_name = 'TH SarabunPSK'
+
+    def set_run_font(run, size=16, bold=None):
+        run.font.name = font_name
+        run.font.size = Pt(size)
+        if bold is not None:
+            run.bold = bold
+        rpr = run._element.get_or_add_rPr()
+        rfonts = rpr.rFonts
+        if rfonts is None:
+            rfonts = OxmlElement('w:rFonts')
+            rpr.insert(0, rfonts)
+        rfonts.set(qn('w:ascii'), font_name)
+        rfonts.set(qn('w:hAnsi'), font_name)
+        rfonts.set(qn('w:eastAsia'), font_name)
+
+    def local_datetime(value):
+        if value.tzinfo is None:
+            return localtz.localize(value)
+        return value.astimezone(localtz)
+
+    thai_months = (
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    )
+    thai_weekdays = (
+        'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี',
+        'วันศุกร์', 'วันเสาร์', 'วันอาทิตย์',
+    )
+
+    start = local_datetime(event.start)
+    end = local_datetime(event.end)
+
+    def thai_date(value):
+        return f'{value.day} {thai_months[value.month - 1]} {value.year + 543}'
+
+    if start.date() == end.date():
+        date_line = (
+            f'ใน{thai_weekdays[start.weekday()]} ที่ {thai_date(start)} '
+            f'เวลา {start:%H.%M} - {end:%H.%M} น.'
+        )
+    else:
+        date_line = (
+            f'ใน{thai_weekdays[start.weekday()]} ที่ {thai_date(start)} เวลา {start:%H.%M} น. '
+            f'ถึง{thai_weekdays[end.weekday()]} ที่ {thai_date(end)} เวลา {end:%H.%M} น.'
+        )
+
+    room_location = f'ห้องประชุม {event.room_names}'
+    room_floors = list(dict.fromkeys(
+        str(booked_room.floor).strip()
+        for booked_room in event.booked_rooms
+        if booked_room.floor and str(booked_room.floor).strip()
+    ))
+    if room_floors:
+        floor_text = ' / '.join(
+            floor if floor.startswith('ชั้น') else f'ชั้น {floor}'
+            for floor in room_floors
+        )
+        room_location += f' {floor_text}'
+    campus = (event.room.location or '').strip() if event.room else ''
+    campus_lower = campus.lower()
+    if 'ศิริราช' in campus or 'siriraj' in campus_lower:
+        building_location = 'อาคารคณะเทคนิคการแพทย์ ศิริราช'
+    elif 'ศาลายา' in campus or 'salaya' in campus_lower:
+        building_location = 'อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ ศาลายา'
+    else:
+        building_location = campus
+    if building_location:
+        room_location += f' {building_location}'
+
+    document = Document()
+    section = document.sections[0]
+    section.page_width = Cm(21)
+    section.page_height = Cm(29.7)
+    section.top_margin = Cm(1.6)
+    section.bottom_margin = Cm(1.8)
+    section.left_margin = Cm(2)
+    section.right_margin = Cm(2)
+
+    normal_style = document.styles['Normal']
+    normal_style.font.name = font_name
+    normal_style.font.size = Pt(16)
+    normal_rpr = normal_style._element.get_or_add_rPr()
+    normal_rfonts = normal_rpr.rFonts
+    if normal_rfonts is None:
+        normal_rfonts = OxmlElement('w:rFonts')
+        normal_rpr.insert(0, normal_rfonts)
+    normal_rfonts.set(qn('w:ascii'), font_name)
+    normal_rfonts.set(qn('w:hAnsi'), font_name)
+    normal_rfonts.set(qn('w:eastAsia'), font_name)
+
+    def add_centered_line(text, size=16, bold=False, space_after=0):
+        paragraph = document.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        paragraph.paragraph_format.line_spacing = Pt(size + 2)
+        paragraph.paragraph_format.space_after = Pt(space_after)
+        paragraph.paragraph_format.keep_with_next = True
+        run = paragraph.add_run(text or '')
+        set_run_font(run, size=size, bold=bold)
+        return paragraph
+
+    add_centered_line('รายชื่อผู้เข้าร่วม', size=16, bold=True)
+    add_centered_line(_participant_meeting_title(event), size=16, bold=True)
+    add_centered_line(date_line, size=16, bold=True)
+    add_centered_line(room_location, size=16, bold=True, space_after=24)
+
+    participant_table = document.add_table(rows=1, cols=2)
+    participant_table.style = 'Table Grid'
+    participant_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    participant_table.autofit = False
+    participant_table.columns[0].width = Cm(2.4)
+    participant_table.columns[1].width = Cm(14.6)
+
+    header_cells = participant_table.rows[0].cells
+    for cell, label in zip(header_cells, ('ลำดับ', 'ชื่อ-สกุล')):
+        cell.width = Cm(2.4) if label == 'ลำดับ' else Cm(14.6)
+        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        paragraph = cell.paragraphs[0]
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_run_font(paragraph.add_run(label), size=16, bold=True)
+
+    participants = event.participants or []
+    for index, participant in enumerate(participants, start=1):
+        cells = participant_table.add_row().cells
+        cells[0].width = Cm(2.4)
+        cells[1].width = Cm(14.6)
+        for cell in cells:
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_run_font(cells[0].paragraphs[0].add_run(str(index)))
+        set_run_font(cells[1].paragraphs[0].add_run(participant.fullname or ''))
+
+    document.add_paragraph().paragraph_format.space_after = Pt(4)
+
+    cost_centers = event.cost_center.id if event.cost_center else '-'
+    iocode_id = event.iocode.id if event.iocode else '-'
+    product_code_name = event.product_code.name if event.product_code else '-'
+    organizer_name = event.creator.fullname if event.creator else '-'
+    organizer_org = (
+        event.creator.personal_info.org.display_name
+        if event.creator and event.creator.personal_info and event.creator.personal_info.org
+        else '-'
+    )
+    details = (
+        ('รหัสชุดต้นทุน', cost_centers),
+        ('รหัสใบสั่งงานภายใน', iocode_id),
+        ('ผลผลิต / หมวดค่าใช้จ่าย', product_code_name),
+        ('ชื่อผู้จอง', organizer_name),
+        ('ชื่อหน่วยงานผู้จอง', organizer_org),
+    )
+
+    details_table = document.add_table(rows=0, cols=2)
+    details_table.autofit = False
+    details_table.columns[0].width = Cm(5.2)
+    details_table.columns[1].width = Cm(11.8)
+    table_borders = OxmlElement('w:tblBorders')
+    for edge in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
+        border = OxmlElement(f'w:{edge}')
+        border.set(qn('w:val'), 'nil')
+        table_borders.append(border)
+    details_table._tbl.tblPr.append(table_borders)
+    for label, value in details:
+        cells = details_table.add_row().cells
+        cells[0].width = Cm(5.2)
+        cells[1].width = Cm(11.8)
+        for cell, text in zip(cells, (label, value)):
+            cell.paragraphs[0].paragraph_format.space_after = Pt(0)
+            set_run_font(cell.paragraphs[0].add_run(text), bold=True)
+
+    buffer = BytesIO()
+    document.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
+@room.route('/events/participants/word/<int:event_id>')
+@login_required
+def download_participant_list_word(event_id):
+    event = RoomEvent.query.get(event_id)
+    if not event:
+        abort(404)
+
+    buffer = generate_participant_list_word(event)
+    return send_file(
+        buffer,
+        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        as_attachment=True,
+        download_name=_participant_document_download_name(event, 'docx'),
+    )
+
+
+def generate_participant_list_pdf(event):
+    from io import BytesIO
+    from xml.sax.saxutils import escape
+
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    font_dir = os.path.join(current_app.root_path, 'static', 'fonts')
+    regular_font = 'TH SarabunPSK'
+    bold_font = 'TH SarabunPSK-Bold'
+    registered_fonts = pdfmetrics.getRegisteredFontNames()
+    if regular_font not in registered_fonts:
+        pdfmetrics.registerFont(TTFont(regular_font, os.path.join(font_dir, 'THSarabunNew.ttf')))
+    if bold_font not in registered_fonts:
+        pdfmetrics.registerFont(TTFont(bold_font, os.path.join(font_dir, 'THSarabunNewBold.ttf')))
+    pdfmetrics.registerFontFamily(
+        regular_font,
+        normal=regular_font,
+        bold=bold_font,
+        italic=regular_font,
+        boldItalic=bold_font,
+    )
+
+    def local_datetime(value):
+        if value.tzinfo is None:
+            return localtz.localize(value)
+        return value.astimezone(localtz)
+
+    thai_months = (
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    )
+    thai_weekdays = (
+        'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี',
+        'วันศุกร์', 'วันเสาร์', 'วันอาทิตย์',
+    )
+    start = local_datetime(event.start)
+    end = local_datetime(event.end)
+
+    def thai_date(value):
+        return f'{value.day} {thai_months[value.month - 1]} {value.year + 543}'
+
+    if start.date() == end.date():
+        date_line = (
+            f'ใน{thai_weekdays[start.weekday()]} ที่ {thai_date(start)} '
+            f'เวลา {start:%H.%M} - {end:%H.%M} น.'
+        )
+    else:
+        date_line = (
+            f'ใน{thai_weekdays[start.weekday()]} ที่ {thai_date(start)} เวลา {start:%H.%M} น. '
+            f'ถึง{thai_weekdays[end.weekday()]} ที่ {thai_date(end)} เวลา {end:%H.%M} น.'
+        )
+
+    room_location = f'ห้องประชุม {event.room_names}'
+    room_floors = list(dict.fromkeys(
+        str(booked_room.floor).strip()
+        for booked_room in event.booked_rooms
+        if booked_room.floor and str(booked_room.floor).strip()
+    ))
+    if room_floors:
+        floor_text = ' / '.join(
+            floor if floor.startswith('ชั้น') else f'ชั้น {floor}'
+            for floor in room_floors
+        )
+        room_location += f' {floor_text}'
+    campus = (event.room.location or '').strip() if event.room else ''
+    campus_lower = campus.lower()
+    if 'ศิริราช' in campus or 'siriraj' in campus_lower:
+        building_location = 'อาคารคณะเทคนิคการแพทย์ ศิริราช'
+    elif 'ศาลายา' in campus or 'salaya' in campus_lower:
+        building_location = 'อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ ศาลายา'
+    else:
+        building_location = campus
+    if building_location:
+        room_location += f' {building_location}'
+
+    title_style = ParagraphStyle(
+        'ParticipantPdfTitle', fontName=bold_font, fontSize=16, leading=18,
+        alignment=TA_CENTER, spaceAfter=0,
+    )
+    body_style = ParagraphStyle(
+        'ParticipantPdfBody', fontName=regular_font, fontSize=16, leading=18,
+    )
+    details_style = ParagraphStyle(
+        'ParticipantPdfDetails', fontName=bold_font, fontSize=16, leading=18,
+    )
+    body_center_style = ParagraphStyle(
+        'ParticipantPdfBodyCenter', parent=body_style, alignment=TA_CENTER,
+    )
+    header_style = ParagraphStyle(
+        'ParticipantPdfHeader', fontName=bold_font, fontSize=16, leading=18,
+        alignment=TA_CENTER,
+    )
+
+    story = [
+        Paragraph('รายชื่อผู้เข้าร่วม', title_style),
+        Paragraph(escape(_participant_meeting_title(event)), title_style),
+        Paragraph(escape(date_line), title_style),
+        Paragraph(escape(room_location), title_style),
+        Spacer(1, 8.5 * mm),
+    ]
+
+    rows = [[Paragraph('ลำดับ', header_style), Paragraph('ชื่อ-สกุล', header_style)]]
+    for index, participant in enumerate(event.participants or [], start=1):
+        rows.append([
+            Paragraph(str(index), body_center_style),
+            Paragraph(escape(participant.fullname or ''), body_style),
+        ])
+    participant_table = Table(rows, colWidths=[24 * mm, 146 * mm], repeatRows=1)
+    participant_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.extend([participant_table, Spacer(1, 8 * mm)])
+
+    cost_centers = event.cost_center.id if event.cost_center else '-'
+    iocode_id = event.iocode.id if event.iocode else '-'
+    product_code_name = event.product_code.name if event.product_code else '-'
+    organizer_name = event.creator.fullname if event.creator else '-'
+    organizer_org = (
+        event.creator.personal_info.org.display_name
+        if event.creator and event.creator.personal_info and event.creator.personal_info.org
+        else '-'
+    )
+    details = [
+        [Paragraph(label, details_style), Paragraph(escape(str(value)), details_style)]
+        for label, value in (
+            ('รหัสชุดต้นทุน', cost_centers),
+            ('รหัสใบสั่งงานภายใน', iocode_id),
+            ('ผลผลิต / หมวดค่าใช้จ่าย', product_code_name),
+            ('ชื่อผู้จอง', organizer_name),
+            ('ชื่อหน่วยงานผู้จอง', organizer_org),
+        )
+    ]
+    details_table = Table(details, colWidths=[48 * mm, 122 * mm], hAlign='LEFT')
+    details_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    story.append(details_table)
+
+    buffer = BytesIO()
+    pdf = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=20 * mm,
+        leftMargin=20 * mm,
+        topMargin=16 * mm,
+        bottomMargin=18 * mm,
+        title=f'ใบรายชื่อ{_participant_meeting_title(event)}',
+    )
+    pdf.build(story)
+    buffer.seek(0)
+    return buffer
+
+
+@room.route('/events/participants/pdf/<int:event_id>')
+@login_required
+def download_participant_list_pdf(event_id):
+    event = RoomEvent.query.get(event_id)
+    if not event:
+        abort(404)
+
+    buffer = generate_participant_list_pdf(event)
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=_participant_document_download_name(event, 'pdf'),
+    )
+
+
 @room.route('/events/cancel/<int:event_id>')
 @login_required
 def cancel(event_id=None):
@@ -1417,6 +1828,29 @@ def edit_detail(event_id):
             flash(f'{field}: {error}', 'danger')
     return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room,
                            start=start, end=end, complaints=complaints, repeat_end=repeat_end)
+
+
+@room.route('/events/participant_list/edit/<int:event_id>', methods=['GET', 'POST'])
+@login_required
+def edit_participant_list(event_id):
+    event = RoomEvent.query.get(event_id)
+    form = RoomParticipantListForm(obj=event)
+    if form.validate_on_submit():
+        form.populate_obj(event)
+        if (form.cost_center.data and form.iocode.data and form.product_code.data):
+            db.session.add(event)
+            db.session.commit()
+            flash('อัปเดตข้อมูลสำเร็จ', 'success')
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
+        else:
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            resp = make_response(render_template('scheduler/modals/edit_participant_list_modal.html',
+                                                 form=form, event_id=event_id))
+            resp.headers['HX-Trigger'] = 'closeModal'
+        return resp
+    return render_template('scheduler/modals/edit_participant_list_modal.html', form=form,
+                           event_id=event_id)
 
 
 @room.route('/list', methods=['POST', 'GET'])
