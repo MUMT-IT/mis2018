@@ -2335,7 +2335,7 @@ def _get_customer_statuses(customers):
         customer.id: {
             'label': 'ปกติ',
             'color': 'is-success',
-            'icon': 'fa-circle-check',
+            'icon': 'fa-check',
             'days_overdue': 0,
         }
         for customer in customers
@@ -2654,9 +2654,11 @@ def customer_index():
         customers = approved_query
     else:
         customers = all_query
+    customer_statuses = _get_customer_statuses(customers)
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     return render_template('service_admin/customer_index.html', customers=customers, admin=admin,
                            tab=tab, not_attached_count=not_attached_query.count(), pending_count=pending_query.count(),
+                           customer_statuses=customer_statuses,
                            central_admin_academic_service_permission=central_admin_academic_service_permission)
 
 
