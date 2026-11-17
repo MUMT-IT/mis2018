@@ -39,18 +39,6 @@
                 <div id="overtime-payment-chart" style="height: 420px;" aria-label="กราฟแท่งแสดงยอดค่าตอบแทนปฏิบัติงานนอกเวลารายเดือน" role="img"></div>
                 <p id="overtime-chart-error" class="has-text-danger is-hidden">ไม่สามารถโหลดข้อมูลกราฟได้</p>
             </div>
-            <div class="box mt-5">
-                <h2 class="title is-4">ยอดค่าตอบแทนรายเดือนแยกตามเอกสาร</h2>
-                <div class="field mb-4">
-                    <label class="checkbox has-text-weight-semibold">
-                        <input type="checkbox" id="overtime-documents-select-all" checked>
-                        เลือกเอกสารทั้งหมด
-                    </label>
-                </div>
-                <div id="overtime-document-filters" class="columns is-multiline mb-3" style="max-height: 180px; overflow-y: auto;"></div>
-                <div id="overtime-document-chart" style="height: 440px;" aria-label="กราฟแท่งเปรียบเทียบยอดค่าตอบแทนรายเดือนแยกตามเอกสาร" role="img"></div>
-                <p id="overtime-document-chart-empty" class="has-text-grey is-hidden">กรุณาเลือกเอกสารที่ต้องการแสดง</p>
-            </div>
         </div>
     </section>
 {% endblock %}
@@ -62,96 +50,105 @@
         document.addEventListener('DOMContentLoaded', function () {
             const chartElement = document.getElementById('overtime-payment-chart');
             const errorElement = document.getElementById('overtime-chart-error');
-            const documentChartElement = document.getElementById('overtime-document-chart');
-            const documentFiltersElement = document.getElementById('overtime-document-filters');
-            const selectAllDocuments = document.getElementById('overtime-documents-select-all');
-            const emptyDocumentChart = document.getElementById('overtime-document-chart-empty');
             const fiscalYearSelect = document.getElementById('overtime-fiscal-year');
             const fiscalYearLabel = document.getElementById('overtime-fiscal-year-label');
             if (!chartElement || !fiscalYearSelect) return;
 
             let chart;
-            let chartData;
-            let documentChart;
-            let documentSeries = [];
+            let chartPayload;
+            let googleChartsReady = false;
             let latestRequestId = 0;
+            function drawFallbackChart() {
+                if (!chartPayload) return;
+                const svgNamespace = 'http://www.w3.org/2000/svg';
+                const width = 960;
+                const height = 420;
+                const margin = { top: 24, right: 24, bottom: 58, left: 92 };
+                const plotWidth = width - margin.left - margin.right;
+                const plotHeight = height - margin.top - margin.bottom;
+                const values = chartPayload.totals.map(function (value) { return Number(value) || 0; });
+                const maxValue = Math.max.apply(null, values.concat([1]));
+                const svg = document.createElementNS(svgNamespace, 'svg');
+                svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.setAttribute('role', 'img');
+                svg.setAttribute('aria-label', 'ยอดค่าตอบแทนปฏิบัติงานนอกเวลารายเดือน');
+
+                for (let tick = 0; tick <= 4; tick += 1) {
+                    const value = maxValue * tick / 4;
+                    const y = margin.top + plotHeight - (plotHeight * tick / 4);
+                    const grid = document.createElementNS(svgNamespace, 'line');
+                    grid.setAttribute('x1', margin.left);
+                    grid.setAttribute('x2', width - margin.right);
+                    grid.setAttribute('y1', y);
+                    grid.setAttribute('y2', y);
+                    grid.setAttribute('stroke', '#dfe5ee');
+                    svg.appendChild(grid);
+                    const tickLabel = document.createElementNS(svgNamespace, 'text');
+                    tickLabel.setAttribute('x', margin.left - 10);
+                    tickLabel.setAttribute('y', y + 4);
+                    tickLabel.setAttribute('text-anchor', 'end');
+                    tickLabel.setAttribute('font-size', '12');
+                    tickLabel.setAttribute('fill', '#526176');
+                    tickLabel.textContent = value.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                    svg.appendChild(tickLabel);
+                }
+
+                const slotWidth = plotWidth / chartPayload.labels.length;
+                const barWidth = slotWidth * 0.58;
+                chartPayload.labels.forEach(function (label, index) {
+                    const barHeight = values[index] / maxValue * plotHeight;
+                    const bar = document.createElementNS(svgNamespace, 'rect');
+                    bar.setAttribute('x', margin.left + index * slotWidth + (slotWidth - barWidth) / 2);
+                    bar.setAttribute('y', margin.top + plotHeight - barHeight);
+                    bar.setAttribute('width', barWidth);
+                    bar.setAttribute('height', Math.max(barHeight, 1));
+                    bar.setAttribute('fill', '#2469b9');
+                    svg.appendChild(bar);
+
+                    const monthLabel = document.createElementNS(svgNamespace, 'text');
+                    monthLabel.setAttribute('x', margin.left + index * slotWidth + slotWidth / 2);
+                    monthLabel.setAttribute('y', height - 24);
+                    monthLabel.setAttribute('text-anchor', 'middle');
+                    monthLabel.setAttribute('font-size', '12');
+                    monthLabel.setAttribute('fill', '#526176');
+                    monthLabel.textContent = label;
+                    svg.appendChild(monthLabel);
+                });
+
+                chartElement.replaceChildren(svg);
+            }
+
             function drawChart() {
-                if (!chartData) return;
-                if (!chart) chart = new google.visualization.ColumnChart(chartElement);
-                chart.draw(chartData, {
-                    legend: { position: 'none' },
-                    colors: ['#2469b9'],
-                    chartArea: { left: 78, top: 24, width: '84%', height: '78%' },
-                    hAxis: { title: 'เดือน' },
-                    vAxis: {
-                        title: 'บาท',
-                        minValue: 0,
-                        format: '#,##0.00'
-                    },
-                    tooltip: { isHtml: false }
-                });
-            }
-
-            function getSelectedDocumentIds() {
-                return Array.from(documentFiltersElement.querySelectorAll('input[type="checkbox"]:checked'))
-                    .map(function (checkbox) { return checkbox.value; });
-            }
-
-            function renderDocumentChart() {
-                if (!documentChartElement || !documentFiltersElement) return;
-                const selectedIds = new Set(getSelectedDocumentIds());
-                const selectedDocuments = documentSeries.filter(function (documentSeriesItem) {
-                    return selectedIds.has(documentSeriesItem.id);
-                });
-                if (!selectedDocuments.length) {
-                    documentChartElement.classList.add('is-hidden');
-                    if (emptyDocumentChart) emptyDocumentChart.classList.remove('is-hidden');
+                if (!chartPayload) return;
+                if (!googleChartsReady) {
+                    drawFallbackChart();
                     return;
                 }
-                documentChartElement.classList.remove('is-hidden');
-                if (emptyDocumentChart) emptyDocumentChart.classList.add('is-hidden');
-
-                const table = [['เดือน'].concat(selectedDocuments.map(function (item) { return item.title; }))];
-                const labels = ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'];
-                labels.forEach(function (label, monthIndex) {
-                    table.push([label].concat(selectedDocuments.map(function (item) {
-                        return Number(item.totals[monthIndex]) || 0;
-                    })));
-                });
-                const documentChartData = google.visualization.arrayToDataTable(table);
-                if (!documentChart) documentChart = new google.visualization.ColumnChart(documentChartElement);
-                documentChart.draw(documentChartData, {
-                    legend: { position: 'top', maxLines: 3 },
-                    chartArea: { left: 78, top: 54, width: '84%', height: '72%' },
-                    hAxis: { title: 'เดือน' },
-                    vAxis: { title: 'บาท', minValue: 0, format: '#,##0.00' },
-                    bar: { groupWidth: '70%' }
-                });
-            }
-
-            function renderDocumentFilters(documents) {
-                documentFiltersElement.innerHTML = '';
-                documents.forEach(function (documentItem, index) {
-                    const column = document.createElement('div');
-                    column.className = 'column is-half-tablet is-one-third-desktop py-1';
-                    const label = document.createElement('label');
-                    label.className = 'checkbox';
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.value = documentItem.id;
-                    checkbox.checked = true;
-                    checkbox.id = 'overtime-document-' + index;
-                    checkbox.addEventListener('change', function () {
-                        selectAllDocuments.checked = getSelectedDocumentIds().length === documents.length;
-                        renderDocumentChart();
+                try {
+                    if (!chart) chart = new google.visualization.ColumnChart(chartElement);
+                    const table = [['เดือน', 'ยอดค่าตอบแทน (บาท)']];
+                    chartPayload.labels.forEach(function (label, index) {
+                        table.push([label, Number(chartPayload.totals[index]) || 0]);
                     });
-                    label.appendChild(checkbox);
-                    label.appendChild(document.createTextNode(' ' + documentItem.title));
-                    column.appendChild(label);
-                    documentFiltersElement.appendChild(column);
-                });
-                selectAllDocuments.checked = documents.length > 0;
-                renderDocumentChart();
+                    const chartData = google.visualization.arrayToDataTable(table);
+                    chart.draw(chartData, {
+                        legend: { position: 'none' },
+                        colors: ['#2469b9'],
+                        chartArea: { left: 78, top: 24, width: '84%', height: '78%' },
+                        hAxis: { title: 'เดือน' },
+                        vAxis: {
+                            title: 'บาท',
+                            minValue: 0,
+                            format: '#,##0.00'
+                        },
+                        tooltip: { isHtml: false }
+                    });
+                } catch (error) {
+                    console.error('Google Charts failed to draw the overtime chart:', error);
+                    drawFallbackChart();
+                }
             }
 
             function loadChartData() {
@@ -170,39 +167,31 @@
                     })
                     .then(function (payload) {
                         if (requestId !== latestRequestId) return;
-                        const table = [['เดือน', 'ยอดค่าตอบแทน (บาท)']];
-                        payload.labels.forEach(function (label, index) {
-                            table.push([label, Number(payload.totals[index]) || 0]);
-                        });
-                        chartData = google.visualization.arrayToDataTable(table);
-                        documentSeries = payload.documents || [];
-                        renderDocumentFilters(documentSeries);
+                        chartPayload = payload;
+                        drawChart();
                         if (fiscalYearLabel) {
                             fiscalYearLabel.textContent = 'ยอดรวมรายเดือน ปีงบประมาณ ' + payload.fiscal_year +
                                 ' (พ.ศ. ' + (payload.fiscal_year + 543) + ')';
                         }
-                        drawChart();
                     })
-                    .catch(function () {
+                    .catch(function (error) {
                         if (requestId !== latestRequestId) return;
+                        console.error('Unable to load overtime payment chart data:', error);
                         if (errorElement) errorElement.classList.remove('is-hidden');
                     });
             }
 
-            google.charts.load('current', { packages: ['corechart'], language: 'th' });
-            google.charts.setOnLoadCallback(loadChartData);
-            fiscalYearSelect.addEventListener('change', loadChartData);
-            selectAllDocuments.addEventListener('change', function () {
-                documentFiltersElement.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
-                    checkbox.checked = selectAllDocuments.checked;
+            if (window.google && google.charts) {
+                google.charts.load('current', { packages: ['corechart'], language: 'th' });
+                google.charts.setOnLoadCallback(function () {
+                    googleChartsReady = true;
+                    drawChart();
                 });
-                renderDocumentChart();
-            });
+            }
+            loadChartData();
+            fiscalYearSelect.addEventListener('change', loadChartData);
 
-            window.addEventListener('resize', function () {
-                drawChart();
-                renderDocumentChart();
-            });
+            window.addEventListener('resize', drawChart);
         });
     </script>
 {% endblock %}
