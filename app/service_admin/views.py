@@ -2665,7 +2665,17 @@ def customer_index():
 def view_customer(customer_id):
     tab = request.args.get('tab')
     customer = ServiceCustomerInfo.query.get(customer_id)
+    customer_statuses = _get_customer_statuses([customer])
+    customer_status = customer_statuses.get(customer.id)
+    if customer_status is None:
+        customer_status = {
+            'label': 'ปกติ',
+            'color': 'is-success',
+            'icon': 'fa-circle-check',
+            'days_overdue': 0,
+        }
     return render_template('service_admin/view_customer.html', customer=customer, tab=tab,
+                           customer_status=customer_status,
                            central_admin_academic_service_permission=central_admin_academic_service_permission)
 
 
