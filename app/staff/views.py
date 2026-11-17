@@ -8655,6 +8655,44 @@ def save_checkin_reminder_settings():
     return redirect(url_for('staff.show_time_report'))
 
 
+@staff.route('/time-report/reminder-settings/content', methods=['GET'])
+@login_required
+def load_checkin_reminder_settings_content():
+    from .reminder_times import calculate_reminder_time
+
+    today = datetime.now(tz).date()
+    setting = StaffCheckinReminderSetting.query.filter_by(staff_id=current_user.id).first()
+    if setting and setting.calculated_for == today:
+        calculation = {
+            'sample_days': setting.sample_days,
+            'average_checkin_time': setting.average_checkin_time,
+            'reminder_time': setting.reminder_time,
+        }
+    else:
+        start = tz.localize(datetime.combine(today - timedelta(days=56), time.min))
+        end = tz.localize(datetime.combine(today, time.min))
+        records = StaffWorkLogin.query.filter(
+            StaffWorkLogin.staff_id == current_user.id,
+            StaffWorkLogin.start_datetime >= start,
+            StaffWorkLogin.start_datetime < end,
+        ).all()
+        calculation = calculate_reminder_time(records, today)
+        if setting:
+            setting.sample_days = calculation['sample_days']
+            setting.average_checkin_time = calculation['average_checkin_time']
+            setting.reminder_time = calculation['reminder_time']
+            setting.calculated_for = today
+            db.session.add(setting)
+            db.session.commit()
+
+    return render_template(
+        'staff/_checkin_reminder_settings_content.html',
+        reminder=setting,
+        reminder_calculation=calculation,
+        calculation_date=today,
+    )
+
+
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():

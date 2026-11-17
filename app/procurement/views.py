@@ -20,7 +20,7 @@ from app.auth.views import line_bot_api
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy import cast, Date, or_, String
+from sqlalchemy import cast, Date, or_, String, case
 from sqlalchemy.orm import aliased, load_only
 from sqlalchemy.sql import func
 from werkzeug.utils import secure_filename
@@ -314,21 +314,17 @@ def procurement_overtime_dashboard():
     today = datetime.now(timezone('Asia/Bangkok')).date()
     fiscal_year = today.year + 1 if today.month >= 10 else today.year
     shift_start = func.lower(OtShift.datetime)
-    year_months = (
-        db.session.query(
-            func.extract('year', shift_start),
-            func.extract('month', shift_start),
-        )
+    first_shift_start = (
+        db.session.query(func.min(shift_start))
         .select_from(OtRecord)
         .join(OtShift, OtRecord.shift_id == OtShift.id)
-        .distinct()
-        .all()
+        .scalar()
     )
-    available_fiscal_years = {fiscal_year}
-    for year, month in year_months:
-        data_fiscal_year = int(year) + (1 if int(month) >= 10 else 0)
-        if data_fiscal_year <= fiscal_year:
-            available_fiscal_years.add(data_fiscal_year)
+    first_fiscal_year = (
+        first_shift_start.year + (1 if first_shift_start.month >= 10 else 0)
+        if first_shift_start else fiscal_year
+    )
+    available_fiscal_years = list(range(first_fiscal_year, fiscal_year + 1))
     return render_template(
         'procurement/overtime_payment_dashboard.html',
         fiscal_year=fiscal_year,
@@ -336,10 +332,39 @@ def procurement_overtime_dashboard():
     )
 
 
+def _calculate_overtime_payment(amount_paid, total_hours, total_minutes, per_hour, per_period, per_day,
+                                is_count_in_mins, shift_start, shift_end):
+    if amount_paid is not None:
+        return float(amount_paid)
+    if per_hour is not None:
+        scheduled_minutes = max(0, (shift_end - shift_start).total_seconds() / 60)
+        if is_count_in_mins:
+            worked_minutes = float(total_minutes) if total_minutes is not None else None
+            if worked_minutes is None and total_hours is not None:
+                worked_minutes = float(total_hours) * 60
+            return (worked_minutes if worked_minutes is not None else scheduled_minutes) / 60 * float(per_hour)
+        worked_hours = float(total_hours) if total_hours is not None else None
+        if worked_hours is None and total_minutes is not None:
+            worked_hours = float(total_minutes)
+        if worked_hours is None:
+            worked_hours = scheduled_minutes / 60
+        return worked_hours * float(per_hour)
+    if per_period is not None:
+        return float(per_period)
+    if per_day is not None:
+        return float(per_day)
+    return 0
+
+
 @procurement.route('/financial-dashboard/overtime/data')
 @login_required
 def procurement_overtime_dashboard_data():
-    from ..ot.models import OtRecord, OtShift
+    from ..ot.models import (
+        OtCompensationRate,
+        OtPaymentAnnounce,
+        OtRecord,
+        OtShift,
+    )
 
     today = datetime.now(timezone('Asia/Bangkok')).date()
     current_fiscal_year = today.year + 1 if today.month >= 10 else today.year
@@ -349,13 +374,26 @@ def procurement_overtime_dashboard_data():
     fiscal_start = date(fiscal_year - 1, 10, 1)
     fiscal_end = date(fiscal_year, 10, 1)
     shift_start = func.lower(OtShift.datetime)
+    shift_end = func.upper(OtShift.datetime)
     payment_rows = (
         db.session.query(
-            OtRecord,
             shift_start,
+            shift_end,
+            OtRecord.amount_paid,
+            OtRecord.total_hours,
+            OtRecord.total_minutes,
+            OtRecord.staff_account_id,
+            OtCompensationRate.announce_id,
+            OtPaymentAnnounce.topic,
+            OtCompensationRate.per_hour,
+            OtCompensationRate.per_period,
+            OtCompensationRate.per_day,
+            OtCompensationRate.is_count_in_mins,
         )
         .select_from(OtRecord)
         .join(OtShift, OtRecord.shift_id == OtShift.id)
+        .outerjoin(OtCompensationRate, OtRecord.compensation_id == OtCompensationRate.id)
+        .outerjoin(OtPaymentAnnounce, OtCompensationRate.announce_id == OtPaymentAnnounce.id)
         .filter(shift_start >= fiscal_start)
         .filter(shift_start < fiscal_end)
         .filter(OtRecord.canceled_at.is_(None))
@@ -365,18 +403,127 @@ def procurement_overtime_dashboard_data():
     month_names = ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.',
                    'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.']
     totals_by_month = {month: 0 for month in month_numbers}
-    for record, shift_datetime in payment_rows:
-        if record.amount_paid is None:
-            continue
+    paid_staff_by_month = {month: set() for month in month_numbers}
+    totals_by_announcement = {}
+    announcement_titles = {}
+    for (shift_datetime, shift_end_datetime, amount_paid, total_hours, total_minutes, staff_account_id,
+         announcement_id, announcement_title, per_hour, per_period, per_day, is_count_in_mins) in payment_rows:
         month = shift_datetime.month
-        payment = float(record.amount_paid)
+        payment = _calculate_overtime_payment(
+            amount_paid, total_hours, total_minutes, per_hour, per_period, per_day,
+            is_count_in_mins, shift_datetime, shift_end_datetime,
+        )
         totals_by_month[month] += payment
+        announcement_months = totals_by_announcement.setdefault(
+            announcement_id,
+            {fiscal_month: 0 for fiscal_month in month_numbers},
+        )
+        announcement_months[month] += payment
+        announcement_titles[announcement_id] = (
+            announcement_title or (f'ประกาศ #{announcement_id}' if announcement_id is not None else 'ไม่ระบุประกาศ')
+        )
+        if payment > 0 and staff_account_id is not None:
+            paid_staff_by_month[month].add(staff_account_id)
     monthly_totals = [totals_by_month[month] for month in month_numbers]
+    monthly_staff_counts = [len(paid_staff_by_month[month]) for month in month_numbers]
+
+    announcements = [
+        {
+            'title': announcement_titles[announcement_id],
+            'totals': [monthly[month] for month in month_numbers],
+        }
+        for announcement_id, monthly in totals_by_announcement.items()
+    ]
+    announcements.sort(key=lambda item: sum(item['totals']), reverse=True)
 
     return jsonify(
         fiscal_year=fiscal_year,
         labels=month_names,
         totals=monthly_totals,
+        staff_counts=monthly_staff_counts,
+        announcements=announcements,
+    )
+
+
+@procurement.route('/financial-dashboard/overtime/fiscal-years/data')
+@login_required
+def procurement_overtime_fiscal_year_data():
+    from ..ot.models import OtCompensationRate, OtRecord, OtShift
+
+    today = datetime.now(timezone('Asia/Bangkok')).date()
+    current_fiscal_year = today.year + 1 if today.month >= 10 else today.year
+    shift_start = func.lower(OtShift.datetime)
+    shift_end = func.upper(OtShift.datetime)
+    year_value = func.extract('year', shift_start)
+    month_value = func.extract('month', shift_start)
+    fiscal_year_value = case(
+        [(month_value >= 10, year_value + 1)],
+        else_=year_value,
+    )
+    scheduled_minutes = func.extract('epoch', shift_end - shift_start) / 60.0
+    count_minutes = case(
+        [
+            (OtRecord.total_minutes.isnot(None), OtRecord.total_minutes),
+            (OtRecord.total_hours.isnot(None), OtRecord.total_hours * 60.0),
+        ],
+        else_=scheduled_minutes,
+    )
+    count_hours = case(
+        [
+            (OtRecord.total_hours.isnot(None), OtRecord.total_hours),
+            (OtRecord.total_minutes.isnot(None), OtRecord.total_minutes),
+        ],
+        else_=scheduled_minutes / 60.0,
+    )
+    hourly_payment = case(
+        [
+            (
+                OtCompensationRate.is_count_in_mins.is_(True),
+                count_minutes / 60.0 * OtCompensationRate.per_hour,
+            ),
+        ],
+        else_=count_hours * OtCompensationRate.per_hour,
+    )
+    payment_value = case(
+        [
+            (OtRecord.amount_paid.isnot(None), OtRecord.amount_paid),
+            (OtCompensationRate.per_hour.isnot(None), hourly_payment),
+            (OtCompensationRate.per_period.isnot(None), OtCompensationRate.per_period),
+            (OtCompensationRate.per_day.isnot(None), OtCompensationRate.per_day),
+        ],
+        else_=0.0,
+    )
+    rows = (
+        db.session.query(fiscal_year_value, func.sum(payment_value))
+        .select_from(OtRecord)
+        .join(OtShift, OtRecord.shift_id == OtShift.id)
+        .outerjoin(OtCompensationRate, OtRecord.compensation_id == OtCompensationRate.id)
+        .filter(shift_start.isnot(None))
+        .filter(OtRecord.canceled_at.is_(None))
+        .group_by(fiscal_year_value)
+        .all()
+    )
+    totals_by_year = {
+        int(fiscal_year): float(total or 0)
+        for fiscal_year, total in rows
+        if int(fiscal_year) <= current_fiscal_year
+    }
+    first_available_year = min(totals_by_year) if totals_by_year else current_fiscal_year
+    fiscal_years = list(range(first_available_year, current_fiscal_year + 1))
+    totals = [totals_by_year.get(fiscal_year, 0) for fiscal_year in fiscal_years]
+    percent_changes = [None]
+    for index in range(1, len(fiscal_years)):
+        previous_total = totals[index - 1]
+        current_total = totals[index]
+        percent_changes.append(
+            ((current_total - previous_total) / previous_total * 100)
+            if previous_total else None
+        )
+
+    return jsonify(
+        fiscal_years=fiscal_years,
+        totals=totals,
+        percent_changes=percent_changes,
     )
 
 

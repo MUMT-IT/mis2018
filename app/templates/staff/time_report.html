@@ -469,6 +469,29 @@
         border-color: rgba(202, 168, 74, 0.22);
     }
 
+    .staff-login-calendar-button.is-reminder {
+        background: #fff;
+        border: 1px solid rgba(46, 139, 87, 0.38);
+        box-shadow: 0 0 0 2px rgba(46, 139, 87, 0.08), 0 6px 18px rgba(46, 139, 87, 0.2);
+        color: #236b43;
+        font-size: 0.82rem;
+        height: 2.4rem;
+        padding: 0 1rem;
+    }
+
+    .staff-login-calendar-button.is-reminder .fa-bell {
+        color: #2e8b57;
+    }
+
+    .staff-login-calendar-button.is-reminder:hover,
+    .staff-login-calendar-button.is-reminder:focus-visible {
+        background: #fff;
+        border-color: #2e8b57;
+        box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.16), 0 8px 20px rgba(46, 139, 87, 0.28);
+        color: #1d613b;
+        transform: translateY(-1px);
+    }
+
     .staff-login-records-button {
         box-shadow: 0 10px 24px rgba(26, 61, 124, 0.22);
         font-weight: 800;
@@ -868,7 +891,9 @@
                             <div class="staff-login-calendar-date" id="calendarSubtitle"></div>
                         </div>
                         <div class="staff-login-calendar-controls">
-                            <button type="button" class="staff-login-calendar-button" id="openReminderSettings" aria-haspopup="dialog" aria-controls="reminderSettingsModal">
+                            <button type="button" class="staff-login-calendar-button is-reminder" id="openReminderSettings" aria-haspopup="dialog" aria-controls="reminderSettingsModal"
+                                hx-get="{{ url_for('staff.load_checkin_reminder_settings_content') }}"
+                                hx-trigger="click" hx-target="#reminderSettingsContent" hx-swap="innerHTML">
                                 <i class="fas fa-bell" aria-hidden="true"></i>
                                 <span>ตั้งค่าการแจ้งเตือน</span>
                             </button>
@@ -943,8 +968,6 @@
     </div>
 </section>
 
-{% set reminder = current_user.checkin_reminder_setting %}
-{% set reminder_days = reminder.weekdays.split(',') if reminder else ['0', '1', '2', '3', '4'] %}
 <div class="modal" id="reminderSettingsModal" aria-hidden="true">
     <div class="modal-background" data-close-reminder></div>
     <form class="modal-card" method="post" action="{{ url_for('staff.save_checkin_reminder_settings') }}" role="dialog" aria-modal="true" aria-labelledby="reminderSettingsTitle" style="max-width: calc(100% - 2rem)">
@@ -953,33 +976,8 @@
             <p class="modal-card-title" id="reminderSettingsTitle">ตั้งค่าแจ้งเตือนเข้างาน</p>
             <button type="button" class="delete" aria-label="ปิด" data-close-reminder></button>
         </header>
-        <section class="modal-card-body">
-            {% if not current_user.line_id %}<p class="notification is-warning is-light">กรุณาเชื่อมต่อบัญชี LINE เพื่อรับการแจ้งเตือน</p>{% endif %}
-            {% if current_user.personal_info.academic_staff and not reminder %}
-            <p class="notification is-info is-light">บุคลากรสายวิชาการจะไม่ได้รับการแจ้งเตือนโดยอัตโนมัติ หากต้องการรับ กรุณาเปิดรับการแจ้งเตือนและกดบันทึก</p>
-            {% endif %}
-            <div class="field"><label class="checkbox"><input type="checkbox" name="enabled" {% if (reminder and reminder.enabled) or (not reminder and not current_user.personal_info.academic_staff) %}checked{% endif %}> เปิดรับการแจ้งเตือนเข้างานผ่าน LINE</label></div>
-            <fieldset class="field">
-                <legend class="label">รูปแบบการแจ้งเตือน (เลือกได้มากกว่าหนึ่งข้อ)</legend>
-                <div class="field"><label class="checkbox"><input type="checkbox" name="reminder_modes" value="system" {% if not reminder or reminder.system_reminder %}checked{% endif %}> ตามระบบปกติ (เวลา 8:29 น.)</label></div>
-                <div class="field"><label class="checkbox"><input type="checkbox" name="reminder_modes" value="average" {% if reminder and reminder.average_reminder %}checked{% endif %}> ตามเวลาเข้างานโดยเฉลี่ยของแต่ละคน</label></div>
-                {% if reminder and reminder.calculated_for %}
-                <p class="help">เวลาที่คำนวณได้: {{ reminder.reminder_time.strftime('%H:%M') }} น.
-                    {% if reminder.average_checkin_time %}(เวลาเข้างานเฉลี่ย {{ reminder.average_checkin_time.strftime('%H:%M') }} น.){% else %}(ใช้เวลาเริ่มต้น เนื่องจากมีข้อมูลไม่ถึง 10 วัน){% endif %}
-                    · ข้อมูล {{ reminder.sample_days }} วัน · คำนวณวันที่ {{ reminder.calculated_for.strftime('%d/%m/%Y') }}</p>
-                {% endif %}
-                <p class="help">เวลาประเทศไทย (Asia/Bangkok)</p>
-                <p class="help is-danger" id="reminderModesError" role="alert" hidden>กรุณาเลือกรูปแบบการแจ้งเตือนอย่างน้อยหนึ่งข้อ</p>
-            </fieldset>
-            <fieldset class="field">
-                <legend class="label">วันที่ต้องการรับการแจ้งเตือน</legend>
-                <div style="display: flex; flex-wrap: wrap; gap: 1rem">
-                {% for day in ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'] %}
-                    <label class="checkbox"><input type="checkbox" name="weekdays" value="{{ loop.index0 }}" {% if loop.index0|string in reminder_days %}checked{% endif %}> {{ day }}</label>
-                {% endfor %}
-                </div>
-                <p class="help is-danger" id="reminderDaysError" role="alert" hidden>กรุณาเลือกอย่างน้อยหนึ่งวัน</p>
-            </fieldset>
+        <section class="modal-card-body" id="reminderSettingsContent" aria-live="polite">
+            <p class="has-text-grey">กำลังตรวจสอบเวลาเข้างานเฉลี่ย...</p>
         </section>
         <footer class="modal-card-foot">
             <button type="submit" class="button is-primary">บันทึก</button>
@@ -1083,12 +1081,15 @@
             document.getElementById('openReminderSettings').focus();
         }
         $('#openReminderSettings').on('click', function() {
-            reminderForm.reset();
-            document.getElementById('reminderDaysError').hidden = true;
-            document.getElementById('reminderModesError').hidden = true;
             reminderModal.classList.add('is-active');
             reminderModal.setAttribute('aria-hidden', 'false');
-            reminderForm.elements.enabled.focus();
+            document.getElementById('reminderSettingsContent').innerHTML = '<p class="has-text-grey">กำลังตรวจสอบเวลาเข้างานเฉลี่ย...</p>';
+        });
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            if (event.detail.target && event.detail.target.id === 'reminderSettingsContent') {
+                var enabledControl = reminderForm.elements.enabled;
+                if (enabledControl) enabledControl.focus();
+            }
         });
         $('[data-close-reminder]').on('click', closeReminderSettings);
         reminderModal.addEventListener('keydown', function(event) {
