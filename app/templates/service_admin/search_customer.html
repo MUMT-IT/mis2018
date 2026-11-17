@@ -80,6 +80,7 @@
                             <tr>
                                 <th>ชื่อบริษัท/ผู้รับบริการ</th>
                                 <th>ประเภท</th>
+                                <th>สถานะ</th>
                                 <th>เลขประจำตัวผู้เสียภาษี</th>
                                 <th>อีเมล</th>
                                 <th>เบอร์โทรศัพท์</th>
@@ -96,6 +97,12 @@
                                         <strong>{{ customer.cus_name }}</strong>
                                     </td>
                                     <td><span class="tag customer-search-type-tag">{{ customer.type or '-' }}</span></td>
+                                    {% set invoice_status = customer_statuses.get(customer.id, {'label': 'ปกติ', 'color': 'is-success', 'days_overdue': 0}) %}
+                                    <td class="customer-search-status-cell">
+                                        <span class="tag customer-search-status-tag {{ invoice_status.color }}">
+                                            {{ invoice_status.label }}
+                                        </span>
+                                    </td>
                                     <td>{{ customer.taxpayer_identification_no or '-' }}</td>
                                     <td>{{ customer.email or '-' }}</td>
                                     <td>{{ customer.phone_number or '-' }}</td>
@@ -110,7 +117,7 @@
                                 </tr>
                             {% else %}
                                 <tr>
-                                    <td colspan="6">
+                                    <td colspan="7">
                                         <div class="customer-search-no-results">
                                             <span class="customer-search-no-results-icon" aria-hidden="true">
                                                 <i class="fas fa-user-slash"></i>
@@ -388,6 +395,30 @@
         .customer-search-results tbody td:first-child {
             color: #1e3152;
             min-width: 14rem;
+        }
+
+        .customer-search-status-cell {
+            min-width: 9rem;
+            white-space: nowrap;
+        }
+
+        .customer-search-status-tag {
+            font-weight: 700;
+        }
+
+        .customer-search-status-tag.is-success {
+            background: #166534;
+            color: #fff;
+        }
+
+        .customer-search-status-tag.is-warning {
+            background: #8a5a00;
+            color: #fff;
+        }
+
+        .customer-search-status-tag.is-danger {
+            background: #b42318;
+            color: #fff;
         }
 
         .customer-search-action-heading,
