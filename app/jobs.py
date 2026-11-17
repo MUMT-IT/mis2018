@@ -569,16 +569,13 @@ scheduler.add_job(send_checkin_reminder,
                   hour='8',
                   minute='29',
                   timezone='Asia/Bangkok')
-scheduler.add_job(send_checkout_reminder,
-                  'cron', day_of_week='mon-fri',
-                  hour='16', minute='30',
-                  kwargs={'round_time': '16:30'},
-                  timezone='Asia/Bangkok')
-scheduler.add_job(send_checkout_reminder,
-                  'cron', day_of_week='mon-fri',
-                  hour='17', minute='00',
-                  kwargs={'round_time': '17:00'},
-                  timezone='Asia/Bangkok')
+for checkout_round in ('16:30', '16:40', '16:50', '17:00'):
+    checkout_hour, checkout_minute = checkout_round.split(':')
+    scheduler.add_job(send_checkout_reminder,
+                      'cron', day_of_week='mon-fri',
+                      hour=checkout_hour, minute=checkout_minute,
+                      kwargs={'round_time': checkout_round},
+                      timezone='Asia/Bangkok')
 scheduler.add_job(send_overdue_checkin_request_reminder,
                   'cron',
                   hour='10',

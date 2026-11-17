@@ -5195,8 +5195,8 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
 
 
 def _build_missing_checkout_recipients(target_date, round_time, records=None):
-    """Split recipients by hours at 16:30, checking current checkout records."""
-    if round_time not in {'16:30', '17:00'}:
+    """Assign staff to their first scheduled round with eight work hours."""
+    if round_time not in {'16:30', '16:40', '16:50', '17:00'}:
         raise ValueError('Invalid checkout reminder round')
     if records is None:
         records = StaffWorkLogin.query.filter_by(date_id=target_date.strftime('%Y%m%d')).all()
@@ -5206,7 +5206,8 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
         if record.staff_id and start and start.date() == target_date:
             grouped[record.staff_id].append(record)
 
-    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime('16:30', '%H:%M').time()))
+    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime(round_time, '%H:%M').time()))
+    previous_cutoff = cutoff - timedelta(minutes=10) if round_time != '16:30' else None
     recipients = []
     for account in StaffAccount.get_active_accounts():
         day_records = grouped.get(account.id, [])
@@ -5219,8 +5220,8 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
         ):
             continue
         start = _to_bangkok(day_records[0].start_datetime)
-        early_round = _calculate_work_hours(start, cutoff) >= 8.0
-        if early_round == (round_time == '16:30'):
+        if (_calculate_work_hours(start, cutoff) >= 8.0
+                and (previous_cutoff is None or _calculate_work_hours(start, previous_cutoff) < 8.0)):
             recipients.append(account)
     return recipients
 
@@ -5235,7 +5236,7 @@ def line_remind_missing_checkout():
         if not admin_permission.can():
             abort(403)
     round_time = request.values.get('round')
-    if round_time not in {'16:30', '17:00'}:
+    if round_time not in {'16:30', '16:40', '16:50', '17:00'}:
         abort(400)
     now = datetime.now(tz)
     target_date = now.date()
@@ -5252,9 +5253,11 @@ def line_remind_missing_checkout():
     }
     if request.method == 'GET':
         return jsonify(payload)
-    # Do not send an early reminder or replay the first round after 17:00.
+    # Reject early requests, expired rounds and delivery outside the window.
     local_time = now.strftime('%H:%M')
-    if local_time < round_time or (round_time == '16:30' and local_time >= '17:00'):
+    next_round = (datetime.combine(target_date, datetime.strptime(round_time, '%H:%M').time())
+                  + timedelta(minutes=10)).strftime('%H:%M')
+    if local_time < round_time or local_time >= next_round or local_time > '17:00':
         abort(400)
     for account in recipients:
         try:
