@@ -392,39 +392,39 @@
                                 {% endif %}
                             </div>
                         </div>
-                        {% if event.note %}
-                            <div class="event-action-group">
-                                <div id="participant-form"></div>
-                                <p class="event-action-group-title">เอกสาร</p>
-                                <div class="event-actions" id="participant-list">
-                                    <a {% if event.has_code %}
-                                            href="{{ url_for('room.download_participant_list_word', event_id=event.id) }}"
-                                       {% else %}
-                                            @click.prevent="warnAlert('{{ url_for('room.edit_participant_list', event_id=event.id) }}')"
-                                       {% endif %}
-                                       class="button is-link is-outlined is-small is-rounded">
-                                        <span class="icon"><i class="fas fa-file-word"></i></span>
-                                        <span>ใบรายชื่อ (Word)</span>
-                                    </a>
-                                    <a {% if event.has_code %}
-                                            href="{{ url_for('room.download_participant_list_pdf', event_id=event.id) }}"
-                                       {% else %}
-                                            @click.prevent="warnAlert('{{ url_for('room.edit_participant_list', event_id=event.id) }}')"
-                                       {% endif %}
-                                       class="button is-primary is-outlined is-small is-rounded">
-                                        <span class="icon"><i class="fas fa-file-pdf"></i></span>
-                                        <span>ใบรายชื่อ (PDF)</span>
-                                    </a>
-                                    <a hx-swap="innerHTML"
-                                       hx-target="#participant-form"
-                                       hx-get="{{ url_for('room.edit_participant_list', event_id=event.id) }}"
-                                       class="button is-warning is-light is-small is-rounded">
-                                        <span class="icon"><i class="fas fa-pen"></i></span>
-                                        <span>อัปเดตข้อมูล</span>
-                                    </a>
-                                </div>
-                            </div>
-                        {% endif %}
+{#                        {% if event.note %}#}
+{#                            <div class="event-action-group">#}
+{#                                <div id="participant-form"></div>#}
+{#                                <p class="event-action-group-title">เอกสาร</p>#}
+{#                                <div class="event-actions" id="participant-list">#}
+{#                                    <a {% if event.has_code %}#}
+{#                                            href="{{ url_for('room.download_participant_list_word', event_id=event.id) }}"#}
+{#                                       {% else %}#}
+{#                                            @click.prevent="warnAlert('{{ url_for('room.edit_participant_list', event_id=event.id) }}')"#}
+{#                                       {% endif %}#}
+{#                                       class="button is-link is-outlined is-small is-rounded">#}
+{#                                        <span class="icon"><i class="fas fa-file-word"></i></span>#}
+{#                                        <span>ใบรายชื่อ (Word)</span>#}
+{#                                    </a>#}
+{#                                    <a {% if event.has_code %}#}
+{#                                            href="{{ url_for('room.download_participant_list_pdf', event_id=event.id) }}"#}
+{#                                       {% else %}#}
+{#                                            @click.prevent="warnAlert('{{ url_for('room.edit_participant_list', event_id=event.id) }}')"#}
+{#                                       {% endif %}#}
+{#                                       class="button is-primary is-outlined is-small is-rounded">#}
+{#                                        <span class="icon"><i class="fas fa-file-pdf"></i></span>#}
+{#                                        <span>ใบรายชื่อ (PDF)</span>#}
+{#                                    </a>#}
+{#                                    <a hx-swap="innerHTML"#}
+{#                                       hx-target="#participant-form"#}
+{#                                       hx-get="{{ url_for('room.edit_participant_list', event_id=event.id) }}"#}
+{#                                       class="button is-warning is-light is-small is-rounded">#}
+{#                                        <span class="icon"><i class="fas fa-pen"></i></span>#}
+{#                                        <span>อัปเดตข้อมูล</span>#}
+{#                                    </a>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        {% endif %}#}
                     </div>
                     <div class="columns is-mobile is-variable is-2" style="margin-top: 1rem;">
                         <div class="column">
