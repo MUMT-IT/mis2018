@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}ค่าตอบแทนปฏิบัติงานนอกเวลา{% endblock %}
+
+{% block page_content %}
+    {% include "procurement/nav_for_main.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div>
+                        <p class="heading">ค่าใช้จ่าย</p>
+                        <h1 class="title">ค่าตอบแทนปฏิบัติงานนอกเวลา</h1>
+                        <p class="subtitle is-6" id="overtime-fiscal-year-label">ยอดรวมรายเดือน ปีงบประมาณ {{ fiscal_year }} (พ.ศ. {{ fiscal_year + 543 }})</p>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="field is-grouped is-align-items-center">
+                        <label class="label mr-2 mb-0" for="overtime-fiscal-year">ปีงบประมาณ</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="overtime-fiscal-year">
+                                    {% for year in available_fiscal_years %}
+                                        <option value="{{ year }}" {% if year == fiscal_year %}selected{% endif %}>
+                                            {{ year }} (พ.ศ. {{ year + 543 }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <a class="button is-light ml-3" href="{{ url_for('procurement.procurement_financial_dashboard') }}">
+                            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="box">
+                <div id="overtime-payment-chart" style="height: 420px;" aria-label="กราฟแท่งแสดงยอดค่าตอบแทนปฏิบัติงานนอกเวลารายเดือน" role="img"></div>
+                <p id="overtime-chart-error" class="has-text-danger is-hidden">ไม่สามารถโหลดข้อมูลกราฟได้</p>
+            </div>
+            <div class="box mt-5">
+                <h2 class="title is-4">ยอดค่าตอบแทนรายเดือนแยกตามเอกสาร</h2>
+                <div class="field mb-4">
+                    <label class="checkbox has-text-weight-semibold">
+                        <input type="checkbox" id="overtime-documents-select-all" checked>
+                        เลือกเอกสารทั้งหมด
+                    </label>
+                </div>
+                <div id="overtime-document-filters" class="columns is-multiline mb-3" style="max-height: 180px; overflow-y: auto;"></div>
+                <div id="overtime-document-chart" style="height: 440px;" aria-label="กราฟแท่งเปรียบเทียบยอดค่าตอบแทนรายเดือนแยกตามเอกสาร" role="img"></div>
+                <p id="overtime-document-chart-empty" class="has-text-grey is-hidden">กรุณาเลือกเอกสารที่ต้องการแสดง</p>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chartElement = document.getElementById('overtime-payment-chart');
+            const errorElement = document.getElementById('overtime-chart-error');
+            const documentChartElement = document.getElementById('overtime-document-chart');
+            const documentFiltersElement = document.getElementById('overtime-document-filters');
+            const selectAllDocuments = document.getElementById('overtime-documents-select-all');
+            const emptyDocumentChart = document.getElementById('overtime-document-chart-empty');
+            const fiscalYearSelect = document.getElementById('overtime-fiscal-year');
+            const fiscalYearLabel = document.getElementById('overtime-fiscal-year-label');
+            if (!chartElement || !fiscalYearSelect) return;
+
+            let chart;
+            let chartData;
+            let documentChart;
+            let documentSeries = [];
+            let latestRequestId = 0;
+            function drawChart() {
+                if (!chartData) return;
+                if (!chart) chart = new google.visualization.ColumnChart(chartElement);
+                chart.draw(chartData, {
+                    legend: { position: 'none' },
+                    colors: ['#2469b9'],
+                    chartArea: { left: 78, top: 24, width: '84%', height: '78%' },
+                    hAxis: { title: 'เดือน' },
+                    vAxis: {
+                        title: 'บาท',
+                        minValue: 0,
+                        format: '#,##0.00'
+                    },
+                    tooltip: { isHtml: false }
+                });
+            }
+
+            function getSelectedDocumentIds() {
+                return Array.from(documentFiltersElement.querySelectorAll('input[type="checkbox"]:checked'))
+                    .map(function (checkbox) { return checkbox.value; });
+            }
+
+            function renderDocumentChart() {
+                if (!documentChartElement || !documentFiltersElement) return;
+                const selectedIds = new Set(getSelectedDocumentIds());
+                const selectedDocuments = documentSeries.filter(function (documentSeriesItem) {
+                    return selectedIds.has(documentSeriesItem.id);
+                });
+                if (!selectedDocuments.length) {
+                    documentChartElement.classList.add('is-hidden');
+                    if (emptyDocumentChart) emptyDocumentChart.classList.remove('is-hidden');
+                    return;
+                }
+                documentChartElement.classList.remove('is-hidden');
+                if (emptyDocumentChart) emptyDocumentChart.classList.add('is-hidden');
+
+                const table = [['เดือน'].concat(selectedDocuments.map(function (item) { return item.title; }))];
+                const labels = ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'];
+                labels.forEach(function (label, monthIndex) {
+                    table.push([label].concat(selectedDocuments.map(function (item) {
+                        return Number(item.totals[monthIndex]) || 0;
+                    })));
+                });
+                const documentChartData = google.visualization.arrayToDataTable(table);
+                if (!documentChart) documentChart = new google.visualization.ColumnChart(documentChartElement);
+                documentChart.draw(documentChartData, {
+                    legend: { position: 'top', maxLines: 3 },
+                    chartArea: { left: 78, top: 54, width: '84%', height: '72%' },
+                    hAxis: { title: 'เดือน' },
+                    vAxis: { title: 'บาท', minValue: 0, format: '#,##0.00' },
+                    bar: { groupWidth: '70%' }
+                });
+            }
+
+            function renderDocumentFilters(documents) {
+                documentFiltersElement.innerHTML = '';
+                documents.forEach(function (documentItem, index) {
+                    const column = document.createElement('div');
+                    column.className = 'column is-half-tablet is-one-third-desktop py-1';
+                    const label = document.createElement('label');
+                    label.className = 'checkbox';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = documentItem.id;
+                    checkbox.checked = true;
+                    checkbox.id = 'overtime-document-' + index;
+                    checkbox.addEventListener('change', function () {
+                        selectAllDocuments.checked = getSelectedDocumentIds().length === documents.length;
+                        renderDocumentChart();
+                    });
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(' ' + documentItem.title));
+                    column.appendChild(label);
+                    documentFiltersElement.appendChild(column);
+                });
+                selectAllDocuments.checked = documents.length > 0;
+                renderDocumentChart();
+            }
+
+            function loadChartData() {
+                if (errorElement) errorElement.classList.add('is-hidden');
+                const requestId = ++latestRequestId;
+                const fiscalYear = fiscalYearSelect.value;
+                const dataUrl = new URL({{ url_for('procurement.procurement_overtime_dashboard_data')|tojson }}, window.location.origin);
+                dataUrl.searchParams.set('fiscal_year', fiscalYear);
+                fetch(dataUrl.toString(), {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error('Unable to load overtime payment data');
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        if (requestId !== latestRequestId) return;
+                        const table = [['เดือน', 'ยอดค่าตอบแทน (บาท)']];
+                        payload.labels.forEach(function (label, index) {
+                            table.push([label, Number(payload.totals[index]) || 0]);
+                        });
+                        chartData = google.visualization.arrayToDataTable(table);
+                        documentSeries = payload.documents || [];
+                        renderDocumentFilters(documentSeries);
+                        if (fiscalYearLabel) {
+                            fiscalYearLabel.textContent = 'ยอดรวมรายเดือน ปีงบประมาณ ' + payload.fiscal_year +
+                                ' (พ.ศ. ' + (payload.fiscal_year + 543) + ')';
+                        }
+                        drawChart();
+                    })
+                    .catch(function () {
+                        if (requestId !== latestRequestId) return;
+                        if (errorElement) errorElement.classList.remove('is-hidden');
+                    });
+            }
+
+            google.charts.load('current', { packages: ['corechart'], language: 'th' });
+            google.charts.setOnLoadCallback(loadChartData);
+            fiscalYearSelect.addEventListener('change', loadChartData);
+            selectAllDocuments.addEventListener('change', function () {
+                documentFiltersElement.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
+                    checkbox.checked = selectAllDocuments.checked;
+                });
+                renderDocumentChart();
+            });
+
+            window.addEventListener('resize', function () {
+                drawChart();
+                renderDocumentChart();
+            });
+        });
+    </script>
+{% endblock %}

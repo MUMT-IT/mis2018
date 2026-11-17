@@ -40,7 +40,7 @@ from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from app.google_credential_utils import load_google_credentials_json
 
-from ..main import csrf, mail
+from ..main import csrf, db, mail
 from ..roles import procurement_committee_permission, procurement_permission, procurement_plan_permission, finance_permission, \
     center_standardization_product_validation_permission
 
@@ -298,6 +298,120 @@ def main_procurement_page():
 @login_required
 def procurement_budget_tracking_landing():
     return render_template('procurement/budget_tracking_landing.html')
+
+
+@procurement.route('/financial-dashboard')
+@login_required
+def procurement_financial_dashboard():
+    return render_template('procurement/financial_dashboard.html')
+
+
+@procurement.route('/financial-dashboard/overtime')
+@login_required
+def procurement_overtime_dashboard():
+    from ..ot.models import OtRecord, OtShift
+
+    today = datetime.now(timezone('Asia/Bangkok')).date()
+    fiscal_year = today.year + 1 if today.month >= 10 else today.year
+    shift_start = func.lower(OtShift.datetime)
+    year_months = (
+        db.session.query(
+            func.extract('year', shift_start),
+            func.extract('month', shift_start),
+        )
+        .select_from(OtRecord)
+        .join(OtShift, OtRecord.shift_id == OtShift.id)
+        .filter(OtRecord.canceled_at.is_(None))
+        .filter(OtRecord.amount_paid.isnot(None))
+        .distinct()
+        .all()
+    )
+    available_fiscal_years = {fiscal_year}
+    for year, month in year_months:
+        data_fiscal_year = int(year) + (1 if int(month) >= 10 else 0)
+        if data_fiscal_year <= fiscal_year:
+            available_fiscal_years.add(data_fiscal_year)
+    return render_template(
+        'procurement/overtime_payment_dashboard.html',
+        fiscal_year=fiscal_year,
+        available_fiscal_years=sorted(available_fiscal_years, reverse=True),
+    )
+
+
+@procurement.route('/financial-dashboard/overtime/data')
+@login_required
+def procurement_overtime_dashboard_data():
+    from ..ot.models import OtDocumentApproval, OtRecord, OtShift
+
+    today = datetime.now(timezone('Asia/Bangkok')).date()
+    current_fiscal_year = today.year + 1 if today.month >= 10 else today.year
+    fiscal_year = request.args.get('fiscal_year', current_fiscal_year, type=int)
+    if fiscal_year is None or fiscal_year < 1900 or fiscal_year > current_fiscal_year:
+        return jsonify(error='Invalid fiscal year'), 400
+    fiscal_start = date(fiscal_year - 1, 10, 1)
+    fiscal_end = date(fiscal_year, 10, 1)
+    shift_start = func.lower(OtShift.datetime)
+    monthly_rows = (
+        db.session.query(
+            func.extract('month', shift_start),
+            func.sum(OtRecord.amount_paid),
+        )
+        .select_from(OtRecord)
+        .join(OtShift, OtRecord.shift_id == OtShift.id)
+        .filter(shift_start >= fiscal_start)
+        .filter(shift_start < fiscal_end)
+        .filter(OtRecord.canceled_at.is_(None))
+        .group_by(func.extract('month', shift_start))
+        .all()
+    )
+    totals_by_month = {int(month): float(total or 0) for month, total in monthly_rows}
+    month_numbers = list(range(10, 13)) + list(range(1, 10))
+    month_names = ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.',
+                   'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.']
+    monthly_totals = [totals_by_month.get(month, 0) for month in month_numbers]
+
+    document_rows = (
+        db.session.query(
+            func.extract('month', shift_start),
+            OtRecord.document_id,
+            OtDocumentApproval.title,
+            func.sum(OtRecord.amount_paid),
+        )
+        .select_from(OtRecord)
+        .join(OtShift, OtRecord.shift_id == OtShift.id)
+        .outerjoin(OtDocumentApproval, OtRecord.document_id == OtDocumentApproval.id)
+        .filter(shift_start >= fiscal_start)
+        .filter(shift_start < fiscal_end)
+        .filter(OtRecord.canceled_at.is_(None))
+        .filter(OtRecord.amount_paid.isnot(None))
+        .group_by(func.extract('month', shift_start), OtRecord.document_id, OtDocumentApproval.title)
+        .all()
+    )
+    document_totals = {}
+    for month, document_id, document_title, total in document_rows:
+        document_key = str(document_id) if document_id is not None else 'unassigned'
+        document_data = document_totals.setdefault(document_key, {
+            'id': document_key,
+            'title': document_title or ('ไม่ระบุเอกสาร' if document_id is None else f'เอกสาร #{document_id}'),
+            'monthly': {},
+        })
+        month = int(month)
+        document_data['monthly'][month] = document_data['monthly'].get(month, 0) + float(total or 0)
+    documents = [
+        {
+            'id': document_data['id'],
+            'title': document_data['title'],
+            'totals': [document_data['monthly'].get(month, 0) for month in month_numbers],
+        }
+        for document_data in sorted(document_totals.values(), key=lambda item: item['title'])
+    ]
+
+    return jsonify(
+        fiscal_year=fiscal_year,
+        labels=month_names,
+        totals=monthly_totals,
+        documents=documents,
+    )
 
 
 @procurement.route('/official/login')
