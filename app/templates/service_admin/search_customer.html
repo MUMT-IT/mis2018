@@ -56,6 +56,8 @@
                 </p>
             </form>
 
+            <p class="customer-search-sr-only" id="customer-search-status" aria-live="polite"></p>
+            <div class="customer-search-live-region" id="customer-search-live-region" aria-busy="false">
             {% if customer_name %}
                 <div class="customer-search-result-heading">
                     <div>
@@ -132,6 +134,7 @@
                     <span>กรอกชื่อหรือข้อมูลที่ต้องการค้นหาในช่องด้านบน</span>
                 </div>
             {% endif %}
+            </div>
         </div>
     </section>
     <style>
@@ -437,6 +440,19 @@
             text-align: center;
         }
 
+        .customer-search-sr-only {
+            border: 0;
+            clip: rect(0, 0, 0, 0);
+            clip-path: inset(50%);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            position: absolute;
+            white-space: nowrap;
+            width: 1px;
+        }
+
         .customer-search-empty {
             background: rgba(255, 255, 255, 0.72);
             border: 1px dashed #cbd8e9;
@@ -533,4 +549,55 @@
             }
         }
     </style>
+    <script>
+        (() => {
+            const form = document.querySelector('.customer-search-form');
+            const input = form?.querySelector('.customer-search-input');
+            const results = document.getElementById('customer-search-live-region');
+            const status = document.getElementById('customer-search-status');
+
+            if (!form || !input || !results || !status) return;
+
+            let debounceTimer;
+            let activeRequest;
+
+            input.addEventListener('input', () => {
+                window.clearTimeout(debounceTimer);
+                activeRequest?.abort();
+
+                debounceTimer = window.setTimeout(async () => {
+                    const query = input.value.trim();
+                    const url = new URL(form.action, window.location.href);
+                    url.searchParams.set('customer_name', query);
+                    activeRequest = new AbortController();
+                    results.setAttribute('aria-busy', 'true');
+
+                    try {
+                        const response = await fetch(url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            signal: activeRequest.signal
+                        });
+                        if (!response.ok) throw new Error('Customer search failed');
+
+                        const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+                        const updatedResults = page.getElementById('customer-search-live-region');
+                        if (!updatedResults) throw new Error('Customer search results are missing');
+
+                        results.innerHTML = updatedResults.innerHTML;
+                        const count = results.querySelector('.customer-search-count');
+                        const resultCount = count ? Number(count.textContent.trim()) : null;
+                        status.textContent = resultCount > 0
+                            ? `พบผู้รับบริการ ${resultCount} รายการ`
+                            : query ? 'ไม่พบข้อมูลผู้รับบริการ' : '';
+                    } catch (error) {
+                        if (error.name !== 'AbortError') {
+                            status.textContent = 'ค้นหาไม่สำเร็จ กรุณาลองอีกครั้ง';
+                        }
+                    } finally {
+                        results.setAttribute('aria-busy', 'false');
+                    }
+                }, 300);
+            });
+        })();
+    </script>
 {% endblock %}
