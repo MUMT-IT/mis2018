@@ -6280,6 +6280,12 @@ def tickets_view():
         ticket.id: max(_calculate_ticket_return_totals(ticket.id)["remaining_amount"], Decimal("0.00"))
         for ticket in unsettled_tickets
     }
+    overdue_preview_tickets = [
+        ticket for ticket in unsettled_tickets
+        if ticket.due_date and ticket.due_date < today_date
+        and ticket.status_id not in _status_ids("borrowing_ticket", ticket_summary_excluded_statuses)
+        and remaining_by_ticket.get(ticket.id, Decimal("0.00")) > 0
+    ]
     shadow_sum_debt = sum(remaining_by_ticket.values(), Decimal("0.00"))
 
     for ticket in all_tickets:
@@ -6345,6 +6351,8 @@ def tickets_view():
         near_due_count=near_due_count,
         overdue_count=overdue_count,
         shadow_sum_debt=shadow_sum_debt,
+        remaining_by_ticket=remaining_by_ticket,
+        overdue_preview_tickets=overdue_preview_tickets,
         org_options=org_options,
         today_date=today_date,
     )
