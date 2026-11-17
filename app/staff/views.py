@@ -1199,17 +1199,22 @@ def index():
                            )
 
 
+def _staff_related_procurement_plan_filter(staff_id):
+    return or_(
+        ProcurementPlan.budget_proposer_id == staff_id,
+        ProcurementPlan.operator_staff_id == staff_id,
+        ProcurementPlan.committee_members.any(
+            ProcurementPlanCommitteeMember.staff_id == staff_id
+        ),
+    )
+
+
 @staff.route('/procurement-budget-tracking')
 @login_required
 def procurement_budget_tracking():
     current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
     fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
-    related_plan_filter = or_(
-        ProcurementPlan.budget_proposer_id == current_user.id,
-        ProcurementPlan.committee_members.any(
-            ProcurementPlanCommitteeMember.staff_id == current_user.id
-        ),
-    )
+    related_plan_filter = _staff_related_procurement_plan_filter(current_user.id)
     available_years = [
         year for year, in ProcurementPlan.query.with_entities(ProcurementPlan.fiscal_year)
         .filter(related_plan_filter)
@@ -1224,6 +1229,13 @@ def procurement_budget_tracking():
         ProcurementPlan.fiscal_year == fiscal_year,
         related_plan_filter,
     ).order_by(ProcurementPlan.id.asc()).all()
+    committee_roles = {
+        member.plan_id: member.role_label
+        for member in ProcurementPlanCommitteeMember.query.filter(
+            ProcurementPlanCommitteeMember.staff_id == current_user.id,
+            ProcurementPlanCommitteeMember.plan_id.in_([plan.id for plan in plans]),
+        ).all()
+    } if plans else {}
     total_amount = sum((plan.amount or 0 for plan in plans), 0)
     return render_template(
         'staff/procurement_budget_tracking.html',
@@ -1231,6 +1243,7 @@ def procurement_budget_tracking():
         available_years=available_years,
         plans=plans,
         total_amount=total_amount,
+        committee_roles=committee_roles,
     )
 
 
@@ -1239,12 +1252,7 @@ def procurement_budget_tracking():
 def procurement_budget_plan_detail(plan_id):
     plan = ProcurementPlan.query.filter(
         ProcurementPlan.id == plan_id,
-        or_(
-            ProcurementPlan.budget_proposer_id == current_user.id,
-            ProcurementPlan.committee_members.any(
-                ProcurementPlanCommitteeMember.staff_id == current_user.id
-            ),
-        ),
+        _staff_related_procurement_plan_filter(current_user.id),
     ).first_or_404()
     fiscal_year = request.args.get('fiscal_year', type=int) or plan.fiscal_year
     from app.procurement.views import _procurement_plan_gantt_data

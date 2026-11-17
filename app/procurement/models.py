@@ -127,6 +127,11 @@ class ProcurementPlan(db.Model):
         foreign_keys=[budget_proposer_id],
         backref=db.backref('proposed_procurement_plans', lazy='dynamic'),
     )
+    operator_staff_id = db.Column('operator_staff_id', db.ForeignKey('staff_account.id'), nullable=True)
+    operator_staff = db.relationship(
+        'StaffAccount', foreign_keys=[operator_staff_id],
+        backref=db.backref('operated_procurement_plans', lazy='dynamic'),
+    )
     responsible_staff_id = db.Column('responsible_staff_id', db.ForeignKey('staff_account.id'), nullable=True)
     responsible_staff = db.relationship('StaffAccount', foreign_keys=[responsible_staff_id],
                                          backref=db.backref('procurement_plans', lazy='dynamic'))
