@@ -1529,7 +1529,7 @@ def _render_reimbursement_with_reportlab(context):
         ]))
         story.extend([items, Spacer(1, 4)])
     total = Table([[
-        Paragraph("<u>รวมทั้งสิ้น</u>", styles["ThaiRight"]),
+        Paragraph('<u width="0.35">รวมทั้งสิ้น</u>', styles["ThaiRight"]),
         _rl_paragraph(context["amount_text"]),
         _rl_paragraph(f"{context['amount_numeric']} บาท", styles["ThaiRight"]),
     ]], colWidths=[55, 250, 80], hAlign="CENTER")
@@ -1943,7 +1943,7 @@ def _build_reimbursement_letter_html(context):
   }}
   .total-amount {{ text-align: right; }}
   .total-amount {{ white-space: nowrap; }}
-  .total-label {{ text-align: left; text-decoration: underline; }}
+  .total-label {{ text-align: left; text-decoration: underline; text-decoration-thickness: 0.4px; text-underline-offset: 1px; }}
   .head-signature {{
     width: 50%;
     margin-top: {SIGNATURE_FIRST_GAP_MM}mm;
@@ -2196,6 +2196,9 @@ def generate_petty_claim_docx(claim, claim_type="1", template_path=None):
     approvers = context["leave_approver_signatures"]
     path = template_path or os.path.join(APP_STATIC_DIR, "docs", "petty_cash_claim_template.docx")
     document = Document(path)
+    if not document.tables:
+        raise ValueError("Petty claim Word template must contain an item table")
+    item_table = document.tables[0]
     # The template's paragraph order mirrors the PDF letter: body paragraph(s),
     # item table, then the reference paragraph. Set these explicitly so claim
     # type 2 does not accidentally duplicate its single PDF body paragraph.
@@ -2214,8 +2217,6 @@ def generate_petty_claim_docx(claim, claim_type="1", template_path=None):
     paragraphs[12].text = "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง"
     # Replace the template's tab-positioned signature text with a borderless
     # two-column layout: approvers occupy the right half and the dean the left.
-    paragraphs[13].text = ""
-    paragraphs[14].text = ""
     signature_table = document.add_table(rows=max(1, len(approvers)), cols=2)
     signature_table.autofit = False
     signature_table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -2226,7 +2227,6 @@ def generate_petty_claim_docx(claim, claim_type="1", template_path=None):
     for row in signature_table.rows:
         for cell in row.cells:
             cell.width = half_width
-    signature_table.rows[0].cells[0].paragraphs[0].paragraph_format.space_before = Cm(1.6)
     for index, (name, position) in enumerate(approvers):
         paragraph = signature_table.rows[index].cells[1].paragraphs[0]
         paragraph.text = f"({name})\n{position}"
@@ -2246,9 +2246,10 @@ def generate_petty_claim_docx(claim, claim_type="1", template_path=None):
     paragraphs[12]._p.addnext(signature_table._tbl)
     for paragraph in paragraphs[13:15]:
         paragraph._element.getparent().remove(paragraph._element)
-    if not document.tables:
-        raise ValueError("Petty claim Word template must contain an item table")
-    table = document.tables[0]
+    for paragraph in paragraphs[15:]:
+        if not paragraph.text.strip() and not paragraph._p.xpath(".//w:drawing"):
+            paragraph._element.getparent().remove(paragraph._element)
+    table = item_table
     # The supplied template has three sample item rows. Add rows when the
     # claim contains more items, keeping the final row reserved for the total.
     while len(table.rows) - 1 < len(items):
@@ -2263,9 +2264,12 @@ def generate_petty_claim_docx(claim, claim_type="1", template_path=None):
         row.cells[1].text = item[2] if item else PDF_BLANK
         row.cells[2].text = "บาท"
     total_row = table.rows[-1].cells
-    total_row[0].text, total_row[1].text, total_row[2].text = (
-        f"รวมทั้งสิ้น   {context['amount_text']}", context["amount_numeric"], "บาท"
-    )
+    total_label = total_row[0].paragraphs[0]
+    total_label.clear()
+    total_label.add_run("รวมทั้งสิ้น").underline = True
+    total_label.add_run(f"   {context['amount_text']}")
+    total_row[1].text = context["amount_numeric"]
+    total_row[2].text = "บาท"
     # Apply the same Thai font to every editable text run, including text that
     # was inserted into table cells. This prevents Word font fallback on any
     # part of the document.
@@ -2279,14 +2283,12 @@ def generate_petty_claim_docx(claim, claim_type="1", template_path=None):
         run._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), word_font_name)
         run._element.get_or_add_rPr().rFonts.set(qn("w:cs"), word_font_name)
 
-    for style in document.styles:
-        if hasattr(style, "font"):
-            style.font.name = word_font_name
-            style.font.size = Pt(16)
-            style._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), word_font_name)
-            style._element.get_or_add_rPr().rFonts.set(qn("w:hAnsi"), word_font_name)
-            style._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), word_font_name)
-            style._element.get_or_add_rPr().rFonts.set(qn("w:cs"), word_font_name)
+    normal_style = document.styles["Normal"]
+    normal_style.font.name = word_font_name
+    normal_style.font.size = Pt(16)
+    normal_fonts = normal_style._element.get_or_add_rPr().rFonts
+    normal_fonts.set(qn("w:eastAsia"), word_font_name)
+    normal_fonts.set(qn("w:cs"), word_font_name)
     for paragraph in document.paragraphs:
         for run in paragraph.runs:
             apply_word_font(run)
