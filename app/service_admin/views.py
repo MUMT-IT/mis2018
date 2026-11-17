@@ -2443,6 +2443,7 @@ def customer_detail(customer_id):
     is_admin = request.args.get('is_admin', 'false')
     customer = ServiceCustomerInfo.query.get(customer_id)
     # lab_payments = _build_customer_lab_payments(customer)
+    customer_status = _get_customer_statuses([customer])[customer.id]
     overdue_invoices = _get_customer_overdue_invoices(customer)
     latest_service_requests = (
         ServiceRequest.query
@@ -2464,6 +2465,7 @@ def customer_detail(customer_id):
     )
     return render_template(
         'service_admin/customer_detail.html',is_admin=is_admin, customer=customer,
+        customer_status=customer_status,
         overdue_invoices=overdue_invoices,
         latest_service_requests=latest_service_requests
     )
