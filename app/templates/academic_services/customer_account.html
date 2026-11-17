@@ -15,8 +15,15 @@
                 <form method="post" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
                     <div class="column box">
-                        <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <div class="field is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap"
+                             style="margin-top: .5em; margin-left: 1em; margin-right: 1em; margin-bottom: .5em; gap: .75rem">
                             <b class="is-size-4">รายละเอียด</b>
+                            {% if customer_status %}
+                                <span class="tag {{ customer_status.color }} is-rounded">
+                                    <span class="icon"><i class="fas {{ customer_status.icon }}" aria-hidden="true"></i></span>
+                                    <span>{{ customer_status.label }}</span>
+                                </span>
+                            {% endif %}
                         </div>
                         <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                             <div class="field">
