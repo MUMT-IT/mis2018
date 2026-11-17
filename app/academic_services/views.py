@@ -35,7 +35,7 @@ from app.main import mail
 from flask_mail import Message
 from app.models import Holidays, Org
 from app.service_admin.views import get_central_admin_academic_service, _required_customer_documents, \
-    _required_document_attachments, CUSTOMER_DOCUMENT_DEFINITIONS
+    _required_document_attachments, _get_customer_statuses, CUSTOMER_DOCUMENT_DEFINITIONS
 
 localtz = timezone('Asia/Bangkok')
 
@@ -1320,10 +1320,19 @@ def account():
 @login_required
 def customer_account():
     customer = None
+    customer_status = None
     menu = request.args.get('menu')
     account = ServiceCustomerAccount.query.get(current_user.id)
     if current_user.customer_info:
         customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+        if customer:
+            customer_statuses = _get_customer_statuses([customer])
+            customer_status = customer_statuses.get(customer.id, {
+                'label': 'ปกติ',
+                'color': 'is-success',
+                'icon': 'fa-circle-check',
+                'days_overdue': 0,
+            })
         form = ServiceCustomerInfoForm(obj=customer)
     else:
         form = ServiceCustomerInfoForm()
@@ -1357,6 +1366,7 @@ def customer_account():
             for error in document_errors:
                 flash(error, 'danger')
             return render_template('academic_services/customer_account.html', menu=menu, form=form,
+                                   customer_status=customer_status,
                                    document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
                                    required_document_attachments=_required_document_attachments(
                                        customer) if customer else {}
@@ -1420,7 +1430,8 @@ def customer_account():
     if not current_user.customer_info:
         flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'warning')
     return render_template('academic_services/customer_account.html', menu=menu, form=form,
-                           account=account, document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                           account=account, customer_status=customer_status,
+                           document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
                            required_document_attachments=_required_document_attachments(customer) if customer else {}
                            )
 
