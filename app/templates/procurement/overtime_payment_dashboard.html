@@ -35,9 +35,20 @@
                     </div>
                 </div>
             </div>
+            <div class="box mb-5">
+                <h2 class="title is-4">ยอดค่าตอบแทนและอัตราการเปลี่ยนแปลงรายปีงบประมาณ</h2>
+                <div id="overtime-fiscal-year-summary-chart" style="height: 460px;" aria-label="กราฟยอดค่าตอบแทนรวมและอัตราการเปลี่ยนแปลงทุกปีงบประมาณ" role="img"></div>
+                <p id="overtime-fiscal-year-summary-empty" class="has-text-grey is-hidden">ไม่พบข้อมูลค่าตอบแทน</p>
+                <p id="overtime-fiscal-year-summary-error" class="has-text-danger is-hidden">ไม่สามารถโหลดข้อมูลรายปีได้</p>
+            </div>
             <div class="box">
                 <div id="overtime-payment-chart" style="height: 420px;" aria-label="กราฟแท่งแสดงยอดค่าตอบแทนปฏิบัติงานนอกเวลารายเดือน" role="img"></div>
                 <p id="overtime-chart-error" class="has-text-danger is-hidden">ไม่สามารถโหลดข้อมูลกราฟได้</p>
+            </div>
+            <div class="box mt-5">
+                <h2 class="title is-4">ยอดค่าตอบแทนรวมแยกตามประกาศ</h2>
+                <div id="overtime-announcement-payment-chart" style="height: 420px;" aria-label="กราฟแสดงยอดค่าตอบแทนรวมแยกตามประกาศ" role="img"></div>
+                <p id="overtime-announcement-chart-empty" class="has-text-grey is-hidden">ไม่พบข้อมูลค่าตอบแทนในปีงบประมาณนี้</p>
             </div>
         </div>
     </section>
@@ -48,43 +59,79 @@
     <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const fiscalSummaryChartElement = document.getElementById('overtime-fiscal-year-summary-chart');
+            const fiscalSummaryEmpty = document.getElementById('overtime-fiscal-year-summary-empty');
+            const fiscalSummaryError = document.getElementById('overtime-fiscal-year-summary-error');
             const chartElement = document.getElementById('overtime-payment-chart');
             const errorElement = document.getElementById('overtime-chart-error');
+            const announcementChartElement = document.getElementById('overtime-announcement-payment-chart');
+            const announcementChartEmpty = document.getElementById('overtime-announcement-chart-empty');
             const fiscalYearSelect = document.getElementById('overtime-fiscal-year');
             const fiscalYearLabel = document.getElementById('overtime-fiscal-year-label');
             if (!chartElement || !fiscalYearSelect) return;
 
             let chart;
             let chartPayload;
+            let fiscalSummaryChart;
+            let fiscalSummaryPayload;
+            let announcementChart;
+            let announcementChartPayload;
             let googleChartsReady = false;
+            let latestFiscalSummaryRequestId = 0;
             let latestRequestId = 0;
             function drawFallbackChart() {
                 if (!chartPayload) return;
                 const svgNamespace = 'http://www.w3.org/2000/svg';
                 const width = 960;
                 const height = 420;
-                const margin = { top: 24, right: 24, bottom: 58, left: 92 };
+                const margin = { top: 48, right: 92, bottom: 58, left: 92 };
                 const plotWidth = width - margin.left - margin.right;
                 const plotHeight = height - margin.top - margin.bottom;
                 const values = chartPayload.totals.map(function (value) { return Number(value) || 0; });
+                const staffCounts = chartPayload.staff_counts.map(function (value) { return Number(value) || 0; });
                 const maxValue = Math.max.apply(null, values.concat([1]));
+                const maxStaffCount = Math.max.apply(null, staffCounts.concat([1]));
                 const svg = document.createElementNS(svgNamespace, 'svg');
                 svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
                 svg.setAttribute('width', '100%');
                 svg.setAttribute('height', '100%');
                 svg.setAttribute('role', 'img');
-                svg.setAttribute('aria-label', 'ยอดค่าตอบแทนปฏิบัติงานนอกเวลารายเดือน');
+                svg.setAttribute('aria-label', 'ยอดค่าตอบแทนและจำนวนบุคลากรที่ได้รับค่าตอบแทนรายเดือน');
+
+                const paymentLegendMark = document.createElementNS(svgNamespace, 'rect');
+                paymentLegendMark.setAttribute('x', margin.left + 105);
+                paymentLegendMark.setAttribute('y', 13);
+                paymentLegendMark.setAttribute('width', 12);
+                paymentLegendMark.setAttribute('height', 12);
+                paymentLegendMark.setAttribute('fill', '#2469b9');
+                svg.appendChild(paymentLegendMark);
+                const paymentLegendText = document.createElementNS(svgNamespace, 'text');
+                paymentLegendText.setAttribute('x', margin.left + 123);
+                paymentLegendText.setAttribute('y', 24);
+                paymentLegendText.setAttribute('font-size', '12');
+                paymentLegendText.setAttribute('fill', '#26364b');
+                paymentLegendText.textContent = 'ยอดค่าตอบแทน (บาท)';
+                svg.appendChild(paymentLegendText);
+                const staffLegendMark = document.createElementNS(svgNamespace, 'line');
+                staffLegendMark.setAttribute('x1', margin.left + 310);
+                staffLegendMark.setAttribute('x2', margin.left + 330);
+                staffLegendMark.setAttribute('y1', 19);
+                staffLegendMark.setAttribute('y2', 19);
+                staffLegendMark.setAttribute('stroke', '#e07a24');
+                staffLegendMark.setAttribute('stroke-width', 3);
+                svg.appendChild(staffLegendMark);
+                const staffLegendText = document.createElementNS(svgNamespace, 'text');
+                staffLegendText.setAttribute('x', margin.left + 337);
+                staffLegendText.setAttribute('y', 24);
+                staffLegendText.setAttribute('font-size', '12');
+                staffLegendText.setAttribute('fill', '#26364b');
+                staffLegendText.textContent = 'จำนวนบุคลากร';
+                svg.appendChild(staffLegendText);
 
                 for (let tick = 0; tick <= 4; tick += 1) {
                     const value = maxValue * tick / 4;
+                    const staffValue = Math.round(maxStaffCount * tick / 4);
                     const y = margin.top + plotHeight - (plotHeight * tick / 4);
-                    const grid = document.createElementNS(svgNamespace, 'line');
-                    grid.setAttribute('x1', margin.left);
-                    grid.setAttribute('x2', width - margin.right);
-                    grid.setAttribute('y1', y);
-                    grid.setAttribute('y2', y);
-                    grid.setAttribute('stroke', '#dfe5ee');
-                    svg.appendChild(grid);
                     const tickLabel = document.createElementNS(svgNamespace, 'text');
                     tickLabel.setAttribute('x', margin.left - 10);
                     tickLabel.setAttribute('y', y + 4);
@@ -93,12 +140,21 @@
                     tickLabel.setAttribute('fill', '#526176');
                     tickLabel.textContent = value.toLocaleString('th-TH', { maximumFractionDigits: 0 });
                     svg.appendChild(tickLabel);
+                    const staffTickLabel = document.createElementNS(svgNamespace, 'text');
+                    staffTickLabel.setAttribute('x', width - margin.right + 10);
+                    staffTickLabel.setAttribute('y', y + 4);
+                    staffTickLabel.setAttribute('font-size', '12');
+                    staffTickLabel.setAttribute('fill', '#526176');
+                    staffTickLabel.textContent = staffValue.toLocaleString('th-TH');
+                    svg.appendChild(staffTickLabel);
                 }
 
                 const slotWidth = plotWidth / chartPayload.labels.length;
                 const barWidth = slotWidth * 0.58;
+                const staffPoints = [];
                 chartPayload.labels.forEach(function (label, index) {
                     const barHeight = values[index] / maxValue * plotHeight;
+                    const centerX = margin.left + index * slotWidth + slotWidth / 2;
                     const bar = document.createElementNS(svgNamespace, 'rect');
                     bar.setAttribute('x', margin.left + index * slotWidth + (slotWidth - barWidth) / 2);
                     bar.setAttribute('y', margin.top + plotHeight - barHeight);
@@ -107,8 +163,26 @@
                     bar.setAttribute('fill', '#2469b9');
                     svg.appendChild(bar);
 
+                    const valueLabel = document.createElementNS(svgNamespace, 'text');
+                    valueLabel.setAttribute('x', margin.left + index * slotWidth + slotWidth / 2);
+                    valueLabel.setAttribute('y', Math.max(margin.top + 12, margin.top + plotHeight - barHeight - 7));
+                    valueLabel.setAttribute('text-anchor', 'middle');
+                    valueLabel.setAttribute('font-size', '11');
+                    valueLabel.setAttribute('fill', '#26364b');
+                    valueLabel.textContent = values[index].toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                    svg.appendChild(valueLabel);
+
+                    const staffY = margin.top + plotHeight - (staffCounts[index] / maxStaffCount * plotHeight);
+                    staffPoints.push(centerX + ',' + staffY);
+                    const staffPoint = document.createElementNS(svgNamespace, 'circle');
+                    staffPoint.setAttribute('cx', centerX);
+                    staffPoint.setAttribute('cy', staffY);
+                    staffPoint.setAttribute('r', 4);
+                    staffPoint.setAttribute('fill', '#e07a24');
+                    svg.appendChild(staffPoint);
+
                     const monthLabel = document.createElementNS(svgNamespace, 'text');
-                    monthLabel.setAttribute('x', margin.left + index * slotWidth + slotWidth / 2);
+                    monthLabel.setAttribute('x', centerX);
                     monthLabel.setAttribute('y', height - 24);
                     monthLabel.setAttribute('text-anchor', 'middle');
                     monthLabel.setAttribute('font-size', '12');
@@ -117,7 +191,372 @@
                     svg.appendChild(monthLabel);
                 });
 
+                const staffLine = document.createElementNS(svgNamespace, 'polyline');
+                staffLine.setAttribute('points', staffPoints.join(' '));
+                staffLine.setAttribute('fill', 'none');
+                staffLine.setAttribute('stroke', '#e07a24');
+                staffLine.setAttribute('stroke-width', 3);
+                svg.appendChild(staffLine);
+
                 chartElement.replaceChildren(svg);
+            }
+
+            function drawFiscalSummaryFallbackChart() {
+                if (!fiscalSummaryPayload || !fiscalSummaryPayload.fiscal_years.length) return;
+                const svgNamespace = 'http://www.w3.org/2000/svg';
+                const width = 960;
+                const height = 460;
+                const margin = { top: 48, right: 90, bottom: 62, left: 92 };
+                const plotWidth = width - margin.left - margin.right;
+                const plotHeight = height - margin.top - margin.bottom;
+                const totals = fiscalSummaryPayload.totals.map(function (value) { return Number(value) || 0; });
+                const changes = fiscalSummaryPayload.percent_changes.map(function (value) {
+                    return value === null ? null : Number(value);
+                });
+                const maxTotal = Math.max.apply(null, totals.concat([1]));
+                const availableChanges = changes.filter(function (value) { return value !== null && Number.isFinite(value); });
+                let minChange = Math.min.apply(null, availableChanges.concat([0]));
+                let maxChange = Math.max.apply(null, availableChanges.concat([0]));
+                if (minChange === maxChange) {
+                    minChange -= 1;
+                    maxChange += 1;
+                }
+                const colors = { total: '#2469b9', change: '#e07a24' };
+                const svg = document.createElementNS(svgNamespace, 'svg');
+                svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.setAttribute('role', 'img');
+                svg.setAttribute('aria-label', 'ยอดค่าตอบแทนรวมและอัตราการเปลี่ยนแปลงทุกปีงบประมาณ');
+
+                const totalLegend = document.createElementNS(svgNamespace, 'rect');
+                totalLegend.setAttribute('x', margin.left + 145);
+                totalLegend.setAttribute('y', 14);
+                totalLegend.setAttribute('width', 12);
+                totalLegend.setAttribute('height', 12);
+                totalLegend.setAttribute('fill', colors.total);
+                svg.appendChild(totalLegend);
+                const totalLegendText = document.createElementNS(svgNamespace, 'text');
+                totalLegendText.setAttribute('x', margin.left + 163);
+                totalLegendText.setAttribute('y', 25);
+                totalLegendText.setAttribute('font-size', '12');
+                totalLegendText.setAttribute('fill', '#26364b');
+                totalLegendText.textContent = 'ยอดค่าตอบแทน (บาท)';
+                svg.appendChild(totalLegendText);
+                const changeLegend = document.createElementNS(svgNamespace, 'line');
+                changeLegend.setAttribute('x1', margin.left + 350);
+                changeLegend.setAttribute('x2', margin.left + 372);
+                changeLegend.setAttribute('y1', 20);
+                changeLegend.setAttribute('y2', 20);
+                changeLegend.setAttribute('stroke', colors.change);
+                changeLegend.setAttribute('stroke-width', 3);
+                svg.appendChild(changeLegend);
+                const changeLegendText = document.createElementNS(svgNamespace, 'text');
+                changeLegendText.setAttribute('x', margin.left + 380);
+                changeLegendText.setAttribute('y', 25);
+                changeLegendText.setAttribute('font-size', '12');
+                changeLegendText.setAttribute('fill', '#26364b');
+                changeLegendText.textContent = 'เปลี่ยนแปลง (%)';
+                svg.appendChild(changeLegendText);
+
+                for (let tick = 0; tick <= 4; tick += 1) {
+                    const y = margin.top + plotHeight - plotHeight * tick / 4;
+                    const totalLabel = document.createElementNS(svgNamespace, 'text');
+                    totalLabel.setAttribute('x', margin.left - 10);
+                    totalLabel.setAttribute('y', y + 4);
+                    totalLabel.setAttribute('text-anchor', 'end');
+                    totalLabel.setAttribute('font-size', '11');
+                    totalLabel.setAttribute('fill', '#526176');
+                    totalLabel.textContent = (maxTotal * tick / 4).toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                    svg.appendChild(totalLabel);
+
+                    const percentValue = minChange + (maxChange - minChange) * tick / 4;
+                    const percentLabel = document.createElementNS(svgNamespace, 'text');
+                    percentLabel.setAttribute('x', width - margin.right + 9);
+                    percentLabel.setAttribute('y', y + 4);
+                    percentLabel.setAttribute('font-size', '11');
+                    percentLabel.setAttribute('fill', '#526176');
+                    percentLabel.textContent = percentValue.toLocaleString('th-TH', { maximumFractionDigits: 1 }) + '%';
+                    svg.appendChild(percentLabel);
+                }
+
+                const slotWidth = plotWidth / fiscalSummaryPayload.fiscal_years.length;
+                const barWidth = slotWidth * 0.5;
+                const linePoints = [];
+                fiscalSummaryPayload.fiscal_years.forEach(function (year, index) {
+                    const total = totals[index];
+                    const barHeight = total / maxTotal * plotHeight;
+                    const centerX = margin.left + index * slotWidth + slotWidth / 2;
+                    const bar = document.createElementNS(svgNamespace, 'rect');
+                    bar.setAttribute('x', centerX - barWidth / 2);
+                    bar.setAttribute('y', margin.top + plotHeight - barHeight);
+                    bar.setAttribute('width', barWidth);
+                    bar.setAttribute('height', Math.max(barHeight, 1));
+                    bar.setAttribute('fill', colors.total);
+                    svg.appendChild(bar);
+
+                    const amountLabel = document.createElementNS(svgNamespace, 'text');
+                    amountLabel.setAttribute('x', centerX);
+                    amountLabel.setAttribute('y', Math.max(margin.top + 12, margin.top + plotHeight - barHeight - 6));
+                    amountLabel.setAttribute('text-anchor', 'middle');
+                    amountLabel.setAttribute('font-size', '10');
+                    amountLabel.setAttribute('fill', '#26364b');
+                    amountLabel.textContent = total.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                    svg.appendChild(amountLabel);
+
+                    const change = changes[index];
+                    if (change !== null && Number.isFinite(change)) {
+                        const changeY = margin.top + (maxChange - change) / (maxChange - minChange) * plotHeight;
+                        linePoints.push({ x: centerX, y: changeY });
+                    } else {
+                        linePoints.push(null);
+                    }
+                    const yearLabel = document.createElementNS(svgNamespace, 'text');
+                    yearLabel.setAttribute('x', centerX);
+                    yearLabel.setAttribute('y', height - 24);
+                    yearLabel.setAttribute('text-anchor', 'middle');
+                    yearLabel.setAttribute('font-size', '11');
+                    yearLabel.setAttribute('fill', '#526176');
+                    yearLabel.textContent = String(year + 543);
+                    svg.appendChild(yearLabel);
+                });
+
+                let segment = [];
+                function appendLineSegment() {
+                    if (segment.length > 1) {
+                        const polyline = document.createElementNS(svgNamespace, 'polyline');
+                        polyline.setAttribute('points', segment.map(function (point) { return point.x + ',' + point.y; }).join(' '));
+                        polyline.setAttribute('fill', 'none');
+                        polyline.setAttribute('stroke', colors.change);
+                        polyline.setAttribute('stroke-width', 3);
+                        svg.appendChild(polyline);
+                    }
+                    segment.forEach(function (point) {
+                        const marker = document.createElementNS(svgNamespace, 'circle');
+                        marker.setAttribute('cx', point.x);
+                        marker.setAttribute('cy', point.y);
+                        marker.setAttribute('r', 4);
+                        marker.setAttribute('fill', colors.change);
+                        svg.appendChild(marker);
+                    });
+                    segment = [];
+                }
+                linePoints.forEach(function (point) {
+                    if (point) segment.push(point);
+                    else appendLineSegment();
+                });
+                appendLineSegment();
+                fiscalSummaryChartElement.replaceChildren(svg);
+            }
+
+            function drawFiscalSummaryChart() {
+                if (!fiscalSummaryPayload) return;
+                if (!fiscalSummaryPayload.fiscal_years.length) {
+                    fiscalSummaryChartElement.classList.add('is-hidden');
+                    if (fiscalSummaryEmpty) fiscalSummaryEmpty.classList.remove('is-hidden');
+                    return;
+                }
+                fiscalSummaryChartElement.classList.remove('is-hidden');
+                if (fiscalSummaryEmpty) fiscalSummaryEmpty.classList.add('is-hidden');
+                if (!googleChartsReady) {
+                    drawFiscalSummaryFallbackChart();
+                    return;
+                }
+                try {
+                    if (!fiscalSummaryChart) fiscalSummaryChart = new google.visualization.ComboChart(fiscalSummaryChartElement);
+                    const table = new google.visualization.DataTable();
+                    table.addColumn('string', 'ปีงบประมาณ');
+                    table.addColumn('number', 'ยอดค่าตอบแทน (บาท)');
+                    table.addColumn({ type: 'string', role: 'annotation' });
+                    table.addColumn('number', 'เปลี่ยนแปลง (%)');
+                    fiscalSummaryPayload.fiscal_years.forEach(function (year, index) {
+                        const total = Number(fiscalSummaryPayload.totals[index]) || 0;
+                        const percentChange = fiscalSummaryPayload.percent_changes[index];
+                        table.addRow([
+                            String(year + 543),
+                            total,
+                            total.toLocaleString('th-TH', { maximumFractionDigits: 0 }),
+                            percentChange === null ? null : Number(percentChange)
+                        ]);
+                    });
+                    fiscalSummaryChart.draw(table, {
+                        seriesType: 'bars',
+                        series: {
+                            0: { type: 'bars', targetAxisIndex: 0 },
+                            1: { type: 'line', targetAxisIndex: 1, color: '#e07a24', lineWidth: 3, pointSize: 5 }
+                        },
+                        legend: { position: 'top' },
+                        colors: ['#2469b9'],
+                        chartArea: { left: 92, top: 52, width: '78%', height: '70%' },
+                        hAxis: { title: 'ปีงบประมาณ (พ.ศ.)' },
+                        vAxes: {
+                            0: {
+                                title: 'ยอดค่าตอบแทน (บาท)', minValue: 0, viewWindow: { min: 0 },
+                                format: '#,##0.00', gridlines: { count: 0 }, minorGridlines: { count: 0 }
+                            },
+                            1: {
+                                title: 'เปลี่ยนแปลง (%)', format: '#,##0.0',
+                                gridlines: { count: 0 }, minorGridlines: { count: 0 }
+                            }
+                        },
+                        annotations: { alwaysOutside: true, textStyle: { fontSize: 10, color: '#26364b' } },
+                        tooltip: { isHtml: false }
+                    });
+                } catch (error) {
+                    console.error('Google Charts failed to draw fiscal year totals:', error);
+                    drawFiscalSummaryFallbackChart();
+                }
+            }
+
+            function drawAnnouncementFallbackChart() {
+                if (!announcementChartPayload || !announcementChartPayload.announcements.length) return;
+                const svgNamespace = 'http://www.w3.org/2000/svg';
+                const width = 960;
+                const legendColumns = 3;
+                const legendRows = Math.ceil(announcementChartPayload.announcements.length / legendColumns);
+                const margin = { top: 34 + legendRows * 23, right: 38, bottom: 58, left: 88 };
+                const height = Math.max(420, margin.top + 300 + margin.bottom);
+                const plotWidth = width - margin.left - margin.right;
+                const plotHeight = height - margin.top - margin.bottom;
+                const colors = ['#2469b9', '#e07a24', '#2e8b57', '#8864a5', '#c44e52', '#4c9fba', '#b08b25', '#6b7280'];
+                const allValues = [];
+                announcementChartPayload.announcements.forEach(function (item) {
+                    item.totals.forEach(function (value) { allValues.push(Number(value) || 0); });
+                });
+                const maxValue = Math.max.apply(null, allValues.concat([1]));
+                const svg = document.createElementNS(svgNamespace, 'svg');
+                svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.setAttribute('role', 'img');
+                svg.setAttribute('aria-label', 'ยอดค่าตอบแทนรายเดือนแยกตามประกาศ');
+
+                announcementChartPayload.announcements.forEach(function (item, index) {
+                    const legendColumn = index % legendColumns;
+                    const legendRow = Math.floor(index / legendColumns);
+                    const legendX = margin.left + legendColumn * (plotWidth / legendColumns);
+                    const legendY = 18 + legendRow * 23;
+                    const mark = document.createElementNS(svgNamespace, 'rect');
+                    mark.setAttribute('x', legendX);
+                    mark.setAttribute('y', legendY - 10);
+                    mark.setAttribute('width', 12);
+                    mark.setAttribute('height', 12);
+                    mark.setAttribute('fill', colors[index % colors.length]);
+                    svg.appendChild(mark);
+                    const legendLabel = document.createElementNS(svgNamespace, 'text');
+                    legendLabel.setAttribute('x', legendX + 18);
+                    legendLabel.setAttribute('y', legendY);
+                    legendLabel.setAttribute('font-size', '11');
+                    legendLabel.setAttribute('fill', '#26364b');
+                    legendLabel.textContent = item.title.length > 28 ? item.title.slice(0, 25) + '…' : item.title;
+                    svg.appendChild(legendLabel);
+                });
+
+                const slotWidth = plotWidth / announcementChartPayload.labels.length;
+                const groupWidth = slotWidth * 0.8;
+                const barWidth = groupWidth / announcementChartPayload.announcements.length;
+                for (let tick = 0; tick <= 4; tick += 1) {
+                    const value = maxValue * tick / 4;
+                    const y = margin.top + plotHeight - plotHeight * tick / 4;
+                    const tickLabel = document.createElementNS(svgNamespace, 'text');
+                    tickLabel.setAttribute('x', margin.left - 10);
+                    tickLabel.setAttribute('y', y + 4);
+                    tickLabel.setAttribute('text-anchor', 'end');
+                    tickLabel.setAttribute('font-size', '11');
+                    tickLabel.setAttribute('fill', '#526176');
+                    tickLabel.textContent = value.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                    svg.appendChild(tickLabel);
+                }
+
+                announcementChartPayload.labels.forEach(function (month, monthIndex) {
+                    announcementChartPayload.announcements.forEach(function (item, seriesIndex) {
+                        const value = Number(item.totals[monthIndex]) || 0;
+                        const barHeight = value / maxValue * plotHeight;
+                        const barX = margin.left + monthIndex * slotWidth + (slotWidth - groupWidth) / 2 + seriesIndex * barWidth;
+                        const bar = document.createElementNS(svgNamespace, 'rect');
+                        bar.setAttribute('x', barX);
+                        bar.setAttribute('y', margin.top + plotHeight - barHeight);
+                        bar.setAttribute('width', Math.max(1, barWidth - 1));
+                        bar.setAttribute('height', Math.max(1, barHeight));
+                        bar.setAttribute('fill', colors[seriesIndex % colors.length]);
+                        svg.appendChild(bar);
+                        if (value > 0) {
+                            const valueLabel = document.createElementNS(svgNamespace, 'text');
+                            valueLabel.setAttribute('x', barX + barWidth / 2);
+                            valueLabel.setAttribute('y', Math.max(margin.top + 10, margin.top + plotHeight - barHeight - 5));
+                            valueLabel.setAttribute('text-anchor', 'middle');
+                            valueLabel.setAttribute('font-size', '9');
+                            valueLabel.setAttribute('fill', '#26364b');
+                            valueLabel.textContent = value.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                            svg.appendChild(valueLabel);
+                        }
+                    });
+                    const monthLabel = document.createElementNS(svgNamespace, 'text');
+                    monthLabel.setAttribute('x', margin.left + monthIndex * slotWidth + slotWidth / 2);
+                    monthLabel.setAttribute('y', height - 22);
+                    monthLabel.setAttribute('text-anchor', 'middle');
+                    monthLabel.setAttribute('font-size', '11');
+                    monthLabel.setAttribute('fill', '#526176');
+                    monthLabel.textContent = month;
+                    svg.appendChild(monthLabel);
+                });
+                announcementChartElement.replaceChildren(svg);
+            }
+
+            function drawAnnouncementChart() {
+                if (!announcementChartPayload) return;
+                if (!announcementChartPayload.announcements.length) {
+                    announcementChartElement.classList.add('is-hidden');
+                    if (announcementChartEmpty) announcementChartEmpty.classList.remove('is-hidden');
+                    return;
+                }
+                announcementChartElement.classList.remove('is-hidden');
+                if (announcementChartEmpty) announcementChartEmpty.classList.add('is-hidden');
+                announcementChartElement.style.height = Math.max(460, 360 + Math.ceil(announcementChartPayload.announcements.length / 3) * 22) + 'px';
+                if (!googleChartsReady) {
+                    drawAnnouncementFallbackChart();
+                    return;
+                }
+                try {
+                    if (!announcementChart) announcementChart = new google.visualization.ColumnChart(announcementChartElement);
+                    const table = new google.visualization.DataTable();
+                    table.addColumn('string', 'เดือน');
+                    announcementChartPayload.announcements.forEach(function (item) {
+                        table.addColumn('number', item.title);
+                        table.addColumn({ type: 'string', role: 'annotation' });
+                    });
+                    announcementChartPayload.labels.forEach(function (month, monthIndex) {
+                        const row = [month];
+                        announcementChartPayload.announcements.forEach(function (item) {
+                            const amount = Number(item.totals[monthIndex]) || 0;
+                            row.push(amount, amount > 0 ? amount.toLocaleString('th-TH', { maximumFractionDigits: 0 }) : '');
+                        });
+                        table.addRow(row);
+                    });
+                    announcementChart.draw(table, {
+                        legend: { position: 'top', maxLines: 4 },
+                        colors: ['#2469b9', '#e07a24', '#2e8b57', '#8864a5', '#c44e52', '#4c9fba', '#b08b25', '#6b7280'],
+                        chartArea: { left: 88, top: 82, width: '84%', height: '70%' },
+                        hAxis: { title: 'เดือน' },
+                        annotations: {
+                            alwaysOutside: true,
+                            textStyle: { fontSize: 9, color: '#26364b' }
+                        },
+                        vAxis: {
+                            title: 'ยอดค่าตอบแทน (บาท)',
+                            minValue: 0,
+                            viewWindow: { min: 0 },
+                            format: '#,##0.00',
+                            gridlines: { count: 0 },
+                            minorGridlines: { count: 0 }
+                        },
+                        bar: { groupWidth: '75%' },
+                        tooltip: { isHtml: false }
+                    });
+                } catch (error) {
+                    console.error('Google Charts failed to draw monthly announcement payments:', error);
+                    drawAnnouncementFallbackChart();
+                }
             }
 
             function drawChart() {
@@ -127,21 +566,52 @@
                     return;
                 }
                 try {
-                    if (!chart) chart = new google.visualization.ColumnChart(chartElement);
-                    const table = [['เดือน', 'ยอดค่าตอบแทน (บาท)']];
+                    if (!chart) chart = new google.visualization.ComboChart(chartElement);
+                    const table = new google.visualization.DataTable();
+                    table.addColumn('string', 'เดือน');
+                    table.addColumn('number', 'ยอดค่าตอบแทน (บาท)');
+                    table.addColumn({ type: 'string', role: 'annotation' });
+                    table.addColumn('number', 'จำนวนบุคลากร');
                     chartPayload.labels.forEach(function (label, index) {
-                        table.push([label, Number(chartPayload.totals[index]) || 0]);
+                        const value = Number(chartPayload.totals[index]) || 0;
+                        table.addRow([
+                            label,
+                            value,
+                            value.toLocaleString('th-TH', { maximumFractionDigits: 0 }),
+                            Number(chartPayload.staff_counts[index]) || 0
+                        ]);
                     });
-                    const chartData = google.visualization.arrayToDataTable(table);
-                    chart.draw(chartData, {
-                        legend: { position: 'none' },
+                    chart.draw(table, {
+                        seriesType: 'bars',
+                        series: {
+                            0: { type: 'bars', targetAxisIndex: 0 },
+                            1: { type: 'line', targetAxisIndex: 1, color: '#e07a24', lineWidth: 3, pointSize: 5 }
+                        },
+                        legend: { position: 'top' },
                         colors: ['#2469b9'],
-                        chartArea: { left: 78, top: 24, width: '84%', height: '78%' },
+                        chartArea: { left: 78, top: 48, width: '80%', height: '72%' },
                         hAxis: { title: 'เดือน' },
-                        vAxis: {
-                            title: 'บาท',
-                            minValue: 0,
-                            format: '#,##0.00'
+                        annotations: {
+                            alwaysOutside: true,
+                            textStyle: { fontSize: 11, color: '#26364b' }
+                        },
+                        vAxes: {
+                            0: {
+                                title: 'ยอดค่าตอบแทน (บาท)',
+                                minValue: 0,
+                                viewWindow: { min: 0 },
+                                format: '#,##0.00',
+                                gridlines: { count: 0 },
+                                minorGridlines: { count: 0 }
+                            },
+                            1: {
+                                title: 'จำนวนบุคลากร',
+                                minValue: 0,
+                                viewWindow: { min: 0 },
+                                format: '0',
+                                gridlines: { count: 0 },
+                                minorGridlines: { count: 0 }
+                            }
                         },
                         tooltip: { isHtml: false }
                     });
@@ -168,7 +638,12 @@
                     .then(function (payload) {
                         if (requestId !== latestRequestId) return;
                         chartPayload = payload;
+                        announcementChartPayload = {
+                            labels: payload.labels,
+                            announcements: payload.announcements || []
+                        };
                         drawChart();
+                        drawAnnouncementChart();
                         if (fiscalYearLabel) {
                             fiscalYearLabel.textContent = 'ยอดรวมรายเดือน ปีงบประมาณ ' + payload.fiscal_year +
                                 ' (พ.ศ. ' + (payload.fiscal_year + 543) + ')';
@@ -181,17 +656,49 @@
                     });
             }
 
+            function loadFiscalSummaryChartData() {
+                if (fiscalSummaryError) fiscalSummaryError.classList.add('is-hidden');
+                const requestId = ++latestFiscalSummaryRequestId;
+                fetch({{ url_for('procurement.procurement_overtime_fiscal_year_data')|tojson }}, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error('Unable to load fiscal year summary data');
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        if (requestId !== latestFiscalSummaryRequestId) return;
+                        fiscalSummaryPayload = payload;
+                        drawFiscalSummaryChart();
+                    })
+                    .catch(function (error) {
+                        if (requestId !== latestFiscalSummaryRequestId) return;
+                        console.error('Unable to load fiscal year summary chart data:', error);
+                        if (fiscalSummaryError) fiscalSummaryError.classList.remove('is-hidden');
+                    });
+            }
+
             if (window.google && google.charts) {
                 google.charts.load('current', { packages: ['corechart'], language: 'th' });
                 google.charts.setOnLoadCallback(function () {
                     googleChartsReady = true;
+                    drawFiscalSummaryChart();
                     drawChart();
+                    drawAnnouncementChart();
                 });
             }
+            loadFiscalSummaryChartData();
             loadChartData();
-            fiscalYearSelect.addEventListener('change', loadChartData);
+            fiscalYearSelect.addEventListener('change', function () {
+                loadChartData();
+            });
 
-            window.addEventListener('resize', drawChart);
+            window.addEventListener('resize', function () {
+                drawFiscalSummaryChart();
+                drawChart();
+                drawAnnouncementChart();
+            });
         });
     </script>
 {% endblock %}
