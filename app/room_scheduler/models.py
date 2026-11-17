@@ -157,7 +157,9 @@ class RoomEvent(db.Model):
                                                                                         ('ทุกสัปดาห์', 'ทุกสัปดาห์')]
                                                       })
     occupancy = db.Column('occupancy', db.Integer())
-    refreshment = db.Column('refreshment', db.Integer(), default=0)
+    is_refreshment = db.Column('is_refreshment', db.Boolean(), default=False, info={'label': 'ต้องการอาหารว่าง'})
+    refreshment = db.Column('refreshment', db.Integer(), default=0, info={'label': 'จำนวนอาหารว่าง'})
+    refreshment_detail = db.Column('refreshment_detail', db.Text(), info={'label': 'รายละเอียด'})
     request = db.Column('request', db.Text(), info={'label': 'ความต้องการเพิ่มเติม'})
     approved = db.Column('approved', db.Boolean(), default=True)
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
