@@ -2332,7 +2332,12 @@ def customer_register_index():
 
 def _get_customer_statuses(customers):
     statuses = {
-        customer.id: {'label': 'ปกติ', 'color': 'is-success', 'days_overdue': 0}
+        customer.id: {
+            'label': 'ปกติ',
+            'color': 'is-success',
+            'icon': 'fa-circle-check',
+            'days_overdue': 0,
+        }
         for customer in customers
     }
     customer_ids = list(statuses)
@@ -2374,12 +2379,14 @@ def _get_customer_statuses(customers):
                 statuses[customer_id] = {
                     'label': 'ระงับการบริการ',
                     'color': 'is-danger',
+                    'icon': 'fa-ban',
                     'days_overdue': days_overdue,
                 }
             else:
                 statuses[customer_id] = {
                     'label': 'ค้างชำระ',
                     'color': 'is-warning',
+                    'icon': 'fa-triangle-exclamation',
                     'days_overdue': days_overdue,
                 }
     return statuses
@@ -2443,7 +2450,15 @@ def customer_detail(customer_id):
     is_admin = request.args.get('is_admin', 'false')
     customer = ServiceCustomerInfo.query.get(customer_id)
     # lab_payments = _build_customer_lab_payments(customer)
-    customer_status = _get_customer_statuses([customer])[customer.id]
+    customer_statuses = _get_customer_statuses([customer])
+    customer_status = customer_statuses.get(customer.id)
+    if customer_status is None:
+        customer_status = {
+            'label': 'ปกติ',
+            'color': 'is-success',
+            'icon': 'fa-circle-check',
+            'days_overdue': 0,
+        }
     overdue_invoices = _get_customer_overdue_invoices(customer)
     latest_service_requests = (
         ServiceRequest.query
