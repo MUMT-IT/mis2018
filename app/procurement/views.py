@@ -321,8 +321,6 @@ def procurement_overtime_dashboard():
         )
         .select_from(OtRecord)
         .join(OtShift, OtRecord.shift_id == OtShift.id)
-        .filter(OtRecord.canceled_at.is_(None))
-        .filter(OtRecord.amount_paid.isnot(None))
         .distinct()
         .all()
     )
