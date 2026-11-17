@@ -2330,6 +2330,61 @@ def customer_register_index():
     return render_template('service_admin/customer_register_index.html', is_staff=is_staff)
 
 
+def _get_customer_invoice_statuses(customers):
+    statuses = {
+        customer.id: {'label': 'ปกติ', 'color': 'is-success', 'days_overdue': 0}
+        for customer in customers
+    }
+    customer_ids = list(statuses)
+    if not customer_ids:
+        return statuses
+
+    invoices = (
+        ServiceInvoice.query
+        .options(
+            joinedload(ServiceInvoice.quotation)
+            .joinedload(ServiceQuotation.request)
+            .joinedload(ServiceRequest.customer)
+        )
+        .filter(
+            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceInvoice.due_date.isnot(None),
+            ~ServiceInvoice.payments.any(),
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(
+                    ServiceRequest.customer.has(
+                        ServiceCustomerAccount.customer_info_id.in_(customer_ids)
+                    )
+                )
+            ),
+        )
+        .all()
+    )
+
+    today = arrow.now('Asia/Bangkok').date()
+    for invoice in invoices:
+        days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
+        if days_overdue is None or days_overdue < 1:
+            continue
+
+        customer_id = invoice.quotation.request.customer.customer_info_id
+        current_status = statuses[customer_id]
+        if days_overdue > current_status['days_overdue']:
+            if days_overdue >= 61:
+                statuses[customer_id] = {
+                    'label': 'ระงับการบริการ',
+                    'color': 'is-danger',
+                    'days_overdue': days_overdue,
+                }
+            else:
+                statuses[customer_id] = {
+                    'label': 'ค้างชำระ',
+                    'color': 'is-warning',
+                    'days_overdue': days_overdue,
+                }
+    return statuses
+
+
 @service_admin.route('/admin/register/search')
 @login_required
 def search_customer_for_admin():
@@ -2350,9 +2405,10 @@ def search_customer_for_admin():
             .limit(100)
             .all()
         )
+    customer_statuses = _get_customer_invoice_statuses(customers)
     return render_template(
         'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
-        customer_name=customer_name,
+        customer_name=customer_name, customer_statuses=customer_statuses,
     )
 
 
@@ -2375,9 +2431,10 @@ def search_customer_for_user():
             .limit(100)
             .all()
         )
+    customer_statuses = _get_customer_invoice_statuses(customers)
     return render_template(
         'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
-        customer_name=customer_name
+        customer_name=customer_name, customer_statuses=customer_statuses
     )
 
 
