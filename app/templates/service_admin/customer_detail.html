@@ -129,8 +129,8 @@
                                     <div class="customer-detail-contact-meta">
                                         <span><i class="fas fa-phone"></i> {{ contact.phone_number or '-' }}</span>
                                         <span><i class="fas fa-envelope"></i> {{ contact.email or '-' }}</span>
+                                        {% if contact.remark %}<span class="customer-detail-contact-remark"><i class="fas fa-note-sticky"></i> {{ contact.remark }}</span>{% endif %}
                                     </div>
-                                    {% if contact.remark %}<small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>{% endif %}
                                 </div>
                             </div>
                         {% else %}
@@ -489,7 +489,8 @@
         .customer-detail-contact-copy strong, .customer-detail-account-item strong { color: #1e3152; display: block; }
         .customer-detail-contact-copy > span, .customer-detail-account-item span { color: #8391a8; display: block; font-size: .8rem; margin-top: .1rem; }
         .customer-detail-contact-meta, .customer-detail-address-meta { color: #5c6c86; display: flex; flex-wrap: wrap; font-size: .8rem; gap: .65rem 1rem; margin-top: .45rem; }
-        .customer-detail-contact-copy small, .customer-detail-address-item small { color: #8391a8; display: block; margin-top: .45rem; }
+        .customer-detail-contact-remark { min-width: 0; overflow-wrap: anywhere; }
+        .customer-detail-address-item small { color: #8391a8; display: block; margin-top: .45rem; }
         .customer-detail-account-icon { background: #f5f1ff; color: #7254b8; }
         .customer-detail-empty { background: #f8fbff; border: 1px dashed #d7e0ee; border-radius: 10px; color: #8391a8; padding: 1rem; text-align: center; }
         .customer-detail-address-card .columns { margin-bottom: 0; margin-top: 0; }

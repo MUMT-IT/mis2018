@@ -97,8 +97,8 @@
                             <div class="service-customer-contact-meta">
                                 <span><i class="fas fa-phone"></i> {{ contact.phone_number or '-' }}</span>
                                 <span><i class="fas fa-envelope"></i> {{ contact.email or '-' }}</span>
+                                {% if contact.remark %}<span class="service-customer-contact-remark"><i class="fas fa-note-sticky"></i> {{ contact.remark }}</span>{% endif %}
                             </div>
-                            {% if contact.remark %}<small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>{% endif %}
                         </div>
                     </div>
                 {% else %}
@@ -344,7 +344,7 @@
         .service-customer-contact-copy > span { color: #8391a8; display: block; font-size: .8rem; margin-top: .1rem; }
         .service-customer-contact-meta { color: #5c6c86; display: flex; flex-wrap: wrap; font-size: .8rem; gap: .65rem 1rem; margin-top: .45rem; }
         .service-customer-contact-meta i { color: #2f80c9; margin-right: .25rem; }
-        .service-customer-contact-copy small { color: #8391a8; display: block; margin-top: .45rem; }
+        .service-customer-contact-remark { min-width: 0; overflow-wrap: anywhere; }
         .service-customer-document-table th { background: #f3f7fc; color: #425675; font-size: .8rem; }
         .service-customer-document-table td { color: #425675; vertical-align: middle; }
         .service-customer-empty { background: #f8fbff; border: 1px dashed #d7e0ee; border-radius: 10px; color: #8391a8; padding: 1rem; text-align: center; }
