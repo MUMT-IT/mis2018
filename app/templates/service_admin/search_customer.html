@@ -97,10 +97,11 @@
                                         <strong>{{ customer.cus_name }}</strong>
                                     </td>
                                     <td><span class="tag customer-search-type-tag">{{ customer.type or '-' }}</span></td>
-                                    {% set invoice_status = customer_statuses.get(customer.id, {'label': 'ปกติ', 'color': 'is-success', 'days_overdue': 0}) %}
+                                    {% set customer_status = customer_statuses.get(customer.id, {'label': 'ปกติ', 'color': 'is-success', 'icon': 'fa-circle-check', 'days_overdue': 0}) %}
                                     <td class="customer-search-status-cell">
-                                        <span class="tag customer-search-status-tag {{ invoice_status.color }}">
-                                            {{ invoice_status.label }}
+                                        <span class="tag customer-search-status-tag {{ customer_status.color }}">
+                                            <span class="icon"><i class="fas {{ customer_status.icon }}" aria-hidden="true"></i></span>
+                                            <span>{{ customer_status.label }}</span>
                                         </span>
                                     </td>
                                     <td>{{ customer.taxpayer_identification_no or '-' }}</td>
