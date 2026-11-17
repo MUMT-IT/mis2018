@@ -899,20 +899,28 @@ def show_gl():
 
 
 @receipt_printing.route('/cost_center/new', methods=['POST', 'GET'])
-def new_cost_center():
-    form = CostCenterForm()
+@receipt_printing.route('/cost_center/new/<cost_center_id>', methods=['POST', 'GET'])
+def new_cost_center(cost_center_id=None):
+    if cost_center_id:
+        cost = CostCenter.query.filter_by(id=cost_center_id).first()
+        form = CostCenterForm(obj=cost)
+    else:
+        form = CostCenterForm()
     if form.validate_on_submit():
-        cost_center_detail = CostCenter()
-        cost_center_detail.id = form.cost_center.data
-        db.session.add(cost_center_detail)
+        if cost_center_id:
+            cost_center = CostCenter.query.filter_by(id=cost_center_id).first()
+            form.populate_obj(cost_center)
+        else:
+            cost_center = CostCenter()
+            form.populate_obj(cost_center)
+        db.session.add(cost_center)
         db.session.commit()
-        flash(u'บันทึกเรียบร้อย.', 'success')
+        flash(u'บันทึกข้อมูลสำเร็จ', 'success')
         return redirect(url_for('receipt_printing.show_cost_center'))
-    # Check Error
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_cost_center.html', form=form, url_callback=request.referrer)
+    return render_template('receipt_printing/new_cost_center.html', form=form)
 
 
 @receipt_printing.route('/io_code/new', methods=['POST', 'GET'])
@@ -932,7 +940,7 @@ def new_IOCode():
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_IOCode.html', form=form, url_callback=request.referrer)
+    return render_template('receipt_printing/new_IOCode.html', form=form)
 
 
 @receipt_printing.route('/gl/new', methods=['POST', 'GET'])

@@ -85,7 +85,17 @@ class ReportDateForm(FlaskForm):
 class CostCenterForm(ModelForm):
     class Meta:
         model = CostCenter
-    cost_center = StringField(u'Cost Center')
+    id = StringField(
+            'Cost',
+            validators=[DataRequired()]
+        )
+
+    mission = QuerySelectField('mission', query_factory=lambda: Mission.query.all(),
+                               get_label='name', blank_text='Select Mission..', allow_blank=True)
+    org = QuerySelectField(query_factory=lambda: Org.query.all(),
+                           get_label='name',
+                           label=u'ภาควิชา/หน่วยงาน',
+                           blank_text='Select Org..', allow_blank=True)
 
 
 class IOCodeForm(ModelForm):
