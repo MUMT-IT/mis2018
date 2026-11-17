@@ -29,6 +29,12 @@
                         <span class="tag is-success is-rounded ml-2">new</span><br>
                     </a>
                     {% if finance_permission.can() %}
+                        <a href="{{ url_for('procurement.procurement_financial_dashboard') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </span>
+                            <span class="is-size-5">Dashboard ค่าใช้จ่ายและสถานะการเงิน</span><br>
+                        </a>
                         <a href="{{ url_for('receipt_printing.landing') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-dollar-sign"></i>

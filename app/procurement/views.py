@@ -40,7 +40,7 @@ from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from app.google_credential_utils import load_google_credentials_json
 
-from ..main import csrf, mail
+from ..main import csrf, db, mail
 from ..roles import procurement_committee_permission, procurement_permission, procurement_plan_permission, finance_permission, \
     center_standardization_product_validation_permission
 
@@ -298,6 +298,86 @@ def main_procurement_page():
 @login_required
 def procurement_budget_tracking_landing():
     return render_template('procurement/budget_tracking_landing.html')
+
+
+@procurement.route('/financial-dashboard')
+@login_required
+def procurement_financial_dashboard():
+    return render_template('procurement/financial_dashboard.html')
+
+
+@procurement.route('/financial-dashboard/overtime')
+@login_required
+def procurement_overtime_dashboard():
+    from ..ot.models import OtRecord, OtShift
+
+    today = datetime.now(timezone('Asia/Bangkok')).date()
+    fiscal_year = today.year + 1 if today.month >= 10 else today.year
+    shift_start = func.lower(OtShift.datetime)
+    year_months = (
+        db.session.query(
+            func.extract('year', shift_start),
+            func.extract('month', shift_start),
+        )
+        .select_from(OtRecord)
+        .join(OtShift, OtRecord.shift_id == OtShift.id)
+        .distinct()
+        .all()
+    )
+    available_fiscal_years = {fiscal_year}
+    for year, month in year_months:
+        data_fiscal_year = int(year) + (1 if int(month) >= 10 else 0)
+        if data_fiscal_year <= fiscal_year:
+            available_fiscal_years.add(data_fiscal_year)
+    return render_template(
+        'procurement/overtime_payment_dashboard.html',
+        fiscal_year=fiscal_year,
+        available_fiscal_years=sorted(available_fiscal_years, reverse=True),
+    )
+
+
+@procurement.route('/financial-dashboard/overtime/data')
+@login_required
+def procurement_overtime_dashboard_data():
+    from ..ot.models import OtRecord, OtShift
+
+    today = datetime.now(timezone('Asia/Bangkok')).date()
+    current_fiscal_year = today.year + 1 if today.month >= 10 else today.year
+    fiscal_year = request.args.get('fiscal_year', current_fiscal_year, type=int)
+    if fiscal_year is None or fiscal_year < 1900 or fiscal_year > current_fiscal_year:
+        return jsonify(error='Invalid fiscal year'), 400
+    fiscal_start = date(fiscal_year - 1, 10, 1)
+    fiscal_end = date(fiscal_year, 10, 1)
+    shift_start = func.lower(OtShift.datetime)
+    payment_rows = (
+        db.session.query(
+            OtRecord,
+            shift_start,
+        )
+        .select_from(OtRecord)
+        .join(OtShift, OtRecord.shift_id == OtShift.id)
+        .filter(shift_start >= fiscal_start)
+        .filter(shift_start < fiscal_end)
+        .filter(OtRecord.canceled_at.is_(None))
+        .all()
+    )
+    month_numbers = list(range(10, 13)) + list(range(1, 10))
+    month_names = ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.',
+                   'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.']
+    totals_by_month = {month: 0 for month in month_numbers}
+    for record, shift_datetime in payment_rows:
+        if record.amount_paid is None:
+            continue
+        month = shift_datetime.month
+        payment = float(record.amount_paid)
+        totals_by_month[month] += payment
+    monthly_totals = [totals_by_month[month] for month in month_numbers]
+
+    return jsonify(
+        fiscal_year=fiscal_year,
+        labels=month_names,
+        totals=monthly_totals,
+    )
 
 
 @procurement.route('/official/login')

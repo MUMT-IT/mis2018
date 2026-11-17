@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}ค่าตอบแทนปฏิบัติงานนอกเวลา{% endblock %}
+
+{% block page_content %}
+    {% include "procurement/nav_for_main.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div>
+                        <p class="heading">ค่าใช้จ่าย</p>
+                        <h1 class="title">ค่าตอบแทนปฏิบัติงานนอกเวลา</h1>
+                        <p class="subtitle is-6" id="overtime-fiscal-year-label">ยอดรวมรายเดือน ปีงบประมาณ {{ fiscal_year }} (พ.ศ. {{ fiscal_year + 543 }})</p>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="field is-grouped is-align-items-center">
+                        <label class="label mr-2 mb-0" for="overtime-fiscal-year">ปีงบประมาณ</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="overtime-fiscal-year">
+                                    {% for year in available_fiscal_years %}
+                                        <option value="{{ year }}" {% if year == fiscal_year %}selected{% endif %}>
+                                            {{ year }} (พ.ศ. {{ year + 543 }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <a class="button is-light ml-3" href="{{ url_for('procurement.procurement_financial_dashboard') }}">
+                            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="box">
+                <div id="overtime-payment-chart" style="height: 420px;" aria-label="กราฟแท่งแสดงยอดค่าตอบแทนปฏิบัติงานนอกเวลารายเดือน" role="img"></div>
+                <p id="overtime-chart-error" class="has-text-danger is-hidden">ไม่สามารถโหลดข้อมูลกราฟได้</p>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chartElement = document.getElementById('overtime-payment-chart');
+            const errorElement = document.getElementById('overtime-chart-error');
+            const fiscalYearSelect = document.getElementById('overtime-fiscal-year');
+            const fiscalYearLabel = document.getElementById('overtime-fiscal-year-label');
+            if (!chartElement || !fiscalYearSelect) return;
+
+            let chart;
+            let chartPayload;
+            let googleChartsReady = false;
+            let latestRequestId = 0;
+            function drawFallbackChart() {
+                if (!chartPayload) return;
+                const svgNamespace = 'http://www.w3.org/2000/svg';
+                const width = 960;
+                const height = 420;
+                const margin = { top: 24, right: 24, bottom: 58, left: 92 };
+                const plotWidth = width - margin.left - margin.right;
+                const plotHeight = height - margin.top - margin.bottom;
+                const values = chartPayload.totals.map(function (value) { return Number(value) || 0; });
+                const maxValue = Math.max.apply(null, values.concat([1]));
+                const svg = document.createElementNS(svgNamespace, 'svg');
+                svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.setAttribute('role', 'img');
+                svg.setAttribute('aria-label', 'ยอดค่าตอบแทนปฏิบัติงานนอกเวลารายเดือน');
+
+                for (let tick = 0; tick <= 4; tick += 1) {
+                    const value = maxValue * tick / 4;
+                    const y = margin.top + plotHeight - (plotHeight * tick / 4);
+                    const grid = document.createElementNS(svgNamespace, 'line');
+                    grid.setAttribute('x1', margin.left);
+                    grid.setAttribute('x2', width - margin.right);
+                    grid.setAttribute('y1', y);
+                    grid.setAttribute('y2', y);
+                    grid.setAttribute('stroke', '#dfe5ee');
+                    svg.appendChild(grid);
+                    const tickLabel = document.createElementNS(svgNamespace, 'text');
+                    tickLabel.setAttribute('x', margin.left - 10);
+                    tickLabel.setAttribute('y', y + 4);
+                    tickLabel.setAttribute('text-anchor', 'end');
+                    tickLabel.setAttribute('font-size', '12');
+                    tickLabel.setAttribute('fill', '#526176');
+                    tickLabel.textContent = value.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+                    svg.appendChild(tickLabel);
+                }
+
+                const slotWidth = plotWidth / chartPayload.labels.length;
+                const barWidth = slotWidth * 0.58;
+                chartPayload.labels.forEach(function (label, index) {
+                    const barHeight = values[index] / maxValue * plotHeight;
+                    const bar = document.createElementNS(svgNamespace, 'rect');
+                    bar.setAttribute('x', margin.left + index * slotWidth + (slotWidth - barWidth) / 2);
+                    bar.setAttribute('y', margin.top + plotHeight - barHeight);
+                    bar.setAttribute('width', barWidth);
+                    bar.setAttribute('height', Math.max(barHeight, 1));
+                    bar.setAttribute('fill', '#2469b9');
+                    svg.appendChild(bar);
+
+                    const monthLabel = document.createElementNS(svgNamespace, 'text');
+                    monthLabel.setAttribute('x', margin.left + index * slotWidth + slotWidth / 2);
+                    monthLabel.setAttribute('y', height - 24);
+                    monthLabel.setAttribute('text-anchor', 'middle');
+                    monthLabel.setAttribute('font-size', '12');
+                    monthLabel.setAttribute('fill', '#526176');
+                    monthLabel.textContent = label;
+                    svg.appendChild(monthLabel);
+                });
+
+                chartElement.replaceChildren(svg);
+            }
+
+            function drawChart() {
+                if (!chartPayload) return;
+                if (!googleChartsReady) {
+                    drawFallbackChart();
+                    return;
+                }
+                try {
+                    if (!chart) chart = new google.visualization.ColumnChart(chartElement);
+                    const table = [['เดือน', 'ยอดค่าตอบแทน (บาท)']];
+                    chartPayload.labels.forEach(function (label, index) {
+                        table.push([label, Number(chartPayload.totals[index]) || 0]);
+                    });
+                    const chartData = google.visualization.arrayToDataTable(table);
+                    chart.draw(chartData, {
+                        legend: { position: 'none' },
+                        colors: ['#2469b9'],
+                        chartArea: { left: 78, top: 24, width: '84%', height: '78%' },
+                        hAxis: { title: 'เดือน' },
+                        vAxis: {
+                            title: 'บาท',
+                            minValue: 0,
+                            format: '#,##0.00'
+                        },
+                        tooltip: { isHtml: false }
+                    });
+                } catch (error) {
+                    console.error('Google Charts failed to draw the overtime chart:', error);
+                    drawFallbackChart();
+                }
+            }
+
+            function loadChartData() {
+                if (errorElement) errorElement.classList.add('is-hidden');
+                const requestId = ++latestRequestId;
+                const fiscalYear = fiscalYearSelect.value;
+                const dataUrl = new URL({{ url_for('procurement.procurement_overtime_dashboard_data')|tojson }}, window.location.origin);
+                dataUrl.searchParams.set('fiscal_year', fiscalYear);
+                fetch(dataUrl.toString(), {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error('Unable to load overtime payment data');
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        if (requestId !== latestRequestId) return;
+                        chartPayload = payload;
+                        drawChart();
+                        if (fiscalYearLabel) {
+                            fiscalYearLabel.textContent = 'ยอดรวมรายเดือน ปีงบประมาณ ' + payload.fiscal_year +
+                                ' (พ.ศ. ' + (payload.fiscal_year + 543) + ')';
+                        }
+                    })
+                    .catch(function (error) {
+                        if (requestId !== latestRequestId) return;
+                        console.error('Unable to load overtime payment chart data:', error);
+                        if (errorElement) errorElement.classList.remove('is-hidden');
+                    });
+            }
+
+            if (window.google && google.charts) {
+                google.charts.load('current', { packages: ['corechart'], language: 'th' });
+                google.charts.setOnLoadCallback(function () {
+                    googleChartsReady = true;
+                    drawChart();
+                });
+            }
+            loadChartData();
+            fiscalYearSelect.addEventListener('change', loadChartData);
+
+            window.addEventListener('resize', drawChart);
+        });
+    </script>
+{% endblock %}
