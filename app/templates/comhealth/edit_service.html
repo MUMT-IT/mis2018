@@ -69,9 +69,11 @@
                                         <td>{{ profile.age_max }}</td>
                                         <td>{{ profile.gender }}</td>
                                         <td>
-                                            <span class="icon">
-                                                <i class="far fa-eye"></i>
-                                            </span>
+                                            <a href="{{ url_for('comhealth.test_profile', profile_id=profile.id) }}" aria-label="จัดการ Profile {{ profile.name }}">
+                                                <span class="icon">
+                                                    <i class="far fa-eye" aria-hidden="true"></i>
+                                                </span>
+                                            </a>
                                         </td>
                                         <td>
                                             <a href="{{ url_for('comhealth.delete_service_profile', service_id=service.id, profile_id=profile.id) }}">

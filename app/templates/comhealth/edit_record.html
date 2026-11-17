@@ -93,7 +93,7 @@
                                         <br>
                                         <p class="label"><strong>Department</strong></p>
                                         <p>
-                                            {{ record.customer.dept }}
+                                            {{ record.customer.dept if record.customer.dept else '' }}
                                         </p>
                                         <p>
                                            {% if record.customer.division != None %} {{ record.customer.division }} {% endif %}
