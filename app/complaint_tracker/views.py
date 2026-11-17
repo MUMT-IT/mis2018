@@ -2787,9 +2787,6 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.record_id = record_id
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
             rep_approval.creator_id = current_user.id
-            rep_approval.requester_id = requester_id
-            rep_approval.approver_id = approver_id
-            rep_approval.owner_id = owner_id
         else:
             rep_approval.updated_at = arrow.now('Asia/Bangkok').datetime
 
@@ -2802,6 +2799,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.receipt_date = None
             rep_approval.supplier = None
             rep_approval.loan_no = None
+        rep_approval.requester_id = requester_id
+        rep_approval.approver_id = approver_id
+        rep_approval.owner_id = owner_id
         rep_approval.is_print = False
         rep_approval.reviewed_at = None
         db.session.add(rep_approval)
