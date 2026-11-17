@@ -117,6 +117,7 @@ pdfmetrics.registerFont(TTFont('SarabunBoldItalic', BI_PATH if os.path.exists(BI
 # Global Styles Configuration (Standard Font Size = 16)
 DEFAULT_FONT_SIZE = 16
 DEFAULT_LEADING = 20
+LETTER_INFO_GAP = "\u00a0" * 3
 
 styles = getSampleStyleSheet()
 
@@ -327,6 +328,32 @@ def _letterhead_html(department_name, telephone_number):
         f'โทร.{telephone}</div>'
         '</header>'
     )
+
+
+_LETTER_DOCUMENT_INFO_CSS = f"""
+  .letter-document-info {{
+    padding-top: {DEFAULT_LEADING}pt;
+    font-size: 16pt;
+    line-height: 1.25;
+  }}
+  .letter-document-info > div + div {{ margin-top: .5mm; }}
+"""
+
+
+def _letter_info_lines(subject, recipient, *, date=""):
+    """Format letter fields with a blank line before the recipient."""
+    values = (("ที่", ""), ("วันที่", date), ("เรื่อง", subject), ("เรียน", recipient))
+    lines = [
+        html.escape(label) + (LETTER_INFO_GAP + html.escape(str(value), quote=True) if value else "")
+        for label, value in values
+    ]
+    lines.insert(3, "\u00a0")
+    return lines
+
+
+def _letter_document_info_html(subject, recipient, *, date=""):
+    lines = "".join(f"<div>{line}</div>" for line in _letter_info_lines(subject, recipient, date=date))
+    return f'<section class="letter-document-info">{lines}</section>'
 
 
 def missing_department_notice():
@@ -845,9 +872,12 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
         department, telephone, styles["ThaiRight"], logo_size=73,
     )]
     story.extend([
-        Spacer(1, 24), p("ที่"), p("วันที่"),
-        p(f"เรื่อง รายงานสถานะเงินสดย่อยของ{department} ประจำเดือน{month_label}"),
-        Spacer(1, 8), p("เรียน คณบดีคณะเทคนิคการแพทย์"), Spacer(1, 8),
+        Spacer(1, 24 + normal.leading),
+        _rl_document_info(
+            f"รายงานสถานะเงินสดย่อยของ{department} ประจำเดือน{month_label}",
+            "คณบดีคณะเทคนิคการแพทย์", doc.width, normal,
+        ),
+        Spacer(1, 8),
     ])
     attachments = Table([[p("สิ่งที่ส่งมาด้วย"), p(
         f"1. ทะเบียนคุมเงินสดย่อย ณ วันที่ {last_day_label}<br/>"
@@ -1054,12 +1084,7 @@ def _build_fnar02_html(memo_context):
     break-after: auto;
   }}
   {_LETTERHEAD_HTML_CSS}
-  .memo-info {{
-    display: grid;
-    grid-template-columns: 17mm 1fr;
-    row-gap: .5mm;
-  }}
-  .memo-info strong {{ font-weight: 700; }}
+  {_LETTER_DOCUMENT_INFO_CSS}
   .memo-body {{ margin-top: 4mm; }}
   .government-text {{
     font-family: "TH Sarabun New", "TH Sarabun PSK", sans-serif;
@@ -1174,16 +1199,11 @@ def _build_fnar02_html(memo_context):
 <body>
 <main class="page memo-page">
   {_letterhead_html(memo_context['header_department_name'], memo_context['telephone_number'])}
-  <section class="memo-info">
-    <span>ที่</span><span>&nbsp;</span>
-    <span>วันที่</span><span>&nbsp;</span>
-    <span>เรื่อง</span><span>ขออนุมัติยืมเงินทดรองจ่าย</span>
-    <span>เรียน</span><span>คณบดีคณะเทคนิคการแพทย์</span>
-  </section>
+  {_letter_document_info_html('ขออนุมัติยืมเงินทดรองจ่าย', 'คณบดีคณะเทคนิคการแพทย์')}
   <section class="memo-body">
     <p class="government-text">{paragraph_one}</p>
     <p class="government-text">{paragraph_two}</p>
-    <p class="government-text">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้<br>ด้วยจักเป็นพระคุณยิ่ง</p>
+    <p class="government-text">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้ด้วยจักเป็นพระคุณยิ่ง</p>
   </section>
   <section class="signatures">{signatures_html}</section>
 </main>
@@ -1408,12 +1428,11 @@ def _rl_doc(output, title, *, left=55, right=55, top=25, bottom=25):
     )
 
 
-def _rl_document_info(subject, width):
-    rows = [[_rl_paragraph(label), _rl_paragraph(value)] for label, value in (
-        ("ที่", PDF_BLANK), ("วันที่", PDF_BLANK), ("เรื่อง", subject),
-        ("เรียน", "คณบดีคณะเทคนิคการแพทย์"),
-    )]
-    table = Table(rows, colWidths=[48, width - 48])
+def _rl_document_info(subject, recipient, width, style, *, date=""):
+    table = Table(
+        [[Paragraph(line, style)] for line in _letter_info_lines(subject, recipient, date=date)],
+        colWidths=[width],
+    )
     table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
@@ -1486,8 +1505,11 @@ def _render_reimbursement_with_reportlab(context):
             context["department_name"], context["telephone_number"],
             styles["ThaiRight"], logo_size=73,
         ),
-        Spacer(1, 30 if context.get("extra_header_space") else 10),
-        _rl_document_info(context["subject"], width), Spacer(1, 18),
+        Spacer(1, (30 if context.get("extra_header_space") else 10) + styles["ThaiNormal"].leading),
+        _rl_document_info(
+            context["subject"], "คณบดีคณะเทคนิคการแพทย์",
+            width, styles["ThaiNormal"],
+        ), Spacer(1, 18),
     ]
     for paragraph in context["body_paragraphs"]:
         story.extend([_rl_thai_edge_paragraph(paragraph, body_style, width), Spacer(1, 8)])
@@ -1523,7 +1545,10 @@ def _render_reimbursement_with_reportlab(context):
         total, Spacer(1, 10),
         _rl_thai_edge_paragraph(context["reference_text"], body_style, width),
         Spacer(1, 12),
-        _rl_paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", styles["ThaiCenter"]),
+        _rl_thai_edge_paragraph(
+            "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง",
+            body_style, width,
+        ),
         Spacer(1, SIGNATURE_FIRST_GAP),
     ])
     approvers = context["leave_approver_signatures"]
@@ -1679,7 +1704,11 @@ def _render_fnar02_with_reportlab(context):
         context["header_department_name"], context["telephone_number"],
         styles["ThaiRight"], logo_size=73,
     ),
-             Spacer(1, 14), _rl_document_info("ขออนุมัติยืมเงินทดรองจ่าย", width), Spacer(1, 18)]
+             Spacer(1, 14 + styles["ThaiNormal"].leading),
+             _rl_document_info(
+                 "ขออนุมัติยืมเงินทดรองจ่าย", "คณบดีคณะเทคนิคการแพทย์",
+                 width, styles["ThaiNormal"],
+             ), Spacer(1, 18)]
     paragraphs = [
         f"ด้วย{context['department_name']} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน "
         f"{context['amount_numeric']} บาท ({context['amount_text']}) เพื่อทดรองจ่าย"
@@ -1878,12 +1907,8 @@ def _build_reimbursement_letter_html(context):
     padding: 7.8mm 19.4mm;
   }}
   {_LETTERHEAD_HTML_CSS}
-  .letter-page.extra-header-space .document-info {{ margin-top: 7mm; }}
-  .document-info {{
-    display: grid;
-    grid-template-columns: 16.9mm minmax(0, 1fr);
-    row-gap: .7mm;
-  }}
+  {_LETTER_DOCUMENT_INFO_CSS}
+  .letter-page.extra-header-space .letter-document-info {{ margin-top: 7mm; }}
   .letter-body {{
     --summary-offset: 24.7mm;
     --summary-width: 135.8mm;
@@ -1899,6 +1924,7 @@ def _build_reimbursement_letter_html(context):
     line-break: strict;
     overflow-wrap: normal;
   }}
+  .letter-body .government-text:last-child {{ margin-bottom: 0; }}
   .items {{
     width: var(--summary-width);
     margin: 0 0 1.4mm var(--summary-offset);
@@ -1918,10 +1944,6 @@ def _build_reimbursement_letter_html(context):
   .total-amount {{ text-align: right; }}
   .total-amount {{ white-space: nowrap; }}
   .total-label {{ text-align: left; text-decoration: underline; }}
-  .closing {{
-    margin: 0;
-    text-align: center;
-  }}
   .head-signature {{
     width: 50%;
     margin-top: {SIGNATURE_FIRST_GAP_MM}mm;
@@ -1954,12 +1976,7 @@ def _build_reimbursement_letter_html(context):
 <body>
 <main class="letter-page{extra_header_class}">
   {_letterhead_html(context['department_name'], context['telephone_number'])}
-  <section class="document-info">
-    <span>ที่</span><span>&nbsp;</span>
-    <span>วันที่</span><span>&nbsp;</span>
-    <span>เรื่อง</span><span>{escaped(context['subject'])}</span>
-    <span>เรียน</span><span>คณบดีคณะเทคนิคการแพทย์</span>
-  </section>
+  {_letter_document_info_html(context['subject'], 'คณบดีคณะเทคนิคการแพทย์')}
   <section class="letter-body">
     {paragraphs_html}
     <table class="items"><tbody>{items_html}</tbody></table>
@@ -1969,7 +1986,7 @@ def _build_reimbursement_letter_html(context):
       <span class="total-amount">{escaped(context['amount_numeric'])} บาท</span>
     </div>
     <p class="government-text">{escaped(context['reference_text'])}</p>
-    <p class="closing">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง</p>
+    <p class="government-text">จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง</p>
   </section>
   {earlier_signatures_html}
   {last_approver_html}
@@ -2109,7 +2126,7 @@ def generate_petty_claim(claim, claim_type="1"):
         f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้เบิกค่าใช้จ่ายในการดำเนินงานนั้น"
     )
     body_2 = (
-        f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
+        f"ในการนี้ {department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
     )
 
     ref_text = (
@@ -2208,8 +2225,8 @@ def generate_ticket_return(return_detail):
         "telephone_number": telephone_number,
         "subject": f"ขออนุมัติเบิกจ่ายพร้อมส่งใช้เงินยืม บย. {ticket_number}",
         "body_paragraphs": [
-            f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น",
-            f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัด โครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
+            f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose} นั้น",
+            f"ในการนี้ {department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัด โครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
         ],
         "items": [
             (
@@ -2852,17 +2869,12 @@ def _build_overdue_reminders_html(letters):
         pages.append(f"""
 <main class="letter-page">
   {_letterhead_html(letter['header_department_name'], letter['telephone_number'])}
-  <div class="document-info">
-    <div>ที่</div>
-    <div>วันที่ {html.escape(letter['target_date'], quote=True)}</div>
-    <div>เรื่อง&nbsp;&nbsp;ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม</div>
-    <div>เรียน&nbsp;&nbsp;{html.escape(letter['borrower_name'], quote=True)}</div>
-  </div>
+  {_letter_document_info_html('ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม', letter['borrower_name'], date=letter['target_date'])}
   <section class="letter-body">
     <p>{paragraphs[0]}</p>
     <p>{paragraphs[1]}</p>
     <p>{paragraphs[2]}</p>
-    <p class="closing">{paragraphs[3]}</p>
+    <p class="government-text">{paragraphs[3]}</p>
     {_letter_signature_html(letter['dean_name'] or '................................................', 'คณบดีคณะเทคนิคการแพทย์', class_name='signature')}
   </section>
 </main>""")
@@ -2874,13 +2886,13 @@ def _build_overdue_reminders_html(letters):
 @page {{ size: A4; margin: 0; }}
 * {{ box-sizing: border-box; }}
 html, body {{ margin: 0; padding: 0; color: #000; font-family: SarabunPDF, sans-serif; }}
-  .letter-page {{ position: relative; width: 210mm; height: 297mm; break-after: page; page-break-after: always; padding: 7.8mm 19.4mm; font-size: 15.5pt; line-height: 1.28; }}
+  .letter-page {{ width: 210mm; min-height: 297mm; break-after: page; page-break-after: always; padding: 7.8mm 19.4mm; font-size: 15.5pt; line-height: 1.28; }}
 .letter-page:last-child {{ break-after: auto; page-break-after: auto; }}
 {_LETTERHEAD_HTML_CSS}
-.document-info {{ position: absolute; top: 41.3mm; left: 19.4mm; right: 19.4mm; line-height: 1.25; }}
-.letter-body {{ position: absolute; top: 72mm; left: 20mm; right: 20mm; text-align: justify; text-justify: inter-word; }}
+{_LETTER_DOCUMENT_INFO_CSS}
+.letter-body {{ margin: 4mm .6mm 0; text-align: justify; text-justify: inter-word; }}
 .letter-body p {{ margin: 0 0 2.1mm; text-indent: 25mm; }}
-.letter-body .closing {{ text-indent: 25mm; margin-bottom: 0; }}
+.letter-body .government-text {{ margin-bottom: 0; }}
 .letter-body b {{ font-weight: 700; }}
 .letter-body u {{ text-decoration: underline; text-decoration-thickness: 0.4px; text-underline-offset: 1px; }}
 .signature {{ margin-top: {SIGNATURE_FIRST_GAP_MM}mm; margin-left: 51%; text-align: center; line-height: 1.3; break-inside: avoid; }}
@@ -2915,13 +2927,14 @@ def _render_overdue_reminders_with_reportlab(letters):
                 styles["ThaiRight"],
                 logo_size=73,
             ),
-            Spacer(1, 13),
+            Spacer(1, 13 + normal.leading),
         ])
         story.extend([
-            Paragraph("ที่", normal),
-            Paragraph(f"วันที่", normal),
-            Paragraph("เรื่อง&nbsp;&nbsp;ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม", normal),
-            Paragraph(f"เรียน&nbsp;&nbsp;{html.escape(letter['borrower_name'])}", normal),
+            _rl_document_info(
+                "ขอความอนุเคราะห์เร่งรัดการส่งใช้เงินยืม",
+                letter["borrower_name"], doc.width, normal,
+                date=letter["target_date"],
+            ),
             Spacer(1, 17),
         ])
         paragraphs = _overdue_reminder_paragraphs(letter)
