@@ -176,3 +176,105 @@ def generate_receivables_xls(rows, *, report_date: date) -> bytes:
     output = BytesIO()
     book.save(output)
     return output.getvalue()
+
+
+def generate_individual_debtors_xls(rows, *, report_date: date) -> bytes:
+    """Return the individual debtor ledger using the revised A–J example."""
+    rows = list(rows)
+    sections = max(0, (len(rows) - 15 + 12) // 13)
+    if 4 + len(rows) + 3 * sections + 10 > 65536:
+        raise ValueError("รายการมากเกินขนาดที่ไฟล์ .xls รองรับ")
+    book = xlwt.Workbook(encoding="utf-8")
+    sheet = book.add_sheet(f"{SHORT_MONTHS[report_date.month - 1]}{(report_date.year + 543) % 100:02d}")
+    sheet.show_grid = False
+    sheet.portrait = False
+    sheet.fit_width_to_pages = 1
+    for col, width in enumerate((3097, 4864, 7116, 7091, 3968,
+                                 4019, 3174, 9753, 4172, 2995)):
+        sheet.col(col).width = width
+    title_style = _style(size=16, horizontal=xlwt.Alignment.HORZ_CENTER)
+    header_style = _style(size=16, bold=True, bordered=True, wrap=True,
+                          horizontal=xlwt.Alignment.HORZ_CENTER)
+    text_style = _style(size=16, bordered=True)
+    number_style = _style(size=16, bordered=True, num_format="#,##0.00",
+                          horizontal=xlwt.Alignment.HORZ_RIGHT)
+    date_style = _style(size=16, bordered=True, num_format="DD/MM/YYYY",
+                        horizontal=xlwt.Alignment.HORZ_CENTER)
+    total_style = _style(size=16, bold=True, bordered=True,
+                         horizontal=xlwt.Alignment.HORZ_CENTER)
+    total_number_style = _style(size=16, bold=True, bordered=True,
+                                num_format="#,##0.00", horizontal=xlwt.Alignment.HORZ_RIGHT)
+    signature_style = _style(size=16)
+    for index, height in enumerate((585, 480, 480, 480)):
+        sheet.row(index).height = height
+    sheet.write_merge(0, 0, 0, 9, "ทะเบียนคุมลูกหนี้เงินยืมรายตัว", title_style)
+    sheet.write_merge(1, 1, 0, 9,
+                      f"ณ วันที่ {report_date.day}  {THAI_MONTHS[report_date.month - 1]}  {report_date.year + 543}",
+                      title_style)
+    for first, last, top, bottom, label in (
+        (0, 0, 2, 3, "วันที่ยืม"), (2, 3, 2, 3, "รายการ/วัตถุประสงค์ที่ยืม"),
+        (4, 4, 2, 3, "เลขที่เอกสาร"), (5, 5, 2, 3, "จำนวนเงินยืม"),
+        (6, 7, 2, 2, "ส่งคืน"), (8, 8, 2, 3, "คงเหลือสุทธิ"),
+        (9, 9, 2, 3, "หมายเหตุ"),
+    ):
+        sheet.write_merge(top, bottom, first, last, label, header_style)
+    sheet.write(2, 1, "วันที่ครบกำหนด", header_style)
+    sheet.write(3, 1, "คืนเงินยืม", header_style)
+    sheet.write(3, 6, "เงินสด", header_style)
+    sheet.write(3, 7, "ใบสำคัญ", header_style)
+
+    totals = [Decimal("0.00") for _ in range(4)]
+    row_index = 4
+
+    def carry(label):
+        sheet.row(row_index).height = 1125
+        sheet.write_merge(row_index, row_index, 2, 3, label, total_style)
+        for col in (0, 1, 4, 9):
+            sheet.write(row_index, col, "", total_style)
+        for col, amount in zip((5, 6, 7, 8), totals):
+            sheet.write(row_index, col, float(amount), total_number_style)
+
+    for item_index, item in enumerate(rows):
+        if item_index == 15 or (item_index > 15 and (item_index - 15) % 13 == 0):
+            for col in range(10):
+                sheet.write(row_index, col, "", text_style)
+            sheet.row(row_index).height = 615
+            row_index += 1
+            carry("ยอดยกไป")
+            row_index += 1
+            carry("ยอดยกมา")
+            row_index += 1
+        borrowed = Decimal(str(item["borrowed"])).quantize(CENT)
+        cash = Decimal(str(item["cash"])).quantize(CENT)
+        receipts = Decimal(str(item["receipts"])).quantize(CENT)
+        remaining = borrowed - cash - receipts
+        if min(borrowed, cash, receipts, remaining) < 0:
+            raise ValueError(f"Invalid individual debtor balance for {item['number']}")
+        for col, value in ((2, item["first_name_with_title"]),
+                           (3, item["last_name"]), (4, item["number"])):
+            sheet.write(row_index, col, str(value or ""), text_style)
+        sheet.write(row_index, 9, "", text_style)
+        for col, day in ((0, item["borrowed_on"]), (1, item["due_on"])):
+            if day:
+                sheet.write(row_index, col,
+                            datetime(day.year + 543, day.month, day.day), date_style)
+            else:
+                sheet.write(row_index, col, "", text_style)
+        for col, amount in zip((5, 6, 7, 8), (borrowed, cash, receipts, remaining)):
+            sheet.write(row_index, col, float(amount), number_style)
+            totals[col - 5] += amount
+        sheet.row(row_index).height = 660
+        row_index += 1
+    for col in range(10):
+        sheet.write(row_index, col, "", text_style)
+    row_index += 1
+    carry("ยอดยกไป")
+    sheet.write(row_index + 4, 2, "(................................................)", signature_style)
+    sheet.write(row_index + 4, 7, "(................................................)", signature_style)
+    sheet.write(row_index + 5, 2, "ผู้จัดทำ", signature_style)
+    sheet.write(row_index + 5, 7, "ผู้ตรวจทาน", signature_style)
+    sheet.write(row_index + 6, 2, "วันที่ ................................", signature_style)
+    sheet.write(row_index + 6, 7, "วันที่ ................................", signature_style)
+    output = BytesIO()
+    book.save(output)
+    return output.getvalue()

@@ -66,7 +66,9 @@ from .legacy_xls import (
     MAX_FILE_BYTES as LEGACY_XLS_MAX_FILE_BYTES,
     parse_legacy_cash_advance_xls,
 )
-from .receivables_report import build_receivable_row, generate_receivables_xls
+from .receivables_report import (
+    build_receivable_row, generate_receivables_xls, generate_individual_debtors_xls,
+)
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
 from app.staff.models import StaffHeadPosition, StaffPersonalInfo
@@ -3976,9 +3978,14 @@ def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
         ))
     return_rows = return_query.all()
     parcel_rows = parcel_query.all()
+    cash_return_ids = {
+        row.id for row in return_rows
+        if row.receipt_items and all(item.is_cash for item in row.receipt_items)
+    }
     records = [
         (row.created_at, row.id, _money_decimal(row.amount_spent),
-         _return_ticket_ids(row), False, row.settled_at is not None)
+         _return_ticket_ids(row), False, row.settled_at is not None,
+         row.id in cash_return_ids)
         for row in return_rows
     ]
     for row in parcel_rows:
@@ -3990,13 +3997,15 @@ def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
         )
         records.append((
             row.created_at, row.id, _money_decimal(row.amount_spent),
-            linked_ids, True, row.settled_at is not None,
+            linked_ids, True, row.settled_at is not None, False,
         ))
 
     priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
     parcel_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     normal_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
-    for _, _, amount, linked_ids, is_parcel, _ in sorted(
+    cash_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    receipt_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    for _, _, amount, linked_ids, is_parcel, _, is_cash in sorted(
         records,
         key=lambda item: (
             0 if report_stage == "documented_or_settled" and item[5] else 1,
@@ -4013,6 +4022,10 @@ def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
                 parcel_allocated[linked_id] += portion
             else:
                 normal_allocated[linked_id] += portion
+                if is_cash:
+                    cash_allocated[linked_id] += portion
+                else:
+                    receipt_allocated[linked_id] += portion
             remaining[linked_id] -= portion
             amount -= portion
     cumulative_total = sum(allocated.values())
@@ -4024,6 +4037,8 @@ def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
         "allocated_by_ticket": allocated,
         "parcel_allocated_by_ticket": parcel_allocated,
         "normal_allocated_by_ticket": normal_allocated,
+        "cash_allocated_by_ticket": cash_allocated,
+        "receipt_allocated_by_ticket": receipt_allocated,
     }
 
 
@@ -5833,22 +5848,26 @@ def _snapshot_json(snapshot):
     return {key: format(value, ".2f") for key, value in snapshot.items()}
 
 
-def _receivables_report_rows(tickets):
+def _receivables_report_rows(tickets, *, individual=False):
     group_cache = {}
     rows = []
     for ticket in tickets:
         group_ids = frozenset(_ticket_group_ids(ticket.id))
         if group_ids not in group_cache:
             group_cache[group_ids] = (
-                _calculate_ticket_group_totals(group_ids, report_stage="settled"),
-                _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled"),
+                (_calculate_ticket_group_totals(group_ids), None)
+                if individual else (
+                    _calculate_ticket_group_totals(group_ids, report_stage="settled"),
+                    _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled"),
+                )
             )
-        settled, documented = group_cache[group_ids]
+        allocated_totals, documented = group_cache[group_ids]
         approved_amount = _money_decimal(
-            settled.get("allocated_by_ticket", {}).get(ticket.id)
+            allocated_totals.get("allocated_by_ticket", {}).get(ticket.id)
         )
-        documented_amount = _money_decimal(
-            documented.get("allocated_by_ticket", {}).get(ticket.id)
+        documented_amount = (
+            _money_decimal(documented.get("allocated_by_ticket", {}).get(ticket.id))
+            if documented is not None else approved_amount
         )
         historical_repaid, historical_pending = _historical_ticket_amounts(ticket)
         person = getattr(getattr(ticket, "borrower_user", None), "personal_info", None)
@@ -5864,6 +5883,12 @@ def _receivables_report_rows(tickets):
             first_name_with_title=first_name_with_title,
             last_name=last_name,
         )
+        if individual:
+            cash = _money_decimal(allocated_totals["cash_allocated_by_ticket"].get(ticket.id))
+            receipts = _money_decimal(allocated_totals["receipt_allocated_by_ticket"].get(ticket.id))
+            parcel = _money_decimal(allocated_totals["parcel_allocated_by_ticket"].get(ticket.id))
+            report_row["cash"] = cash
+            report_row["receipts"] = receipts + parcel + historical_repaid
         # A completely cleared loan is no longer a receivable. A J=0 source
         # row with I>0 remains here because the requisition is not settled.
         if report_row["before_pending"] > 0:
@@ -5897,6 +5922,33 @@ def export_receivables_report():
         mimetype="application/vnd.ms-excel",
         as_attachment=True,
         download_name=f"cash_advance_receivables_{report_date.isoformat()}.xls",
+    )
+
+
+@bp.route("/finance/individual-debtors-report.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_individual_debtors_report():
+    """Download the individual debtor register in the legacy A–J layout."""
+    tickets = (
+        db.session.query(BorrowingTicket)
+        .filter(
+            BorrowingTicket.approved_at.isnot(None),
+            BorrowingTicket.status_id.notin_(_status_ids("borrowing_ticket", {"REJECTED"})),
+        )
+        .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.id.asc())
+        .all()
+    )
+    try:
+        rows = _receivables_report_rows(tickets, individual=True)
+        report_date = datetime.now(ZoneInfo("Asia/Bangkok")).date()
+        workbook = generate_individual_debtors_xls(rows, report_date=report_date)
+    except (OSError, LegacyXlsError, ValueError) as exc:
+        current_app.logger.exception("Could not generate individual debtors report")
+        flash(f"สร้างทะเบียนคุมลูกหนี้เงินยืมรายตัวไม่สำเร็จ: {exc}", "danger")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+    return send_file(
+        BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
+        download_name=f"individual_debtors_{report_date.isoformat()}.xls",
     )
 
 
