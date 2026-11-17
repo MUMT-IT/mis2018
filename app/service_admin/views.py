@@ -2330,7 +2330,7 @@ def customer_register_index():
     return render_template('service_admin/customer_register_index.html', is_staff=is_staff)
 
 
-def _get_customer_invoice_statuses(customers):
+def _get_customer_statuses(customers):
     statuses = {
         customer.id: {'label': 'ปกติ', 'color': 'is-success', 'days_overdue': 0}
         for customer in customers
@@ -2405,7 +2405,7 @@ def search_customer_for_admin():
             .limit(100)
             .all()
         )
-    customer_statuses = _get_customer_invoice_statuses(customers)
+    customer_statuses = _get_customer_statuses(customers)
     return render_template(
         'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
         customer_name=customer_name, customer_statuses=customer_statuses,
@@ -2431,7 +2431,7 @@ def search_customer_for_user():
             .limit(100)
             .all()
         )
-    customer_statuses = _get_customer_invoice_statuses(customers)
+    customer_statuses = _get_customer_statuses(customers)
     return render_template(
         'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
         customer_name=customer_name, customer_statuses=customer_statuses
