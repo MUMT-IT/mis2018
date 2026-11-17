@@ -1,0 +1,27 @@
+{% set reminder_days = reminder.weekdays.split(',') if reminder and reminder.weekdays else ['0', '1', '2', '3', '4'] %}
+{% if not current_user.line_id %}<p class="notification is-warning is-light">กรุณาเชื่อมต่อบัญชี LINE เพื่อรับการแจ้งเตือน</p>{% endif %}
+{% if current_user.personal_info.academic_staff and not reminder %}
+<p class="notification is-info is-light">บุคลากรสายวิชาการจะไม่ได้รับการแจ้งเตือนโดยอัตโนมัติ หากต้องการรับ กรุณาเปิดรับการแจ้งเตือนและกดบันทึก</p>
+{% endif %}
+<div class="field"><label class="checkbox"><input type="checkbox" name="enabled" {% if (reminder and reminder.enabled) or (not reminder and not current_user.personal_info.academic_staff) %}checked{% endif %}> เปิดรับการแจ้งเตือนเข้างานผ่าน LINE</label></div>
+<fieldset class="field">
+    <legend class="label">รูปแบบการแจ้งเตือน (เลือกได้มากกว่าหนึ่งข้อ)</legend>
+    <div class="field"><label class="checkbox"><input type="checkbox" name="reminder_modes" value="system" {% if not reminder or reminder.system_reminder %}checked{% endif %}> ตามระบบปกติ (เวลา 8:29 น.)</label></div>
+    <div class="field"><label class="checkbox"><input type="checkbox" name="reminder_modes" value="average" {% if reminder and reminder.average_reminder %}checked{% endif %}> ตามเวลาเข้างานโดยเฉลี่ยของแต่ละคน</label></div>
+    <p class="help">
+        เวลาที่คำนวณได้: {{ reminder_calculation.reminder_time.strftime('%H:%M') }} น.
+        {% if reminder_calculation.average_checkin_time %}(เวลาเข้างานเฉลี่ย {{ reminder_calculation.average_checkin_time.strftime('%H:%M') }} น.){% else %}(ใช้เวลาเริ่มต้น เนื่องจากมีข้อมูลไม่ถึง 10 วัน){% endif %}
+        · ข้อมูล {{ reminder_calculation.sample_days }} วัน · คำนวณวันที่ {{ calculation_date.strftime('%d/%m/%Y') }}
+    </p>
+    <p class="help">เวลาประเทศไทย (Asia/Bangkok)</p>
+    <p class="help is-danger" id="reminderModesError" role="alert" hidden>กรุณาเลือกรูปแบบการแจ้งเตือนอย่างน้อยหนึ่งข้อ</p>
+</fieldset>
+<fieldset class="field">
+    <legend class="label">วันที่ต้องการรับการแจ้งเตือน</legend>
+    <div style="display: flex; flex-wrap: wrap; gap: 1rem">
+    {% for day in ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'] %}
+        <label class="checkbox"><input type="checkbox" name="weekdays" value="{{ loop.index0 }}" {% if loop.index0|string in reminder_days %}checked{% endif %}> {{ day }}</label>
+    {% endfor %}
+    </div>
+    <p class="help is-danger" id="reminderDaysError" role="alert" hidden>กรุณาเลือกอย่างน้อยหนึ่งวัน</p>
+</fieldset>
