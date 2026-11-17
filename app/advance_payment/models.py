@@ -161,17 +161,41 @@ class CashAdvanceImportBatch(db.Model):
     uploaded_by = relationship(StaffAccount, foreign_keys=[uploaded_by_id])
 
 
-class OverdueReminderLog(db.Model):
-    __tablename__ = "cash_advance_overdue_reminder_logs"
+class FinanceReportLog(db.Model):
+    """One record for each generated finance report file."""
+
+    __tablename__ = "cash_advance_finance_report_logs"
 
     id = Column(Integer, primary_key=True)
-    borrowing_ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id", ondelete="CASCADE"), nullable=False, index=True)
+    report_type = Column(String(40), nullable=False)
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False, index=True)
     target_date = Column(Date, nullable=False)
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)
 
-    borrowing_ticket = relationship("CashAdvanceBorrowingTicket")
     creator = relationship(StaffAccount, foreign_keys=[creator_id])
+    items = relationship(
+        "FinanceReportLogItem", back_populates="export",
+        cascade="all, delete-orphan", passive_deletes=True,
+    )
+
+
+class FinanceReportLogItem(db.Model):
+    """A borrowing ticket included in one generated report."""
+
+    __tablename__ = "cash_advance_finance_report_log_items"
+
+    export_id = Column(
+        Integer,
+        ForeignKey("cash_advance_finance_report_logs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    ticket_id = Column(
+        Integer, ForeignKey("cash_advance_borrowing_tickets.id", ondelete="CASCADE"),
+        primary_key=True, index=True,
+    )
+
+    export = relationship("FinanceReportLog", back_populates="items")
+    ticket = relationship("CashAdvanceBorrowingTicket")
 
 
 class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):

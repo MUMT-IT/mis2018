@@ -44,7 +44,7 @@ from .borrowing_ticket_eligibility import (
     calculate_borrowing_ticket_eligibility,
 )
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, OverdueReminderLog, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, FinanceReportLog, FinanceReportLogItem, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
 from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
@@ -6246,13 +6246,13 @@ def export_overdue_reminders():
             flash("ไม่มีสัญญาเลยกำหนดที่ยังมียอดต้องส่งใช้", "info")
             return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
         pdf_bytes = generate_overdue_reminders_pdf(letters)
-        db.session.add_all(
-            OverdueReminderLog(
-                borrowing_ticket_id=ticket_id,
+        db.session.add(
+            FinanceReportLog(
+                report_type="overdue_reminder",
                 creator_id=current_user.id,
                 target_date=target_date,
+                items=[FinanceReportLogItem(ticket_id=ticket_id) for ticket_id in logged_ticket_ids],
             )
-            for ticket_id in logged_ticket_ids
         )
         db.session.commit()
     except ValueError as exc:
