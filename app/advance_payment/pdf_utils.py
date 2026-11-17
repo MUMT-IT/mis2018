@@ -1563,7 +1563,7 @@ def _render_reimbursement_with_reportlab(context):
         story.append(Spacer(1, SIGNATURE_NEXT_GAP))
     dean_approval = Paragraph(
         "อนุมัติ<br/><br/><br/>" + _letter_signature_markup(
-            _get_dean_name(), "คณบดีคณะเทคนิคการแพทย์"
+            context.get("dean_name") or _get_dean_name(), "คณบดีคณะเทคนิคการแพทย์"
         ), styles["ThaiCenter"],
     )
     if approvers:
@@ -1992,14 +1992,14 @@ def _build_reimbursement_letter_html(context):
   {last_approver_html}
   <section class="dean-approval">
     <div class="approval-title">อนุมัติ</div>
-    {_letter_signature_html(_get_dean_name(), 'คณบดีคณะเทคนิคการแพทย์')}
+    {_letter_signature_html(context.get('dean_name') or _get_dean_name(), 'คณบดีคณะเทคนิคการแพทย์')}
   </section>
 </main>
 </body>
 </html>"""
 
 
-def generate_petty_claim(claim, claim_type="1"):
+def _build_petty_claim_context(claim, claim_type="1"):
     """
     สร้างเอกสาร PDF สำหรับรายการขออนุมัติเบิกค่าใช้จ่ายของ petty cash claim
     โดยยึดรูปแบบหน้าเดียวตามเอกสารตัวอย่าง:
@@ -2010,9 +2010,6 @@ def generate_petty_claim(claim, claim_type="1"):
     - ส่วนลงนามท้ายหน้า
     """
     from .views import get_department_data_service
-
-    if not claim:
-        return b""
 
     if claim_type not in ("1", "2"):
         raise ValueError("Unsupported petty claim type")
@@ -2145,7 +2142,7 @@ def generate_petty_claim(claim, claim_type="1"):
     else:
         body_paragraphs = [body_1, body_2]
 
-    document_context = {
+    return {
         "title": "Petty Claim Request",
         "department_name": department_name,
         "telephone_number": telephone_number,
@@ -2164,7 +2161,15 @@ def generate_petty_claim(claim, claim_type="1"):
         "reference_text": ref_text,
         "leave_approver_signatures": approver_signatures,
         "extra_header_space": no_approval_letter,
+        "dean_name": _get_dean_name(),
     }
+
+
+def generate_petty_claim(claim, claim_type="1"):
+    """Render the petty-cash claim PDF from its shared document content."""
+    if not claim:
+        return b""
+    document_context = _build_petty_claim_context(claim, claim_type)
     return _render_with_reportlab_fallback(
         lambda: _render_html_with_chromium(_build_reimbursement_letter_html(document_context)),
         lambda: _render_reimbursement_with_reportlab(document_context),
@@ -2173,6 +2178,127 @@ def generate_petty_claim(claim, claim_type="1"):
 
 
 generate_petty_claim_pdf = generate_petty_claim
+
+
+def generate_petty_claim_docx(claim, claim_type="1", template_path=None):
+    """Create an editable petty-cash claim using the supplied Word template."""
+    from docx import Document
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Cm, Pt
+    from docx.oxml.ns import qn
+
+    if not claim:
+        return b""
+    context = _build_petty_claim_context(claim, claim_type)
+    body = context["body_paragraphs"]
+    items = context["items"]
+    approvers = context["leave_approver_signatures"]
+    path = template_path or os.path.join(APP_STATIC_DIR, "docs", "petty_cash_claim_template.docx")
+    document = Document(path)
+    # The template's paragraph order mirrors the PDF letter: body paragraph(s),
+    # item table, then the reference paragraph. Set these explicitly so claim
+    # type 2 does not accidentally duplicate its single PDF body paragraph.
+    paragraphs = document.paragraphs
+    if len(paragraphs) < 15:
+        raise ValueError("Petty claim Word template is missing letter paragraphs")
+    paragraphs[1].text = context["department_name"]
+    paragraphs[2].text = "คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล"
+    paragraphs[3].text = f"โทร.{context['telephone_number']}"
+    paragraphs[7].text = f"เรื่อง   {context['subject']}"
+    paragraphs[8].text = "เรียน   คณบดีคณะเทคนิคการแพทย์"
+    paragraphs[9].text = body[0]
+    paragraphs[10].text = body[1] if len(body) > 1 else ""
+    paragraphs[11].text = context["reference_text"]
+    paragraphs[11].paragraph_format.first_line_indent = Cm(2.47)
+    paragraphs[12].text = "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง"
+    # Replace the template's tab-positioned signature text with a borderless
+    # two-column layout: approvers occupy the right half and the dean the left.
+    paragraphs[13].text = ""
+    paragraphs[14].text = ""
+    signature_table = document.add_table(rows=max(1, len(approvers)), cols=2)
+    signature_table.autofit = False
+    signature_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    section = document.sections[0]
+    half_width = (section.page_width - section.left_margin - section.right_margin) // 2
+    for column in signature_table.columns:
+        column.width = half_width
+    for row in signature_table.rows:
+        for cell in row.cells:
+            cell.width = half_width
+    signature_table.rows[0].cells[0].paragraphs[0].paragraph_format.space_before = Cm(1.6)
+    for index, (name, position) in enumerate(approvers):
+        paragraph = signature_table.rows[index].cells[1].paragraphs[0]
+        paragraph.text = f"({name})\n{position}"
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        paragraph.paragraph_format.space_before = Cm(1.6 if index == 0 else 2.2)
+    dean_cell = signature_table.rows[-1].cells[0]
+    dean_title = dean_cell.paragraphs[0]
+    dean_title.text = "\nอนุมัติ" if approvers else "อนุมัติ"
+    dean_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    dean_title.paragraph_format.space_before = Cm(1.6 if len(approvers) <= 1 else 2.2)
+    dean_signature = dean_cell.add_paragraph(
+        f"({context['dean_name']})\nคณบดีคณะเทคนิคการแพทย์"
+    )
+    dean_signature.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    dean_signature.paragraph_format.space_before = Cm(2.1)
+    dean_signature.paragraph_format.keep_together = True
+    paragraphs[12]._p.addnext(signature_table._tbl)
+    for paragraph in paragraphs[13:15]:
+        paragraph._element.getparent().remove(paragraph._element)
+    if not document.tables:
+        raise ValueError("Petty claim Word template must contain an item table")
+    table = document.tables[0]
+    # The supplied template has three sample item rows. Add rows when the
+    # claim contains more items, keeping the final row reserved for the total.
+    while len(table.rows) - 1 < len(items):
+        total_row_xml = table.rows[-1]._tr
+        new_row = table.add_row()
+        total_row_xml.addprevious(new_row._tr)
+    while len(table.rows) - 1 > len(items):
+        table._tbl.remove(table.rows[-2]._tr)
+    for index, row in enumerate(table.rows[:-1]):
+        item = items[index] if index < len(items) else None
+        row.cells[0].text = f"{item[0]}. {item[1]}" if item else f"{index + 1}. {PDF_BLANK}"
+        row.cells[1].text = item[2] if item else PDF_BLANK
+        row.cells[2].text = "บาท"
+    total_row = table.rows[-1].cells
+    total_row[0].text, total_row[1].text, total_row[2].text = (
+        f"รวมทั้งสิ้น   {context['amount_text']}", context["amount_numeric"], "บาท"
+    )
+    # Apply the same Thai font to every editable text run, including text that
+    # was inserted into table cells. This prevents Word font fallback on any
+    # part of the document.
+    word_font_name = "TH SarabunPSK"
+
+    def apply_word_font(run):
+        run.font.name = word_font_name
+        run.font.size = Pt(16)
+        run._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), word_font_name)
+        run._element.get_or_add_rPr().rFonts.set(qn("w:hAnsi"), word_font_name)
+        run._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), word_font_name)
+        run._element.get_or_add_rPr().rFonts.set(qn("w:cs"), word_font_name)
+
+    for style in document.styles:
+        if hasattr(style, "font"):
+            style.font.name = word_font_name
+            style.font.size = Pt(16)
+            style._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), word_font_name)
+            style._element.get_or_add_rPr().rFonts.set(qn("w:hAnsi"), word_font_name)
+            style._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), word_font_name)
+            style._element.get_or_add_rPr().rFonts.set(qn("w:cs"), word_font_name)
+    for paragraph in document.paragraphs:
+        for run in paragraph.runs:
+            apply_word_font(run)
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        apply_word_font(run)
+    output = BytesIO()
+    document.save(output)
+    return output.getvalue()
 
 
 def generate_ticket_return(return_detail):

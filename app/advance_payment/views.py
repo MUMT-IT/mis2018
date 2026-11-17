@@ -339,6 +339,7 @@ from .pdf_utils import (
     generate_overdue_reminders_pdf,
     generate_fund_request_pdf,
     generate_petty_claim,
+    generate_petty_claim_docx,
     generate_ticket_return,
     generate_petty_cash_monthly_report_pdf,
     append_petty_cash_monthly_attachments,
@@ -11470,6 +11471,34 @@ def export_petty_cash_claim_pdf(claim_id):
     response = current_app.response_class(pdf_bytes, mimetype='application/pdf')
     filename = f"Petty_Claim_{claim_id}.pdf"
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    return response
+
+
+@bp.route("/staff/petty-cash-claim/<int:claim_id>/word", methods=["POST"])
+@module_system_required(PETTY_CASH_SYSTEM)
+def export_petty_cash_claim_word(claim_id):
+    claim = db.session.query(PettyCashClaimDetail).get(claim_id)
+    if not claim:
+        abort(404)
+    staff = current_user
+    setting = _resolve_petty_cash_setting(staff)
+    same_setting = bool(setting and setting.id and claim.petty_cash_setting_id == setting.id)
+    requester_id = getattr(getattr(claim, "fund_request", None), "requester_id", None)
+    if staff.id == requester_id and not same_setting:
+        setting = db.session.query(PettyCashSetting).get(claim.petty_cash_setting_id)
+    if not _can_download_petty_cash_claim_pdf(staff, claim, setting):
+        abort(403)
+    claim_type = request.form.get("claim_type")
+    if claim_type not in ("1", "2"):
+        claim_type = "1" if claim.reference_number and claim.reference_date else "2"
+    _save_pdf_reference_data(claim, require_reference=claim_type == "1")
+    _attach_petty_cash_claim_context(claim)
+    document_bytes = generate_petty_claim_docx(claim, claim_type=claim_type)
+    response = current_app.response_class(
+        document_bytes,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    response.headers["Content-Disposition"] = f"attachment; filename=Petty_Claim_{claim_id}.docx"
     return response
 
 
