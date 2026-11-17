@@ -1467,3 +1467,20 @@ def test_hourly_table_displays_actual_minutes_independently_of_payment(
     assert row['work_minutes'] == expected_minutes
     assert row['work_minutes_display'] == f'{expected_minutes}m'
     assert row['payment'] == expected_pay
+
+
+@pytest.mark.parametrize('layout,extension,mimetype', [
+    ('combined', 'pdf', 'application/pdf'),
+    ('separate', 'zip', 'application/zip'),
+])
+def test_finance_download_layout_response(ot_views, layout, extension, mimetype):
+    ot_views.StaffWorkLogin = SimpleNamespace(query=FakeLoginQuery([]), start_datetime=DummyField())
+    ot_views.OtShift = SimpleNamespace(query=FakeShiftQuery([]), datetime=DummyField(), timeslot=DummyField())
+    with Flask('test').test_request_context(
+        '/app/api?start=2024-01-02T00:00:00%2B07:00&end=2024-01-02T23:59:59%2B07:00'
+        '&download=yes&format=finance-pdf&pdf_layout=' + layout
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)()
+    assert response.status_code == 200
+    assert response.mimetype == mimetype
+    assert f'01-2024_ot_finance-pdf_all.{extension}' in response.headers['Content-Disposition']

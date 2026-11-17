@@ -120,6 +120,7 @@ def build_room_event_ics(events, method='REQUEST'):
     system_mail = os.getenv('MAIL_USERNAME') or 'no-reply@mt.mahidol.ac.th'
 
     for event in events:
+        cancelled = method == 'CANCEL' or bool(getattr(event, 'cancelled_at', None))
         start_dt = event.start if event.start.tzinfo else localtz.localize(event.start)
         end_dt = event.end if event.end.tzinfo else localtz.localize(event.end)
         room_name = ' + '.join(f'{room.number} {room.location}' for room in _event_rooms(event))
@@ -143,9 +144,9 @@ def build_room_event_ics(events, method='REQUEST'):
             f'SUMMARY:{_ics_escape(event.title)}',
             f'LOCATION:{_ics_escape(room_name)}',
             f'DESCRIPTION:{description}',
-            'STATUS:CONFIRMED',
+            'STATUS:CANCELLED' if cancelled else 'STATUS:CONFIRMED',
             'TRANSP:OPAQUE',
-            'SEQUENCE:0',
+            'SEQUENCE:1' if cancelled else 'SEQUENCE:0',
             f'ORGANIZER;CN={organizer_name}:MAILTO:{organizer_email}',
         ])
         attendees = {}
@@ -923,14 +924,16 @@ def _collect_booking_series(event):
     return events or [event]
 
 
-def _build_room_event_attachment(event):
-    ics_data = build_room_event_ics(_collect_booking_series(event))
+def _build_room_event_attachment(event, method='REQUEST'):
+    # Each date has its own UID, so cancel only the selected booking.
+    events = [event] if method == 'CANCEL' else _collect_booking_series(event)
+    ics_data = build_room_event_ics(events, method=method)
     if not ics_data:
         return []
     return [{
         'filename': f'room-booking-{event.id}.ics',
         'data': ics_data,
-        'content_type': 'text/calendar; charset=utf-8; method=REQUEST',
+        'content_type': f'text/calendar; charset=utf-8; method={method}',
         'headers': [('Content-Class', 'urn:content-classes:calendarmessage')],
     }]
 
@@ -1234,7 +1237,8 @@ def cancel(event_id=None):
             message += text
             message += f' ณ ห้อง {_room_names(event_rooms)} {event.room.location}'
             message += f'\n\nขออภัยในความไม่สะดวก'
-            send_mail(participant_emails, title, message)
+            send_mail(participant_emails, title, message,
+                      attachments=_build_room_event_attachment(event, method='CANCEL'))
     else:
         print(msg, event.room.coordinator)
     if repeat == 'true' and event.master_id:

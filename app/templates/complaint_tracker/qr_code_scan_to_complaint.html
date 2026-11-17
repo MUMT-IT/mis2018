@@ -47,6 +47,7 @@
                         tab: {{ tab|tojson }},
                         record_id: {{ record_id|tojson  }},
                         topic_id: {{ topic_id|tojson }},
+                        hasProcurement: {{ has_procurement|tojson }},
                         procurementNo: null,
                     }
                 }
@@ -59,6 +60,7 @@
                         tab: {{ tab|tojson }},
                         record_id: {{ record_id|tojson  }},
                         topic_id: {{ topic_id|tojson }},
+                        hasProcurement: {{ has_procurement|tojson }},
                         procurementNo: null,
                     }
                 },
@@ -91,7 +93,8 @@
                     if (this.info.cat === 'admin') {
                         window.location.replace("/complaint-tracker/issue/records/" + this.info.record_id + "?tab=" + this.info.tab)
                     } else {
-                        window.location.replace("/complaint-tracker/issue/" + this.info.topic_id + "?procurement_no=" + content)
+                        window.location.replace("/complaint-tracker/issue/" + this.info.topic_id +
+                            "?procurement_no=" + content + "&has_procurement=" + this.info.hasProcurement)
                     }
                     this.turnCameraOff()
                 },

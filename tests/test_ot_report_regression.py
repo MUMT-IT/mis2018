@@ -427,3 +427,38 @@ def test_ot_report_exports_handle_empty_dataframe(ot_views):
 
     assert report_buffer.getbuffer().nbytes > 0
     assert finance_buffer.getbuffer().nbytes > 0
+
+
+def test_finance_pdf_zip_groups_by_staff_account(ot_views, monkeypatch):
+    import zipfile
+
+    calls = []
+    signatory = object()
+
+    def render(frame, start, end, selected_signatory=None):
+        calls.append((frame.copy(), selected_signatory))
+        return io.BytesIO(b'%PDF-1.4 test')
+
+    monkeypatch.setattr(ot_views, 'build_finance_pdf', render)
+    # Identical names/SAPs must not merge two staff accounts; different roles
+    # for one account must stay in that account's single report.
+    rows = pd.DataFrame([
+        dict(checkin_staff_id=11, sap='123', fullname='Staff', payment=100, position='A'),
+        dict(checkin_staff_id=11, sap='123', fullname='Staff', payment=200, position='B'),
+        dict(checkin_staff_id=22, sap='123', fullname='Staff', payment=300, position='A'),
+        dict(checkin_staff_id=33, sap='456', fullname='Other', payment=None, position='A'),
+    ])
+    output = ot_views.build_finance_pdf_zip(rows, datetime(2026, 11, 1), datetime(2026, 11, 30), signatory)
+    with zipfile.ZipFile(output) as archive:
+        assert archive.namelist() == ['11_123_11-2026_ot.pdf', '22_123_11-2026_ot.pdf']
+        assert all(archive.read(name).startswith(b'%PDF') for name in archive.namelist())
+    assert [len(frame) for frame, _ in calls] == [2, 1]
+    assert all(selected is signatory for _, selected in calls)
+
+
+def test_finance_pdf_zip_handles_empty_report(ot_views):
+    import zipfile
+
+    output = ot_views.build_finance_pdf_zip(pd.DataFrame(), datetime(2026, 11, 1), datetime(2026, 11, 30))
+    with zipfile.ZipFile(output) as archive:
+        assert archive.namelist() == []

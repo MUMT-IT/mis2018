@@ -86,19 +86,23 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if e.is_active != False %}
                                     <button type="button" class="button is-small is-info is-light"
                                             onclick="var modal = document.getElementById('fc-evaluator-modal-{{ e.id }}'); modal.classList.add('is-active'); window.initFcEvaluatorSelect2(modal)">
                                         <span class="icon"><i class="fas fa-edit"></i></span>
                                         <span>แก้ไขผู้ประเมิน</span>
                                     </button>
                                     <form method="post" action="{{ url_for('pa.delete_fc_evaluator', evaluation_id=e.id) }}"
-                                          onsubmit="return confirm({{ ('ยืนยันการลบข้อมูลผู้ประเมิน FC รอบ ' ~ e.round.desc ~ ' ผู้ประเมิน ' ~ e.evaluator.fullname ~ ' ผู้รับการประเมิน ' ~ e.staff.fullname ~ '? การลบนี้ไม่สามารถกู้คืนได้')|tojson|forceescape }});">
+                                          onsubmit="return confirm({{ ('ยืนยันการยกเลิกข้อมูลผู้ประเมิน FC รอบ ' ~ e.round.desc ~ ' ผู้ประเมิน ' ~ e.evaluator.fullname ~ ' ผู้รับการประเมิน ' ~ e.staff.fullname ~ '?')|tojson|forceescape }});">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="button is-small is-danger is-light mt-2">
                                             <span class="icon"><i class="fas fa-trash"></i></span>
-                                            <span>ลบข้อมูล</span>
+                                            <span>ยกเลิก</span>
                                         </button>
                                     </form>
+                                    {% else %}
+                                        ยกเลิก FC นี้แล้ว
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

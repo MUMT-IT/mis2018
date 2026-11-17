@@ -219,6 +219,11 @@ class ServiceCustomerInfo(db.Model):
             return account.email
 
     @property
+    def verify_email(self):
+        for account in self.accounts:
+            return account.verify_datetime
+
+    @property
     def customer_name(self):
         for cus_contact in self.customer_contacts:
             return cus_contact.contact_name

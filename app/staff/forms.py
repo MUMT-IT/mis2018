@@ -4,7 +4,8 @@ from flask_wtf import FlaskForm
 from wtforms import widgets, FieldList, FormField, FileField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from .models import (StaffSeminar, StaffSeminarMission, StaffSeminarAttend, StaffSeminarObjective, StaffLeaveApprover
-, StaffAccount, StaffGroupPosition, StaffGroupDetail, StaffGroupAssociation)
+, StaffAccount, StaffGroupPosition, StaffGroupDetail, StaffGroupAssociation, StaffHeadPosition)
+from ..models import Org
 from app.main import db
 from wtforms.validators import DataRequired
 
@@ -90,3 +91,15 @@ class StaffGroupDetailForm(ModelForm):
 
     file_upload = FileField('File Upload')
     group_members = FieldList(FormField(StaffPositionForm, default=StaffGroupAssociation), min_entries=0)
+
+
+class HeadPositionForm(ModelForm):
+    class Meta:
+        model = StaffHeadPosition
+
+    staff = QuerySelectField('ชื่อ', query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname',
+                             allow_blank=True, blank_text='กรุณาเลือกชื่อ')
+    org = QuerySelectField(
+                             allow_blank=True,
+                             blank_text='ไม่ระบุหน่วยงาน',
+                             query_factory=lambda: Org.query.all())

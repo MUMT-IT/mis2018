@@ -1,0 +1,106 @@
+    .staff-login-calendar .fc-event {
+        border: 0;
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgba(18, 39, 84, 0.04);
+        color: #1f2f57;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 2px;
+        padding: 0.2rem 0.35rem;
+    }
+
+    .staff-login-calendar .fc-event .fc-content {
+        display: block;
+        white-space: normal;
+    }
+
+    .staff-login-calendar .fc-event .fc-title {
+        display: block;
+    }
+
+    .staff-login-calendar .fc-event.is-late-login {
+        background: rgba(248, 202, 202, 0.98);
+        border-color: rgba(229, 155, 155, 0.96);
+    }
+
+    .staff-login-calendar .fc-event.is-short-hours {
+        background: #fff3bf;
+        border-color: #e6cf73;
+    }
+
+    .staff-login-calendar .fc-event.is-complete-hours {
+        background: #e4f3e9;
+        border-color: #b8ddc4;
+        color: #245b38;
+    }
+
+    .staff-login-calendar .staff-login-event-content {
+        align-items: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        line-height: 1.25;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .staff-login-calendar .staff-login-event-head {
+        align-items: baseline;
+        display: flex;
+        gap: 0.35rem;
+        justify-content: space-between;
+        min-width: 0;
+    }
+
+    .staff-login-calendar .staff-login-event-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .staff-login-calendar .staff-login-event-alert {
+        color: #b8433f;
+        margin-right: 0.3rem;
+    }
+
+    .staff-login-calendar .staff-login-event-hours {
+        flex-shrink: 0;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .staff-login-calendar .staff-login-event-hours.is-total {
+        color: var(--theme-navy-deep, #10264c);
+    }
+
+    .staff-login-calendar .staff-login-event-hours.is-negative {
+        color: #b83f3f;
+    }
+
+    .staff-login-calendar .staff-login-event-meter {
+        background: rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        height: 0.35rem;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill {
+        display: block;
+        height: 100%;
+        width: var(--staff-login-meter-width, 0%);
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-negative {
+        background: linear-gradient(90deg, rgba(184, 63, 63, 0.95), rgba(221, 123, 123, 0.95));
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-positive {
+        background: linear-gradient(90deg, #4f8f67, #76ad89);
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-late {
+        background: linear-gradient(90deg, #a85f5f, #c98787);
+    }
+

@@ -30,6 +30,7 @@ from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api
+from unicodedata import category
 from wtforms.validators import InputRequired
 
 import os
@@ -147,8 +148,11 @@ def create_app():
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    # Replace stale pooled connections before handing them to a request.
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['TEST_SERVER'] = _env_flag('TEST_SERVER', False)
+    app.config['HOLIDAY_THEME'] = _env_flag('HOLIDAY_THEME')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['LINE_CLIENT_ID'] = os.environ.get('LINE_CLIENT_ID')
     app.config['LINE_CLIENT_SECRET'] = os.environ.get('LINE_CLIENT_SECRET')
@@ -320,6 +324,9 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def internal_server_error(e):
+    # Error-page context processors can reload current_user from the database.
+    # Clear a failed transaction before they issue another query.
+    db.session.rollback()
     return render_template('errors/500.html', blueprint=request.blueprint, error=e), 500
 
 
@@ -964,6 +971,7 @@ def index():
     central_admin, assistant = get_homepage_role_flags(current_user)
     today_calendar = None
     today_checkin_status = None
+    attendance_badges = None
     if current_user.is_authenticated:
         dashboard_context = get_homepage_dashboard_context(current_user, now)
         today_calendar = build_home_today_calendar(
@@ -973,6 +981,8 @@ def index():
             tz=timezone('Asia/Bangkok'),
         )
         today_checkin_status = get_home_checkin_status(current_user, now)
+        if today_checkin_status and isinstance(current_user, StaffAccount):
+            attendance_badges = get_home_attendance_badges(current_user, now.date())
     return render_template(
         'index.html',
         assistant=assistant,
@@ -981,6 +991,7 @@ def index():
         recent_docs_query_documents=recent_docs_query_documents,
         today_calendar=today_calendar,
         today_checkin_status=today_checkin_status,
+        attendance_badges=attendance_badges,
     )
 
 
@@ -1376,6 +1387,8 @@ admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintTag, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintType, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintIssue, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintTopicIssueAssociation, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecordStatusAssociation, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
@@ -1590,7 +1603,7 @@ admin.add_views(StaffLeaveRequestModelView(StaffLeaveRequest,
                                            db.session,
                                            category='Staff'))
 
-from app.staff.views import LoginDataUploadView
+from app.staff.views import LoginDataUploadView, get_home_attendance_badges
 
 admin.add_view(LoginDataUploadView(
     name='Upload login data',

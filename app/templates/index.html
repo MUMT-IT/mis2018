@@ -538,6 +538,24 @@
             width: 100%;
         }
 
+        .home-checkin-profile {
+            align-items: center;
+            display: flex;
+            flex-shrink: 0;
+            gap: 0.2rem;
+        }
+
+        .attendance-badge {
+            display: block;
+            height: 2rem;
+            width: 2rem;
+        }
+
+        .attendance-badge.is-unearned {
+            filter: grayscale(1);
+            opacity: 0.5;
+        }
+
         .home-checkin-panel.is-missing .home-checkin-icon {
             color: #9a7610;
         }
@@ -1440,13 +1458,18 @@
                         {% if today_checkin_status %}
                             <div class="home-checkin-panel{% if not today_checkin_status.checked_in %} is-missing{% endif %}">
                                 <div class="home-checkin-content">
-                                    <span class="home-checkin-avatar">
-                                        {% if today_checkin_status.avatar_url %}
-                                            <img src="{{ today_checkin_status.avatar_url }}" alt="Employee avatar">
-                                        {% else %}
-                                            {{ today_checkin_status.avatar_initials }}
+                                    <div class="home-checkin-profile">
+                                        <span class="home-checkin-avatar">
+                                            {% if today_checkin_status.avatar_url %}
+                                                <img src="{{ today_checkin_status.avatar_url }}" alt="Employee avatar">
+                                            {% else %}
+                                                {{ today_checkin_status.avatar_initials }}
+                                            {% endif %}
+                                        </span>
+                                        {% if attendance_badges is not none %}
+                                            {% include 'staff/partials/attendance_badges.html' %}
                                         {% endif %}
-                                    </span>
+                                    </div>
                                     <div>
                                         <p class="home-checkin-label">Today's check-in</p>
                                         {% if today_checkin_status.checked_in %}

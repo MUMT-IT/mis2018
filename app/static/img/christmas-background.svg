@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="340" viewBox="0 0 420 340">
+  <defs>
+    <g id="fir">
+      <path fill="#719781" d="M-3 81h6v15h-6z"/>
+      <path fill="#719781" d="M0 0 18 29H10l20 27H18l23 29h-82l23-29h-12l20-27h-8z"/>
+      <path fill="none" stroke="#f7fbf4" stroke-linecap="round" stroke-width="3"
+            d="m-12 21 12-19 13 21m-35 25 10-13m24 0 10 13m-50 21 9-11m38 0 9 11"/>
+    </g>
+    <path id="star" d="M0-8 2-2 8 0 2 2 0 8-2 2-8 0-2-2z"/>
+    <g id="bauble">
+      <path fill="none" stroke="#b38c45" d="M0-34v20"/>
+      <rect x="-3" y="-15" width="6" height="4" rx="1" fill="#b38c45"/>
+      <circle r="12" fill="#a5515c"/>
+      <path fill="none" stroke="#f9e6c5" stroke-width="1.5" d="M-11 4q11 5 22 0"/>
+    </g>
+  </defs>
+  <path fill="#e5efe7" d="M0 0h420v340H0z"/>
+  <g opacity=".65">
+    <use href="#fir" transform="translate(60 46) rotate(-9)"/>
+    <use href="#fir" transform="translate(300 158) rotate(9) scale(1.2)"/>
+    <use href="#fir" transform="translate(131 239) rotate(-6) scale(.72)"/>
+    <use href="#bauble" transform="translate(207 78) rotate(12)"/>
+    <use href="#bauble" transform="translate(49 221) rotate(-13) scale(.85)"/>
+    <use href="#bauble" transform="translate(372 302) rotate(12) scale(.9)"/>
+  </g>
+  <g fill="#b38c45" opacity=".68">
+    <use href="#star" transform="translate(61 36)"/>
+    <use href="#star" transform="translate(302 146)"/>
+    <use href="#star" transform="translate(362 52) scale(1.15)"/>
+    <use href="#star" transform="translate(162 179) scale(.7)"/>
+    <use href="#star" transform="translate(226 278)"/>
+  </g>
+  <path fill="none" stroke="#fff" stroke-linecap="round" stroke-width="5"
+        d="M32 165h0m80-135h0m40 88h0m117-75h0m57 48h0m70 74h0m-24 68h0m-124-38h0m-51 32h0m73 95h0m-192-7h0"/>
+</svg>

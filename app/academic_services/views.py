@@ -140,7 +140,8 @@ def download_file(key):
     outfile = BytesIO()
     s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
     outfile.seek(0)
-    return send_file(outfile, download_name=download_filename, as_attachment=True)
+    inline = request.args.get('inline') == '1'
+    return send_file(outfile, download_name=download_filename, as_attachment=not inline)
 
 
 # def request_data(service_request, type):
@@ -1321,7 +1322,6 @@ def customer_account():
     customer = None
     menu = request.args.get('menu')
     account = ServiceCustomerAccount.query.get(current_user.id)
-    old_is_document_verified = account.customer_info.is_document_verified if account.customer_info else None
     if current_user.customer_info:
         customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
         form = ServiceCustomerInfoForm(obj=customer)
@@ -1411,22 +1411,6 @@ def customer_account():
             customer.is_document_verified = None
         db.session.add(customer)
         db.session.commit()
-        central_admin_accounts = get_central_admin_academic_service()
-        if old_is_document_verified == False and central_admin_accounts:
-            scheme = 'http' if current_app.debug else 'https'
-            link = url_for("service_admin.view_customer", tab='pending', customer_id=account.customer_info_id,
-                           _external=True, _scheme=scheme)
-            title = f'''แจ้งเตือนการแก้ไขข้อมูลผู้รับบริการ'''
-            message = f'''เรียน แอดมินส่วนกลาง\n\n'''
-            message += f'''มีผู้รับบริการดำเนินการแก้ไขข้อมูลตามที่แจ้งเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ระบบงานงานบริการวิชาการ'''
-            if not current_app.debug:
-                send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
-            else:
-                print('message', message)
-            flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
-            return redirect(url_for('academic_services.customer_account', menu=menu))
         if menu and menu == 'request':
             flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('academic_services.request_index', menu=menu))

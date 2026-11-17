@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
 from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity, KPICascade
-from datetime import datetime
+from datetime import datetime, time
 
 AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
@@ -96,6 +96,35 @@ class Role(db.Model):
 user_roles = db.Table('user_roles',
                       db.Column('staff_account_id', db.Integer(), db.ForeignKey('staff_account.id')),
                       db.Column('role_id', db.Integer(), db.ForeignKey('roles.id')))
+
+
+class StaffCheckinReminderDelivery(db.Model):
+    __tablename__ = 'staff_checkin_reminder_delivery'
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), nullable=False)
+    work_date = db.Column(db.Date, nullable=False)
+    mode = db.Column(db.String(10), nullable=False)
+    scheduled_time = db.Column(db.Time, nullable=False)
+    status = db.Column(db.String(10), nullable=False)
+    attempted_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    __table_args__ = (
+        db.UniqueConstraint('staff_id', 'work_date', 'mode', name='uq_checkin_reminder_mode'),
+        db.UniqueConstraint('staff_id', 'work_date', 'scheduled_time', name='uq_checkin_reminder_slot'),
+    )
+
+
+class StaffCheckinReminderSetting(db.Model):
+    __tablename__ = 'staff_checkin_reminder_setting'
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), primary_key=True)
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    system_reminder = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+    average_reminder = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    reminder_time = db.Column(db.Time, nullable=False, default=lambda: time(8, 29))
+    sample_days = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    average_checkin_time = db.Column(db.Time)
+    calculated_for = db.Column(db.Date)
+    weekdays = db.Column(db.String(13), nullable=False, default='0,1,2,3,4')
+    staff = db.relationship('StaffAccount', backref=db.backref('checkin_reminder_setting', uselist=False))
 
 
 class StaffAccount(db.Model):
@@ -1124,6 +1153,10 @@ class StaffRequestWorkLogin(db.Model):
                                foreign_keys=[approver_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    revoked_approved_at = db.Column(db.DateTime(timezone=True))
+    revoked_by_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'))
+    revoked_by = db.relationship('StaffAccount', foreign_keys=[revoked_by_id])
+    revocation_reason = db.Column(db.Text())
     date_id = db.Column('date_id', db.String())
     work_datetime = db.Column('work_datetime', db.DateTime(timezone=True))
     is_checkin = db.Column('is_checkin', db.Boolean(), default=True)
