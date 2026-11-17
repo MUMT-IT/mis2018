@@ -365,7 +365,8 @@ def test_other_employment_login_quota_periods(
 
 
 @pytest.mark.parametrize('round_time, expected_ids', [
-    ('16:30', [1, 2]), ('17:00', [3, 7]),
+    ('16:30', [1, 2]), ('16:40', [3]),
+    ('16:50', []), ('17:00', [7]),
 ])
 def test_checkout_reminder_groups_and_exclusions(staff_views, monkeypatch, round_time, expected_ids):
     bangkok = pytz.timezone('Asia/Bangkok')
@@ -398,7 +399,8 @@ def test_checkout_reminder_groups_and_exclusions(staff_views, monkeypatch, round
     assert 3 not in [account.id for account in staff_views._build_missing_checkout_recipients(
         target_date, '17:00', records=records
     )]
-    assert staff_views._build_missing_checkout_recipients(target_date, '17:00', records=records) == []
+    assert [account.id for account in staff_views._build_missing_checkout_recipients(
+        target_date, '17:00', records=records)] == []
 
 
 @pytest.mark.parametrize('method, holiday, expected_sent', [
@@ -418,7 +420,7 @@ def test_checkout_reminder_preview_send_and_holiday(
         method=method, values={'job_token': 'test-token', 'round': '16:30'},
     ))
     monkeypatch.setattr(staff_views, '_get_holiday_for_date', lambda _: holiday)
-    monkeypatch.setattr(staff_views, '_build_missing_checkout_recipients', lambda *_: [
+    monkeypatch.setattr(staff_views, '_build_missing_checkout_recipients', lambda *_, **kwargs: [
         SimpleNamespace(id=1, fullname='Test Staff', line_id='line-1'),
     ])
     monkeypatch.setattr(staff_views, 'jsonify', lambda payload: payload)
@@ -1670,3 +1672,52 @@ def test_checkin_reminders_only_exclude_approved_leave_and_wfh(staff_views):
         SimpleNamespace(staff_account_id=45, get_approved=False),
     ]
     assert staff_views._checkin_reminder_excused_staff_ids(date(2026, 11, 13)) == {42, 44}
+
+
+@pytest.mark.parametrize('round_time,expected', [
+    ('16:30', [1]), ('16:40', [2]), ('16:50', [3]), ('17:00', [4]),
+])
+def test_checkout_reminder_eight_hour_threshold_each_round(staff_views, monkeypatch, round_time, expected):
+    accounts = [SimpleNamespace(id=i, line_id='line-' + str(i)) for i in range(1, 6)]
+    monkeypatch.setattr(staff_views, 'StaffAccount', SimpleNamespace(get_active_accounts=lambda: accounts))
+    records = [SimpleNamespace(staff_id=i, start_datetime=staff_views.tz.localize(
+        datetime(2026, 11, 17, hour, minute)), end_datetime=None)
+        for i, hour, minute in [(1, 8, 30), (2, 8, 40), (3, 8, 50), (4, 9, 0), (5, 9, 1)]]
+    assert [account.id for account in staff_views._build_missing_checkout_recipients(
+        date(2026, 11, 17), round_time, records=records)] == expected
+
+
+def test_checkout_reminder_seconds_round_up_without_later_repeats(staff_views, monkeypatch):
+    account = SimpleNamespace(id=1, line_id='line-1')
+    monkeypatch.setattr(staff_views, 'StaffAccount', SimpleNamespace(get_active_accounts=lambda: [account]))
+    records = [SimpleNamespace(staff_id=1, start_datetime=staff_views.tz.localize(
+        datetime(2026, 11, 17, 8, 40, 20)), end_datetime=None)]
+    memberships = [slot for slot in ('16:30', '16:40', '16:50', '17:00')
+                   if staff_views._build_missing_checkout_recipients(date(2026, 11, 17), slot, records=records)]
+    assert memberships == ['16:50']
+
+
+@pytest.mark.parametrize('clock,round_time,allowed', [
+    ((16, 29), '16:30', False), ((16, 30), '16:30', True),
+    ((16, 40), '16:40', True), ((16, 50), '16:50', True),
+    ((17, 0), '17:00', True), ((16, 40), '16:30', False),
+    ((17, 0), '16:50', False), ((17, 1), '17:00', False),
+])
+def test_checkout_reminder_delivery_window(staff_views, monkeypatch, clock, round_time, allowed):
+    class FixedDatetime(datetime):
+        @classmethod
+        def now(cls, zone):
+            return zone.localize(cls(2026, 11, 17, *clock))
+    monkeypatch.setattr(staff_views, 'datetime', FixedDatetime)
+    monkeypatch.setenv('JOB_TOKEN', 'test-token')
+    monkeypatch.setattr(staff_views, 'request', SimpleNamespace(
+        method='POST', values={'job_token': 'test-token', 'round': round_time}))
+    monkeypatch.setattr(staff_views, '_get_holiday_for_date', lambda _: None)
+    monkeypatch.setattr(staff_views, '_build_missing_checkout_recipients', lambda *args, **kw: [])
+    monkeypatch.setattr(staff_views, 'jsonify', lambda payload: payload)
+    if allowed:
+        assert staff_views.line_remind_missing_checkout()['round'] == round_time
+    else:
+        from werkzeug.exceptions import BadRequest
+        with pytest.raises(BadRequest):
+            staff_views.line_remind_missing_checkout()

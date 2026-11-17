@@ -163,6 +163,13 @@
                         <div class="columns">
                             <div class="column">
                                 <div class="field">
+                                    {{ form.operator_staff.label(class="label") }}
+                                    <div class="control">{{ form.operator_staff(class="employee-search") }}</div>
+                                    {% for error in form.operator_staff.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
                                     {{ form.responsible_staff.label(class="label") }}
                                     <div class="control">{{ form.responsible_staff(class="employee-search") }}</div>
                                     {% for error in form.responsible_staff.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}

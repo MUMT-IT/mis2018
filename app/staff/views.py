@@ -1199,17 +1199,22 @@ def index():
                            )
 
 
+def _staff_related_procurement_plan_filter(staff_id):
+    return or_(
+        ProcurementPlan.budget_proposer_id == staff_id,
+        ProcurementPlan.operator_staff_id == staff_id,
+        ProcurementPlan.committee_members.any(
+            ProcurementPlanCommitteeMember.staff_id == staff_id
+        ),
+    )
+
+
 @staff.route('/procurement-budget-tracking')
 @login_required
 def procurement_budget_tracking():
     current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
     fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
-    related_plan_filter = or_(
-        ProcurementPlan.budget_proposer_id == current_user.id,
-        ProcurementPlan.committee_members.any(
-            ProcurementPlanCommitteeMember.staff_id == current_user.id
-        ),
-    )
+    related_plan_filter = _staff_related_procurement_plan_filter(current_user.id)
     available_years = [
         year for year, in ProcurementPlan.query.with_entities(ProcurementPlan.fiscal_year)
         .filter(related_plan_filter)
@@ -1224,6 +1229,13 @@ def procurement_budget_tracking():
         ProcurementPlan.fiscal_year == fiscal_year,
         related_plan_filter,
     ).order_by(ProcurementPlan.id.asc()).all()
+    committee_roles = {
+        member.plan_id: member.role_label
+        for member in ProcurementPlanCommitteeMember.query.filter(
+            ProcurementPlanCommitteeMember.staff_id == current_user.id,
+            ProcurementPlanCommitteeMember.plan_id.in_([plan.id for plan in plans]),
+        ).all()
+    } if plans else {}
     total_amount = sum((plan.amount or 0 for plan in plans), 0)
     return render_template(
         'staff/procurement_budget_tracking.html',
@@ -1231,6 +1243,7 @@ def procurement_budget_tracking():
         available_years=available_years,
         plans=plans,
         total_amount=total_amount,
+        committee_roles=committee_roles,
     )
 
 
@@ -1239,12 +1252,7 @@ def procurement_budget_tracking():
 def procurement_budget_plan_detail(plan_id):
     plan = ProcurementPlan.query.filter(
         ProcurementPlan.id == plan_id,
-        or_(
-            ProcurementPlan.budget_proposer_id == current_user.id,
-            ProcurementPlan.committee_members.any(
-                ProcurementPlanCommitteeMember.staff_id == current_user.id
-            ),
-        ),
+        _staff_related_procurement_plan_filter(current_user.id),
     ).first_or_404()
     fiscal_year = request.args.get('fiscal_year', type=int) or plan.fiscal_year
     from app.procurement.views import _procurement_plan_gantt_data
@@ -5195,8 +5203,8 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
 
 
 def _build_missing_checkout_recipients(target_date, round_time, records=None):
-    """Split recipients by hours at 16:30, checking current checkout records."""
-    if round_time not in {'16:30', '17:00'}:
+    """Assign staff to their first scheduled round with eight work hours."""
+    if round_time not in {'16:30', '16:40', '16:50', '17:00'}:
         raise ValueError('Invalid checkout reminder round')
     if records is None:
         records = StaffWorkLogin.query.filter_by(date_id=target_date.strftime('%Y%m%d')).all()
@@ -5206,7 +5214,8 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
         if record.staff_id and start and start.date() == target_date:
             grouped[record.staff_id].append(record)
 
-    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime('16:30', '%H:%M').time()))
+    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime(round_time, '%H:%M').time()))
+    previous_cutoff = cutoff - timedelta(minutes=10) if round_time != '16:30' else None
     recipients = []
     for account in StaffAccount.get_active_accounts():
         day_records = grouped.get(account.id, [])
@@ -5219,8 +5228,8 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
         ):
             continue
         start = _to_bangkok(day_records[0].start_datetime)
-        early_round = _calculate_work_hours(start, cutoff) >= 8.0
-        if early_round == (round_time == '16:30'):
+        if (_calculate_work_hours(start, cutoff) >= 8.0
+                and (previous_cutoff is None or _calculate_work_hours(start, previous_cutoff) < 8.0)):
             recipients.append(account)
     return recipients
 
@@ -5235,7 +5244,7 @@ def line_remind_missing_checkout():
         if not admin_permission.can():
             abort(403)
     round_time = request.values.get('round')
-    if round_time not in {'16:30', '17:00'}:
+    if round_time not in {'16:30', '16:40', '16:50', '17:00'}:
         abort(400)
     now = datetime.now(tz)
     target_date = now.date()
@@ -5252,9 +5261,11 @@ def line_remind_missing_checkout():
     }
     if request.method == 'GET':
         return jsonify(payload)
-    # Do not send an early reminder or replay the first round after 17:00.
+    # Reject early requests, expired rounds and delivery outside the window.
     local_time = now.strftime('%H:%M')
-    if local_time < round_time or (round_time == '16:30' and local_time >= '17:00'):
+    next_round = (datetime.combine(target_date, datetime.strptime(round_time, '%H:%M').time())
+                  + timedelta(minutes=10)).strftime('%H:%M')
+    if local_time < round_time or local_time >= next_round or local_time > '17:00':
         abort(400)
     for account in recipients:
         try:
