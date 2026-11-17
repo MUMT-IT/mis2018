@@ -1986,17 +1986,33 @@ def view_performance_report(record_id):
 @complaint_tracker.route('/complaint/user/cancel/<int:record_id>', methods=['POST'])
 @login_required
 def cancel_complaint(record_id):
+    datetime_now = arrow.now('Asia/Bangkok').datetime
     status = ComplaintStatus.query.filter_by(code='cancelled').first()
     record = ComplaintRecord.query.get(record_id)
     record.status = status
-    record.closed_at = arrow.now('Asia/Bangkok').datetime
+    record.closed_at = datetime_now
     db.session.add(record)
     db.session.commit()
     if record.status_id:
         rec = ComplaintRecordStatusAssociation(status_id=record.status_id, record_id=record_id,
-                                               updated_at=arrow.now('Asia/Bangkok').datetime)
+                                               updated_at=datetime_now)
         db.session.add(rec)
         db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for("comp_tracker.edit_record_admin", record_id=record.id, _external=True, _scheme=scheme)
+    msg = (f'มีการยกเลิกคำร้องขอ{record.topic.topic}\n'
+           f'รายละเอียด : {record.desc}\n'
+           f'วันที่ยกเลิก : {datetime_now}'
+           f'คลิกที่ Link เพื่อตรวจสอบ {link}')
+    if not current_app.debug:
+        for a in record.topic.admins:
+            if a.is_supervisor == False:
+                try:
+                    line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+    else:
+        print('msg:', msg, 'line_id', [a.admin.line_id for a in record.topic.admins if a.is_supervisor == False])
     flash('ยกเลิกรายการแจ้งปัญหาสำเร็จ', 'success')
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
