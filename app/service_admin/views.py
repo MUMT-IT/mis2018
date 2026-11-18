@@ -8143,7 +8143,7 @@ def upload_invoice_file(invoice_id):
                                  menu='report', tab='not_started', _external=True, _scheme=scheme)
             msg = (f'แจ้งออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
                    f'เรียน ฝ่ายการเงิน\n\n'
-                   f'หน่วยงาน{invoice.quotation.request.sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
+                   f'หน่วยงาน{invoice.quotation.request.sub_lab.lab.lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
                    f'วันที่ออก : {invoice.file_attached_at.strftime("%d/%m/%Y")}\n'
                    f'จำนวนเงิน : {invoice.grand_total:,.2f} บาท\n'
                    f'กรุณาดำเนินการตรวจสอบและเตรียมออกใบเสร็จรับเงินเมื่อได้รับการชำระเงินจากลูกค้าตามขั้นตอนที่กำหนด\n\n'
