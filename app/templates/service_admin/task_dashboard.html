@@ -215,10 +215,10 @@
       </div>
       <h1 class="hero-title">ศูนย์รวมแจ้งเตือน และสรุปผู้บริหาร</h1>
       <p class="hero-subtitle">
-        ใช้หน้านี้เป็นการทดลองส่ง Line reminder, การส่งเตือนลูกค้าให้ทำการชำระเงิน, และการสรุปภาพรวมงานคงค้างประจำเดือนแบบอ่านง่ายสำหรับผู้บริหาร
+        ใช้หน้านี้เป็นการทดลองส่ง LINE และอีเมลแจ้งเตือนเจ้าหน้าที่แล็บ, การส่งเตือนลูกค้าให้ทำการชำระเงิน, และการสรุปภาพรวมงานคงค้างประจำเดือนแบบอ่านง่ายสำหรับผู้บริหาร
       </p>
       <div class="hero-chip-row">
-        <span class="hero-chip">Line reminder preview</span>
+        <span class="hero-chip">LINE + Email reminder preview</span>
         <span class="hero-chip">Monthly leadership summary</span>
         <span class="hero-chip">Invoice overdue 60/90 days</span>
         <span class="hero-chip">Test result backlog</span>
@@ -235,8 +235,8 @@
         <div class="icon-box" style="background: linear-gradient(135deg, #f0c419, #caa84a);">
           <i class="fas fa-vial"></i>
         </div>
-        <h3>ทดสอบ Line reminder</h3>
-        <p>ดูตัวอย่างข้อความก่อนส่งจริง ตรวจสอบรายชื่อผู้รับและสิ่งที่ค้างอยู่ได้จากหน้าพรีวิว</p>
+        <h3>ทดสอบ LINE และอีเมลแจ้งเตือน</h3>
+        <p>ดูตัวอย่างข้อความ LINE และอีเมลก่อนส่งจริง พร้อมตรวจสอบผู้รับและรายการค้างได้จากหน้าพรีวิว</p>
         <a class="button is-warning is-rounded" href="{{ url_for('service_admin.line_remind_pending', dry_run='true') }}">
           Preview
         </a>
@@ -246,8 +246,8 @@
         <div class="icon-box" style="background: linear-gradient(135deg, #1a3d7c, #10264c);">
           <i class="fas fa-paper-plane"></i>
         </div>
-        <h3>ส่ง Line reminder ให้เจ้าหน้าที่แล็ป</h3>
-        <p>ส่งข้อความเตือนสำหรับเจ้าหน้าที่แล็ปโดยอ้างอิงใบแจ้งหนี้ค้างชำระและงานรายงานผลที่ยังไม่ออก</p>
+        <h3>ส่ง LINE และอีเมลแจ้งเตือนให้เจ้าหน้าที่แล็บ</h3>
+        <p>ส่งข้อความเตือนทั้งทาง LINE และอีเมล โดยอ้างอิงใบแจ้งหนี้ค้างชำระและงานรายงานผลที่ยังไม่ออก</p>
         <a class="button is-info is-rounded" href="{{ url_for('service_admin.line_remind_pending', send='true') }}">
           Send now
         </a>
