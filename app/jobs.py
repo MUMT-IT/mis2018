@@ -368,6 +368,24 @@ def send_service_admin_weekly_overdue_invoice_reminder():
     _run_job(job_name, _job)
 
 
+def send_service_admin_weekly_overdue_finance_reminder():
+    job_name = 'send_service_admin_weekly_overdue_finance_reminder'
+
+    def _job():
+        params = {'send': 'true'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/service_admin/admin/weekly-overdue-finance-reminder',
+            params=params,
+            timeout=90,
+        )
+
+    _run_job(job_name, _job)
+
+
 def send_checkin_reminder():
     job_name = 'send_checkin_reminder'
 
@@ -542,6 +560,11 @@ scheduler.add_job(send_service_admin_line_reminder_pending,
                   minute='00',
                   timezone='Asia/Bangkok')
 scheduler.add_job(send_service_admin_weekly_overdue_invoice_reminder,
+                  'cron', day_of_week='mon',
+                  hour='9',
+                  minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_service_admin_weekly_overdue_finance_reminder,
                   'cron', day_of_week='mon',
                   hour='9',
                   minute='00',
