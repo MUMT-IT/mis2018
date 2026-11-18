@@ -34,8 +34,9 @@ from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatur
 from app.main import mail
 from flask_mail import Message
 from app.models import Holidays, Org
-from app.service_admin.views import get_central_admin_academic_service, _required_customer_documents, \
-    _required_document_attachments, _get_customer_statuses, CUSTOMER_DOCUMENT_DEFINITIONS
+from app.service_admin.views import (get_central_admin_academic_service, _required_customer_documents,
+                                     _required_document_attachments, _get_customer_statuses, CUSTOMER_DOCUMENT_DEFINITIONS,
+                                     get_final_academic_service_accounts)
 
 localtz = timezone('Asia/Bangkok')
 
@@ -10032,48 +10033,50 @@ def add_payment():
                     db.session.add(invoice)
                     db.session.commit()
                     scheme = 'http' if current_app.debug else 'https'
-                    org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
-                    staff = StaffAccount.get_account_by_email(org.head)
-                    title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-                    link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
-                                   _scheme=scheme)
-                    customer_name = invoice.customer_name.replace(' ', '_')
-                    title = f'''รายการอัปเดตการชำระเงิน'''
-                    message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
-                    message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
-                    message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.lab.lab}\n'''
-                    message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
-                    message += f'''ท่านสามารถตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
-                    message += f'''{link}\n\n'''
-                    # message += f'''ผู้ประสานงาน\n'''
-                    # message += f'''{invoice.customer_name}\n'''
-                    # message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
-                    message += f'''ระบบงานบริการวิชาการ'''
-                    if invoice.paid_at:
-                        msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
-                               'ออกในนาม {}\n' \
-                               'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
-                               'กรุณาดำเนินการตรวจสอบในระบบ\n'
-                               'คลิกลิ้งค์เพื่อดำเนินการ\n'
-                               '{}'.format(invoice.invoice_no, invoice.name,
-                                                                    invoice.paid_at.astimezone(localtz).strftime(
-                                                                        '%d/%m/%Y'), link))
-                    else:
-                        msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
-                               'ออกในนาม {}\n' \
-                               'รอดำเนินการตรวจสอบการชำระเงิน\n' \
-                               'กรุณาดำเนินการตรวจสอบในระบบ\n'
-                               'คลิกลิ้งค์เพื่อดำเนินการ\n'
-                               '{}'.format(invoice.invoice_no, invoice.name, link)
-                               )
-                    if not current_app.debug:
-                        send_mail([staff.email + '@mahidol.ac.th'], title, message)
-                        try:
-                            line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
-                    else:
-                        print('message_email', message, 'message_line', msg)
+                    final_academic_service_accounts = get_final_academic_service_accounts()
+                    if final_academic_service_accounts:
+                        title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+                        link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
+                                       _scheme=scheme)
+                        customer_name = invoice.customer_name.replace(' ', '_')
+                        title = f'''รายการอัปเดตการชำระเงิน'''
+                        message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
+                        message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
+                        message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.lab.lab}\n'''
+                        message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
+                        message += f'''ท่านสามารถตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
+                        message += f'''{link}\n\n'''
+                        # message += f'''ผู้ประสานงาน\n'''
+                        # message += f'''{invoice.customer_name}\n'''
+                        # message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
+                        message += f'''ระบบงานบริการวิชาการ'''
+                        if invoice.paid_at:
+                            msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
+                                   'ออกในนาม {}\n' \
+                                   'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
+                                   'กรุณาดำเนินการตรวจสอบในระบบ\n'
+                                   'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                                   '{}'.format(invoice.invoice_no, invoice.name,
+                                                                        invoice.paid_at.astimezone(localtz).strftime(
+                                                                            '%d/%m/%Y'), link))
+                        else:
+                            msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
+                                   'ออกในนาม {}\n' \
+                                   'รอดำเนินการตรวจสอบการชำระเงิน\n' \
+                                   'กรุณาดำเนินการตรวจสอบในระบบ\n'
+                                   'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                                   '{}'.format(invoice.invoice_no, invoice.name, link)
+                                   )
+                        if not current_app.debug:
+                            send_mail([account.email + '@mahidol.ac.th' for account in final_academic_service_accounts],
+                                      title, message)
+                            for account in final_academic_service_accounts:
+                                try:
+                                    line_bot_api.push_message(to=account.line_id, messages=TextSendMessage(text=msg))
+                                except LineBotApiError:
+                                    pass
+                        else:
+                            print('message_email', message, 'message_line', msg)
                     flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
                     return redirect(url_for('academic_services.invoice_index', menu=menu, tab='payment'))
                 else:
