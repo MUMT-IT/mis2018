@@ -278,6 +278,27 @@
           </a>
         </div>
       </div>
+      <div class="action-card">
+        <div class="icon-box" style="background: linear-gradient(135deg, #f0c419, #caa84a);">
+          <i class="fas fa-eye"></i>
+        </div>
+        <h3>Preview แจ้งเตือนยอดค้างชำระให้การเงิน</h3>
+        <p>ตรวจสอบยอดของงานบริการตรวจวิเคราะห์และรายชื่อผู้รับก่อนส่ง</p>
+        <a class="button is-warning is-rounded" href="{{ url_for('service_admin.weekly_overdue_finance_reminder', dry_run='true') }}">
+          Preview
+        </a>
+      </div>
+
+      <div class="action-card">
+        <div class="icon-box" style="background: linear-gradient(135deg, #0f766e, #115e59);">
+          <i class="fas fa-coins"></i>
+        </div>
+        <h3>ส่งแจ้งเตือนยอดค้างชำระให้การเงิน</h3>
+        <p>ส่งยอดของงานบริการตรวจวิเคราะห์ทางอีเมลและ LINE ทุกวันจันทร์เมื่อมียอดค้างเกินกำหนด</p>
+        <a class="button is-info is-rounded" href="{{ url_for('service_admin.weekly_overdue_finance_reminder', send='true') }}">
+          Send now
+        </a>
+      </div>
     </div>
 
 {#    <div class="section-title">#}
