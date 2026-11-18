@@ -7082,14 +7082,14 @@ def edit_seminar_attend(attend_id):
                 float(getattr(attend, field) or 0)
                 for field in ('registration_fee', 'accommodation_cost', *active_travel_fields)
             ) or None
-            if attend.budget and not (attend.budget_type or '').strip():
-                flash('กรุณาระบุแหล่งงบประมาณ/เงินทุนเมื่อมีค่าใช้จ่าย', 'warning')
-                return render_template(
-                    'staff/seminar_create_record.html', seminar=seminar, form=form,
-                    is_secretary=False, staff_list=[], fiscal_year=get_fiscal_date(seminar.start_datetime)[1].year,
-                    is_edit=True, attend=attend, form_initial=form_initial,
-                    edit_position_id=document_approver.position_id if document_approver else None,
-                )
+            # if attend.budget and not (attend.budget_type or '').strip():
+            #     flash('กรุณาระบุแหล่งงบประมาณ/เงินทุนเมื่อมีค่าใช้จ่าย', 'warning')
+            #     return render_template(
+            #         'staff/seminar_create_record.html', seminar=seminar, form=form,
+            #         is_secretary=False, staff_list=[], fiscal_year=get_fiscal_date(seminar.start_datetime)[1].year,
+            #         is_edit=True, attend=attend, form_initial=form_initial,
+            #         edit_position_id=document_approver.position_id if document_approver else None,
+            #     )
             if not attend.budget:
                 attend.deduct_transfer = False
         attend.start_datetime = tz.localize(form.start_datetime.data) if form.start_datetime.data.tzinfo is None else form.start_datetime.data
