@@ -456,6 +456,40 @@ def _get_service_admin_management_recipients():
     return recipients
 
 
+def _get_service_admin_finance_reminder_recipient():
+    finance_roles = Role.query.filter_by(role_need='finance', action_need='academic_service', resource_id=None)
+    finance_accounts = {}
+    for role in finance_roles:
+        for staff in role.staff_account:
+            if staff:
+                finance_accounts.setdefault(staff.id, staff)
+
+    accounts = list(finance_accounts.values())
+    emails = set()
+    line_ids = set()
+    names = set()
+    for staff in accounts:
+        email = _normalize_internal_email(getattr(staff, 'email', None))
+        if email:
+            emails.add(email)
+        line_id = str(getattr(staff, 'line_id', None) or '').strip()
+        if line_id:
+            line_ids.add(line_id)
+        personal_info = getattr(staff, 'personal_info', None)
+        name = getattr(personal_info, 'fullname', None) if personal_info else None
+        name = str(name).strip() if name else None
+        if name:
+            names.add(name)
+
+    return {
+        'lab_name': 'งานบริการตรวจวิเคราะห์',
+        'name': 'การเงิน',
+        'admin_names': sorted(names),
+        'emails': sorted(emails),
+        'line_ids': sorted(line_ids),
+    }
+
+
 def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     now = arrow.now('Asia/Bangkok')
     today = now.date()
@@ -880,6 +914,71 @@ def _build_service_admin_weekly_overdue_invoice_snapshot():
     }
 
 
+def _build_service_admin_finance_overdue_snapshot():
+    today = arrow.now('Asia/Bangkok').date()
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .outerjoin(ServicePayment)
+        .filter(
+            ServiceInvoice.due_date.isnot(None),
+            ServicePayment.invoice_id == None,
+        )
+    )
+
+    overdue_60_count = 0
+    overdue_90_count = 0
+    due_soon_count = 0
+    for invoice in query.all():
+        days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
+        if days_overdue is None:
+            continue
+        if days_overdue >= 1:
+            if days_overdue > CREDIT_OVERDUE_DATE:
+                overdue_90_count += 1
+            else:
+                overdue_60_count += 1
+        elif -7 <= days_overdue <= 0:
+            due_soon_count += 1
+
+    return {
+        'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
+        'overdue_60_count': overdue_60_count,
+        'overdue_90_count': overdue_90_count,
+        'total_overdue_count': overdue_60_count + overdue_90_count,
+        'due_soon_count': due_soon_count,
+    }
+
+
+def _build_service_admin_finance_overdue_reminder_content(snapshot):
+    subject = 'แจ้งเตือนยอดค้างชำระของงานบริการตรวจวิเคราะห์'
+    scheme = 'http' if current_app.debug else 'https'
+    finance_invoice_url = url_for(
+        'service_admin.invoice_payment_index', menu='invoice', _external=True, _scheme=scheme
+    )
+    email_message = (
+        'เรียน เจ้าหน้าที่การเงิน\n\n'
+        'ขอแจ้งรายการยอดค้างชำระของงานบริการตรวจวิเคราะห์ ดังนี้\n'
+        f"- ยอดค้างชำระเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
+        f"- ยอดค้างชำระเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
+        f"- รายการที่ใกล้ครบกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n\n"
+        'กรุณาตรวจสอบและติดตามยอดค้างชำระตามความเหมาะสม\n'
+        'ท่านสามารถตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
+        f'{finance_invoice_url}\n\n'
+        'ขอบคุณค่ะ\n'
+        'ระบบงานบริการตรวจวิเคราะห์'
+    )
+    line_message = (
+        'แจ้งเตือนเรื่องยอดค้างชำระของงานบริการตรวจวิเคราะห์\n'
+        f"ยอดค้างค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
+        f"ยอดค้างค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
+        f"ยอดชำระที่ใกล้ถึงกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n"
+        'กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม'
+    )
+    return subject, email_message, line_message
+
+
 def _build_service_admin_weekly_overdue_invoice_message(snapshot, customer_group):
     invoice_index_url = snapshot['invoice_index_url']
     title_prefix = 'คุณ' if customer_group.get('customer_type') == 'บุคคล' else ''
@@ -1033,6 +1132,41 @@ def _build_service_admin_line_reminder_package(recipient, snapshot_cache=None):
         'snapshot': snapshot,
         'message': message,
     }
+
+def _render_service_admin_finance_overdue_preview_html(snapshot, recipient, subject, email_message, line_message):
+    recipient_emails = ', '.join(recipient.get('emails') or []) or '-'
+    overdue_total = snapshot['overdue_60_count'] + snapshot['overdue_90_count']
+    send_status = (
+        'มีรายการค้างเกินกำหนด จะส่งเมื่อสั่งส่ง'
+        if overdue_total
+        else 'ไม่ส่ง เพราะไม่มีรายการค้างเกินกำหนด'
+    )
+    email_message_html = escape(email_message).replace('\n', '<br>')
+    line_message_html = escape(line_message).replace('\n', '<br>')
+    return f'''<!doctype html>
+<html lang="th">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px;background:#f8fafc;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <main style="max-width:760px;margin:0 auto;background:#fff;border:1px solid #dbe4ee;border-radius:16px;padding:24px;">
+    <h1 style="margin-top:0;">ตัวอย่างแจ้งเตือนยอดค้างชำระให้การเงิน</h1>
+    <p><strong>ขอบเขต:</strong> งานบริการตรวจวิเคราะห์</p>
+    <p><strong>ผู้รับอีเมล:</strong> {escape(recipient_emails)}</p>
+    <p><strong>จำนวน LINE ID:</strong> {len(recipient.get('line_ids') or [])}</p>
+    <p><strong>สถานะ:</strong> {escape(send_status)}</p>
+    <ul>
+      <li>ยอดค้างชำระเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ</li>
+      <li>ยอดค้างชำระเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ</li>
+      <li>รายการที่ใกล้ครบกำหนดชำระ: {snapshot['due_soon_count']} รายการ</li>
+    </ul>
+    <p><strong>หัวข้ออีเมล:</strong> {escape(subject)}</p>
+    <h2>ตัวอย่างอีเมล</h2>
+    <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:12px;padding:16px;line-height:1.7;">{email_message_html}</div>
+    <h2>ตัวอย่าง LINE</h2>
+    <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:12px;padding:16px;line-height:1.7;">{line_message_html}</div>
+  </main>
+</body>
+</html>'''
+
 
 def _render_service_admin_action_dry_run_html(title, packages, should_send, metrics_builder, stats=None, global_snapshot=None, matched_packages=None):
     matched_packages = matched_packages or []
@@ -1547,6 +1681,106 @@ def weekly_overdue_invoice_reminder():
         return redirect(url_for('service_admin.task_dashboard'))
 
     flash(success_message, 'success')
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(url_for('service_admin.task_dashboard'))
+
+
+@service_admin.route('/admin/weekly-overdue-finance-reminder', methods=['GET', 'POST'])
+def weekly_overdue_finance_reminder():
+    scheduler_request, guard_response = _service_admin_preview_or_guard()
+    if guard_response:
+        return guard_response
+
+    snapshot = _build_service_admin_finance_overdue_snapshot()
+    recipient = _get_service_admin_finance_reminder_recipient()
+    subject, email_message, line_message = _build_service_admin_finance_overdue_reminder_content(snapshot)
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+    current_app.logger.info(
+        'service_admin_weekly_finance_overdue_reminder scheduler_request=%s overdue_60=%s overdue_90=%s due_soon=%s should_send=%s dry_run=%s',
+        scheduler_request,
+        snapshot['overdue_60_count'],
+        snapshot['overdue_90_count'],
+        snapshot['due_soon_count'],
+        should_send,
+        dry_run,
+    )
+
+    if dry_run:
+        response = make_response(
+            _render_service_admin_finance_overdue_preview_html(
+                snapshot, recipient, subject, email_message, line_message
+            )
+        )
+        response.mimetype = 'text/html'
+        return response
+
+    if not should_send:
+        response = make_response(
+            'Finance reminder was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400,
+        )
+        response.mimetype = 'text/plain'
+        return response
+
+    if snapshot['overdue_60_count'] + snapshot['overdue_90_count'] == 0:
+        success_message = 'ไม่มียอดค้างชำระเกินกำหนด จึงไม่ส่งแจ้งเตือนให้การเงิน'
+        if request.method == 'POST' or not scheduler_request:
+            flash(success_message, 'info')
+            return redirect(url_for('service_admin.task_dashboard'))
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return response
+
+    emails = recipient.get('emails') or []
+    line_ids = recipient.get('line_ids') or []
+    if not emails and not line_ids:
+        no_recipient_message = 'ไม่พบผู้รับที่มีอีเมลหรือ LINE ID ในบทบาทการเงิน'
+        if request.method == 'POST' or not scheduler_request:
+            flash(no_recipient_message, 'warning')
+            return redirect(url_for('service_admin.task_dashboard'))
+        response = make_response(no_recipient_message + '\n', 404)
+        response.mimetype = 'text/plain'
+        return response
+
+    email_sent_count = 0
+    email_failed_count = 0
+    for email in emails:
+        try:
+            send_mail([email], subject, email_message)
+            email_sent_count += 1
+        except Exception:
+            email_failed_count += 1
+            current_app.logger.exception('Failed to send weekly finance overdue email reminder.')
+
+    line_sent_count = 0
+    line_failed_count = 0
+    for line_id in line_ids:
+        try:
+            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=line_message))
+            line_sent_count += 1
+        except LineBotApiError:
+            line_failed_count += 1
+            current_app.logger.exception(
+                'Failed to send weekly finance overdue LINE reminder to line_id=%s',
+                _mask_line_id(line_id),
+            )
+
+    success_message = f'ส่งอีเมลแจ้งเตือนการเงินแล้ว {email_sent_count} ราย และส่ง LINE แล้ว {line_sent_count} ราย'
+    if email_failed_count:
+        success_message += f' (อีเมลไม่สำเร็จ {email_failed_count} ราย)'
+    if line_failed_count:
+        success_message += f' (LINE ไม่สำเร็จ {line_failed_count} ราย)'
+    has_failures = email_failed_count > 0 or line_failed_count > 0
+
+    if request.method == 'GET' and scheduler_request:
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return response
+    flash(success_message, 'warning' if has_failures else 'success')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
