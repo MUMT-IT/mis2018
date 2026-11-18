@@ -68,6 +68,7 @@ from .legacy_xls import (
 )
 from .receivables_report import (
     build_receivable_row, generate_receivables_xls, generate_individual_debtors_xls,
+    generate_outstanding_debt_xls,
 )
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
@@ -6129,6 +6130,33 @@ def export_individual_debtors_report():
         db.session.rollback()
         current_app.logger.exception("Could not generate individual debtors report")
         message = "สร้างทะเบียนคุมลูกหนี้เงินยืมรายตัวไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+
+
+@bp.route("/finance/outstanding-debt-report.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_outstanding_debt_report():
+    """Download a dated outstanding debtor aging report and log its tickets."""
+    target_date = _receivables_export_target_date()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับรายงานยอดลูกหนี้คงค้าง", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+    try:
+        rows = _receivables_report_rows(
+            _receivables_export_tickets(target_date), individual=True, target_date=target_date,
+        )
+        workbook = generate_outstanding_debt_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
+            download_name=f"outstanding_debt_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("outstanding_debt", target_date, rows)
+        return response
+    except (OSError, LegacyXlsError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        current_app.logger.exception("Could not generate outstanding debtor report")
+        message = "สร้างรายงานยอดลูกหนี้คงค้างไม่สำเร็จ"
         flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
         return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
 

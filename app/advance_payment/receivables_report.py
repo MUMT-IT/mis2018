@@ -284,3 +284,154 @@ def generate_individual_debtors_xls(rows, *, report_date: date) -> bytes:
     output = BytesIO()
     book.save(output)
     return output.getvalue()
+
+
+def _outstanding_age_bucket(due_on: date, report_date: date) -> tuple[int, str]:
+    """Use the source workbook's exact aging boundaries and labels."""
+    if due_on > report_date:
+        return 0, "ยังไม่ครบกำหนดชำระ"
+    days_overdue = (report_date - due_on).days
+    if days_overdue <= 15:
+        return 1, "ค้างชำระไม่เกิน 1-15 วัน"
+    if days_overdue <= 45:
+        return 2, "ค้างชำระตั้งแต่ 16-45 วัน"
+    return 3, "ค้างชำระตั้งแต่ 45 วันขึ้นไป"
+
+
+def generate_outstanding_debt_xls(rows, *, report_date: date) -> bytes:
+    """Return the outstanding debtor aging report in the source A–M layout."""
+    rows = list(rows)
+    if len(rows) + 6 > 65536:
+        raise ValueError("รายการมากเกินขนาดที่ไฟล์ .xls รองรับ")
+
+    def style(*, bold=False, horizontal=xlwt.Alignment.HORZ_LEFT,
+              left=False, right=False, top=False, bottom=False,
+              double_bottom=False, number_format=None):
+        cell_style = _style(size=16, bold=bold, horizontal=horizontal,
+                            num_format=number_format, wrap=True)
+        border = xlwt.Borders()
+        border.left = xlwt.Borders.THIN if left else xlwt.Borders.NO_LINE
+        border.right = xlwt.Borders.THIN if right else xlwt.Borders.NO_LINE
+        border.top = xlwt.Borders.THIN if top else xlwt.Borders.NO_LINE
+        border.bottom = (xlwt.Borders.DOUBLE if double_bottom else
+                         xlwt.Borders.THIN if bottom else xlwt.Borders.NO_LINE)
+        cell_style.borders = border
+        return cell_style
+
+    center = xlwt.Alignment.HORZ_CENTER
+    right = xlwt.Alignment.HORZ_RIGHT
+    amount_format = '#,##0.00;(#,##0.00);"-"'
+    date_format = "mm-dd-yy"
+    book = xlwt.Workbook(encoding="utf-8")
+    sheet = book.add_sheet("Sheet1")
+    for col, width in enumerate((3.5, 4.6, 7.5, 23.5, 21.0, 13.5, 13.7,
+                                 12.2, 31.6, 19.0, 16.7, 17.1, 18.0)):
+        sheet.col(col).width = round(width * 256)
+    for row_index in range(max(len(rows), 1) + 6):
+        sheet.row(row_index).height = 468
+
+    title_style = style(horizontal=center)
+    subtitle_style = style(horizontal=center, bottom=True)
+    header_top = style(bold=True, horizontal=center, left=True, right=True, top=True)
+    header_bottom = style(bold=True, horizontal=center, left=True, right=True, bottom=True)
+    group_header = style(bold=True, horizontal=center, left=True, right=True,
+                         top=True, bottom=True)
+    body_center = style(horizontal=center, left=True, right=True, top=True, bottom=True)
+    body_number = style(horizontal=right, left=True, right=True, top=True,
+                        bottom=True, number_format=amount_format)
+    body_date = style(horizontal=center, left=True, right=True, top=True,
+                      bottom=True, number_format=date_format)
+    split_left = style(horizontal=right, left=True, top=True, bottom=True)
+    split_right = style(left=False, right=True, top=True, bottom=True)
+    name_left = style(left=True)
+    name_right = style(right=True)
+    blank_name_left = style(left=True, top=True, bottom=True)
+    blank_name_right = style(right=True, top=True, bottom=True)
+    total_number = style(horizontal=right, left=True, right=True,
+                         double_bottom=True, number_format=amount_format)
+
+    sheet.write_merge(0, 0, 0, 12, "รายงานยอดลูกหนี้คงค้างเงินทดรอง", title_style)
+    sheet.write_merge(1, 1, 0, 12,
+                      f"ประจำเดือน{THAI_MONTHS[report_date.month - 1]} {report_date.year + 543}",
+                      subtitle_style)
+    sheet.write(2, 0, "", header_top)
+    sheet.write(3, 0, "", header_bottom)
+    sheet.write_merge(2, 2, 1, 2, "เลขที่ใบยืม", header_top)
+    sheet.write_merge(3, 3, 1, 2, "", header_bottom)
+    sheet.write_merge(2, 2, 3, 4, "ชื่อผู้ยืม", header_top)
+    sheet.write(3, 3, "", style(bold=True, horizontal=center, left=True, bottom=True))
+    sheet.write(3, 4, "", style(bold=True, horizontal=center, right=True, bottom=True))
+    for col, upper, lower in ((5, "จำนวนเงิน", "บาท"),
+                              (6, "วันที่ครบกำหนด", "ชำระ"),
+                              (7, "", "วันที่ปัจจุบัน"),
+                              (8, "", "กลุ่มอายุลูกหนี้")):
+        sheet.write(2, col, upper, header_top)
+        sheet.write(3, col, lower, header_bottom)
+    sheet.write_merge(2, 2, 9, 12, "กลุ่มลูกหนี้ที่ค้างชำระ", group_header)
+    for col, label in enumerate(("ยังไม่ครบกำหนดชำระ", "ค้างชำระ 1-15 วัน",
+                                 "ค้างชำระ16-45 วัน", "ค้างชำระเกิน 45 วัน"), start=9):
+        sheet.write(3, col, label, group_header)
+
+    totals = [Decimal("0.00") for _ in range(4)]
+    total_balance = Decimal("0.00")
+    for index, item in enumerate(rows, start=1):
+        row_index = index + 3
+        borrowed = Decimal(str(item["borrowed"])).quantize(CENT)
+        cash = Decimal(str(item["cash"])).quantize(CENT)
+        receipts = Decimal(str(item["receipts"])).quantize(CENT)
+        balance = borrowed - cash - receipts
+        if balance <= 0:
+            raise ValueError(f"Invalid outstanding balance for {item['number']}")
+        due_on = item["due_on"]
+        if due_on is None:
+            raise ValueError(f"Missing due date for {item['number']}")
+        bucket, age_label = _outstanding_age_bucket(due_on, report_date)
+        total_balance += balance
+        totals[bucket] += balance
+
+        sheet.write(row_index, 0, index, body_center)
+        sheet.write(row_index, 1, "บย.", split_left)
+        sheet.write(row_index, 2, str(item["number"] or ""), split_right)
+        sheet.write(row_index, 3, str(item["first_name_with_title"] or ""), name_left)
+        sheet.write(row_index, 4, str(item["last_name"] or ""), name_right)
+        sheet.write(row_index, 5, float(balance), body_number)
+        sheet.write(row_index, 6,
+                    datetime(due_on.year + 543, due_on.month, due_on.day), body_date)
+        if index == 1:
+            sheet.write(row_index, 7,
+                        datetime(report_date.year + 543, report_date.month, report_date.day),
+                        body_date)
+        else:
+            sheet.write(row_index, 7, "", body_center)
+        sheet.write(row_index, 8, age_label, body_center)
+        for column, bucket_amount in enumerate(
+            (balance if bucket == 0 else 0, balance if bucket == 1 else 0,
+             balance if bucket == 2 else 0, balance if bucket == 3 else 0), start=9
+        ):
+            sheet.write(row_index, column, float(bucket_amount), body_number)
+
+    blank_styles = (body_center, split_left, split_right,
+                    blank_name_left, blank_name_right, body_number, body_date,
+                    body_date, body_center, body_number, body_number,
+                    body_number, body_number)
+    if not rows:
+        for column, blank_style in enumerate(blank_styles):
+            if column == 7:
+                sheet.write(4, column,
+                            datetime(report_date.year + 543, report_date.month, report_date.day),
+                            body_date)
+            else:
+                sheet.write(4, column, "", blank_style)
+
+    # The source's unlabeled adjustment row was a manual error; keep its layout blank.
+    blank_row = max(len(rows), 1) + 4
+    for column, blank_style in enumerate(blank_styles):
+        sheet.write(blank_row, column, "", blank_style)
+    total_row = blank_row + 1
+    sheet.write(total_row, 4, "", style(right=True, top=True, bottom=True))
+    sheet.write(total_row, 5, float(total_balance), total_number)
+    for column, amount in enumerate(totals, start=9):
+        sheet.write(total_row, column, float(amount), total_number)
+    output = BytesIO()
+    book.save(output)
+    return output.getvalue()
