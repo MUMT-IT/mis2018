@@ -36,7 +36,7 @@ from flask_mail import Message
 from app.models import Holidays, Org
 from app.service_admin.views import (get_central_admin_academic_service, _required_customer_documents,
                                      _required_document_attachments, _get_customer_statuses, CUSTOMER_DOCUMENT_DEFINITIONS,
-                                     get_final_academic_service_accounts)
+                                     get_finance_academic_service_accounts)
 
 localtz = timezone('Asia/Bangkok')
 
@@ -10033,8 +10033,8 @@ def add_payment():
                     db.session.add(invoice)
                     db.session.commit()
                     scheme = 'http' if current_app.debug else 'https'
-                    final_academic_service_accounts = get_final_academic_service_accounts()
-                    if final_academic_service_accounts:
+                    finance_academic_service_accounts = get_finance_academic_service_accounts()
+                    if finance_academic_service_accounts:
                         title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
                         link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
                                        _scheme=scheme)
@@ -10068,9 +10068,9 @@ def add_payment():
                                    '{}'.format(invoice.invoice_no, invoice.name, link)
                                    )
                         if not current_app.debug:
-                            send_mail([account.email + '@mahidol.ac.th' for account in final_academic_service_accounts],
+                            send_mail([account.email + '@mahidol.ac.th' for account in finance_academic_service_accounts],
                                       title, message)
-                            for account in final_academic_service_accounts:
+                            for account in finance_academic_service_accounts:
                                 try:
                                     line_bot_api.push_message(to=account.line_id, messages=TextSendMessage(text=msg))
                                 except LineBotApiError:

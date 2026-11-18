@@ -151,7 +151,7 @@ def get_central_admin_academic_service():
     return accounts
 
 
-def get_final_academic_service_accounts():
+def get_finance_academic_service_accounts():
     roles = Role.query.filter_by(
         role_need='finance', action_need='academic_service', resource_id=None
     )
@@ -8122,7 +8122,7 @@ def upload_invoice_file(invoice_id):
         .filter(ServiceSubLab.code == invoice.quotation.request.sub_lab.code)
         .all()
     )
-    final_academic_service_accounts = get_final_academic_service_accounts()
+    finance_academic_service_accounts = get_finance_academic_service_accounts()
     form = ServiceInvoiceForm(obj=invoice)
     if form.validate_on_submit():
         form.populate_obj(invoice)
@@ -8176,8 +8176,8 @@ def upload_invoice_file(invoice_id):
                     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_assistant and not a.is_central_admin],
                               title_for_admin, message_for_admin)
                 try:
-                    if final_academic_service_accounts:
-                        for account in final_academic_service_accounts:
+                    if finance_academic_service_accounts:
+                        for account in finance_academic_service_accounts:
                             line_bot_api.push_message(to=account.line_id, messages=TextSendMessage(text=msg))
                     if admins:
                         for a in admins:
@@ -8191,6 +8191,9 @@ def upload_invoice_file(invoice_id):
                         if not a.is_assistant and not a.is_central_admin:
                             print('user_email', a.admin.email, 'message_email', message_for_admin, 'user_line',
                                   a.admin.line_id, 'message_line', msg_for_admin)
+                if finance_academic_service_accounts:
+                    for account in finance_academic_service_accounts:
+                        print('message', msg, 'line_id', account.line_id)
                 print('message_email', message, 'message_line', msg)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab='waiting_payment'))
@@ -8587,8 +8590,8 @@ def add_payment():
                 scheme = 'http' if current_app.debug else 'https'
                 org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
                 staff = StaffAccount.get_account_by_email(org.head)
-                final_academic_service_accounts = get_final_academic_service_accounts()
-                if final_academic_service_accounts:
+                finance_academic_service_accounts = get_finance_academic_service_accounts()
+                if finance_academic_service_accounts:
                     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
                     link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
                                    _scheme=scheme)
@@ -8622,9 +8625,9 @@ def add_payment():
                                '{}'.format(invoice.invoice_no, invoice.name, link)
                                )
                     if not current_app.debug:
-                        send_mail([account.email + '@mahidol.ac.th' for account in final_academic_service_accounts],
+                        send_mail([account.email + '@mahidol.ac.th' for account in finance_academic_service_accounts],
                                   title, message)
-                        for account in final_academic_service_accounts:
+                        for account in finance_academic_service_accounts:
                             try:
                                 line_bot_api.push_message(to=account.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
