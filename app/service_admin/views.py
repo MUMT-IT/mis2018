@@ -8179,6 +8179,7 @@ def upload_invoice_file(invoice_id):
                         if not a.is_assistant and not a.is_central_admin:
                             print('user_email', a.admin.email, 'message_email', message_for_admin, 'user_line',
                                   a.admin.line_id, 'message_line', msg_for_admin)
+                print('message', msg, 'line_id', staff.line_id)
                 print('message_email', message, 'message_line', msg)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab='waiting_payment'))
