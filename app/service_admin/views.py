@@ -11362,12 +11362,52 @@ def unapprove_final_result_reversion(result_item_id):
 @login_required
 def invoice_payment_index():
     menu = request.args.get('menu')
-    return render_template('service_admin/invoice_payment_index.html', menu=menu)
+    tab = request.args.get('tab', 'pending')
+    today = arrow.now('Asia/Bangkok').date()
+    base_query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at.isnot(None))
+    tab_filters = _service_admin_invoice_payment_tab_filters(today)
+    return render_template(
+        'service_admin/invoice_payment_index.html',
+        menu=menu,
+        tab=tab,
+        pending_count=base_query.filter(tab_filters['pending']).count(),
+        verify_count=base_query.filter(tab_filters['verify']).count(),
+        overdue_count=base_query.filter(tab_filters['overdue']).count(),
+    )
+
+
+def _service_admin_invoice_payment_tab_filters(today):
+    active_payment = and_(
+        ServicePayment.created_at.isnot(None),
+        ServicePayment.cancelled_at.is_(None),
+    )
+    has_active_payment = ServiceInvoice.payments.any(active_payment)
+    due_date = cast(ServiceInvoice.due_date, Date)
+    return {
+        'pending': and_(
+            ~has_active_payment,
+            or_(ServiceInvoice.due_date.is_(None), due_date >= today),
+        ),
+        'verify': ServiceInvoice.payments.any(and_(
+            active_payment,
+            ServicePayment.verified_at.is_(None),
+        )),
+        'payment': ServiceInvoice.payments.any(and_(
+            active_payment,
+            ServicePayment.verified_at.isnot(None),
+        )),
+        'overdue': and_(
+            ~has_active_payment,
+            due_date < today,
+        ),
+    }
 
 
 @service_admin.route('/api/invoice/payment/index')
 @login_required
 def get_invoice_payments():
+    tab = request.args.get('tab', 'pending')
+    today = arrow.now('Asia/Bangkok').date()
     base_query = (ServiceInvoice.query
                   .options(
                       joinedload(ServiceInvoice.quotation)
@@ -11377,6 +11417,9 @@ def get_invoice_payments():
                   )
                   .filter(ServiceInvoice.file_attached_at.isnot(None)))
 
+    tab_filter = _service_admin_invoice_payment_tab_filters(today).get(tab)
+    if tab_filter is not None:
+        base_query = base_query.filter(tab_filter)
     records_total = base_query.count()
     search = request.args.get('search[value]')
     if search:
@@ -11514,7 +11557,7 @@ def confirm_payment(invoice_id):
         db.session.add(payment)
         db.session.commit()
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
-    return render_template('service_admin/invoice_payment_index.html')
+    return redirect(url_for('service_admin.invoice_payment_index', tab='payment'))
 
 
 @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
