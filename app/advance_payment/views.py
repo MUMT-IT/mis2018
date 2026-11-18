@@ -6003,7 +6003,9 @@ def _receivables_report_rows(tickets, *, target_date, individual=False):
         group_ids = frozenset(_ticket_group_ids(ticket.id))
         if group_ids not in group_cache:
             group_cache[group_ids] = (
-                (_calculate_ticket_group_totals_as_of(group_ids, target_date), None)
+                (_calculate_ticket_group_totals_as_of(
+                    group_ids, target_date, report_stage="settled",
+                ), None)
                 if individual else (
                     _calculate_ticket_group_totals_as_of(
                         group_ids, target_date, report_stage="settled",
