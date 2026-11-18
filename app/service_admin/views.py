@@ -155,12 +155,11 @@ def get_final_academic_service_accounts():
     roles = Role.query.filter_by(
         role_need='finance', action_need='academic_service', resource_id=None
     )
-    accounts = {}
-    for role in roles:
-        for account in role.staff_account:
-            if account:
-                accounts.setdefault(account.id, account)
-    return list(accounts.values())
+    if roles:
+        accounts = [account for role in roles for account in role.staff_account]
+    else:
+        accounts = None
+    return accounts
 
 
 def build_notification(invoice, service_request, link):
