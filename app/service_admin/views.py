@@ -151,6 +151,17 @@ def get_central_admin_academic_service():
     return accounts
 
 
+def get_final_academic_service_accounts():
+    roles = Role.query.filter_by(
+        role_need='finance', action_need='academic_service', resource_id=None
+    )
+    accounts = {}
+    for role in roles:
+        for account in role.staff_account:
+            if account:
+                accounts.setdefault(account.id, account)
+    return list(accounts.values())
+
 
 def build_notification(invoice, service_request, link):
     title = f'รายการออกใบแจ้งหนี้ฉบับลงนามผู้ช่วยคณบดีฝ่ายบริการวิชาการ'
@@ -8576,6 +8587,7 @@ def add_payment():
                 scheme = 'http' if current_app.debug else 'https'
                 org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
                 staff = StaffAccount.get_account_by_email(org.head)
+                final_academic_service_accounts = get_final_academic_service_accounts()
                 title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
                 link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
                                _scheme=scheme)
@@ -8609,7 +8621,10 @@ def add_payment():
                            '{}'.format(invoice.invoice_no, invoice.name, link)
                            )
                 if not current_app.debug:
-                    send_mail([staff.email + '@mahidol.ac.th'], title, message)
+                    for account in final_academic_service_accounts:
+                        email = _normalize_internal_email(getattr(account, 'email', None))
+                        if email:
+                            send_mail([email], title, message)
                     try:
                         line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
