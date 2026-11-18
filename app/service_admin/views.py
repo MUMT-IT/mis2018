@@ -44,7 +44,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 
-from ..staff.models import Role, StaffAccount
+from ..staff.models import Role, StaffAccount, StaffHeadPosition
 
 CREDIT_DATE = 60
 CREDIT_OVERDUE_DATE = 30
@@ -389,6 +389,71 @@ def _group_service_admin_recipients(predicate):
             'roles': sorted(recipient['roles']),
         })
     return sorted(normalized, key=lambda item: item['lab_name'])
+
+
+def _get_service_admin_management_recipients():
+    recipients = []
+
+    def _make_recipient(lab, sub_labs, label, accounts, seen_emails):
+        emails = set()
+        names = set()
+        for staff in accounts:
+            email = _normalize_internal_email(getattr(staff, 'email', None))
+            if email:
+                emails.add(email)
+            personal_info = getattr(staff, 'personal_info', None)
+            name = getattr(personal_info, 'fullname', None) if personal_info else None
+            name = str(name).strip() if name else None
+            if not name:
+                name = _normalize_internal_email(getattr(staff, 'email', None))
+            if name:
+                names.add(name)
+        # Avoid sending the same account twice when it holds both target roles.
+        emails = {email for email in emails if email.lower() not in seen_emails}
+        seen_emails.update(email.lower() for email in emails)
+        if not emails:
+            return
+        lab_name = str(getattr(lab, 'lab', None) or '').strip() or label
+        sub_lab_names = sorted({
+            str(getattr(sub_lab, 'sub_lab', None) or '').strip()
+            for sub_lab in sub_labs
+            if str(getattr(sub_lab, 'sub_lab', None) or '').strip()
+        })
+        recipients.append({
+            'lab_id': lab.id,
+            'lab_name': lab_name,
+            'name': lab_name,
+            'admin_ids': [],
+            'admin_names': sorted(names),
+            'line_ids': [],
+            'line_id': None,
+            'emails': sorted(emails),
+            'email': sorted(emails)[0],
+            'sub_lab_ids': sorted(sub_lab.id for sub_lab in sub_labs),
+            'sub_lab_names': sub_lab_names,
+            'roles': [],
+        })
+
+    deputy_position = StaffHeadPosition.query.filter_by(position='รองคณบดีฝ่ายการคลังและสินทรัพย์').first()
+    deputy_deans = [deputy_position.staff] if deputy_position and deputy_position.staff else []
+    finance_roles = Role.query.filter_by(role_need='finance', action_need='academic_service', resource_id=None)
+    if finance_roles:
+        finance_accounts = [staff for role in finance_roles for staff in role.staff_account]
+    else:
+        finance_accounts = []
+
+    for lab in ServiceLab.query.order_by(ServiceLab.lab).all():
+        sub_labs = sorted(lab.sub_labs or [], key=lambda sub_lab: (sub_lab.no or 0, sub_lab.id))
+        if not sub_labs:
+            continue
+        seen_emails = set()
+        _make_recipient(
+            lab, sub_labs, 'รองคณบดีฝ่ายการคลังและสินทรัพย์', deputy_deans, seen_emails
+        )
+        _make_recipient(
+            lab, sub_labs, 'ผู้มีสิทธิ์การเงินบริการวิชาการ', finance_accounts, seen_emails
+        )
+    return recipients
 
 
 def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
@@ -1261,6 +1326,20 @@ def monthly_overdue_summary():
 
     recipient_groups = _group_service_admin_recipients(lambda row: row.is_supervisor or row.is_assistant)
     recipient_groups = [recipient for recipient in recipient_groups if recipient.get('emails')]
+    management_recipients = _get_service_admin_management_recipients()
+    management_emails = {
+        email.lower()
+        for recipient in management_recipients
+        for email in recipient['emails']
+    }
+    for recipient in recipient_groups:
+        recipient['emails'] = [
+            email for email in recipient['emails']
+            if email.lower() not in management_emails
+        ]
+        recipient['email'] = recipient['emails'][0] if recipient['emails'] else None
+    recipient_groups = [recipient for recipient in recipient_groups if recipient['emails']]
+    recipient_groups.extend(management_recipients)
     snapshot_cache = {}
     packages = [_build_service_admin_summary_package(recipient, snapshot_cache=snapshot_cache)
                 for recipient in recipient_groups]
