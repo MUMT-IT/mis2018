@@ -4042,6 +4042,153 @@ def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
     }
 
 
+def _calculate_ticket_group_totals_as_of(ticket_ids, target_date, *, report_stage=None):
+    """Allocate returns approved through the receivables report date."""
+    if report_stage not in (None, "settled", "documented_or_settled"):
+        raise ValueError(f"Unknown report stage: {report_stage}")
+    ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
+    if not ticket_ids:
+        return {"cumulative_total": Decimal("0.00"), "budget": Decimal("0.00"), "remaining_amount": Decimal("0.00")}
+
+    cutoff = datetime.combine(target_date, datetime.max.time())
+    tickets = db.session.query(BorrowingTicket).filter(
+        BorrowingTicket.id.in_(ticket_ids),
+        BorrowingTicket.approved_at <= cutoff,
+    ).all()
+    ticket_ids = {ticket.id for ticket in tickets}
+    ticket_order = sorted(
+        tickets,
+        key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
+    )
+    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in ticket_order}
+    allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    excluded_return_statuses = {"PENDING", "IN_PROGRESS", "DRAFT", "REJECTED"}
+
+    return_query = db.session.query(ReturnDetail).filter(
+        ReturnDetail.approved_at.isnot(None),
+        or_(
+            ReturnDetail.reject_approved_at.is_(None),
+            ReturnDetail.approved_at > ReturnDetail.reject_approved_at,
+        ),
+        ReturnDetail.status_id.notin_(_status_ids("return_detail", excluded_return_statuses)),
+        or_(
+            ReturnDetail.ticket_id.in_(ticket_ids),
+            ReturnDetail.id.in_(
+                db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+                    return_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                )
+            ),
+        ),
+    )
+    parcel_query = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.approved_at.isnot(None),
+        ParcelReturnDetail.status_id.notin_(_status_ids("parcel_return", excluded_return_statuses)),
+        or_(
+            ParcelReturnDetail.ticket_id.in_(ticket_ids),
+            ParcelReturnDetail.id.in_(
+                db.session.query(parcel_borrowing_ticket_association.c.parcel_return_id).filter(
+                    parcel_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                )
+            ),
+        ),
+    )
+    return_query = return_query.filter(ReturnDetail.approved_at <= cutoff)
+    parcel_query = parcel_query.filter(ParcelReturnDetail.approved_at <= cutoff)
+    if report_stage == "settled":
+        return_query = return_query.filter(ReturnDetail.settled_at.isnot(None))
+        parcel_query = parcel_query.filter(ParcelReturnDetail.settled_at.isnot(None))
+        return_query = return_query.filter(func.date(ReturnDetail.settled_at) <= target_date)
+        parcel_query = parcel_query.filter(func.date(ParcelReturnDetail.settled_at) <= target_date)
+    elif report_stage == "documented_or_settled":
+        active_return_docs = (
+            db.session.query(ClosingDocumentLink.ticket_return_id)
+            .join(ClosingDocument, ClosingDocument.id == ClosingDocumentLink.document_id)
+            .filter(ClosingDocumentLink.is_active.is_(True), ClosingDocument.is_active.is_(True))
+        )
+        active_parcel_docs = (
+            db.session.query(ClosingDocumentLink.parcel_return_id)
+            .join(ClosingDocument, ClosingDocument.id == ClosingDocumentLink.document_id)
+            .filter(ClosingDocumentLink.is_active.is_(True), ClosingDocument.is_active.is_(True))
+        )
+        active_return_docs = active_return_docs.filter(ClosingDocument.created_at <= cutoff)
+        active_parcel_docs = active_parcel_docs.filter(ClosingDocument.created_at <= cutoff)
+        return_query = return_query.filter(or_(
+            func.date(ReturnDetail.settled_at) <= target_date,
+            ReturnDetail.id.in_(active_return_docs),
+        ))
+        parcel_query = parcel_query.filter(or_(
+            func.date(ParcelReturnDetail.settled_at) <= target_date,
+            ParcelReturnDetail.id.in_(active_parcel_docs),
+        ))
+    return_rows = return_query.all()
+    parcel_rows = parcel_query.all()
+    cash_return_ids = {
+        row.id for row in return_rows
+        if row.receipt_items and all(item.is_cash for item in row.receipt_items)
+    }
+    records = [
+        (row.created_at, row.id, _money_decimal(row.amount_spent),
+         _return_ticket_ids(row), False,
+         row.settled_at is not None and row.settled_at.date() <= target_date,
+         row.id in cash_return_ids)
+        for row in return_rows
+    ]
+    for row in parcel_rows:
+        linked_ids = {row.ticket_id} if row.ticket_id else set()
+        linked_ids.update(
+            ticket_id for (ticket_id,) in db.session.query(
+                parcel_borrowing_ticket_association.c.ticket_id
+            ).filter(parcel_borrowing_ticket_association.c.parcel_return_id == row.id).all()
+        )
+        records.append((
+            row.created_at, row.id, _money_decimal(row.amount_spent),
+            linked_ids, True,
+            row.settled_at is not None and row.settled_at.date() <= target_date,
+            False,
+        ))
+
+    priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
+    parcel_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    normal_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    cash_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    receipt_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    for _, _, amount, linked_ids, is_parcel, _, is_cash in sorted(
+        records,
+        key=lambda item: (
+            0 if report_stage == "documented_or_settled" and item[5] else 1,
+            item[0] or datetime.min,
+            item[1],
+        ),
+    ):
+        for linked_id in sorted(linked_ids & ticket_ids, key=lambda value: priority.get(value, 10**9)):
+            if amount <= 0:
+                break
+            portion = min(amount, remaining.get(linked_id, Decimal("0.00")))
+            allocated[linked_id] += portion
+            if is_parcel:
+                parcel_allocated[linked_id] += portion
+            else:
+                normal_allocated[linked_id] += portion
+                if is_cash:
+                    cash_allocated[linked_id] += portion
+                else:
+                    receipt_allocated[linked_id] += portion
+            remaining[linked_id] -= portion
+            amount -= portion
+    cumulative_total = sum(allocated.values())
+    budget = sum((_ticket_opening_budget(ticket) for ticket in ticket_order), Decimal("0.00"))
+    return {
+        "cumulative_total": cumulative_total,
+        "budget": budget,
+        "remaining_amount": budget - cumulative_total,
+        "allocated_by_ticket": allocated,
+        "parcel_allocated_by_ticket": parcel_allocated,
+        "normal_allocated_by_ticket": normal_allocated,
+        "cash_allocated_by_ticket": cash_allocated,
+        "receipt_allocated_by_ticket": receipt_allocated,
+    }
+
+
 def _calculate_return_form_group_totals(
     ticket_ids,
     *,
@@ -5848,17 +5995,21 @@ def _snapshot_json(snapshot):
     return {key: format(value, ".2f") for key, value in snapshot.items()}
 
 
-def _receivables_report_rows(tickets, *, individual=False):
+def _receivables_report_rows(tickets, *, target_date, individual=False):
     group_cache = {}
     rows = []
     for ticket in tickets:
         group_ids = frozenset(_ticket_group_ids(ticket.id))
         if group_ids not in group_cache:
             group_cache[group_ids] = (
-                (_calculate_ticket_group_totals(group_ids), None)
+                (_calculate_ticket_group_totals_as_of(group_ids, target_date), None)
                 if individual else (
-                    _calculate_ticket_group_totals(group_ids, report_stage="settled"),
-                    _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled"),
+                    _calculate_ticket_group_totals_as_of(
+                        group_ids, target_date, report_stage="settled",
+                    ),
+                    _calculate_ticket_group_totals_as_of(
+                        group_ids, target_date, report_stage="documented_or_settled",
+                    ),
                 )
             )
         allocated_totals, documented = group_cache[group_ids]
@@ -5892,64 +6043,94 @@ def _receivables_report_rows(tickets, *, individual=False):
         # A completely cleared loan is no longer a receivable. A J=0 source
         # row with I>0 remains here because the requisition is not settled.
         if report_row["before_pending"] > 0:
+            report_row["ticket_id"] = ticket.id
             rows.append(report_row)
     return rows
 
 
-@bp.route("/finance/receivables-report.xls", methods=["GET"])
-@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
-def export_receivables_report():
-    """Download the current receivables snapshot using the system's return totals."""
-    tickets = (
+def _receivables_export_target_date():
+    try:
+        return date.fromisoformat(request.args.get("target_date", "").strip())
+    except ValueError:
+        return None
+
+
+def _receivables_export_tickets(target_date):
+    cutoff = datetime.combine(target_date, datetime.max.time())
+    return (
         db.session.query(BorrowingTicket)
         .filter(
             BorrowingTicket.approved_at.isnot(None),
+            BorrowingTicket.approved_at <= cutoff,
             BorrowingTicket.status_id.notin_(_status_ids("borrowing_ticket", {"REJECTED"})),
         )
         .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.id.asc())
         .all()
     )
+
+
+def _log_receivables_export(report_type, target_date, rows):
+    db.session.add(FinanceReportLog(
+        report_type=report_type,
+        creator_id=current_user.id,
+        target_date=target_date,
+        items=[FinanceReportLogItem(ticket_id=row["ticket_id"]) for row in rows],
+    ))
+    db.session.commit()
+
+
+@bp.route("/finance/receivables-report.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_receivables_report():
+    """Download a dated receivables snapshot and record its included tickets."""
+    target_date = _receivables_export_target_date()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับรายงานลูกหนี้เงินยืม", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
     try:
-        rows = _receivables_report_rows(tickets)
-        report_date = datetime.now(ZoneInfo("Asia/Bangkok")).date()
-        workbook = generate_receivables_xls(rows, report_date=report_date)
-    except (OSError, LegacyXlsError, ValueError) as exc:
+        rows = _receivables_report_rows(_receivables_export_tickets(target_date), target_date=target_date)
+        workbook = generate_receivables_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook),
+            mimetype="application/vnd.ms-excel",
+            as_attachment=True,
+            download_name=f"cash_advance_receivables_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("receivables", target_date, rows)
+        return response
+    except (OSError, LegacyXlsError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
         current_app.logger.exception("Could not generate cash advance receivables report")
-        flash(f"สร้างรายงานลูกหนี้เงินยืมไม่สำเร็จ: {exc}", "danger")
+        message = "สร้างรายงานลูกหนี้เงินยืมไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
         return redirect(url_for("advance_payment.finance_dashboard"))
-    return send_file(
-        BytesIO(workbook),
-        mimetype="application/vnd.ms-excel",
-        as_attachment=True,
-        download_name=f"cash_advance_receivables_{report_date.isoformat()}.xls",
-    )
 
 
 @bp.route("/finance/individual-debtors-report.xls", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def export_individual_debtors_report():
     """Download the individual debtor register in the legacy A–J layout."""
-    tickets = (
-        db.session.query(BorrowingTicket)
-        .filter(
-            BorrowingTicket.approved_at.isnot(None),
-            BorrowingTicket.status_id.notin_(_status_ids("borrowing_ticket", {"REJECTED"})),
-        )
-        .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.id.asc())
-        .all()
-    )
-    try:
-        rows = _receivables_report_rows(tickets, individual=True)
-        report_date = datetime.now(ZoneInfo("Asia/Bangkok")).date()
-        workbook = generate_individual_debtors_xls(rows, report_date=report_date)
-    except (OSError, LegacyXlsError, ValueError) as exc:
-        current_app.logger.exception("Could not generate individual debtors report")
-        flash(f"สร้างทะเบียนคุมลูกหนี้เงินยืมรายตัวไม่สำเร็จ: {exc}", "danger")
+    target_date = _receivables_export_target_date()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับทะเบียนคุมลูกหนี้รายตัว", "warning")
         return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
-    return send_file(
-        BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
-        download_name=f"individual_debtors_{report_date.isoformat()}.xls",
-    )
+    try:
+        rows = _receivables_report_rows(
+            _receivables_export_tickets(target_date), individual=True, target_date=target_date,
+        )
+        workbook = generate_individual_debtors_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
+            download_name=f"individual_debtors_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("individual_debtors", target_date, rows)
+        return response
+    except (OSError, LegacyXlsError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        current_app.logger.exception("Could not generate individual debtors report")
+        message = "สร้างทะเบียนคุมลูกหนี้เงินยืมรายตัวไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
 
 
 @bp.route("/finance/legacy-import", methods=["POST"])

@@ -195,6 +195,12 @@ def generate_individual_debtors_xls(rows, *, report_date: date) -> bytes:
     title_style = _style(size=16, horizontal=xlwt.Alignment.HORZ_CENTER)
     header_style = _style(size=16, bold=True, bordered=True, wrap=True,
                           horizontal=xlwt.Alignment.HORZ_CENTER)
+    split_header_top_style = _style(size=16, bold=True, bordered=True, wrap=True,
+                                    horizontal=xlwt.Alignment.HORZ_CENTER,
+                                    bottom_border=False)
+    split_header_bottom_style = _style(size=16, bold=True, bordered=True, wrap=True,
+                                       horizontal=xlwt.Alignment.HORZ_CENTER,
+                                       top_border=False)
     text_style = _style(size=16, bordered=True)
     number_style = _style(size=16, bordered=True, num_format="#,##0.00",
                           horizontal=xlwt.Alignment.HORZ_RIGHT)
@@ -218,8 +224,8 @@ def generate_individual_debtors_xls(rows, *, report_date: date) -> bytes:
         (9, 9, 2, 3, "หมายเหตุ"),
     ):
         sheet.write_merge(top, bottom, first, last, label, header_style)
-    sheet.write(2, 1, "วันที่ครบกำหนด", header_style)
-    sheet.write(3, 1, "คืนเงินยืม", header_style)
+    sheet.write(2, 1, "วันที่ครบกำหนด", split_header_top_style)
+    sheet.write(3, 1, "คืนเงินยืม", split_header_bottom_style)
     sheet.write(3, 6, "เงินสด", header_style)
     sheet.write(3, 7, "ใบสำคัญ", header_style)
 

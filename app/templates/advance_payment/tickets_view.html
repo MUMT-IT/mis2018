@@ -277,6 +277,7 @@
 <div class="modal fade" id="receivablesPreviewModal" tabindex="-1" aria-labelledby="receivablesPreviewModalTitle" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
+      <form method="get" action="{{ url_for('advance_payment.export_receivables_report') }}">
       <div class="modal-header">
         <div>
           <h2 class="modal-title fs-5" id="receivablesPreviewModalTitle">ตัวอย่างรายงานลูกหนี้เงินยืม</h2>
@@ -285,7 +286,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
       </div>
       <div class="modal-body">
-        <div class="table-responsive">
+        <label for="receivablesTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>
+        <input id="receivablesTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>
+        <p class="text-muted small mt-2 mb-0">ตัวอย่างด้านล่างแสดงยอดคงค้างปัจจุบัน ส่วนไฟล์จะคำนวณจากรายการที่อนุมัติภายในวันที่เลือก</p>
+        <div class="table-responsive mt-4">
           <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
@@ -324,13 +328,14 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <a class="btn btn-success" href="{{ url_for('advance_payment.export_receivables_report') }}">
+        <button type="submit" class="btn btn-success">
           <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงาน
-        </a>
-        <a class="btn btn-outline-success" href="{{ url_for('advance_payment.export_individual_debtors_report') }}">
+        </button>
+        <button type="submit" class="btn btn-outline-success" formaction="{{ url_for('advance_payment.export_individual_debtors_report') }}">
           <i class="bi bi-download me-1"></i> ดาวน์โหลดทะเบียนคุมลูกหนี้รายตัว
-        </a>
+        </button>
       </div>
+      </form>
     </div>
   </div>
 </div>
