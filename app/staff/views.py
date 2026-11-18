@@ -7724,7 +7724,7 @@ def download_seminar_request_docx(record_id):
     if attend.deduct_transfer:
         _, fiscal_end = get_fiscal_date(attend.start_datetime)
         cost_items.append(f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_end.year + 543}')
-    costs_text = ' '.join(cost_items) if cost_items else 'ไม่มีค่าใช้จ่าย'
+    costs_text = ' '.join(cost_items) if cost_items else ''
     objective_names = ', '.join(attend.objective_list) or '-'
     mission_names = ', '.join(attend.mission_list) or '-'
     is_idp_objective = any('IDP' in objective.objective for objective in attend.objectives)
