@@ -701,7 +701,7 @@ def _render_service_admin_overview_chart_html(snapshot):
 def _build_service_admin_line_reminder_message(recipient, snapshot):
     lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
     return (
-        f"แจ้งเตือนเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออกของระบบบริการวิชาการ\n"
+        f"แจ้งเตือนเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออกของงานบริการตรวจวิเคราะห์\n"
         f"ห้องปฏิบัติการ: {lab_name}\n"
         f"ยอดค้างค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
         f"ยอดค้างค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
@@ -711,7 +711,24 @@ def _build_service_admin_line_reminder_message(recipient, snapshot):
     )
 
 
-def _build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=None):
+def _build_service_admin_email_reminder_content(recipient, snapshot):
+    lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
+    title = 'แจ้งเตือนยอดค้างชำระและรายงานผลที่ยังไม่ออกของงานบริการตรวจวิเคราะห์'
+    message = (
+        f"เรียน เจ้าหน้าที่ห้องปฏิบัติการ{lab_name}\n\n"
+        "ขอแจ้งรายการยอดค้างชำระและรายงานผลที่ยังไม่ออก ดังนี้\n"
+        f"- ยอดค้างชำระเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
+        f"- ยอดค้างชำระเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
+        f"- รายการที่ใกล้ครบกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n"
+        f"- งานที่รับตัวอย่างแล้วแต่ยังไม่ออกรายงานผล: {snapshot['pending_result_count']} รายการ\n\n"
+        "กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม\n\n"
+        "ขอบคุณค่ะ\n"
+        "ระบบงานบริการตรวจวิเคราะห์"
+    )
+    return title, message
+
+
+def _build_service_admin_reminder_package_by_lab(recipient, snapshot_cache=None):
     snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
     cache_key = tuple(recipient.get('sub_lab_ids') or [])
     snapshot = snapshot_cache.get(cache_key)
@@ -721,10 +738,13 @@ def _build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=
         snapshot = {**snapshot, **result_snapshot}
         snapshot_cache[cache_key] = snapshot
     message = _build_service_admin_line_reminder_message(recipient, snapshot)
+    email_subject, email_message = _build_service_admin_email_reminder_content(recipient, snapshot)
     return {
         'recipient': recipient,
         'snapshot': snapshot,
         'message': message,
+        'email_subject': email_subject,
+        'email_message': email_message,
     }
 
 
@@ -1033,6 +1053,17 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
         snapshot = package['snapshot']
         metrics = metrics_builder(snapshot)
         message_html = escape(package['message']).replace('\n', '<br>')
+        email_preview_html = ''
+        if package.get('email_subject') and package.get('email_message'):
+            email_subject_html = escape(package['email_subject'])
+            email_message_html = escape(package['email_message']).replace('\n', '<br>')
+            email_preview_html = f'''
+            <div class="message" style="margin-top:16px;">
+                <h3>Email Preview</h3>
+                <p><strong>Subject:</strong> {email_subject_html}</p>
+                <div class="message-body">{email_message_html}</div>
+            </div>
+            '''
         recipient_emails = recipient.get('emails') or ([recipient.get('email')] if recipient.get('email') else [])
         recipient_email = ', '.join(email for email in recipient_emails if email) or '-'
         admin_names = ', '.join(recipient.get('admin_names') or recipient.get('names') or []) or '-'
@@ -1067,6 +1098,7 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
                 <h3>Message Preview</h3>
                 <div class="message-body">{message_html}</div>
             </div>
+            {email_preview_html}
             <div class="message" style="margin-top:16px;">
                 <h3>รายการตัวอย่าง</h3>
                 <ul class="example-list">{example_html}</ul>
@@ -1206,7 +1238,7 @@ def line_remind_pending():
         lambda row: not row.is_assistant and not row.is_supervisor and not row.is_central_admin
     )
     snapshot_cache = {}
-    packages = [_build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=snapshot_cache)
+    packages = [_build_service_admin_reminder_package_by_lab(recipient, snapshot_cache=snapshot_cache)
                 for recipient in recipient_groups]
     matched_packages = [
         package for package in packages
@@ -1215,7 +1247,7 @@ def line_remind_pending():
     should_send = _request_flag('send')
     dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
     current_app.logger.info(
-        'service_admin_line_reminder_checkpoint scheduler_request=%s recipients=%s matched_recipients=%s should_send=%s dry_run=%s',
+        'service_admin_pending_reminder_checkpoint scheduler_request=%s recipients=%s matched_recipients=%s should_send=%s dry_run=%s',
         scheduler_request,
         len(packages),
         len(matched_packages),
@@ -1225,7 +1257,7 @@ def line_remind_pending():
 
     if dry_run:
         return _render_service_admin_action_dry_run_html(
-            'Service Admin Line Reminder Dry Run',
+            'Service Admin Pending Reminder Dry Run',
             packages,
             should_send,
             lambda snapshot: [
@@ -1255,14 +1287,14 @@ def line_remind_pending():
 
     if not should_send:
         response = make_response(
-            'Line reminder was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            'LINE and email reminders were not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
             400
         )
         response.mimetype = 'text/plain'
         return response
 
     if not matched_packages:
-        message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
+        message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง LINE/อีเมลแจ้งเตือน'
         if request.method == 'POST':
             flash(message, 'warning')
             return redirect(url_for('service_admin.task_dashboard'))
@@ -1270,9 +1302,32 @@ def line_remind_pending():
         response.mimetype = 'text/plain'
         return redirect(url_for('service_admin.task_dashboard'))
 
-    sent_count = 0
-    failed_count = 0
+    line_sent_count = 0
+    line_failed_count = 0
+    email_sent_count = 0
+    email_failed_count = 0
+    missing_email_count = 0
     for package in matched_packages:
+        recipient_emails = package['recipient'].get('emails') or (
+            [package['recipient'].get('email')] if package['recipient'].get('email') else []
+        )
+        if not recipient_emails:
+            missing_email_count += 1
+        for recipient_email in recipient_emails:
+            try:
+                send_mail(
+                    [recipient_email],
+                    package['email_subject'],
+                    package['email_message'],
+                )
+                email_sent_count += 1
+            except Exception:
+                email_failed_count += 1
+                current_app.logger.exception(
+                    'Failed to send service admin reminder email for lab_name=%s',
+                    package['recipient'].get('lab_name'),
+                )
+
         line_ids = package['recipient'].get('line_ids') or ([] if not package['recipient'].get('line_id') else [package['recipient'].get('line_id')])
         if not line_ids:
             current_app.logger.info(
@@ -1293,24 +1348,29 @@ def line_remind_pending():
                     to=line_id,
                     messages=TextSendMessage(text=package['message'])
                 )
-                sent_count += 1
+                line_sent_count += 1
             except LineBotApiError:
-                failed_count += 1
+                line_failed_count += 1
                 current_app.logger.exception(
                     'Failed to send service admin reminder to line_id=%s',
                     _mask_line_id(line_id)
                 )
 
-    success_message = f'ส่ง Line reminder แล้ว {sent_count} ราย'
-    if failed_count:
-        success_message += f' และส่งไม่สำเร็จ {failed_count} ราย'
+    success_message = f'ส่ง LINE reminder แล้ว {line_sent_count} ราย และส่งอีเมลแล้ว {email_sent_count} ราย'
+    if line_failed_count:
+        success_message += f' (LINE ไม่สำเร็จ {line_failed_count} ราย)'
+    if email_failed_count:
+        success_message += f' (อีเมลไม่สำเร็จ {email_failed_count} ราย)'
+    if missing_email_count:
+        success_message += f' (ไม่มีอีเมล {missing_email_count} กลุ่ม)'
 
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
         return redirect(url_for('service_admin.task_dashboard'))
 
-    flash(success_message, 'success' if failed_count == 0 else 'warning')
+    has_failures = line_failed_count > 0 or email_failed_count > 0 or missing_email_count > 0
+    flash(success_message, 'warning' if has_failures else 'success')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
