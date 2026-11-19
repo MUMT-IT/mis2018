@@ -6,16 +6,29 @@ from io import BytesIO
 
 import xlwt
 
+from .date_utils import THAI_MONTHS
+
 
 AMOUNT_KEYS = ("borrowed", "repaid", "before_pending", "pending", "remaining")
 CENT = Decimal("0.01")
-THAI_MONTHS = ("มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-               "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม")
 SHORT_MONTHS = ("มค.", "กพ.", "มีค.", "เมย.", "พค.", "มิย.",
                 "กค.", "สค.", "กย.", "ตค.", "พย.", "ธค.")
 HEADERS = ("วันที่ยืม", "วันที่ครบกำหนด", "ชื่อผู้ยืม", "", "เลขที่ยืม",
            "จำนวนเงินยืม", "ส่งใช้เงินยืม", "คงเหลือ", "เอกสารระหว่าง",
            "คงเหลือสุทธิ", "วัตถุประสงค์")
+
+
+def borrower_name_parts(ticket):
+    """Use the same borrower name in receivables and borrowing registers."""
+    person = getattr(getattr(ticket, "borrower_user", None), "personal_info", None)
+    first = "".join((getattr(person, "th_title", "") or "",
+                     getattr(person, "th_firstname", "") or "")) or None
+    last = getattr(person, "th_lastname", None)
+    if first is None and last is None:
+        first, separator, last = (ticket.borrower_name or "").strip().rpartition(" ")
+        if not separator:
+            first, last = last, ""
+    return first or "", last or ""
 
 
 def build_receivable_row(ticket, *, approved_amount, pending_amount,
@@ -30,11 +43,8 @@ def build_receivable_row(ticket, *, approved_amount, pending_amount,
     remaining = before_pending - pending
     if min(borrowed, repaid, pending, before_pending, remaining) < 0:
         raise ValueError(f"Invalid receivable balance for ticket {ticket.number}")
-    borrower = (ticket.borrower_name or "").strip()
     if first_name_with_title is None and last_name is None:
-        first_name_with_title, separator, last_name = borrower.rpartition(" ")
-        if not separator:
-            first_name_with_title, last_name = borrower, ""
+        first_name_with_title, last_name = borrower_name_parts(ticket)
     return {
         "number": ticket.number or "",
         "first_name_with_title": first_name_with_title or "",
@@ -432,6 +442,148 @@ def generate_outstanding_debt_xls(rows, *, report_date: date) -> bytes:
     sheet.write(total_row, 5, float(total_balance), total_number)
     for column, amount in enumerate(totals, start=9):
         sheet.write(total_row, column, float(amount), total_number)
+    output = BytesIO()
+    book.save(output)
+    return output.getvalue()
+
+
+def generate_borrowing_register_xls(rows, *, report_date: date) -> bytes:
+    rows = list(rows)
+    # A page has 14 transactions before its first carryover, then 15 per page.
+    if len(rows) + 2 * (len(rows) // 14) + 12 > 65536:
+        raise ValueError("รายการมากเกินขนาดที่ไฟล์ .xls รองรับ")
+
+    book = xlwt.Workbook(encoding="utf-8")
+    month_label = SHORT_MONTHS[report_date.month - 1]
+    # This source sheet uses ต.ค. while the receivables sheets use ตค.
+    month_label = f"{month_label[:-2]}.{month_label[-2:]}"
+    sheet = book.add_sheet(
+        f"{month_label}{(report_date.year + 543) % 100:02d}"
+    )
+    sheet.show_grid = False
+    sheet.portrait = True
+    sheet.fit_width_to_pages = 1
+    for col, width in enumerate((13, 19, 35, 20, 10, 12, 13, 40, 14, 12)):
+        sheet.col(col).width = int(width * 256)
+
+    title = _style(size=16, horizontal=xlwt.Alignment.HORZ_CENTER)
+    header = _style(size=16, bold=True, bordered=True, wrap=True,
+                    horizontal=xlwt.Alignment.HORZ_CENTER)
+    text = _style(size=16, bordered=True)
+    center = _style(size=16, bordered=True, horizontal=xlwt.Alignment.HORZ_CENTER)
+    number = _style(size=16, bordered=True, horizontal=xlwt.Alignment.HORZ_RIGHT,
+                    num_format="#,##0.00;(#,##0.00)")
+    date_style = _style(size=16, bordered=True,
+                        horizontal=xlwt.Alignment.HORZ_CENTER,
+                        num_format="[$-101041E]d\\ mmm\\ yy;@")
+    carry_text = _style(size=16, bold=True, bordered=True)
+    carry_number = _style(size=16, bold=True, bordered=True,
+                          horizontal=xlwt.Alignment.HORZ_RIGHT,
+                          num_format="#,##0.00;(#,##0.00)")
+    opening_prompt = _style(size=16, bold=True, bordered=True)
+    opening_prompt.font.colour_index = xlwt.Style.colour_map["red"]
+    signature = _style(size=16)
+
+    sheet.row(0).height = 510
+    sheet.row(1).height = 975
+    sheet.row(2).height = sheet.row(3).height = 480
+    sheet.write_merge(0, 0, 0, 9, "ทะเบียนคุมการยืมเงิน", title)
+    for first, last, top, bottom, label in (
+        (0, 0, 2, 3, "วัน/เดือน/ปี"),
+        (2, 3, 2, 3, "รายการ"),
+        (6, 7, 2, 2, "รายการจ่าย"),
+        (8, 8, 2, 3, "เงินคงเหลือ"),
+        (9, 9, 2, 3, "หมายเหตุ"),
+    ):
+        sheet.write_merge(top, bottom, first, last, label, header)
+    for col, top, bottom in (
+        (1, "วันที่ครบกำหนด", "การคืนเงินยืม"),
+        (4, "เลขที่", "เอกสาร"),
+        (5, "รับ/(คืน)", "เงินยืม"),
+        (6, None, "ลูกหนี้"),
+        (7, None, "ใบสำคัญ"),
+    ):
+        if top is not None:
+            sheet.write(2, col, top, header)
+        sheet.write(3, col, bottom, header)
+
+    def write_carry(row_index, label, values=None, label_style=None):
+        sheet.row(row_index).height = 1170
+        sheet.write_merge(row_index, row_index, 2, 3, label, label_style or carry_text)
+        for col in (0, 1, 4, 7, 8, 9):
+            sheet.write(row_index, col, "", carry_text)
+        for col in (5, 6):
+            value = values[col - 5] if values else ""
+            sheet.write(row_index, col, value, carry_number)
+
+    def excel_date(value):
+        return datetime(value.year + 543, value.month, value.day)
+
+    row_index = 4
+    opening_row = row_index
+    write_carry(row_index, "กรุณากรอกยอดยกมา", label_style=opening_prompt)
+    row_index += 1
+    on_page = 0
+    page_capacity = 14
+    def group_size(index):
+        entry = rows[index]
+        if entry.get("description") == "รับจากเงินทดรองจ่าย(งานคลัง)":
+            return 2
+        if entry.get("g", 0) < 0 and entry.get("i", 0) > 0:
+            return 2
+        if entry.get("g", 0) < 0 and entry.get("h", 0) > 0:
+            following = index + 1
+            while following < len(rows) and rows[following].get("g", 0) < 0 and rows[following].get("h", 0) > 0:
+                following += 1
+            if following < len(rows) and rows[following].get("h", 0) < 0:
+                return following - index + 1
+        return 1
+
+    for item_index, entry in enumerate(rows):
+        required = group_size(item_index)
+        if on_page == page_capacity or (
+            on_page and required <= page_capacity and on_page + required > page_capacity
+        ):
+            last_detail = row_index
+            write_carry(row_index, "ยอดยกไป", (
+                xlwt.Formula(f"SUM(F{opening_row + 1}:F{last_detail})"),
+                xlwt.Formula(f"SUM(G{opening_row + 1}:G{last_detail})"),
+            ))
+            prior_row = row_index + 1
+            row_index += 1
+            opening_row = row_index
+            write_carry(row_index, "ยอดยกมา", (
+                xlwt.Formula(f"F{prior_row}"), xlwt.Formula(f"G{prior_row}"),
+            ))
+            row_index += 1
+            on_page = 0
+            page_capacity = 15
+        sheet.row(row_index).height = 558
+        for col, key in ((0, "date"), (1, "due_date")):
+            value = entry.get(key)
+            sheet.write(row_index, col, excel_date(value) if value else "",
+                        date_style if value else center)
+        for col, key, style in ((2, "description", text), (3, "last_name", text),
+                                (4, "ticket_number", center), (9, "note", text)):
+            sheet.write(row_index, col, str(entry.get(key) or ""), style)
+        for col, key in ((5, "f"), (6, "g"), (7, "h"), (8, "i")):
+            value = entry.get(key)
+            sheet.write(row_index, col, float(value) if value is not None else "", number)
+        row_index += 1
+        on_page += 1
+
+    last_detail = row_index
+    write_carry(row_index, "ยอดยกไป", (
+        xlwt.Formula(f"SUM(F{opening_row + 1}:F{last_detail})"),
+        xlwt.Formula(f"SUM(G{opening_row + 1}:G{last_detail})"),
+    ))
+    for offset, label in ((3, "(................................................)"),
+                          (4, "ผู้จัดทำ"), (5, "วันที่ ................................")):
+        sheet.write(row_index + offset, 2, label, signature)
+    for offset, label in ((3, "(................................................)"),
+                          (4, "ผู้ตรวจทาน"), (5, "วันที่ ................................")):
+        sheet.write(row_index + offset, 7, label, signature)
+
     output = BytesIO()
     book.save(output)
     return output.getvalue()
