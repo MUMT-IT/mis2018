@@ -2669,7 +2669,14 @@ def generate_fund_request_pdf(fund_request):
         p_amt_str_1 = f"-{amount_str}-" if amount_str.strip() else PDF_BLANK
         p_amt_text_1 = amount_text_th
         p_borrow_no = ticket_number
-        p_borrow_date = get_thai_month_year(borrowing_ticket.approved_at.date()) if is_borrowing_form and borrowing_ticket and borrowing_ticket.approved_at else date_thai
+        if is_borrowing_form:
+            approval_document_date = (
+                getattr(borrowing_ticket, "borrowing_approval_date", None)
+                if borrowing_ticket else None
+            )
+            p_borrow_date = get_thai_month_year(approval_document_date)
+        else:
+            p_borrow_date = date_thai
         p_borrower_name = requester
 
         box_interest = chk_box
