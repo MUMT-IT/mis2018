@@ -12,12 +12,24 @@
             <div class="column is-one-third is-offset-4">
                 <form method="post" class="box">
                     {{ form.hidden_tag() }}
-                    <h1 class="title has-text-centered">เพิ่มข้อมูล Cost Center ใหม่</h1>
+                    <h1 class="title has-text-centered">Cost Center</h1>
                     <div class="field">
                         <label class="label">Cost Center</label>
                         <div class="control">
-                            {{ form.cost_center(class="input") }}
+                            {{ form.id(class="input") }}
                         </div>
+                        <div class="field">
+                        <label class="label">พันธกิจ</label>
+                        <div class="select is-fullwidth">
+                            {{ form.mission(class="select") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">ภาควิชา/หน่วยงาน</label>
+                        <div class="select">
+                            {{ form.org(class="select") }}
+                        </div>
+                    </div>
                     </div>
                     <div class="buttons is-centered">
                         <input type="submit" class="button is-success" value="Submit"></input>

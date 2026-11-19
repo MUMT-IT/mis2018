@@ -7031,13 +7031,22 @@ def seminar_records():
             start_date, end_date = end_date, start_date
 
         seminar_list = []
+        # seminar_query = db.session.query(StaffSeminar). \
+        #     outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
+        #     outerjoin(staff_seminar_mission_assoc_table,
+        #               staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
+        #     outerjoin(StaffSeminarMission,
+        #               StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
+        #     filter(StaffSeminar.cancelled_at == None,
+        #            func.date(func.coalesce(StaffSeminar.end_datetime, StaffSeminar.start_datetime)) >= start_date,
+        #            func.date(StaffSeminar.start_datetime) <= end_date).all()
         seminar_query = db.session.query(StaffSeminar). \
             outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
             outerjoin(staff_seminar_mission_assoc_table,
                       staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
             outerjoin(StaffSeminarMission,
                       StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
-            filter(StaffSeminar.cancelled_at == None,
+            filter(
                    func.date(func.coalesce(StaffSeminar.end_datetime, StaffSeminar.start_datetime)) >= start_date,
                    func.date(StaffSeminar.start_datetime) <= end_date).all()
         for seminar in seminar_query:
@@ -7058,6 +7067,7 @@ def seminar_records():
                 missions.append(mission.mission)
 
             record["missions"] = missions
+            record["cancelled_at"] = seminar.cancelled_at
             seminar_list.append(record)
         return render_template('staff/seminar_records.html', seminar_list=seminar_list,
                                start_date=start_date.isoformat(), end_date=end_date.isoformat())
@@ -7412,14 +7422,14 @@ def edit_seminar_attend(attend_id):
                 float(getattr(attend, field) or 0)
                 for field in ('registration_fee', 'accommodation_cost', *active_travel_fields)
             ) or None
-            if attend.budget and not (attend.budget_type or '').strip():
-                flash('กรุณาระบุแหล่งงบประมาณ/เงินทุนเมื่อมีค่าใช้จ่าย', 'warning')
-                return render_template(
-                    'staff/seminar_create_record.html', seminar=seminar, form=form,
-                    is_secretary=False, staff_list=[], fiscal_year=get_fiscal_date(seminar.start_datetime)[1].year,
-                    is_edit=True, attend=attend, form_initial=form_initial,
-                    edit_position_id=document_approver.position_id if document_approver else None,
-                )
+            # if attend.budget and not (attend.budget_type or '').strip():
+            #     flash('กรุณาระบุแหล่งงบประมาณ/เงินทุนเมื่อมีค่าใช้จ่าย', 'warning')
+            #     return render_template(
+            #         'staff/seminar_create_record.html', seminar=seminar, form=form,
+            #         is_secretary=False, staff_list=[], fiscal_year=get_fiscal_date(seminar.start_datetime)[1].year,
+            #         is_edit=True, attend=attend, form_initial=form_initial,
+            #         edit_position_id=document_approver.position_id if document_approver else None,
+            #     )
             if not attend.budget:
                 attend.deduct_transfer = False
         attend.start_datetime = tz.localize(form.start_datetime.data) if form.start_datetime.data.tzinfo is None else form.start_datetime.data
@@ -8054,7 +8064,7 @@ def download_seminar_request_docx(record_id):
     if attend.deduct_transfer:
         _, fiscal_end = get_fiscal_date(attend.start_datetime)
         cost_items.append(f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_end.year + 543}')
-    costs_text = ' '.join(cost_items) if cost_items else 'ไม่มีค่าใช้จ่าย'
+    costs_text = ' '.join(cost_items) if cost_items else ''
     objective_names = ', '.join(attend.objective_list) or '-'
     mission_names = ', '.join(attend.mission_list) or '-'
     is_idp_objective = any('IDP' in objective.objective for objective in attend.objectives)
@@ -8178,9 +8188,6 @@ def download_seminar_request_docx(record_id):
     # Replace each existing footer-slot paragraph's full text while retaining
     # the paragraph formatting and the first run's character formatting.
     for paragraph in document.paragraphs:
-        if 'เหตุผลความจำเป็น' in paragraph.text:
-            for run in paragraph.runs:
-                run.text = ''
         if 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ' in paragraph.text:
             paragraph.paragraph_format.keep_with_next = True
     if document.paragraphs:

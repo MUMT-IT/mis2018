@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <h1 class="title has-text-centered">ระบบจัดการข้อมูลงบประมาณและต้นทุน</h1>
+    <div class="columns">
+        <div class="column is-half is-offset-3">
+            <nav class="panel is-info">
+                <p class="panel-heading"></p>
+                <a class="panel-block" href="{{ url_for('procurement.procurement_planning_landing') }}">
+                    <span class="panel-icon">
+                        <i class="fab fa-stack-overflow"></i>
+                    </span>
+                    <span class="is-size-5">ระบบติดตามการใช้งบประมาณ (จัดการแผนจัดซื้อจัดจ้างรายการงบลงทุน)</span><br>
+                </a>
+                <a class="panel-block" href="{{ url_for('receipt_printing.show_cost_center') }}">
+                    <span class="panel-icon">
+                        <i class="fas fa-cog"></i>
+                    </span>
+                    <span class="is-size-5">จัดการข้อมูล Cost Center</span>
+                </a>
+                <a class="panel-block" href="{{ url_for('receipt_printing.show_io_code') }}">
+                    <span class="panel-icon">
+                        <i class="fas fa-cog"></i>
+                    </span>
+                    <span class="is-size-5">จัดการข้อมูล Internal Order</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+</section>
+{% endblock %}
