@@ -1361,6 +1361,17 @@ def generate_participant_list_word(event):
         set_run_font(cells[0].paragraphs[0].add_run(str(index)))
         set_run_font(cells[1].paragraphs[0].add_run(participant.fullname or ''))
 
+    if not participants:
+        for index in range(1, 4):
+            cells = participant_table.add_row().cells
+            cells[0].width = Cm(2.4)
+            cells[1].width = Cm(14.6)
+            for cell in cells:
+                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                cell.paragraphs[0].paragraph_format.line_spacing = Pt(26)
+            cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            set_run_font(cells[0].paragraphs[0].add_run(str(index)))
+
     document.add_paragraph().paragraph_format.space_after = Pt(4)
 
     cost_centers = event.cost_center.id if event.cost_center else '-'
@@ -1528,12 +1539,18 @@ def generate_participant_list_pdf(event):
         Spacer(1, 8.5 * mm),
     ]
 
+    participants = event.participants or []
     rows = [[Paragraph('ลำดับ', header_style), Paragraph('ชื่อ-สกุล', header_style)]]
-    for index, participant in enumerate(event.participants or [], start=1):
+    for index, participant in enumerate(participants, start=1):
         rows.append([
             Paragraph(str(index), body_center_style),
             Paragraph(escape(participant.fullname or ''), body_style),
         ])
+    if not participants:
+        rows.extend(
+            [Paragraph(str(index), body_center_style), Paragraph('&nbsp;', body_style)]
+            for index in range(1, 4)
+        )
     participant_table = Table(rows, colWidths=[24 * mm, 146 * mm], repeatRows=1)
     participant_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
