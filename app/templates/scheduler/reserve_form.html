@@ -86,6 +86,14 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .reserve-grid.is-full {
+            grid-column: 1 / -1;
+        }
+
+        .reserve-grid[hidden] {
+            display: none;
+        }
+
         .reserve-grid.is-single {
             grid-template-columns: 1fr;
         }
@@ -439,6 +447,43 @@
                         </div>
 
                         <div class="reserve-section">
+                            <h2 class="title is-4 reserve-section-title">อาหารสำหรับกิจกรรม</h2>
+                            <div class="reserve-grid">
+                                <div class="reserve-field-card is-full">
+                                    <label class="checkbox">
+                                        {{ form.is_refreshment() }}
+                                        ต้องการอาหาร
+                                    </label>
+                                </div>
+                                <div id="refreshment_fields" class="reserve-grid is-full"{% if not form.is_refreshment.data %} hidden{% endif %}>
+                                    <div class="reserve-field-card">
+                                        <label class="label">จำนวนอาหาร</label>
+                                        {{ form.refreshment(class='input', type='number', min='1', step='1', placeholder='จำนวนชุด') }}
+                                    </div>
+                                    <div class="reserve-field-card">
+                                        <label class="label">รายละเอียด</label>
+                                        {{ form.refreshment_detail(class='input', placeholder='เช่น อาหารกลางวันหรืออาหารว่าง') }}
+                                    </div>
+                                    <div class="reserve-field-card">
+                                        <label class="label">รหัสศูนย์ต้นทุน <span class="has-text-danger">*</span></label>
+                                        {{ form.cost_center(class='js-example-basic-single') }}
+                                        {% for error in form.cost_center.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                    </div>
+                                    <div class="reserve-field-card">
+                                        <label class="label">รหัสใบสั่งงานภายใน (IO Code) <span class="has-text-danger">*</span></label>
+                                        {{ form.iocode(class='js-example-basic-single') }}
+                                        {% for error in form.iocode.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                    </div>
+                                    <div class="reserve-field-card">
+                                        <label class="label">ผลผลิต / หมวดค่าใช้จ่าย <span class="has-text-danger">*</span></label>
+                                        {{ form.product_code(class='js-example-basic-single') }}
+                                        {% for error in form.product_code.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="reserve-section">
                             <h2 class="title is-4 reserve-section-title">อุปกรณ์และความต้องการเพิ่มเติม</h2>
                             <div class="reserve-grid is-single">
                                 <div class="reserve-field-card">
@@ -545,6 +590,10 @@
                 input.addEventListener('change', triggerAvailabilityCheck)
             })
             $('.js-example-basic-multiple').select2({
+                width: '100%',
+            });
+
+            $('.js-example-basic-single').select2({
                 width: '100%',
             });
 
@@ -728,6 +777,31 @@
             showRepeatField();
             document.getElementById('is_repeat_booking').addEventListener('change', showRepeatField);
 
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            const refreshmentCheckbox = document.getElementById('is_refreshment');
+            const refreshmentField = document.getElementById('refreshment_fields');
+            const refreshment = document.querySelector('[name="refreshment"]');
+            const occupancy = document.querySelector('[name="occupancy"]');
+
+            function updateRefreshment(occupancyChanged = false) {
+                refreshmentField.hidden = !refreshmentCheckbox.checked;
+
+                if (refreshmentCheckbox.checked && Number(occupancy.value) > 0 &&
+                    (occupancyChanged || !(Number(refreshment.value) > 0))) {
+                    refreshment.value = occupancy.value;
+                }
+            }
+
+            refreshmentCheckbox.addEventListener('change', function () {
+                updateRefreshment();
+            });
+            occupancy.addEventListener('input', function () {
+                updateRefreshment(true);
+            });
+            updateRefreshment();
         });
     </script>
 {% endblock %}
