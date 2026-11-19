@@ -37,6 +37,9 @@ from ..comhealth.models import ComHealthReceiptID
 from ..main import db
 from ..roles import finance_permission, finance_head_permission
 from ..staff.models import StaffPersonalInfo
+from app.org_directory import (
+    organizations_in_hierarchy,
+)
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -88,6 +91,11 @@ def upload_receipt_pdf_to_s3(receipt, pdf_bytes, tag="signed"):
     # Keep legacy field empty for new writes.
     receipt.pdf_file = None
 
+def get_org_and_children_ids(org):
+    ids = [org.id]
+    for child in org.children:
+        ids.extend(get_org_and_children_ids(child))
+    return ids
 
 @receipt_printing.route('/landing')
 def landing():
@@ -882,8 +890,28 @@ def select_btw_io_code_and_cost_center():
 
 @receipt_printing.route('/cost_center/show')
 def show_cost_center():
-    cost_center = CostCenter.query.all()
-    return render_template('receipt_printing/show_cost_center.html', cost_center=cost_center, url_back=request.referrer)
+    missions = Mission.query.all()
+    org_id = request.args.get('deptid', type=int)
+    mission_id = request.args.get('missionid', type=int)
+    departments = Org.query.order_by(Org.id.asc()).all()
+    department_options = organizations_in_hierarchy(departments)
+    cost_center_query = CostCenter.query
+    if org_id:
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        cost_center_query = cost_center_query.filter(CostCenter.org_id.in_(org_ids))
+    if mission_id:
+        cost_center_query = cost_center_query.filter(CostCenter.mission_id == mission_id)
+    cost_center = cost_center_query.order_by(CostCenter.id.asc()).all()
+
+    return render_template('receipt_printing/show_cost_center.html',
+                           sel_dept=org_id,
+                           departments=[
+                               {'id': department.id, 'name': department.name, 'depth': depth}
+                               for department, depth in department_options
+                           ], mission_id=mission_id,
+                           missions=[{'id': m.id, 'name': m.name} for m in missions],
+                           cost_center=cost_center, url_back=request.referrer)
 
 
 @receipt_printing.route('/io_code/show')
