@@ -211,12 +211,12 @@
               type="button"
               class="btn btn-info btn-sm fw-bold px-3 py-1.5"
               data-popup-trigger="true"
-              data-popup-title="ยืนยันการเริ่มดำเนินการ"
+              data-popup-title="ยืนยันริ่มการตรวจสอบ"
               data-popup-message="คุณต้องการเปลี่ยนสถานะสัญญาเงินยืมเป็น กำลังดำเนินการ ใช่หรือไม่?"
               data-popup-action="{{ url_for('advance_payment.start_processing_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
-              data-popup-confirm-text="เริ่มดำเนินการ"
+              data-popup-confirm-text="เริ่มการตรวจสอบ"
               data-popup-confirm-class="btn-info">
-                เริ่มดำเนินการ
+                เริ่มการตรวจสอบ
             </button>
           {% elif borrowing_ticket.status|lower == "กำลังดำเนินการ" %}
             <button
@@ -224,9 +224,9 @@
               class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
               data-popup-trigger="true"
               data-popup-title="ทำการใส่เลขที่สัญญา"
-              data-popup-message="โปรดระบุเลขที่สัญญา เลขที่อว.อนุมัติยืมเงิน วันที่อนุมัติ และวันที่อนุมัติจ่ายเงิน"
+              data-popup-message="โปรดระบุเลขที่สัญญา เลขที่อว.ขออนุมัติยืมเงิน วันที่อนุมัติ และวันที่อนุมัติจ่ายเงิน"
               data-popup-action="{{ url_for('advance_payment.approve_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
-              data-popup-confirm-text="ยืนยันการสร้างสัญญา"
+              data-popup-confirm-text="ยืนยันการอนุมัติสัญญา"
               data-popup-input-type="text"
               data-popup-input-name="number"
               data-popup-input-placeholder="เลขที่บย. เช่น 12/2569"
@@ -237,15 +237,15 @@
             </button>
             <template id="borrowingApprovalFields">
               <div class="mt-3">
-                <label for="borrowingApprovedAt" class="form-label">วันที่อนุมัติจ่ายเงิน</label>
+                <label for="borrowingApprovedAt" class="form-label">วันที่อนุมัติจ่ายเงิน(โอนเงินสำเร็จ)</label>
                 <input id="borrowingApprovedAt" type="text" name="approved_at" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
               </div>
               <div class="mt-3">
-                <label for="borrowingApprovalRefNo" class="form-label">เลขที่อว.อนุมัติยืมเงิน</label>
-                <input id="borrowingApprovalRefNo" type="text" name="borrowing_approval_ref_no" class="form-control" placeholder="เลขที่อว.อนุมัติยืมเงิน" maxlength="255" required>
+                <label for="borrowingApprovalRefNo" class="form-label">เลขที่อว.ขออนุมัติยืมเงิน</label>
+                <input id="borrowingApprovalRefNo" type="text" name="borrowing_approval_ref_no" class="form-control" placeholder="เลขที่อว.ขออนุมัติยืมเงิน" maxlength="255" required>
               </div>
               <div class="mt-3">
-                <label for="borrowingApprovalDate" class="form-label">วันที่อนุมัติ</label>
+                <label for="borrowingApprovalDate" class="form-label">ลงวันที่อนุมัติ</label>
                 <input id="borrowingApprovalDate" type="text" name="borrowing_approval_date" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
               </div>
             </template>
