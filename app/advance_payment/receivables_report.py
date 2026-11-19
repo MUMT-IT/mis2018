@@ -1,11 +1,14 @@
 """Generate the cash-advance receivables report in the source XLS layout."""
 
-from datetime import date, datetime
+from collections import defaultdict
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
+from zoneinfo import ZoneInfo
 
 import xlwt
 
+from .categories import CATEGORY_LABELS
 from .date_utils import THAI_MONTHS
 
 
@@ -584,6 +587,297 @@ def generate_borrowing_register_xls(rows, *, report_date: date) -> bytes:
                           (4, "ผู้ตรวจทาน"), (5, "วันที่ ................................")):
         sheet.write(row_index + offset, 7, label, signature)
 
+    output = BytesIO()
+    book.save(output)
+    return output.getvalue()
+
+
+FUND_CATEGORY_COLUMNS = {1: "g", 2: "h", 3: "i", 4: "j", 7: "k", 8: "o"}
+
+
+def _fund_category_amounts(items, total, *, source):
+    amounts = defaultdict(lambda: Decimal("0.00"))
+    for item in items:
+        amount = Decimal(str(item.amount or 0)).quantize(CENT)
+        column = FUND_CATEGORY_COLUMNS.get(item.category_type)
+        if column is None:
+            reason = ("หมวดอื่น ๆ ยังไม่มีคอลัมน์ในทะเบียน" if item.category_type == 5
+                      else "กรุณาจัดหมวดรายการก่อนดาวน์โหลด")
+            raise ValueError(f"{source}, รายการ {item.id}: {reason}")
+        if not amount.is_finite() or amount <= 0:
+            raise ValueError(f"{source}, รายการ {item.id}: จำนวนเงินไม่ถูกต้อง")
+        amounts[column] += amount
+    if sum(amounts.values(), Decimal("0.00")) != Decimal(str(total or 0)).quantize(CENT):
+        raise ValueError(f"{source}: ยอดแยกหมวดไม่ตรงกับยอดรวม")
+    return dict(amounts)
+
+
+def _fund_register_rows(target_date):
+    """Build fund movements using the existing loan register and finance helpers."""
+    # Resolve view helpers at export time, after blueprint registration finishes.
+    from . import views as finance
+    from .models import (db, ParcelReturnDetail, PettyCashClaimDetail,
+                         PettyCashFiscalYearTopUpTransfer)
+    from sqlalchemy import func, or_
+
+    first_day = target_date.replace(day=1)
+    zero = Decimal("0.00")
+    money = finance._money_decimal
+
+    def local_day(value):
+        return (value.astimezone(ZoneInfo("Asia/Bangkok")).date()
+                if value.tzinfo else value.date()) if isinstance(value, datetime) else value
+
+    def in_month(value):
+        return value is not None and first_day <= local_day(value) <= target_date
+
+    events = []
+
+    def append(day, order, description, amounts, ticket_ids=()):
+        if in_month(day) and any(amounts.values()):
+            events.append((local_day(day), order, len(events), {
+                "date": local_day(day), "description": description,
+                **{key: value for key, value in amounts.items() if value},
+                "ticket_ids": sorted(set(ticket_ids)),
+            }))
+
+    daily = defaultdict(lambda: {
+        "loan": zero, "cash": zero, "noncash": zero,
+        "loan_ids": set(), "cash_ids": set(), "noncash_ids": set(),
+    })
+    day = None
+    for row in finance._borrowing_register_rows(target_date):
+        day = row.get("date") or day
+        if day is None:
+            continue
+        if row.get("description") == "รับจากเงินทดรองจ่าย(งานคลัง)":
+            daily[day]["loan"] += money(row["f"])
+            daily[day]["loan_ids"].add(row["ticket_id"])
+        elif row.get("description", "").startswith("รับคืนเงินยืม"):
+            kind = "noncash" if row.get("h") else "cash"
+            daily[day][kind] -= money(row["g"])
+            daily[day][f"{kind}_ids"].add(row["ticket_id"])
+
+    categories = defaultdict(lambda: defaultdict(lambda: zero))
+    ticket_ids = {ticket.id for ticket in finance._receivables_export_tickets(target_date)}
+    if ticket_ids:
+        returns, parcels = finance._ticket_return_rows_as_of(
+            ticket_ids, target_date, report_stage="settled", require_approval_by_target=False,
+        )
+        for detail in returns:
+            if not in_month(detail.settled_at) or finance._return_detail_is_cash(detail):
+                continue
+            if not (finance._return_ticket_ids(detail) & ticket_ids):
+                continue
+            amounts = _fund_category_amounts(
+                detail.receipt_items, detail.amount_spent, source=f"รายการคืนเงินยืม {detail.id}",
+            )
+            for column, amount in amounts.items():
+                categories[local_day(detail.settled_at)][column] += amount
+        for parcel in parcels:
+            if (parcel.fund_request_id is None and in_month(parcel.settled_at)
+                    and finance._parcel_return_ticket_ids(parcel) & ticket_ids):
+                amount = money(parcel.amount_spent)
+                if amount <= 0:
+                    raise ValueError(f"รายการคืนพัสดุ {parcel.id}: จำนวนเงินไม่ถูกต้อง")
+                categories[local_day(parcel.settled_at)]["i"] += amount
+
+    for day in sorted(set(daily) | set(categories)):
+        movement = daily[day]
+        if sum(categories[day].values(), zero) != movement["noncash"]:
+            raise ValueError(f"ยอดคืนวันที่ {day:%d/%m/%Y} ไม่ตรงกับทะเบียนคุมการยืมเงิน")
+        amount = movement["loan"]
+        append(day, 5, "จ่ายเงินยืม", {"f": amount, "l": amount}, movement["loan_ids"])
+        append(day, 1, "รับคืนเงินยืม", {"l": -movement["noncash"], **categories[day]},
+               movement["noncash_ids"])
+        amount = movement["cash"]
+        append(day, 3, "รับคืนเงินยืม", {"f": -amount, "l": -amount}, movement["cash_ids"])
+
+    transfers = db.session.query(PettyCashFiscalYearTopUpTransfer).all()
+    counted_reductions = set()
+    for transfer in transfers:
+        if transfer.transfer_type != finance.PETTY_CASH_TRANSFER_REDUCTION or not in_month(transfer.transferred_at):
+            continue
+        record = transfer.fund_request
+        if record is None or record.form_type != finance.FUND_REQUEST_FORM_REDUCTION:
+            raise ValueError(f"รายการลดวงเงิน {transfer.id}: ไม่พบใบเบิกลดวงเงินที่เชื่อมกัน")
+        if record.is_legacy_import or record.status_id in finance._status_ids("fund_request", {
+            "PENDING", "REJECTED", "CLAIM_CANCELLED",
+        }):
+            continue
+        amount = money(record.amount)
+        if record.request_date is None or amount <= 0 or amount != money(transfer.transfer_amount):
+            raise ValueError(f"ใบเบิกลดวงเงิน {record.id}: กรุณาตรวจสอบข้อมูลโอนและยอดเงินที่เชื่อมกัน")
+        if record.id in counted_reductions:
+            raise ValueError(f"ใบเบิกลดวงเงิน {record.id}: มีข้อมูลโอนซ้ำกัน")
+        counted_reductions.add(record.id)
+        append(transfer.transferred_at, 0, "รับคืนเงินสดย่อย", {"f": -amount, "m": -amount})
+    for transfer in transfers:
+        if transfer.transfer_type == finance.PETTY_CASH_TRANSFER_TOP_UP and in_month(transfer.transferred_at):
+            amount = money(transfer.transfer_amount)
+            if amount <= 0:
+                raise ValueError(f"รายการเพิ่มวงเงิน {transfer.id}: จำนวนเงินไม่ถูกต้อง")
+            append(transfer.transferred_at, 0, "รับคืนเงินสดย่อย", {"f": amount, "m": amount})
+
+    # Include adjacent UTC dates, then apply Bangkok calendar dates above.
+    near_start, near_end = first_day - timedelta(days=1), target_date + timedelta(days=1)
+    cheque_days = defaultdict(lambda: defaultdict(lambda: zero))
+    cheque_tickets = defaultdict(set)
+    claims = db.session.query(PettyCashClaimDetail).filter(
+        or_(func.date(PettyCashClaimDetail.settled_at).between(near_start, near_end),
+            PettyCashClaimDetail.transferred_at.between(first_day, target_date)),
+        PettyCashClaimDetail.status_id.notin_(finance._status_ids("petty_cash_claim", {"REJECTED"})),
+    ).all()
+    for claim in claims:
+        if finance._claim_has_only_category_six(claim):
+            continue
+        settled = claim.fund_request_id is not None and in_month(claim.settled_at)
+        transferred = in_month(claim.transferred_at)
+        if not (settled or transferred):
+            continue
+        amounts = _fund_category_amounts(claim.items, claim.total_amount,
+                                         source=f"ใบเบิกเงินสดย่อย {claim.id}")
+        total = money(claim.total_amount)
+        ticket_id = getattr(claim.fund_request, "borrowing_ticket_id", None)
+        linked_ids = {ticket_id} if ticket_id else set()
+        if settled:
+            day = local_day(claim.settled_at)
+            cheque_days[day]["f"] -= total
+            for column, amount in amounts.items():
+                cheque_days[day][column] -= amount
+            cheque_tickets[day].update(linked_ids)
+        if transferred:
+            append(claim.transferred_at, 4, "โอนเงินสดย่อย", {"f": total, **amounts}, linked_ids)
+
+    parcels = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.fund_request_id.isnot(None),
+        or_(func.date(ParcelReturnDetail.settled_at).between(near_start, near_end),
+            ParcelReturnDetail.transferred_at.between(first_day, target_date)),
+        ParcelReturnDetail.status_id.notin_(finance._status_ids("parcel_return", {"REJECTED"})),
+    ).all()
+    for parcel in parcels:
+        settled, transferred = in_month(parcel.settled_at), in_month(parcel.transferred_at)
+        if not (settled or transferred):
+            continue
+        amount = money(parcel.amount_spent)
+        if amount <= 0:
+            raise ValueError(f"รายการคืนพัสดุ {parcel.id}: จำนวนเงินไม่ถูกต้อง")
+        linked_ids = finance._parcel_return_ticket_ids(parcel)
+        ticket_id = getattr(parcel.fund_request, "borrowing_ticket_id", None)
+        if ticket_id:
+            linked_ids.add(ticket_id)
+        if settled:
+            day = local_day(parcel.settled_at)
+            cheque_days[day]["f"] -= amount
+            cheque_days[day]["i"] -= amount
+            cheque_tickets[day].update(linked_ids)
+        if transferred:
+            append(parcel.transferred_at, 4, "โอนเงินสดย่อย", {"f": amount, "i": amount}, linked_ids)
+    for day, amounts in cheque_days.items():
+        append(day, 2, "รับเช็คเงินยืม", dict(amounts), cheque_tickets[day])
+
+    return [row for _, _, _, row in sorted(events, key=lambda entry: entry[:3])]
+
+
+def generate_fund_register_xls(rows, *, report_date: date) -> bytes:
+    """Write the source A–P layout; opening balances are entered after download."""
+    rows = list(rows)
+    page_size = 21
+    pages = max(1, (len(rows) + page_size - 1) // page_size)
+    if 3 + pages * (page_size + 2) + 7 > 65536:
+        raise ValueError("รายการมากเกินขนาดที่ไฟล์ .xls รองรับ")
+    book = xlwt.Workbook(encoding="utf-8")
+    month = SHORT_MONTHS[report_date.month - 1]
+    sheet = book.add_sheet(f"{month}{(report_date.year + 543) % 100:02d}")
+    sheet.show_grid = False
+    sheet.portrait = False
+    sheet.fit_width_to_pages = 1
+    for col, width in enumerate((1755, 1206, 8338, 2706, 3693, 3547, 2925, 3254,
+                                 3035, 3584, 2779, 3510, 3547, 3218, 3181, 3803)):
+        sheet.col(col).width = width
+    title = _style(size=16, horizontal=xlwt.Alignment.HORZ_CENTER)
+    header = _style(size=16, bold=True, bordered=True, wrap=True,
+                    horizontal=xlwt.Alignment.HORZ_CENTER)
+    text = _style(size=16, bordered=True)
+    center = _style(size=16, bordered=True, horizontal=xlwt.Alignment.HORZ_CENTER)
+    number = _style(size=16, bordered=True, horizontal=xlwt.Alignment.HORZ_RIGHT,
+                    num_format="#,##0.00;(#,##0.00)")
+    carry_number = _style(size=16, bold=True, bordered=True,
+                          horizontal=xlwt.Alignment.HORZ_RIGHT, num_format="#,##0.00;(#,##0.00)")
+    carry_text = _style(size=16, bold=True, bordered=True)
+    prompt = _style(size=16, bold=True, bordered=True, wrap=True)
+    prompt.font.colour_index = xlwt.Style.colour_map["red"]
+    signature = _style(size=16)
+    for row, height in enumerate((465, 600, 420)):
+        sheet.row(row).height = height
+    sheet.write_merge(0, 0, 0, 15, "ทะเบียนคุมเงินทดรองจ่าย", title)
+    for col, label in enumerate(("เดือน/ปี", "วันที่", "รายการ", "เอกสาร")):
+        sheet.write_merge(1, 2, col, col, label, header)
+    for col, top, bottom in ((4, "ได้รับจัดสรร", "(1)"), (5, "จ่าย(รับ)", "(2)"),
+                             (15, "คงเหลือ(รับ-จ่าย)", "(1)-(2)=(4)")):
+        for row, label, top_border, bottom_border in ((1, top, True, False), (2, bottom, False, True)):
+            sheet.write(row, col, label, _style(size=16, bold=True, bordered=True, wrap=True,
+                        horizontal=xlwt.Alignment.HORZ_CENTER,
+                        top_border=top_border, bottom_border=bottom_border))
+    sheet.write_merge(1, 1, 6, 14, "รายการเบิกจ่าย (3)=(2)", header)
+    for col, label in enumerate((CATEGORY_LABELS[1], CATEGORY_LABELS[2], CATEGORY_LABELS[3],
+                                CATEGORY_LABELS[4], CATEGORY_LABELS[7], "เงินยืม", "เงินสดย่อย",
+                                "เงินทดรองจ่าย", CATEGORY_LABELS[8]), start=6):
+        sheet.write(2, col, label, header)
+
+    def write_carry(row, label, *, opening=None, first=None):
+        sheet.row(row).height = 1110
+        for col in range(16):
+            value = ""
+            if col == 2:
+                value = label
+            elif col >= 4 and opening is not None:
+                letter = chr(ord("A") + col)
+                if col == 15 and first is not None:
+                    formula = f'IF(AND(ISNUMBER(E{row + 1}),ISNUMBER(F{row + 1})),E{row + 1}-F{row + 1},"")'
+                elif first is None:
+                    formula = f'IF(ISNUMBER({letter}{opening}),{letter}{opening},"")'
+                else:
+                    formula = f'IF(ISNUMBER({letter}{opening}),{letter}{opening}+SUM({letter}{first}:{letter}{row}),"")'
+                value = xlwt.Formula(formula)
+            style = (prompt if opening is None else carry_text) if col == 2 else (
+                carry_number if col >= 4 else center)
+            sheet.write(row, col, value, style)
+
+    row = 3
+    write_carry(row, "กรุณากรอกยอดยกมา")
+    opening = row + 1
+    row += 1
+    for page in range(pages):
+        first = row + 1
+        entries = rows[page * page_size:(page + 1) * page_size]
+        for index in range(page_size):
+            entry = entries[index] if index < len(entries) else {}
+            day = entry.get("date")
+            sheet.row(row).height = 582
+            sheet.write(row, 0, month if day else "", center)
+            sheet.write(row, 1, day.day if day else "", center)
+            sheet.write(row, 2, entry.get("description", ""), text)
+            sheet.write(row, 3, "", center)
+            for col, key in enumerate("efghijklmno", start=4):
+                value = entry.get(key)
+                sheet.write(row, col, float(value) if value is not None else "", number)
+            formula = (f'IF(AND(ISNUMBER(E{opening}),ISNUMBER(F{opening})),'
+                       f'E{opening}-F{opening}+SUM(E{first}:E{row + 1})-SUM(F{first}:F{row + 1}),"")')
+            sheet.write(row, 15, xlwt.Formula(formula) if entry else "", number)
+            row += 1
+        write_carry(row, "ยอดยกไป", opening=opening, first=first)
+        previous = row + 1
+        row += 1
+        if page < pages - 1:
+            write_carry(row, "ยอดยกมา", opening=previous)
+            opening = row + 1
+            row += 1
+    for col in (4, 11):
+        for offset, label in ((3, "(................................................)"),
+                              (4, "ผู้จัดทำ" if col == 4 else "ผู้ตรวจทาน"),
+                              (5, "วันที่ ................................")):
+            sheet.write(row + offset, col, label, signature)
     output = BytesIO()
     book.save(output)
     return output.getvalue()

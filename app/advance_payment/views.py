@@ -71,6 +71,7 @@ from .legacy_xls import (
 from .receivables_report import (
     borrower_name_parts, build_receivable_row, generate_receivables_xls, generate_individual_debtors_xls,
     generate_outstanding_debt_xls, generate_borrowing_register_xls,
+    _fund_register_rows, generate_fund_register_xls,
 )
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
@@ -6239,6 +6240,33 @@ def export_borrowing_register():
         return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
 
 
+@bp.route("/finance/fund-register.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_fund_register():
+    """Download and log the advance-fund register for the selected month."""
+    target_date = _borrowing_register_month_end()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับทะเบียนคุมเงินทดรองจ่าย", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+    try:
+        rows = _fund_register_rows(target_date)
+        workbook = generate_fund_register_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
+            download_name=f"fund_register_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("fund_register", target_date, [
+            {"ticket_id": ticket_id} for row in rows for ticket_id in row["ticket_ids"]
+        ])
+        return response
+    except (OSError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        current_app.logger.exception("Could not generate fund register")
+        message = "สร้างทะเบียนคุมเงินทดรองจ่ายไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+
+
 @bp.route("/finance/receivables-report.xls", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def export_receivables_report():
@@ -9989,15 +10017,19 @@ def petty_cash_fiscal_year_top_up_transfers():
                 reduction_request = _single_reduction_request(
                     reduction_requests_by_setting_id, setting_id
                 )
-                transferred_at = reduction_request.request_date
-            else:
-                raw_transferred_at = (request.form.get("transferred_at") or "").strip()
-                try:
-                    transferred_at = parse_date(raw_transferred_at) if raw_transferred_at else None
-                except ValueError as exc:
-                    raise ValueError("วันที่โอนเงินสำเร็จไม่ถูกต้อง") from exc
-                if transfer_type == PETTY_CASH_TRANSFER_NONE and transferred_at is not None:
-                    raise ValueError("รายการไม่มีการโอนไม่ควรมีวันที่โอนเงินสำเร็จ")
+                if reduction_request.request_date is None:
+                    raise ValueError("ต้องบันทึกวันที่เบิกเงินของใบเบิกลดวงเงินก่อน")
+                if amount != _money_decimal(reduction_request.amount):
+                    raise ValueError("ยอดลดวงเงินต้องตรงกับยอดใบเบิกลดวงเงิน")
+            raw_transferred_at = (request.form.get("transferred_at") or "").strip()
+            try:
+                transferred_at = parse_date(raw_transferred_at) if raw_transferred_at else None
+            except ValueError as exc:
+                raise ValueError("วันที่โอนหรือได้รับเงินไม่ถูกต้อง") from exc
+            if transfer_type == PETTY_CASH_TRANSFER_NONE and transferred_at is not None:
+                raise ValueError("รายการไม่มีการโอนไม่ควรมีวันที่โอนเงินสำเร็จ")
+            if transfer_type == PETTY_CASH_TRANSFER_REDUCTION and transferred_at is None:
+                raise ValueError("กรุณาระบุวันที่ได้รับเงินคืนจริง")
 
             transfer = transfers_by_setting_id.get(setting_id)
             if transfer is None:
@@ -10050,22 +10082,13 @@ def petty_cash_fiscal_year_top_up_transfers():
             transfer_amount = reduction_request.amount
         else:
             transfer_amount = abs(suggested_difference)
-        reduction_recorded_by_request = (
-            transfer_type == PETTY_CASH_TRANSFER_REDUCTION
-            and reduction_request is not None
-            and reduction_request.request_date is not None
-        )
-        if transfer_type == PETTY_CASH_TRANSFER_REDUCTION:
-            display_transferred_at = reduction_request.request_date if reduction_request else None
-        else:
-            display_transferred_at = transfer.transferred_at if transfer is not None else None
+        display_transferred_at = transfer.transferred_at if transfer is not None else None
         rows.append(
             SimpleNamespace(
                 setting=setting,
                 previous_carryover=previous_carryover,
                 previous_budget=previous_budget,
                 transfer=transfer,
-                reduction_recorded_by_request=reduction_recorded_by_request,
                 transfer_type=transfer_type,
                 transfer_amount=transfer_amount,
                 reduction_request=reduction_request,
@@ -11310,19 +11333,34 @@ def record_fund_request_withdrawal(request_id):
             )
             fund_req.withdrawal_proof_filename = original_filename
 
-    fund_req.request_date = request_date
     if fund_req.form_type == FUND_REQUEST_FORM_REDUCTION:
+        if fund_req.petty_cash_setting_id is None:
+            return _validation_error_response("ใบเบิกลดวงเงินยังไม่ได้เชื่อมหน่วยงานเงินสดย่อย")
         linked_transfer = (
             db.session.query(PettyCashFiscalYearTopUpTransfer)
             .filter_by(
                 petty_cash_setting_id=fund_req.petty_cash_setting_id,
-                transfer_type=PETTY_CASH_TRANSFER_REDUCTION,
             )
+            .with_for_update()
             .first()
         )
-        if linked_transfer is not None and linked_transfer.fund_request_id in (None, fund_req.id):
-            linked_transfer.fund_request_id = fund_req.id
-            linked_transfer.transferred_at = request_date
+        if linked_transfer is not None and (
+            linked_transfer.transfer_type == PETTY_CASH_TRANSFER_TOP_UP
+            or linked_transfer.fund_request_id not in (None, fund_req.id)
+        ):
+            return _validation_error_response("ข้อมูลปรับวงเงินเชื่อมกับรายการอื่นอยู่ กรุณาติดต่อฝ่ายการเงิน")
+        amount = _money_decimal(fund_req.amount)
+        if amount <= 0:
+            return _validation_error_response("ยอดลดวงเงินต้องมากกว่า 0")
+        if linked_transfer is None:
+            linked_transfer = PettyCashFiscalYearTopUpTransfer(
+                petty_cash_setting_id=fund_req.petty_cash_setting_id,
+            )
+        linked_transfer.transfer_type = PETTY_CASH_TRANSFER_REDUCTION
+        linked_transfer.transfer_amount = amount
+        linked_transfer.fund_request_id = fund_req.id
+        db.session.add(linked_transfer)
+    fund_req.request_date = request_date
     if not is_editing_withdrawal_date:
         fund_req.status_id = _status_id_for_record(fund_req, "WITHDRAWN")
     db.session.commit()

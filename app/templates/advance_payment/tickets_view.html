@@ -288,7 +288,7 @@
       <div class="modal-body">
         <label for="receivablesTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>
         <input id="receivablesTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>
-        <p class="text-muted small mt-2 mb-0">ตัวอย่างด้านล่างแสดงยอดคงค้างปัจจุบัน รายงานลูกหนี้คำนวณ ณ วันที่เลือก ส่วนทะเบียนคุมการยืมเงินแสดงรายการทั้งเดือนของวันที่เลือก และเว้นยอดยกมาให้กรอกจากเดือนก่อน</p>
+        <p class="text-muted small mt-2 mb-0">ตัวอย่างด้านล่างแสดงยอดคงค้างปัจจุบัน รายงานลูกหนี้คำนวณ ณ วันที่เลือก ส่วนทะเบียนคุมการยืมเงินและทะเบียนคุมเงินทดรองจ่ายแสดงรายการทั้งเดือนของวันที่เลือก และเว้นยอดยกมาให้กรอกจากเดือนก่อน</p>
         <div class="table-responsive mt-4">
           <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
@@ -339,6 +339,9 @@
         </button>
         <button type="submit" class="btn btn-outline-success" formaction="{{ url_for('advance_payment.export_borrowing_register') }}">
           <i class="bi bi-download me-1"></i> ดาวน์โหลดทะเบียนคุมการยืมเงิน
+        </button>
+        <button type="submit" class="btn btn-outline-success" formaction="{{ url_for('advance_payment.export_fund_register') }}">
+          <i class="bi bi-download me-1"></i> ดาวน์โหลดทะเบียนคุมเงินทดรองจ่าย
         </button>
       </div>
       </form>
