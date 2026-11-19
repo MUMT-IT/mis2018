@@ -3,7 +3,7 @@ from datetime import datetime
 from flask_login import current_user
 from flask_wtf import FlaskForm
 from wtforms import Field, IntegerField, StringField, TextAreaField, TimeField
-from wtforms.validators import DataRequired, NumberRange, Optional
+from wtforms.validators import DataRequired, NumberRange, Optional, ValidationError
 from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from app.models import IOCode
@@ -17,6 +17,27 @@ class ModelForm(BaseModelForm):
     @classmethod
     def get_session(self):
         return db.session
+
+
+class QuerySelectFieldRequired(QuerySelectField):
+    def iter_choices(self):
+        for value, label, selected in super().iter_choices():
+            if value == '__None':
+                yield '', label, selected
+            else:
+                yield value, label, selected
+
+    def process_formdata(self, valuelist):
+        if valuelist and valuelist[0] == '':
+            valuelist = ['__None']
+        return super().process_formdata(valuelist)
+
+
+def _required_when_refreshment_requested(message):
+    def validate(form, field):
+        if form.is_refreshment.data and not field.data:
+            raise ValidationError(message)
+    return validate
 
 
 class DateTimePickerField(Field):
@@ -46,26 +67,29 @@ class RoomEventForm(ModelForm):
     category = QuerySelectField(query_factory=lambda: EventCategory.query.all())
     participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(
                                  StaffAccount.personal_info.has(retired=False)).all(), get_label='fullname')
-    cost_center = QuerySelectField(
+    cost_center = QuerySelectFieldRequired(
         query_factory=lambda: CostCenter.query.all(),
         get_label='id',
         allow_blank=True,
         blank_text='กรุณาเลือกรหัสศูนย์ต้นทุน',
-        validators=[Optional()],
+        validators=[_required_when_refreshment_requested('กรุณาเลือกรหัสศูนย์ต้นทุน')],
+        render_kw={'required': True},
     )
-    iocode = QuerySelectField(
+    iocode = QuerySelectFieldRequired(
         query_factory=lambda: IOCode.query.all(),
         get_label='id',
         allow_blank=True,
         blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน',
-        validators=[Optional()],
+        validators=[_required_when_refreshment_requested('กรุณาเลือกรหัสใบสั่งงานภายใน')],
+        render_kw={'required': True},
     )
-    product_code = QuerySelectField(
+    product_code = QuerySelectFieldRequired(
         query_factory=lambda: ProductCode.query.all(),
         get_label='product_code',
         allow_blank=True,
         blank_text='กรุณาเลือกผลผลิต',
-        validators=[Optional()],
+        validators=[_required_when_refreshment_requested('กรุณาเลือกผลผลิต / หมวดค่าใช้จ่าย')],
+        render_kw={'required': True},
     )
 
 
