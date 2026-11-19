@@ -90,6 +90,10 @@
             grid-column: 1 / -1;
         }
 
+        .reserve-grid.refreshment-code-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
         .reserve-grid[hidden] {
             display: none;
         }
@@ -199,6 +203,26 @@
             color: var(--theme-red);
         }
 
+        .refreshment-message {
+            background: transparent;
+            border: 0;
+            border-radius: 14px;
+            grid-column: 1 / -1;
+            margin: 0.75rem 0 0;
+            max-width: 100%;
+            overflow: hidden;
+            width: fit-content;
+        }
+
+        .message.is-danger.is-light.refreshment-message .message-body {
+            background: rgba(221, 76, 76, 0.12);
+            border: 0;
+            border-radius: 14px;
+            color: var(--theme-red);
+            font-size: 0.85rem;
+            padding: 0.55rem 0.9rem;
+        }
+
         .reserve-status-box {
             background: linear-gradient(180deg, rgba(238, 243, 255, 0.82), rgba(255, 248, 230, 0.68));
             border: 1px solid rgba(18, 39, 84, 0.08);
@@ -248,6 +272,10 @@
             }
 
             .reserve-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .reserve-grid.refreshment-code-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -464,21 +492,28 @@
                                         <label class="label">รายละเอียด</label>
                                         {{ form.refreshment_detail(class='input', placeholder='เช่น อาหารกลางวันหรืออาหารว่าง') }}
                                     </div>
-                                    <div class="reserve-field-card">
-                                        <label class="label">รหัสศูนย์ต้นทุน <span class="has-text-danger">*</span></label>
-                                        {{ form.cost_center(class='js-example-basic-single') }}
-                                        {% for error in form.cost_center.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                    <div class="reserve-grid is-full refreshment-code-grid">
+                                        <div class="reserve-field-card">
+                                            <label class="label">รหัสศูนย์ต้นทุน <span class="has-text-danger">*</span></label>
+                                            {{ form.cost_center(class='js-example-basic-single') }}
+                                            {% for error in form.cost_center.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                        </div>
+                                        <div class="reserve-field-card">
+                                            <label class="label">รหัสใบสั่งงานภายใน <span class="has-text-danger">*</span></label>
+                                            {{ form.iocode(class='js-example-basic-single') }}
+                                            {% for error in form.iocode.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                        </div>
+                                        <div class="reserve-field-card">
+                                            <label class="label">ผลผลิต / หมวดค่าใช้จ่าย <span class="has-text-danger">*</span></label>
+                                            {{ form.product_code(class='js-example-basic-single') }}
+                                            {% for error in form.product_code.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                        </div>
                                     </div>
-                                    <div class="reserve-field-card">
-                                        <label class="label">รหัสใบสั่งงานภายใน (IO Code) <span class="has-text-danger">*</span></label>
-                                        {{ form.iocode(class='js-example-basic-single') }}
-                                        {% for error in form.iocode.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
-                                    </div>
-                                    <div class="reserve-field-card">
-                                        <label class="label">ผลผลิต / หมวดค่าใช้จ่าย <span class="has-text-danger">*</span></label>
-                                        {{ form.product_code(class='js-example-basic-single') }}
-                                        {% for error in form.product_code.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
-                                    </div>
+                                    <article class="message is-danger is-light refreshment-message">
+                                        <div class="message-body">
+                                            หากมีการขออาหาร กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม (โทร 2116)
+                                        </div>
+                                    </article>
                                 </div>
                             </div>
                         </div>
@@ -504,10 +539,7 @@
                                 </div>
                                 <div class="reserve-field-card">
                                     <label class="label">ความต้องการเพิ่มเติม</label>
-                                    {{ form.note(class="textarea", placeholder="หากมีอาหารว่าง กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม") }}
-                                    <p class="reserve-help is-danger">หากมีอาหารว่าง
-                                        กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม (โทร
-                                        2116)</p>
+                                    {{ form.note(class="textarea", placeholder="ระบุความต้องการเพิ่มเติมเกี่ยวกับการใช้ห้อง") }}
                                 </div>
                             </div>
                         </div>
