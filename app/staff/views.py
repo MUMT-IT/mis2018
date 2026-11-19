@@ -7848,8 +7848,6 @@ def download_seminar_request_docx(record_id):
     # Replace each existing footer-slot paragraph's full text while retaining
     # the paragraph formatting and the first run's character formatting.
     for paragraph in document.paragraphs:
-        if 'เหตุผลความจำเป็น' in paragraph.text:
-            run.text = 'เหตุผลความจำเป็น'
         if 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ' in paragraph.text:
             paragraph.paragraph_format.keep_with_next = True
     if document.paragraphs:
