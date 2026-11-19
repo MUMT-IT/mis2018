@@ -43,37 +43,46 @@
                 </div>
                 <div class="service-customer-info-grid">
                     <div class="service-customer-info-item">
-                        <span><i class="fas fa-user-tag"></i> ประเภท</span>
-                        <strong><span class="tag customer-detail-type-tag">{{ customer.type.type or '-' }}</span></strong>
+                        <span class="service-customer-info-label"><i class="fas fa-user-tag"></i> ประเภท</span>
+                        <strong><span class="tag customer-detail-type-tag">{{ customer.type or '-' }}</span></strong>
                     </div>
                     <div class="service-customer-info-item">
-                        <span><i class="fas fa-id-card"></i> เลขประจำตัวผู้เสียภาษีอากร</span>
-                        <strong>{{ customer.taxpayer_identification_no or '-' }}</strong>
+                        <span class="service-customer-info-label"><i class="fas fa-flag"></i> สถานะ</span>
+                        <strong>
+                            <span class="tag service-customer-status-tag {{ customer_status.color }} is-light is-rounded">
+                                <i class="fas {{ customer_status.icon }}" aria-hidden="true"></i>
+                                <span>{{ customer_status.label }}</span>
+                            </span>
+                        </strong>
                     </div>
                     <div class="service-customer-info-item">
-                        <span><i class="fas fa-envelope"></i> อีเมล</span>
+                        <span class="service-customer-info-label"><i class="fas fa-envelope"></i> อีเมล</span>
                         <strong>{{ customer.email or '-' }}</strong>
                     </div>
                     <div class="service-customer-info-item">
-                        <span><i class="fas fa-phone"></i> เบอร์โทรศัพท์</span>
+                        <span class="service-customer-info-label"><i class="fas fa-id-card"></i> เลขประจำตัวผู้เสียภาษี</span>
+                        <strong>{{ customer.taxpayer_identification_no or '-' }}</strong>
+                    </div>
+                    <div class="service-customer-info-item">
+                        <span class="service-customer-info-label"><i class="fas fa-phone"></i> เบอร์โทรศัพท์</span>
                         <strong>{{ customer.phone_number or '-' }}</strong>
                     </div>
                     <div class="service-customer-info-item">
-                        <span><i class="fas fa-fax"></i> โทรสาร</span>
+                        <span class="service-customer-info-label"><i class="fas fa-fax"></i> โทรสาร</span>
                         <strong>{{ customer.fax_no or '-' }}</strong>
                     </div>
                     <div class="service-customer-info-item">
-                        <span><i class="fas fa-envelope-circle-check"></i> ยืนยันอีเมล</span>
+                        <span class="service-customer-info-label"><i class="fas fa-envelope-circle-check"></i> ยืนยันอีเมล</span>
                         <strong>
                             {% if customer.verify_email %}
                                 <span class="tag is-success is-light is-rounded">
-                                    <i class="fas fa-circle-check" aria-hidden="true"></i>
-                                    ยืนยันแล้ว {{ customer.verify_email|localdate }}
+                                    <span class="icon"><i class="fas fa-circle-check" aria-hidden="true"></i></span>
+                                    <span>ยืนยันแล้ว {{ customer.verify_email|localdate }}</span>
                                 </span>
                             {% else %}
                                 <span class="tag is-danger is-light is-rounded">
-                                    <i class="fas fa-circle-xmark" aria-hidden="true"></i>
-                                    ยังไม่ยืนยัน
+                                    <span class="icon"><i class="fas fa-circle-xmark" aria-hidden="true"></i></span>
+                                    <span>ยังไม่ยืนยัน</span>
                                 </span>
                             {% endif %}
                         </strong>
@@ -97,8 +106,8 @@
                             <div class="service-customer-contact-meta">
                                 <span><i class="fas fa-phone"></i> {{ contact.phone_number or '-' }}</span>
                                 <span><i class="fas fa-envelope"></i> {{ contact.email or '-' }}</span>
+                                {% if contact.remark %}<span class="service-customer-contact-remark"><i class="fas fa-note-sticky"></i> {{ contact.remark }}</span>{% endif %}
                             </div>
-                            {% if contact.remark %}<small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>{% endif %}
                         </div>
                     </div>
                 {% else %}
@@ -313,19 +322,20 @@
         .service-customer-profile-icon { align-items: center; background: #eef6ff; border-radius: 13px; color: #2f80c9; display: inline-flex; flex: 0 0 3rem; font-size: 1.15rem; height: 3rem; justify-content: center; }
         .service-customer-profile-label { color: #8292a9; font-size: .75rem; font-weight: 700; margin-bottom: .15rem; }
         .service-customer-profile-main h2 { color: #1e3152; font-size: 1.25rem; margin: 0 0 .4rem; overflow-wrap: anywhere; }
+        .service-customer-payment-status-tag { margin-left: auto; text-decoration: none; white-space: nowrap; }
         .service-customer-info-item .customer-detail-type-tag { background: #f5f5f5; color: #15284d; font-weight: 700; }
-        .service-customer-verification .tag { font-weight: 700; padding: .55rem .8rem; }
         .service-customer-section-card { padding: 1.25rem 1.4rem; }
         .service-customer-contact-section { border-color: #cfe5fb; box-shadow: 0 12px 28px rgba(47,128,201,.1); }
         .service-customer-section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1rem; }
         .service-customer-section-heading h2 { color: #102f58; font-size: 1.08rem; font-weight: 800; margin: 0; }
         .service-customer-section-heading h2 i { color: #2f80c9; margin-right: .35rem; }
         .service-customer-section-count { background: #eef6ff; color: #2f80c9; font-size: .78rem; font-weight: 800; padding: .35rem .7rem; white-space: nowrap; }
-        .service-customer-info-grid { border-top: 1px solid #edf1f7; display: grid; gap: 1rem; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 1.15rem; padding-top: 1rem; }
+        .service-customer-info-grid { border-top: 1px solid #edf1f7; display: grid; gap: 1rem; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1.15rem; padding-top: 1rem; }
         .service-customer-info-item { display: flex; flex-direction: column; gap: .35rem; min-width: 0; padding: 0 .15rem; }
-        .service-customer-info-item span { color: #8292a9; font-size: .78rem; }
-        .service-customer-info-item span i { color: #2f80c9; margin-right: .25rem; }
-        .service-customer-info-item strong { color: #425675; font-size: .92rem; overflow-wrap: anywhere; }
+        .service-customer-info-label { color: #718099; font-size: .78rem; }
+        .service-customer-info-label i { color: #2f80c9; margin-right: .25rem; }
+        .service-customer-info-item strong { color: #1e3152; display: block; font-size: .92rem; overflow-wrap: anywhere; }
+        .service-customer-status-tag { align-items: center; display: inline-flex; gap: .35rem; }
         .service-customer-info-item strong .tag i { color: inherit; margin-right: .3rem; }
         .service-customer-address-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .service-customer-address-card { background: #fbfdff; border: 1px solid #e1edf8; border-radius: 12px; padding: 1rem; }
@@ -344,7 +354,7 @@
         .service-customer-contact-copy > span { color: #8391a8; display: block; font-size: .8rem; margin-top: .1rem; }
         .service-customer-contact-meta { color: #5c6c86; display: flex; flex-wrap: wrap; font-size: .8rem; gap: .65rem 1rem; margin-top: .45rem; }
         .service-customer-contact-meta i { color: #2f80c9; margin-right: .25rem; }
-        .service-customer-contact-copy small { color: #8391a8; display: block; margin-top: .45rem; }
+        .service-customer-contact-remark { min-width: 0; overflow-wrap: anywhere; }
         .service-customer-document-table th { background: #f3f7fc; color: #425675; font-size: .8rem; }
         .service-customer-document-table td { color: #425675; vertical-align: middle; }
         .service-customer-empty { background: #f8fbff; border: 1px dashed #d7e0ee; border-radius: 10px; color: #8391a8; padding: 1rem; text-align: center; }
@@ -355,17 +365,20 @@
         .service-customer-review-card { align-items: center; border-color: #cfe5fb; display: flex; gap: 1rem; justify-content: space-between; padding: 1rem 1.25rem; }
         .service-customer-review-card strong { color: #1e4677; font-size: .95rem; }
         .service-customer-review-card p { color: #667d9b; font-size: .8rem; margin: .2rem 0 0; }
+        @media screen and (max-width: 900px) { .service-customer-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media screen and (max-width: 700px) {
             .service-customer-view { padding-top: 2rem; }
             .service-customer-heading { align-items: flex-start; flex-direction: column; }
             .service-customer-profile-header, .service-customer-review-card { align-items: flex-start; flex-direction: column; }
-            .service-customer-info-grid, .service-customer-address-grid { grid-template-columns: 1fr; }
+            .service-customer-payment-status-tag { margin-left: 0; }
+            .service-customer-address-grid { grid-template-columns: 1fr; }
             .service-customer-review-card .buttons { width: 100%; }
             .service-customer-review-card .button { flex: 1; }
         }
         @media screen and (max-width: 480px) {
             .service-customer-heading-copy { align-items: flex-start; flex-direction: column; }
             .service-customer-heading-icon { flex-basis: 3rem; height: 3rem; }
+            .service-customer-info-grid { grid-template-columns: 1fr; }
             .service-customer-section-card { padding: 1rem; }
         }
     </style>

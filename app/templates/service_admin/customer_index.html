@@ -69,9 +69,11 @@
                         {% if not central_admin_academic_service_permission.can() %}
                             <th>ที่อยู่</th>
                             <th>สถานะ</th>
+                            <th>สถานะเอกสาร</th>
                             <th>Request</th>
                         {% else %}
                             <th>สถานะ</th>
+                            <th>สถานะเอกสาร</th>
                         {% endif %}
                         <th style="width: 5em">รายละเอียด</th>
                     </thead>
@@ -105,6 +107,7 @@
 {#                                </td>#}
                                 <td>{{ customer.phone_number }}</td>
                                 <td>{{ customer.taxpayer_identification_no or '' }}</td>
+                                {% set customer_status = customer_statuses.get(customer.id, {'label': 'ปกติ', 'color': 'is-success', 'icon': 'fa-circle-check', 'days_overdue': 0}) %}
                                 {% if not central_admin_academic_service_permission.can() %}
                                     <td>
                                         <div class="field has-addons">
@@ -127,6 +130,12 @@
                                                 </a>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <span class="tag is-rounded {{ customer_status.color }} is-light">
+                                            <span class="icon"><i class="fas {{ customer_status.icon }}" aria-hidden="true"></i></span>
+                                            <span>{{ customer_status.label }}</span>
+                                        </span>
                                     </td>
                                     <td>
                                         <span class="tag is-rounded {{ customer.status_document_verified_color }}">
@@ -173,6 +182,12 @@
                                         {% endfor %}
                                     </td>
                                 {% else %}
+                                    <td>
+                                        <span class="tag is-rounded {{ customer_status.color }} is-light">
+                                            <span class="icon"><i class="fas {{ customer_status.icon }}" aria-hidden="true"></i></span>
+                                            <span>{{ customer_status.label }}</span>
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="tag is-rounded {{ customer.status_document_verified_color }}">
                                             <span class="icon">{{ customer.status_document_verified_icon|safe }}</span>

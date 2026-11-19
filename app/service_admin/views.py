@@ -44,7 +44,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 
-from ..staff.models import Role, StaffAccount
+from ..staff.models import Role, StaffAccount, StaffHeadPosition
 
 CREDIT_DATE = 60
 CREDIT_OVERDUE_DATE = 30
@@ -149,7 +149,6 @@ def get_central_admin_academic_service():
     else:
         accounts = None
     return accounts
-
 
 
 def build_notification(invoice, service_request, link):
@@ -389,6 +388,105 @@ def _group_service_admin_recipients(predicate):
             'roles': sorted(recipient['roles']),
         })
     return sorted(normalized, key=lambda item: item['lab_name'])
+
+
+def _get_service_admin_management_recipients():
+    recipients = []
+
+    def _make_recipient(lab, sub_labs, label, accounts, seen_emails):
+        emails = set()
+        names = set()
+        for staff in accounts:
+            email = _normalize_internal_email(getattr(staff, 'email', None))
+            if email:
+                emails.add(email)
+            personal_info = getattr(staff, 'personal_info', None)
+            name = getattr(personal_info, 'fullname', None) if personal_info else None
+            name = str(name).strip() if name else None
+            if not name:
+                name = _normalize_internal_email(getattr(staff, 'email', None))
+            if name:
+                names.add(name)
+        # Avoid sending the same account twice when it holds both target roles.
+        emails = {email for email in emails if email.lower() not in seen_emails}
+        seen_emails.update(email.lower() for email in emails)
+        if not emails:
+            return
+        lab_name = str(getattr(lab, 'lab', None) or '').strip() or label
+        sub_lab_names = sorted({
+            str(getattr(sub_lab, 'sub_lab', None) or '').strip()
+            for sub_lab in sub_labs
+            if str(getattr(sub_lab, 'sub_lab', None) or '').strip()
+        })
+        recipients.append({
+            'lab_id': lab.id,
+            'lab_name': lab_name,
+            'name': lab_name,
+            'admin_ids': [],
+            'admin_names': sorted(names),
+            'line_ids': [],
+            'line_id': None,
+            'emails': sorted(emails),
+            'email': sorted(emails)[0],
+            'sub_lab_ids': sorted(sub_lab.id for sub_lab in sub_labs),
+            'sub_lab_names': sub_lab_names,
+            'roles': [],
+        })
+
+    deputy_position = StaffHeadPosition.query.filter_by(position='รองคณบดีฝ่ายการคลังและสินทรัพย์').first()
+    deputy_deans = [deputy_position.staff] if deputy_position and deputy_position.staff else []
+    finance_roles = Role.query.filter_by(role_need='finance', action_need='academic_service', resource_id=None)
+    if finance_roles:
+        finance_accounts = [staff for role in finance_roles for staff in role.staff_account]
+    else:
+        finance_accounts = []
+
+    for lab in ServiceLab.query.order_by(ServiceLab.lab).all():
+        sub_labs = sorted(lab.sub_labs or [], key=lambda sub_lab: (sub_lab.no or 0, sub_lab.id))
+        if not sub_labs:
+            continue
+        seen_emails = set()
+        _make_recipient(
+            lab, sub_labs, 'รองคณบดีฝ่ายการคลังและสินทรัพย์', deputy_deans, seen_emails
+        )
+        _make_recipient(
+            lab, sub_labs, 'ผู้มีสิทธิ์การเงินบริการวิชาการ', finance_accounts, seen_emails
+        )
+    return recipients
+
+
+def _get_service_admin_finance_reminder_recipient():
+    finance_roles = Role.query.filter_by(role_need='finance', action_need='academic_service', resource_id=None)
+    finance_accounts = {}
+    for role in finance_roles:
+        for staff in role.staff_account:
+            if staff:
+                finance_accounts.setdefault(staff.id, staff)
+
+    accounts = list(finance_accounts.values())
+    emails = set()
+    line_ids = set()
+    names = set()
+    for staff in accounts:
+        email = _normalize_internal_email(getattr(staff, 'email', None))
+        if email:
+            emails.add(email)
+        line_id = str(getattr(staff, 'line_id', None) or '').strip()
+        if line_id:
+            line_ids.add(line_id)
+        personal_info = getattr(staff, 'personal_info', None)
+        name = getattr(personal_info, 'fullname', None) if personal_info else None
+        name = str(name).strip() if name else None
+        if name:
+            names.add(name)
+
+    return {
+        'lab_name': 'งานบริการตรวจวิเคราะห์',
+        'name': 'การเงิน',
+        'admin_names': sorted(names),
+        'emails': sorted(emails),
+        'line_ids': sorted(line_ids),
+    }
 
 
 def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
@@ -636,7 +734,7 @@ def _render_service_admin_overview_chart_html(snapshot):
 def _build_service_admin_line_reminder_message(recipient, snapshot):
     lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
     return (
-        f"แจ้งเตือนเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออกของระบบบริการวิชาการ\n"
+        f"แจ้งเตือนเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออกของงานบริการตรวจวิเคราะห์\n"
         f"ห้องปฏิบัติการ: {lab_name}\n"
         f"ยอดค้างค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
         f"ยอดค้างค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
@@ -646,7 +744,24 @@ def _build_service_admin_line_reminder_message(recipient, snapshot):
     )
 
 
-def _build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=None):
+def _build_service_admin_email_reminder_content(recipient, snapshot):
+    lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
+    title = 'แจ้งเตือนยอดค้างชำระและรายงานผลที่ยังไม่ออกของงานบริการตรวจวิเคราะห์'
+    message = (
+        f"เรียน เจ้าหน้าที่ห้องปฏิบัติการ{lab_name}\n\n"
+        "ขอแจ้งรายการยอดค้างชำระและรายงานผลที่ยังไม่ออก ดังนี้\n"
+        f"- ยอดค้างชำระเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
+        f"- ยอดค้างชำระเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
+        f"- รายการที่ใกล้ครบกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n"
+        f"- งานที่รับตัวอย่างแล้วแต่ยังไม่ออกรายงานผล: {snapshot['pending_result_count']} รายการ\n\n"
+        "กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม\n\n"
+        "ขอบคุณค่ะ\n"
+        "ระบบงานบริการตรวจวิเคราะห์"
+    )
+    return title, message
+
+
+def _build_service_admin_reminder_package_by_lab(recipient, snapshot_cache=None):
     snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
     cache_key = tuple(recipient.get('sub_lab_ids') or [])
     snapshot = snapshot_cache.get(cache_key)
@@ -656,10 +771,13 @@ def _build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=
         snapshot = {**snapshot, **result_snapshot}
         snapshot_cache[cache_key] = snapshot
     message = _build_service_admin_line_reminder_message(recipient, snapshot)
+    email_subject, email_message = _build_service_admin_email_reminder_content(recipient, snapshot)
     return {
         'recipient': recipient,
         'snapshot': snapshot,
         'message': message,
+        'email_subject': email_subject,
+        'email_message': email_message,
     }
 
 
@@ -793,6 +911,71 @@ def _build_service_admin_weekly_overdue_invoice_snapshot():
         'overdue_90_count': overdue_90_count,
         'total_overdue_count': overdue_60_count + overdue_90_count,
     }
+
+
+def _build_service_admin_finance_overdue_snapshot():
+    today = arrow.now('Asia/Bangkok').date()
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .outerjoin(ServicePayment)
+        .filter(
+            ServiceInvoice.due_date.isnot(None),
+            ServicePayment.invoice_id == None,
+        )
+    )
+
+    overdue_60_count = 0
+    overdue_90_count = 0
+    due_soon_count = 0
+    for invoice in query.all():
+        days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
+        if days_overdue is None:
+            continue
+        if days_overdue >= 1:
+            if days_overdue > CREDIT_OVERDUE_DATE:
+                overdue_90_count += 1
+            else:
+                overdue_60_count += 1
+        elif -7 <= days_overdue <= 0:
+            due_soon_count += 1
+
+    return {
+        'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
+        'overdue_60_count': overdue_60_count,
+        'overdue_90_count': overdue_90_count,
+        'total_overdue_count': overdue_60_count + overdue_90_count,
+        'due_soon_count': due_soon_count,
+    }
+
+
+def _build_service_admin_finance_overdue_reminder_content(snapshot):
+    subject = 'แจ้งเตือนยอดค้างชำระของงานบริการตรวจวิเคราะห์'
+    scheme = 'http' if current_app.debug else 'https'
+    finance_invoice_url = url_for(
+        'service_admin.invoice_payment_index', menu='invoice', _external=True, _scheme=scheme
+    )
+    email_message = (
+        'เรียน เจ้าหน้าที่การเงิน\n\n'
+        'ขอแจ้งรายการยอดค้างชำระของงานบริการตรวจวิเคราะห์ ดังนี้\n'
+        f"- ยอดค้างชำระเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
+        f"- ยอดค้างชำระเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
+        f"- รายการที่ใกล้ครบกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n\n"
+        'กรุณาตรวจสอบและติดตามยอดค้างชำระตามความเหมาะสม\n'
+        'ท่านสามารถตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
+        f'{finance_invoice_url}\n\n'
+        'ขอบคุณค่ะ\n'
+        'ระบบงานบริการตรวจวิเคราะห์'
+    )
+    line_message = (
+        'แจ้งเตือนเรื่องยอดค้างชำระของงานบริการตรวจวิเคราะห์\n'
+        f"ยอดค้างค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
+        f"ยอดค้างค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
+        f"ยอดชำระที่ใกล้ถึงกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n"
+        'กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม'
+    )
+    return subject, email_message, line_message
 
 
 def _build_service_admin_weekly_overdue_invoice_message(snapshot, customer_group):
@@ -949,6 +1132,41 @@ def _build_service_admin_line_reminder_package(recipient, snapshot_cache=None):
         'message': message,
     }
 
+def _render_service_admin_finance_overdue_preview_html(snapshot, recipient, subject, email_message, line_message):
+    recipient_emails = ', '.join(recipient.get('emails') or []) or '-'
+    overdue_total = snapshot['overdue_60_count'] + snapshot['overdue_90_count']
+    send_status = (
+        'มีรายการค้างเกินกำหนด จะส่งเมื่อสั่งส่ง'
+        if overdue_total
+        else 'ไม่ส่ง เพราะไม่มีรายการค้างเกินกำหนด'
+    )
+    email_message_html = escape(email_message).replace('\n', '<br>')
+    line_message_html = escape(line_message).replace('\n', '<br>')
+    return f'''<!doctype html>
+<html lang="th">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px;background:#f8fafc;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <main style="max-width:760px;margin:0 auto;background:#fff;border:1px solid #dbe4ee;border-radius:16px;padding:24px;">
+    <h1 style="margin-top:0;">ตัวอย่างแจ้งเตือนยอดค้างชำระให้การเงิน</h1>
+    <p><strong>ขอบเขต:</strong> งานบริการตรวจวิเคราะห์</p>
+    <p><strong>ผู้รับอีเมล:</strong> {escape(recipient_emails)}</p>
+    <p><strong>จำนวน LINE ID:</strong> {len(recipient.get('line_ids') or [])}</p>
+    <p><strong>สถานะ:</strong> {escape(send_status)}</p>
+    <ul>
+      <li>ยอดค้างชำระเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ</li>
+      <li>ยอดค้างชำระเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ</li>
+      <li>รายการที่ใกล้ครบกำหนดชำระ: {snapshot['due_soon_count']} รายการ</li>
+    </ul>
+    <p><strong>หัวข้ออีเมล:</strong> {escape(subject)}</p>
+    <h2>ตัวอย่างอีเมล</h2>
+    <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:12px;padding:16px;line-height:1.7;">{email_message_html}</div>
+    <h2>ตัวอย่าง LINE</h2>
+    <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:12px;padding:16px;line-height:1.7;">{line_message_html}</div>
+  </main>
+</body>
+</html>'''
+
+
 def _render_service_admin_action_dry_run_html(title, packages, should_send, metrics_builder, stats=None, global_snapshot=None, matched_packages=None):
     matched_packages = matched_packages or []
     stats = stats or {
@@ -968,6 +1186,17 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
         snapshot = package['snapshot']
         metrics = metrics_builder(snapshot)
         message_html = escape(package['message']).replace('\n', '<br>')
+        email_preview_html = ''
+        if package.get('email_subject') and package.get('email_message'):
+            email_subject_html = escape(package['email_subject'])
+            email_message_html = escape(package['email_message']).replace('\n', '<br>')
+            email_preview_html = f'''
+            <div class="message" style="margin-top:16px;">
+                <h3>Email Preview</h3>
+                <p><strong>Subject:</strong> {email_subject_html}</p>
+                <div class="message-body">{email_message_html}</div>
+            </div>
+            '''
         recipient_emails = recipient.get('emails') or ([recipient.get('email')] if recipient.get('email') else [])
         recipient_email = ', '.join(email for email in recipient_emails if email) or '-'
         admin_names = ', '.join(recipient.get('admin_names') or recipient.get('names') or []) or '-'
@@ -1002,6 +1231,7 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
                 <h3>Message Preview</h3>
                 <div class="message-body">{message_html}</div>
             </div>
+            {email_preview_html}
             <div class="message" style="margin-top:16px;">
                 <h3>รายการตัวอย่าง</h3>
                 <ul class="example-list">{example_html}</ul>
@@ -1141,7 +1371,7 @@ def line_remind_pending():
         lambda row: not row.is_assistant and not row.is_supervisor and not row.is_central_admin
     )
     snapshot_cache = {}
-    packages = [_build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=snapshot_cache)
+    packages = [_build_service_admin_reminder_package_by_lab(recipient, snapshot_cache=snapshot_cache)
                 for recipient in recipient_groups]
     matched_packages = [
         package for package in packages
@@ -1150,7 +1380,7 @@ def line_remind_pending():
     should_send = _request_flag('send')
     dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
     current_app.logger.info(
-        'service_admin_line_reminder_checkpoint scheduler_request=%s recipients=%s matched_recipients=%s should_send=%s dry_run=%s',
+        'service_admin_pending_reminder_checkpoint scheduler_request=%s recipients=%s matched_recipients=%s should_send=%s dry_run=%s',
         scheduler_request,
         len(packages),
         len(matched_packages),
@@ -1160,7 +1390,7 @@ def line_remind_pending():
 
     if dry_run:
         return _render_service_admin_action_dry_run_html(
-            'Service Admin Line Reminder Dry Run',
+            'Service Admin Pending Reminder Dry Run',
             packages,
             should_send,
             lambda snapshot: [
@@ -1190,14 +1420,14 @@ def line_remind_pending():
 
     if not should_send:
         response = make_response(
-            'Line reminder was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            'LINE and email reminders were not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
             400
         )
         response.mimetype = 'text/plain'
         return response
 
     if not matched_packages:
-        message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
+        message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง LINE/อีเมลแจ้งเตือน'
         if request.method == 'POST':
             flash(message, 'warning')
             return redirect(url_for('service_admin.task_dashboard'))
@@ -1205,9 +1435,32 @@ def line_remind_pending():
         response.mimetype = 'text/plain'
         return redirect(url_for('service_admin.task_dashboard'))
 
-    sent_count = 0
-    failed_count = 0
+    line_sent_count = 0
+    line_failed_count = 0
+    email_sent_count = 0
+    email_failed_count = 0
+    missing_email_count = 0
     for package in matched_packages:
+        recipient_emails = package['recipient'].get('emails') or (
+            [package['recipient'].get('email')] if package['recipient'].get('email') else []
+        )
+        if not recipient_emails:
+            missing_email_count += 1
+        for recipient_email in recipient_emails:
+            try:
+                send_mail(
+                    [recipient_email],
+                    package['email_subject'],
+                    package['email_message'],
+                )
+                email_sent_count += 1
+            except Exception:
+                email_failed_count += 1
+                current_app.logger.exception(
+                    'Failed to send service admin reminder email for lab_name=%s',
+                    package['recipient'].get('lab_name'),
+                )
+
         line_ids = package['recipient'].get('line_ids') or ([] if not package['recipient'].get('line_id') else [package['recipient'].get('line_id')])
         if not line_ids:
             current_app.logger.info(
@@ -1228,24 +1481,29 @@ def line_remind_pending():
                     to=line_id,
                     messages=TextSendMessage(text=package['message'])
                 )
-                sent_count += 1
+                line_sent_count += 1
             except LineBotApiError:
-                failed_count += 1
+                line_failed_count += 1
                 current_app.logger.exception(
                     'Failed to send service admin reminder to line_id=%s',
                     _mask_line_id(line_id)
                 )
 
-    success_message = f'ส่ง Line reminder แล้ว {sent_count} ราย'
-    if failed_count:
-        success_message += f' และส่งไม่สำเร็จ {failed_count} ราย'
+    success_message = f'ส่ง LINE reminder แล้ว {line_sent_count} ราย และส่งอีเมลแล้ว {email_sent_count} ราย'
+    if line_failed_count:
+        success_message += f' (LINE ไม่สำเร็จ {line_failed_count} ราย)'
+    if email_failed_count:
+        success_message += f' (อีเมลไม่สำเร็จ {email_failed_count} ราย)'
+    if missing_email_count:
+        success_message += f' (ไม่มีอีเมล {missing_email_count} กลุ่ม)'
 
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
         return redirect(url_for('service_admin.task_dashboard'))
 
-    flash(success_message, 'success' if failed_count == 0 else 'warning')
+    has_failures = line_failed_count > 0 or email_failed_count > 0 or missing_email_count > 0
+    flash(success_message, 'warning' if has_failures else 'success')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
@@ -1261,6 +1519,20 @@ def monthly_overdue_summary():
 
     recipient_groups = _group_service_admin_recipients(lambda row: row.is_supervisor or row.is_assistant)
     recipient_groups = [recipient for recipient in recipient_groups if recipient.get('emails')]
+    management_recipients = _get_service_admin_management_recipients()
+    management_emails = {
+        email.lower()
+        for recipient in management_recipients
+        for email in recipient['emails']
+    }
+    for recipient in recipient_groups:
+        recipient['emails'] = [
+            email for email in recipient['emails']
+            if email.lower() not in management_emails
+        ]
+        recipient['email'] = recipient['emails'][0] if recipient['emails'] else None
+    recipient_groups = [recipient for recipient in recipient_groups if recipient['emails']]
+    recipient_groups.extend(management_recipients)
     snapshot_cache = {}
     packages = [_build_service_admin_summary_package(recipient, snapshot_cache=snapshot_cache)
                 for recipient in recipient_groups]
@@ -1408,6 +1680,106 @@ def weekly_overdue_invoice_reminder():
         return redirect(url_for('service_admin.task_dashboard'))
 
     flash(success_message, 'success')
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(url_for('service_admin.task_dashboard'))
+
+
+@service_admin.route('/admin/weekly-overdue-finance-reminder', methods=['GET', 'POST'])
+def weekly_overdue_finance_reminder():
+    scheduler_request, guard_response = _service_admin_preview_or_guard()
+    if guard_response:
+        return guard_response
+
+    snapshot = _build_service_admin_finance_overdue_snapshot()
+    recipient = _get_service_admin_finance_reminder_recipient()
+    subject, email_message, line_message = _build_service_admin_finance_overdue_reminder_content(snapshot)
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+    current_app.logger.info(
+        'service_admin_weekly_finance_overdue_reminder scheduler_request=%s overdue_60=%s overdue_90=%s due_soon=%s should_send=%s dry_run=%s',
+        scheduler_request,
+        snapshot['overdue_60_count'],
+        snapshot['overdue_90_count'],
+        snapshot['due_soon_count'],
+        should_send,
+        dry_run,
+    )
+
+    if dry_run:
+        response = make_response(
+            _render_service_admin_finance_overdue_preview_html(
+                snapshot, recipient, subject, email_message, line_message
+            )
+        )
+        response.mimetype = 'text/html'
+        return response
+
+    if not should_send:
+        response = make_response(
+            'Finance reminder was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400,
+        )
+        response.mimetype = 'text/plain'
+        return response
+
+    if snapshot['overdue_60_count'] + snapshot['overdue_90_count'] == 0:
+        success_message = 'ไม่มียอดค้างชำระเกินกำหนด จึงไม่ส่งแจ้งเตือนให้การเงิน'
+        if request.method == 'POST' or not scheduler_request:
+            flash(success_message, 'info')
+            return redirect(url_for('service_admin.task_dashboard'))
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return response
+
+    emails = recipient.get('emails') or []
+    line_ids = recipient.get('line_ids') or []
+    if not emails and not line_ids:
+        no_recipient_message = 'ไม่พบผู้รับที่มีอีเมลหรือ LINE ID ในบทบาทการเงิน'
+        if request.method == 'POST' or not scheduler_request:
+            flash(no_recipient_message, 'warning')
+            return redirect(url_for('service_admin.task_dashboard'))
+        response = make_response(no_recipient_message + '\n', 404)
+        response.mimetype = 'text/plain'
+        return response
+
+    email_sent_count = 0
+    email_failed_count = 0
+    for email in emails:
+        try:
+            send_mail([email], subject, email_message)
+            email_sent_count += 1
+        except Exception:
+            email_failed_count += 1
+            current_app.logger.exception('Failed to send weekly finance overdue email reminder.')
+
+    line_sent_count = 0
+    line_failed_count = 0
+    for line_id in line_ids:
+        try:
+            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=line_message))
+            line_sent_count += 1
+        except LineBotApiError:
+            line_failed_count += 1
+            current_app.logger.exception(
+                'Failed to send weekly finance overdue LINE reminder to line_id=%s',
+                _mask_line_id(line_id),
+            )
+
+    success_message = f'ส่งอีเมลแจ้งเตือนการเงินแล้ว {email_sent_count} ราย และส่ง LINE แล้ว {line_sent_count} ราย'
+    if email_failed_count:
+        success_message += f' (อีเมลไม่สำเร็จ {email_failed_count} ราย)'
+    if line_failed_count:
+        success_message += f' (LINE ไม่สำเร็จ {line_failed_count} ราย)'
+    has_failures = email_failed_count > 0 or line_failed_count > 0
+
+    if request.method == 'GET' and scheduler_request:
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return response
+    flash(success_message, 'warning' if has_failures else 'success')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
@@ -2330,6 +2702,68 @@ def customer_register_index():
     return render_template('service_admin/customer_register_index.html', is_staff=is_staff)
 
 
+def _get_customer_statuses(customers):
+    statuses = {
+        customer.id: {
+            'label': 'ปกติ',
+            'color': 'is-success',
+            'icon': 'fa-check',
+            'days_overdue': 0,
+        }
+        for customer in customers
+    }
+    customer_ids = list(statuses)
+    if not customer_ids:
+        return statuses
+
+    invoices = (
+        ServiceInvoice.query
+        .options(
+            joinedload(ServiceInvoice.quotation)
+            .joinedload(ServiceQuotation.request)
+            .joinedload(ServiceRequest.customer)
+        )
+        .filter(
+            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceInvoice.due_date.isnot(None),
+            ~ServiceInvoice.payments.any(),
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(
+                    ServiceRequest.customer.has(
+                        ServiceCustomerAccount.customer_info_id.in_(customer_ids)
+                    )
+                )
+            ),
+        )
+        .all()
+    )
+
+    today = arrow.now('Asia/Bangkok').date()
+    for invoice in invoices:
+        days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
+        if days_overdue is None or days_overdue < 1:
+            continue
+
+        customer_id = invoice.quotation.request.customer.customer_info_id
+        current_status = statuses[customer_id]
+        if days_overdue > current_status['days_overdue']:
+            if days_overdue >= 61:
+                statuses[customer_id] = {
+                    'label': 'ระงับการบริการ',
+                    'color': 'is-danger',
+                    'icon': 'fa-ban',
+                    'days_overdue': days_overdue,
+                }
+            else:
+                statuses[customer_id] = {
+                    'label': 'ค้างชำระ',
+                    'color': 'is-warning',
+                    'icon': 'fa-triangle-exclamation',
+                    'days_overdue': days_overdue,
+                }
+    return statuses
+
+
 @service_admin.route('/admin/register/search')
 @login_required
 def search_customer_for_admin():
@@ -2350,9 +2784,10 @@ def search_customer_for_admin():
             .limit(100)
             .all()
         )
+    customer_statuses = _get_customer_statuses(customers)
     return render_template(
         'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
-        customer_name=customer_name,
+        customer_name=customer_name, customer_statuses=customer_statuses,
     )
 
 
@@ -2375,9 +2810,10 @@ def search_customer_for_user():
             .limit(100)
             .all()
         )
+    customer_statuses = _get_customer_statuses(customers)
     return render_template(
         'service_admin/search_customer.html', is_admin=is_admin, customers=customers,
-        customer_name=customer_name
+        customer_name=customer_name, customer_statuses=customer_statuses
     )
 
 
@@ -2386,6 +2822,15 @@ def customer_detail(customer_id):
     is_admin = request.args.get('is_admin', 'false')
     customer = ServiceCustomerInfo.query.get(customer_id)
     # lab_payments = _build_customer_lab_payments(customer)
+    customer_statuses = _get_customer_statuses([customer])
+    customer_status = customer_statuses.get(customer.id)
+    if customer_status is None:
+        customer_status = {
+            'label': 'ปกติ',
+            'color': 'is-success',
+            'icon': 'fa-circle-check',
+            'days_overdue': 0,
+        }
     overdue_invoices = _get_customer_overdue_invoices(customer)
     latest_service_requests = (
         ServiceRequest.query
@@ -2407,6 +2852,7 @@ def customer_detail(customer_id):
     )
     return render_template(
         'service_admin/customer_detail.html',is_admin=is_admin, customer=customer,
+        customer_status=customer_status,
         overdue_invoices=overdue_invoices,
         latest_service_requests=latest_service_requests
     )
@@ -2580,9 +3026,11 @@ def customer_index():
         customers = approved_query
     else:
         customers = all_query
+    customer_statuses = _get_customer_statuses(customers)
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     return render_template('service_admin/customer_index.html', customers=customers, admin=admin,
                            tab=tab, not_attached_count=not_attached_query.count(), pending_count=pending_query.count(),
+                           customer_statuses=customer_statuses,
                            central_admin_academic_service_permission=central_admin_academic_service_permission)
 
 
@@ -2591,7 +3039,17 @@ def customer_index():
 def view_customer(customer_id):
     tab = request.args.get('tab')
     customer = ServiceCustomerInfo.query.get(customer_id)
+    customer_statuses = _get_customer_statuses([customer])
+    customer_status = customer_statuses.get(customer.id)
+    if customer_status is None:
+        customer_status = {
+            'label': 'ปกติ',
+            'color': 'is-success',
+            'icon': 'fa-circle-check',
+            'days_overdue': 0,
+        }
     return render_template('service_admin/view_customer.html', customer=customer, tab=tab,
+                           customer_status=customer_status,
                            central_admin_academic_service_permission=central_admin_academic_service_permission)
 
 
@@ -7685,7 +8143,7 @@ def upload_invoice_file(invoice_id):
                                  menu='report', tab='not_started', _external=True, _scheme=scheme)
             msg = (f'แจ้งออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
                    f'เรียน ฝ่ายการเงิน\n\n'
-                   f'หน่วยงาน{invoice.quotation.request.sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
+                   f'หน่วยงาน{invoice.quotation.request.sub_lab.lab.lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
                    f'วันที่ออก : {invoice.file_attached_at.strftime("%d/%m/%Y")}\n'
                    f'จำนวนเงิน : {invoice.grand_total:,.2f} บาท\n'
                    f'กรุณาดำเนินการตรวจสอบและเตรียมออกใบเสร็จรับเงินเมื่อได้รับการชำระเงินจากลูกค้าตามขั้นตอนที่กำหนด\n\n'
@@ -7721,6 +8179,7 @@ def upload_invoice_file(invoice_id):
                         if not a.is_assistant and not a.is_central_admin:
                             print('user_email', a.admin.email, 'message_email', message_for_admin, 'user_line',
                                   a.admin.line_id, 'message_line', msg_for_admin)
+                print('message', msg, 'line_id', staff.line_id)
                 print('message_email', message, 'message_line', msg)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab='waiting_payment'))
@@ -10903,12 +11362,52 @@ def unapprove_final_result_reversion(result_item_id):
 @login_required
 def invoice_payment_index():
     menu = request.args.get('menu')
-    return render_template('service_admin/invoice_payment_index.html', menu=menu)
+    tab = request.args.get('tab', 'pending')
+    today = arrow.now('Asia/Bangkok').date()
+    base_query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at.isnot(None))
+    tab_filters = _service_admin_invoice_payment_tab_filters(today)
+    return render_template(
+        'service_admin/invoice_payment_index.html',
+        menu=menu,
+        tab=tab,
+        pending_count=base_query.filter(tab_filters['pending']).count(),
+        verify_count=base_query.filter(tab_filters['verify']).count(),
+        overdue_count=base_query.filter(tab_filters['overdue']).count(),
+    )
+
+
+def _service_admin_invoice_payment_tab_filters(today):
+    active_payment = and_(
+        ServicePayment.created_at.isnot(None),
+        ServicePayment.cancelled_at.is_(None),
+    )
+    has_active_payment = ServiceInvoice.payments.any(active_payment)
+    due_date = cast(ServiceInvoice.due_date, Date)
+    return {
+        'pending': and_(
+            ~has_active_payment,
+            or_(ServiceInvoice.due_date.is_(None), due_date >= today),
+        ),
+        'verify': ServiceInvoice.payments.any(and_(
+            active_payment,
+            ServicePayment.verified_at.is_(None),
+        )),
+        'payment': ServiceInvoice.payments.any(and_(
+            active_payment,
+            ServicePayment.verified_at.isnot(None),
+        )),
+        'overdue': and_(
+            ~has_active_payment,
+            due_date < today,
+        ),
+    }
 
 
 @service_admin.route('/api/invoice/payment/index')
 @login_required
 def get_invoice_payments():
+    tab = request.args.get('tab', 'pending')
+    today = arrow.now('Asia/Bangkok').date()
     base_query = (ServiceInvoice.query
                   .options(
                       joinedload(ServiceInvoice.quotation)
@@ -10918,6 +11417,9 @@ def get_invoice_payments():
                   )
                   .filter(ServiceInvoice.file_attached_at.isnot(None)))
 
+    tab_filter = _service_admin_invoice_payment_tab_filters(today).get(tab)
+    if tab_filter is not None:
+        base_query = base_query.filter(tab_filter)
     records_total = base_query.count()
     search = request.args.get('search[value]')
     if search:
@@ -11055,7 +11557,7 @@ def confirm_payment(invoice_id):
         db.session.add(payment)
         db.session.commit()
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
-    return render_template('service_admin/invoice_payment_index.html')
+    return redirect(url_for('service_admin.invoice_payment_index', tab='payment'))
 
 
 @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
