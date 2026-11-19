@@ -724,12 +724,13 @@ def _fund_register_rows(target_date):
     cheque_days = defaultdict(lambda: defaultdict(lambda: zero))
     cheque_tickets = defaultdict(set)
     claims = db.session.query(PettyCashClaimDetail).filter(
+        PettyCashClaimDetail.settled_at.isnot(None),
         or_(func.date(PettyCashClaimDetail.settled_at).between(near_start, near_end),
             PettyCashClaimDetail.transferred_at.between(first_day, target_date)),
         PettyCashClaimDetail.status_id.notin_(finance._status_ids("petty_cash_claim", {"REJECTED"})),
     ).all()
     for claim in claims:
-        if finance._claim_has_only_category_six(claim):
+        if claim.settled_at is None or finance._claim_has_only_category_six(claim):
             continue
         settled = claim.fund_request_id is not None and in_month(claim.settled_at)
         transferred = in_month(claim.transferred_at)
@@ -751,11 +752,14 @@ def _fund_register_rows(target_date):
 
     parcels = db.session.query(ParcelReturnDetail).filter(
         ParcelReturnDetail.fund_request_id.isnot(None),
+        ParcelReturnDetail.settled_at.isnot(None),
         or_(func.date(ParcelReturnDetail.settled_at).between(near_start, near_end),
             ParcelReturnDetail.transferred_at.between(first_day, target_date)),
         ParcelReturnDetail.status_id.notin_(finance._status_ids("parcel_return", {"REJECTED"})),
     ).all()
     for parcel in parcels:
+        if parcel.settled_at is None:
+            continue
         settled, transferred = in_month(parcel.settled_at), in_month(parcel.transferred_at)
         if not (settled or transferred):
             continue
