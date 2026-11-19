@@ -318,6 +318,13 @@ def landing():
     return render_template('procurement/landing.html')
 
 
+@procurement.route('/index/planning')
+@login_required
+@procurement_plan_permission.require()
+def index_planning():
+    return render_template('procurement/index_planning.html')
+
+
 @procurement.route('/planning')
 @login_required
 @procurement_plan_permission.require()
