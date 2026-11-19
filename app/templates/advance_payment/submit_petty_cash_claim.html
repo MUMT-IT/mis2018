@@ -382,11 +382,11 @@
             <label class="form-label small fw-semibold">เลขที่อนุมัติในหลักการ เช่น อว.78.04/1</label>
             <input class="form-control form-control-sm reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
           </div>
-          <div class="col-md-2">
-            <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ</label>
-            <input type="text" class="form-control form-control-sm reference-info-input app-date-picker" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}" placeholder="dd/mm/yyyy">
-          </div>
           <div class="col-md-3">
+            <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ เช่น 19 ตุลาคม 2569</label>
+            <input type="text" class="form-control form-control-sm reference-info-input" name="reference_date" value="{{ claim_detail.reference_date|claim_reference_date_form if claim_detail and claim_detail.reference_date else '' }}">
+          </div>
+          <div class="col-md-2">
             <label class="form-label small fw-semibold">ไฟล์เอกสารอ้างอิง</label>
             <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
           </div>
@@ -495,11 +495,9 @@
                   </td>
                   <td>
                     <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
-                      <option value="1" {% if item.category_type|string == '1' %}selected{% endif %}>ค่าตอบแทน (เช่น ค่าเบี้ยเลี้ยง, ค่าตอบแทนวิทยากร)</option>
-                      <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)</option>
-                      <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง, ค่ารถตู้)</option>
-                      <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)</option>
-                      <option value="5" {% if item.category_type|string == '5' %}selected{% endif %}>อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option>
+                      {% for code, label in petty_cash_expense_choices %}
+                        <option value="{{ code }}" {% if item.category_type|string == code|string %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
                     </select>
                     </td>
                   <td>
@@ -539,11 +537,9 @@
                 <td>
                   <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
                     <option value="">เลือกหมวดหมู่</option>
-                    <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
-                    <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
-                    <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง, ค่ารถตู้)</option>
-                    <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                    <option value="5">อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option>
+                    {% for code, label in petty_cash_expense_choices %}
+                      <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
                   </select>
                 </td>
                 <td>
@@ -791,7 +787,7 @@
         </button>
       </div>
       <div id="claimDraftDateError" class="small text-danger text-end mt-2 d-none" role="alert">
-        กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่าง
+        กรุณาระบุวันที่ของรายการที่ต้องการบันทึก และลบรายการที่ระบบเพิ่มให้อัตโนมัติในช่องรายการส่งฝ่ายการเงินออกก่อน หากต้องการบันทึกข้อมูลประเภทอื่น
       </div>
       <div id="claimDraftSaveStatus" class="small text-success text-end mt-2" role="status" aria-live="polite"></div>
     </form>
@@ -1106,6 +1102,7 @@ function togglePettyCashClaimForm() {
 <script>
 let autoSaveTimer = null;
 let claimAutoSaveQueue = Promise.resolve();
+let claimAutoSaveFailureReported = false;
 
 document.addEventListener('DOMContentLoaded', function() {
   calculateTotal();
@@ -1229,6 +1226,25 @@ document.addEventListener('DOMContentLoaded', function() {
       delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
+        const claimRows = Array.from(claimForm.querySelectorAll('#claimBody tr'));
+        const rowHasData = row => Array.from(row.querySelectorAll(
+          'input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]'
+        )).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
+        const hasMissingReceiptDate = claimRows.some(row =>
+          rowHasData(row) && !row.querySelector('input[name="receipt_date[]"]')?.value.trim()
+        );
+        const cashReturnDate = claimForm.querySelector('[name="cash_return_date"]');
+        const cashReturnInputs = claimForm.querySelectorAll('.cash-return-input');
+        const hasCashReturnData = Array.from(cashReturnInputs).some(input =>
+          input.type === 'file' ? input.files.length > 0 : input.value.trim()
+        );
+        const hasMissingCashReturnDate = hasCashReturnData && !cashReturnDate?.value.trim();
+        if (hasMissingReceiptDate || hasMissingCashReturnDate) {
+          event.preventDefault();
+          showClaimDraftDateError(true);
+          return;
+        }
+        showClaimDraftDateError(false);
         claimForm.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
         claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input').forEach(input => {
           input.value = input.value.replace(/,/g, '');
@@ -1460,17 +1476,22 @@ function showClaimDraftDateError(visible) {
   document.getElementById('claimDraftDateError')?.classList.toggle('d-none', !visible);
 }
 
-function showClaimSaveError(message) {
+function showClaimSaveError(error) {
+  if (error instanceof TypeError && !error.popupTitle) {
+    window.showAppPopupError('network');
+    return;
+  }
+  const message = error?.message || 'กรุณาลองใหม่อีกครั้ง';
   if (typeof window.openAppPopup === 'function') {
     window.openAppPopup({
-      title: 'ไม่สามารถบันทึกข้อมูลได้',
-      message: message || 'กรุณาลองใหม่อีกครั้ง',
+      title: error?.popupTitle || 'ไม่สามารถบันทึกข้อมูลได้',
+      message,
       confirmText: 'ตกลง',
       confirmClass: 'btn-danger',
       alertOnly: true,
     });
   } else {
-    window.alert(message || 'ไม่สามารถบันทึกข้อมูลได้');
+    window.alert(message);
   }
 }
 
@@ -1519,7 +1540,7 @@ function autoSavePettyCashDraft(includeFiles = false) {
       },
       announcements,
       reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
-      reference_date: window.appDateToISO(claimForm.querySelector('[name="reference_date"]')?.value || ''),
+      reference_date: claimForm.querySelector('[name="reference_date"]')?.value.trim() || '',
       note: claimForm.querySelector('[name="note"]')?.value.trim() || '',
     };
     const uploads = rows.map((row, index) => {
@@ -1535,8 +1556,12 @@ function autoSavePettyCashDraft(includeFiles = false) {
 
     const endpoint = "{{ url_for('advance_payment.coordinator_petty_cash_claim_autosave_draft') }}";
     const tokenResponse = await fetch(endpoint, { credentials: 'same-origin' });
-    const tokenData = await tokenResponse.json().catch(() => ({}));
-    if (!tokenResponse.ok || !tokenData.csrf_token) throw new Error('ไม่สามารถต่ออายุ token ได้ กรุณาเข้าสู่ระบบใหม่หรือโหลดหน้าอีกครั้ง');
+    const tokenResult = await window.readAppAjaxResponse(tokenResponse, 'validation');
+    if (!tokenResult.ok) throw window.appErrorFromFailure(tokenResult);
+    const tokenData = tokenResult.payload;
+    if (!tokenData.csrf_token) {
+      throw window.appErrorFromFailure(window.appUnreadableFailure(tokenResponse, 'validation'));
+    }
     claimForm.querySelector('[name="csrf_token"]').value = tokenData.csrf_token;
 
     const response = await fetch(endpoint, {
@@ -1545,8 +1570,13 @@ function autoSavePettyCashDraft(includeFiles = false) {
       credentials: 'same-origin',
       body,
     });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.success) throw new Error(result.message || `บันทึกร่างไม่สำเร็จ (HTTP ${response.status})`);
+    const saveResult = await window.readAppAjaxResponse(response, 'save', {
+      preserveBadRequestMessage: true,
+    });
+    if (!saveResult.ok) throw window.appErrorFromFailure(saveResult);
+    const result = saveResult.payload;
+    if (result.success !== true) throw window.appErrorFromFailure(window.appSaveUnknownFailure());
+    claimAutoSaveFailureReported = false;
     if (hasFiles) {
       const receipt_proofs = {};
       result.proof_files?.forEach((proofs, index) => {
@@ -1559,7 +1589,17 @@ function autoSavePettyCashDraft(includeFiles = false) {
   };
   const queued = claimAutoSaveQueue.then(save, save).catch(error => {
     console.error('AutoSave Error:', error);
-    if (includeFiles) showClaimSaveError(error.message);
+    const needsNotice = error instanceof TypeError || [
+      'ไม่สามารถยืนยันผลการบันทึกได้',
+      'กรุณาเข้าสู่ระบบใหม่',
+      'ไม่มีสิทธิ์ทำรายการ',
+      'ไม่สามารถทำรายการได้',
+      'ปิดรับการทำรายการชั่วคราว',
+    ].includes(error.popupTitle);
+    if (includeFiles || (needsNotice && !claimAutoSaveFailureReported)) {
+      showClaimSaveError(error);
+      claimAutoSaveFailureReported = true;
+    }
   });
   claimAutoSaveQueue = queued;
   claimForm.pendingDraftSave = queued;
@@ -1877,11 +1917,9 @@ function addRow() {
     <td>
       <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
         <option value="">เลือกหมวดหมู่</option>
-        <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
-        <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
-        <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง, ค่ารถตู้)</option>
-        <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-        <option value="5">อื่น ๆ (เช่น ค่ารักษาพยาบาล)</option>
+        {% for code, label in petty_cash_expense_choices %}
+          <option value="{{ code }}">{{ label }}</option>
+        {% endfor %}
       </select>
     </td>
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>

@@ -11,6 +11,7 @@
       data-transfer-amount="{{ row.transfer_amount or 0 }}"
       data-transferred-at="{{ row.display_transferred_at.isoformat() if row.display_transferred_at else '' }}"
       data-reduction-request-id="{{ row.reduction_request.id if row.reduction_request else '' }}"
+      data-reduction-amount="{{ row.reduction_request.amount if row.reduction_request else '' }}"
       data-reduction-ticket="{{ row.reduction_request.ticket_number if row.reduction_request and row.reduction_request.ticket_number else '' }}"
       data-reduction-date="{{ row.reduction_request.request_date.isoformat() if row.reduction_request and row.reduction_request.request_date else '' }}">
     <td class="fw-semibold">
@@ -50,8 +51,8 @@
       {% endif %}
     </td>
     <td class="text-center">
-      <span class="small {% if row.transfer or row.reduction_recorded_by_request %}text-success{% else %}text-muted{% endif %}">
-        {% if row.transfer %}บันทึกแล้ว{% elif row.reduction_recorded_by_request %}บันทึกแล้ว (จากใบเบิก){% else %}ยังไม่บันทึก (ค่าแนะนำ){% endif %}
+      <span class="small {% if row.transfer and row.display_transferred_at %}text-success{% else %}text-muted{% endif %}">
+        {% if row.transfer_type == 2 and row.transfer and not row.display_transferred_at %}รอบันทึกวันที่ได้รับเงินคืน{% elif row.transfer %}บันทึกแล้ว{% else %}ยังไม่บันทึก (ค่าแนะนำ){% endif %}
       </span>
     </td>
     <td class="text-center">
@@ -145,7 +146,7 @@
             <th class="text-end">งบประมาณปีการศึกษา {{ current_fiscal_year + 543 }}</th>
             <th class="text-end">งบประมาณปีการศึกษา {{ previous_fiscal_year + 543 }}</th>
             <th class="text-end" style="min-width: 190px;">ส่วนต่าง (บาท)</th>
-            <th class="text-center" style="min-width: 190px;">วันที่เบิกเงิน</th>
+            <th class="text-center" style="min-width: 190px;">วันที่ได้รับเงินคืน</th>
             <th class="text-center">สถานะ</th>
             <th class="text-center">จัดการ</th>
           </tr>
@@ -220,17 +221,21 @@
         amount.value = '0.00';
         date.value = '';
       } else if (reduction) {
-        date.value = activeRow.dataset.reductionDate || '';
+        amount.value = Number(activeRow.dataset.reductionAmount || 0).toLocaleString('en-US', {
+          minimumFractionDigits: 2, maximumFractionDigits: 2,
+        });
+        date.value = manualDate;
       } else {
         date.value = manualDate;
       }
-      amount.readOnly = noTransfer;
-      date.disabled = noTransfer || reduction;
-      dateLabel.textContent = reduction ? 'วันที่เบิกเงิน' : 'วันที่โอนเงินสำเร็จ';
+      amount.readOnly = noTransfer || reduction;
+      date.disabled = noTransfer;
+      date.required = reduction;
+      dateLabel.textContent = reduction ? 'วันที่ได้รับเงินคืนจริง' : 'วันที่โอนเงินสำเร็จ';
       dateSource.classList.toggle('d-none', !reduction);
       if (reduction) {
         dateSource.textContent = activeRow.dataset.reductionRequestId
-          ? `วันที่จากใบเบิกลดวงเงิน ${activeRow.dataset.reductionTicket || ''}`
+          ? `ใบเบิกลดวงเงิน ${activeRow.dataset.reductionTicket || ''} — วันที่เบิกเงิน ${activeRow.dataset.reductionDate || 'ยังไม่บันทึก'}`
           : 'ยังไม่พบใบเบิกลดวงเงินของหน่วยงานนี้';
       }
     }
@@ -246,7 +251,7 @@
           maximumFractionDigits: 2,
         });
         date.value = activeRow.dataset.transferredAt || '';
-        manualDate = type.value === '1' ? date.value : '';
+        manualDate = type.value !== '0' ? date.value : '';
         previousType = type.value;
         type.setCustomValidity('');
         amount.setCustomValidity('');
@@ -256,13 +261,13 @@
     });
 
     type.addEventListener('change', () => {
-      if (previousType === '1') manualDate = date.value;
+      if (previousType !== '0') manualDate = date.value;
       previousType = type.value;
       type.setCustomValidity('');
       syncType();
     });
     date.addEventListener('change', () => {
-      if (type.value === '1') manualDate = date.value;
+      if (type.value !== '0') manualDate = date.value;
     });
     amount.addEventListener('input', () => amount.setCustomValidity(''));
     amount.addEventListener('blur', () => {

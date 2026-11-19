@@ -51,7 +51,10 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-dark fw-bold">บันทึกและดาวน์โหลด</button>
+          <button type="submit" class="btn btn-dark fw-bold">บันทึกและดาวน์โหลด PDF</button>
+          {% if word_export_url %}
+          <button type="submit" class="btn btn-primary fw-bold" formaction="{{ word_export_url }}">บันทึกและดาวน์โหลด Word</button>
+          {% endif %}
         </div>
       </form>
     </div>

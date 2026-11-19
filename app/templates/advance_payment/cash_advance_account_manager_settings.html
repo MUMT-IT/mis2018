@@ -287,14 +287,22 @@
       workingManagerIds.forEach((managerId) => formData.append('manager_ids[]', managerId));
 
       try {
-        const response = await fetch(this.action || window.location.href, {
-          method: 'POST',
-          body: formData,
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          credentials: 'same-origin',
-        });
-        const payload = await response.json();
-        if (!response.ok || payload.ok === false) throw new Error(payload.message || 'ไม่สามารถบันทึกข้อมูลผู้ดูแลบัญชีได้');
+        let response;
+        try {
+          response = await fetch(this.action || window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+          });
+        } catch (requestError) {
+          window.showAppPopupError('network');
+          return;
+        }
+        const result = await window.readAppAjaxResponse(response, 'save');
+        if (!result.ok) throw window.appErrorFromFailure(result);
+        const payload = result.payload;
+        if (!payload.account) throw window.appErrorFromFailure(window.appSaveUnknownFailure());
 
         updateAccountRow(payload.account);
         activeAccount = payload.account;
@@ -308,7 +316,7 @@
         });
       } catch (error) {
         window.openAppPopup({
-          title: 'ไม่สามารถบันทึกข้อมูลได้',
+          title: error.popupTitle || 'ไม่สามารถบันทึกข้อมูลได้',
           message: error.message || 'กรุณาลองใหม่อีกครั้ง',
           confirmText: 'ตกลง',
           confirmClass: 'btn-danger',

@@ -145,6 +145,16 @@ class PettyCashOrganizationScopeTests(unittest.TestCase):
         claim.petty_cash_setting_id = 2
         self.assertFalse(self.can_download_claim_pdf(self.user, claim, self.setting))
 
+    def test_category_six_claim_cannot_download_pdf(self):
+        claim = SimpleNamespace(
+            user_id=self.user.id,
+            petty_cash_setting_id=self.setting.id,
+            fund_request=SimpleNamespace(creator_id=12, requester_id=self.user.id),
+            items=[SimpleNamespace(category_type=6)],
+        )
+
+        self.assertFalse(self.can_download_claim_pdf(self.user, claim, self.setting))
+
 
 class AdvancePaymentCoordinatorAccessTests(unittest.TestCase):
     @classmethod

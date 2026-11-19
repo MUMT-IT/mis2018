@@ -130,10 +130,10 @@
     }
 
     function showMultiReturnTicketLimitMessage() {
-      const message = 'สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ';
+      const message = 'กรุณาเลือกสัญญาที่ต้องการคืนไม่เกิน 2 ใบ';
       if (typeof window.openAppPopup === 'function') {
         window.openAppPopup({
-          title: 'เลือกสัญญาเงินยืมเกินจำนวน',
+          title: 'สามารถเลือกคืนพร้อมกันได้ไม่เกิน 2 สัญญา',
           message: message,
           confirmText: 'ตกลง',
           confirmClass: 'btn-primary',
@@ -471,7 +471,7 @@
                     data-budget="{{ borrowing_ticket.required_budget or 0 }}" 
                     data-startdate="{{ borrowing_ticket.borrowing_ticket_start_date.strftime('%Y-%m-%d') if borrowing_ticket.borrowing_ticket_start_date else '' }}" 
                     data-duedate="{{ borrowing_ticket.due_date.strftime('%Y-%m-%d') if borrowing_ticket.due_date else '' }}" 
-                    data-remaining="{{ 0 if ticket_status == 'ปฏิเสธ' else (borrowing_ticket.remaining_amount or borrowing_ticket.required_budget or 0) }}">
+                    data-remaining="{{ 0 if ticket_status == 'ปฏิเสธ' else (borrowing_ticket.remaining_amount if borrowing_ticket.remaining_amount is not none else borrowing_ticket.required_budget or 0) }}">
                     <td><strong>{{ borrowing_ticket.number if borrowing_ticket.number else "-" }}</strong></td>
                     <td>{{ borrowing_ticket.borrower_name or borrowing_ticket.borrower_email or '-' }}</td>
                     <td style="width: 20%;">{{ borrowing_ticket.borrowing_ticket_purpose }}</td>
@@ -772,17 +772,24 @@
               try {
                   const validationData = new FormData(borrowingTicketForm);
                   validationData.append("validation_only", "1");
-                  const response = await fetch(borrowingTicketForm.action || window.location.href, {
-                      method: "POST",
-                      body: validationData,
-                      headers: { "X-Requested-With": "XMLHttpRequest" },
-                      credentials: "same-origin",
-                  });
-                  const payload = await response.json();
-                  if (!response.ok || payload.ok === false) {
+                  let response;
+                  try {
+                      response = await fetch(borrowingTicketForm.action || window.location.href, {
+                          method: "POST",
+                          body: validationData,
+                          headers: { "X-Requested-With": "XMLHttpRequest" },
+                          credentials: "same-origin",
+                      });
+                  } catch (error) {
+                      console.error("Borrowing ticket validation request failed", error);
+                      window.showAppPopupError("network");
+                      return;
+                  }
+                  const result = await window.readBorrowingValidationResponse(response);
+                  if (!result.ok) {
                       window.openAppPopup({
-                          title: "กรุณาตรวจสอบข้อมูล",
-                          message: payload.message || "ข้อมูลไม่ถูกต้อง กรุณาแก้ไขแล้วลองใหม่",
+                          title: result.title,
+                          message: result.message,
                           confirmText: "ตกลง",
                           confirmClass: "btn-danger",
                           alertOnly: true,
@@ -799,13 +806,8 @@
                       confirmClass: "btn-success",
                   });
               } catch (error) {
-                  window.openAppPopup({
-                      title: "ไม่สามารถตรวจสอบข้อมูลได้",
-                      message: "กรุณาลองใหม่อีกครั้ง",
-                      confirmText: "ตกลง",
-                      confirmClass: "btn-danger",
-                      alertOnly: true,
-                  });
+                  console.error("Borrowing ticket validation failed", error);
+                  window.showAppPopupError("page");
               } finally {
                   if (submitter) submitter.disabled = false;
               }

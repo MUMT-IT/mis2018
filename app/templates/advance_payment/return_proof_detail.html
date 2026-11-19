@@ -116,22 +116,42 @@
             </button>
         {% endif %}
         {% if return_detail.status|lower == 'กำลังตรวจสอบ' %}
-            <form id="returnProofedForm{{ return_detail.id }}" method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" data-ajax-validation="true" class="d-none">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                {% if return_detail.has_over_limit_item %}<input type="hidden" name="dean_document_acknowledged" value="0">{% endif %}
-            </form>
             <button type="button" class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
-                data-popup-trigger="true"
-                data-popup-title="ยืนยันการส่งแบบฟอร์ม"
-                data-popup-message="{% if return_detail.has_over_limit_item %}กรุณายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีสำหรับใบเสร็จยอดเกิน 100,000 บาทแล้ว{% else %}คุณต้องการส่งเอกสารนี้ไปยังสถานะ 'ผ่านการตรวจสอบ' ใช่หรือไม่?{% endif %}"
-                data-popup-target-form-id="returnProofedForm{{ return_detail.id }}"
-                data-popup-require-acknowledgement="{{ 'true' if return_detail.has_over_limit_item else 'false' }}"
-                data-popup-acknowledgement-field-name="dean_document_acknowledged"
-                data-popup-acknowledgement-label="ยืนยันว่าได้ทำการตรวจสอบแล้ว"
-                data-popup-confirm-text="ตกลงและส่งแบบฟอร์ม"
-                data-popup-confirm-class="btn-warning">
+                data-bs-toggle="modal" data-bs-target="#approveReturnModal{{ return_detail.id }}">
                 ยืนยันการตรวจสอบ
             </button>
+            <div class="modal fade text-start" id="approveReturnModal{{ return_detail.id }}" tabindex="-1" aria-labelledby="approveReturnTitle{{ return_detail.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <form id="returnProofedForm{{ return_detail.id }}" method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" data-ajax-validation="true" class="modal-content">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="modal-header py-2">
+                            <h5 class="modal-title fw-bold" id="approveReturnTitle{{ return_detail.id }}">เลือกหมวดรายการส่งใช้เงินยืม</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+                        </div>
+                        <div class="modal-body py-2">
+                            {% set noncash_items = return_detail.receipt_items|rejectattr('is_cash')|list %}
+                            {% if noncash_items %}
+                                <p class="text-muted small mb-2">เลือกหนึ่งหมวดต่อรายการใบเสร็จก่อนยืนยันการตรวจสอบ</p>
+                                {% include 'advance_payment/_return_category_fields.html' %}
+                            {% elif return_detail.receipt_items %}
+                                <p class="mb-0">รายการนี้เป็นเงินสด ไม่ต้องเลือกหมวดรายการ</p>
+                            {% else %}
+                                <p class="text-danger mb-0">ไม่พบรายการใบเสร็จสำหรับการอนุมัติ</p>
+                            {% endif %}
+                            {% if return_detail.has_over_limit_item %}
+                                <div class="form-check mt-3">
+                                    <input class="form-check-input" type="checkbox" id="deanDocumentAcknowledged{{ return_detail.id }}" name="dean_document_acknowledged" value="1" required>
+                                    <label class="form-check-label" for="deanDocumentAcknowledged{{ return_detail.id }}">ยืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีสำหรับใบเสร็จยอดเกิน 100,000 บาทแล้ว</label>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-primary">ตกลงและส่งแบบฟอร์ม</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
             <button type="button" class="btn btn-danger btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#rejectReturnModal{{ return_detail.id }}">
                 ปฏิเสธหลักฐาน
             </button>
@@ -156,6 +176,31 @@
                 </div>
             </div>
            {% endif %}
+        {% set noncash_items = return_detail.receipt_items|rejectattr('is_cash')|list %}
+        {% if return_detail.approved_at and noncash_items %}
+            <button type="button" class="btn btn-outline-primary btn-sm fw-bold px-3 py-1.5"
+                data-bs-toggle="modal" data-bs-target="#editReturnCategoriesModal{{ return_detail.id }}">
+                จัดหมวดรายการ
+            </button>
+            <div class="modal fade text-start" id="editReturnCategoriesModal{{ return_detail.id }}" tabindex="-1" aria-labelledby="editReturnCategoriesTitle{{ return_detail.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <form method="POST" action="{{ url_for('advance_payment.update_return_categories', return_id=return_detail.id) }}" data-ajax-validation="true" class="modal-content">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="modal-header py-2">
+                            <h5 class="modal-title fw-bold" id="editReturnCategoriesTitle{{ return_detail.id }}">จัดหมวดรายการส่งใช้เงินยืม</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+                        </div>
+                        <div class="modal-body py-2">
+                            {% include 'advance_payment/_return_category_fields.html' %}
+                        </div>
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-primary">บันทึกหมวดรายการ</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
         </div>
     {% endif %}
     </div>
@@ -201,6 +246,9 @@
                 
                 <td style="width: 20%;">
                     {{ file.receipt_item.description if file.receipt_item and file.receipt_item.description else '-' }}
+                    {% if advance_payment_role == 'finance' and file.receipt_item and file.receipt_item.category_type %}
+                      <div class="small text-muted">หมวดรายการ: {{ finance_category_labels.get(file.receipt_item.category_type, '-') }}</div>
+                    {% endif %}
                 </td>
                 
                 <td class="fw-bold text-secondary">

@@ -1,29 +1,9 @@
-from datetime import date, datetime
 from decimal import Decimal
 import re
+from .date_utils import thai_date, thai_datetime
 
 
 REJECTION_HISTORY_MARKER = re.compile(r"(?m)^ครั้งที่\s+\d+\s*:")
-
-
-def thai_date(value):
-    if value is None:
-        return ""
-    if isinstance(value, (date, datetime)):
-        return value.strftime(f"%d/%m/{value.year + 543}")
-    return value
-
-
-def thai_datetime(value):
-    if value is None:
-        return ""
-    if isinstance(value, datetime):
-        # Keep non-ASCII text outside strftime. On Windows, strftime may use
-        # the active system locale encoding and fail on the Thai suffix.
-        return value.strftime(f"%d/%m/{value.year + 543} %H:%M") + " น."
-    if isinstance(value, date):
-        return value.strftime(f"%d/%m/{value.year + 543}")
-    return value
 
 
 def _amount(value):

@@ -68,13 +68,7 @@
       <div class="card-header border-bottom p-0" style="background-color: #e6e8ed;">
         <ul class="nav nav-tabs nav-fill border-bottom-0" id="financeSystemTabs" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-item-tab nav-link active py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">
-              <i class="bi bi-layers me-1 text-secondary"></i> รายการทั้งหมด
-              <span class="badge bg-secondary rounded-pill ms-1" id="tab-badge-all">0</span>
-            </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-item-tab nav-link py-3 fw-bold text-primary" id="tab-advance" type="button" onclick="switchSystemTab('advance')">
+            <button class="nav-item-tab nav-link active py-3 fw-bold text-primary" id="tab-advance" type="button" onclick="switchSystemTab('advance')">
               <i class="bi bi-cash-stack me-1 text-primary"></i> เงินยืมทดรองจ่าย / ส่งใช้เงินยืม
               <span class="badge bg-primary rounded-pill ms-1" id="tab-badge-advance">0</span>
             </button>
@@ -89,6 +83,12 @@
             <button class="nav-item-tab nav-link py-3 fw-bold text-warning" id="tab-parcel" type="button" onclick="switchSystemTab('parcel')">
               <i class="bi bi-box-seam me-1 text-warning"></i> ส่งคืนพัสดุ
               <span class="badge bg-warning text-dark rounded-pill ms-1" id="tab-badge-parcel">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-item-tab nav-link py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">
+              <i class="bi bi-layers me-1 text-secondary"></i> รายการทั้งหมด
+              <span class="badge bg-secondary rounded-pill ms-1" id="tab-badge-all">0</span>
             </button>
           </li>
         </ul>
@@ -294,7 +294,7 @@
   </section>
 
   <script>
-    let currentSystemTab = 'all';
+    let currentSystemTab = 'advance';
 
     document.addEventListener("DOMContentLoaded", function() {
       calculateSummaryCounts();
@@ -486,7 +486,7 @@
     function resetFilters() {
       if(document.getElementById("searchQuery")) document.getElementById("searchQuery").value = "";
       if(document.getElementById("statusFilter")) document.getElementById("statusFilter").value = "all";
-      switchSystemTab('all');
+      switchSystemTab('advance');
     }
 
     function toggleNoResults(count) {

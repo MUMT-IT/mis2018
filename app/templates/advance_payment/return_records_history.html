@@ -101,13 +101,7 @@
     <div class="card-header border-bottom p-0" style="background-color: #e6e8ed;">
       <ul class="nav nav-tabs nav-fill border-bottom-0" id="historySystemTabs" role="tablist">
         <li class="nav-item" role="presentation">
-          <button class="nav-item-tab nav-link active py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">
-            <i class="bi bi-layers me-1 text-secondary"></i> ประวัติทั้งหมด
-            <span class="badge bg-secondary rounded-pill ms-1" id="tab-badge-all">0</span>
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-item-tab nav-link py-3 fw-bold text-primary" id="tab-return" type="button" onclick="switchSystemTab('return')">
+          <button class="nav-item-tab nav-link active py-3 fw-bold text-primary" id="tab-return" type="button" onclick="switchSystemTab('return')">
             <i class="bi bi-arrow-return-left me-1 text-primary"></i> ส่งใช้เงินยืม
             <span class="badge bg-primary rounded-pill ms-1" id="tab-badge-return">0</span>
           </button>
@@ -116,6 +110,12 @@
           <button class="nav-item-tab nav-link py-3 fw-bold text-warning" id="tab-parcel_return" type="button" onclick="switchSystemTab('parcel_return')">
             <i class="bi bi-box-seam me-1 text-warning"></i> ส่งคืนพัสดุ
             <span class="badge bg-warning text-dark rounded-pill ms-1" id="tab-badge-parcel_return">0</span>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-item-tab nav-link py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">
+            <i class="bi bi-layers me-1 text-secondary"></i> ประวัติทั้งหมด
+            <span class="badge bg-secondary rounded-pill ms-1" id="tab-badge-all">0</span>
           </button>
         </li>
       </ul>
@@ -259,7 +259,7 @@
 </section>
 
 <script>
-  let currentSystemTab = 'all';
+  let currentSystemTab = 'return';
 
   function switchSystemTab(tabKey) {
     currentSystemTab = tabKey;

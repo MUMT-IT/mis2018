@@ -42,8 +42,8 @@ def _staff_org(staff):
 def _staff_position(staff):
     personal_info = getattr(staff, "personal_info", None)
     return (
-        getattr(personal_info, "position", None)
-        or getattr(getattr(personal_info, "job_position", None), "position", None)
+        getattr(getattr(personal_info, "job_position", None), "position", None)
+        or getattr(personal_info, "position", None)
     )
 
 
@@ -151,6 +151,53 @@ def status_name_for_record(record):
     return status_ref.name if status_ref else None
 
 
+class CashAdvanceImportBatch(db.Model):
+    __tablename__ = "cash_advance_import_batches"
+
+    id = Column(Integer, primary_key=True)
+    source_file_path = Column(String(1024), nullable=False)
+    uploaded_by_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
+    uploaded_on = Column(Date, nullable=False)
+    uploaded_by = relationship(StaffAccount, foreign_keys=[uploaded_by_id])
+
+
+class FinanceReportLog(db.Model):
+    """One record for each generated finance report file."""
+
+    __tablename__ = "cash_advance_finance_report_logs"
+
+    id = Column(Integer, primary_key=True)
+    report_type = Column(String(40), nullable=False)
+    creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False, index=True)
+    target_date = Column(Date, nullable=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+
+    creator = relationship(StaffAccount, foreign_keys=[creator_id])
+    items = relationship(
+        "FinanceReportLogItem", back_populates="export",
+        cascade="all, delete-orphan", passive_deletes=True,
+    )
+
+
+class FinanceReportLogItem(db.Model):
+    """A borrowing ticket included in one generated report."""
+
+    __tablename__ = "cash_advance_finance_report_log_items"
+
+    export_id = Column(
+        Integer,
+        ForeignKey("cash_advance_finance_report_logs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    ticket_id = Column(
+        Integer, ForeignKey("cash_advance_borrowing_tickets.id", ondelete="CASCADE"),
+        primary_key=True, index=True,
+    )
+
+    export = relationship("FinanceReportLog", back_populates="items")
+    ticket = relationship("CashAdvanceBorrowingTicket")
+
+
 class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
     __table_args__ = (
@@ -175,10 +222,15 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
         return status_name_for_record(self)
     borrowing_ticket_purpose = Column(String, nullable=False)
     required_budget = Column(Numeric(12, 2, asdecimal=True), nullable=False)
+    opening_balance_amount = Column(Numeric(12, 2, asdecimal=True), nullable=True)
+    historical_repaid_amount = Column(Numeric(12, 2, asdecimal=True), nullable=True)
+    historical_pending_amount = Column(Numeric(12, 2, asdecimal=True), nullable=True)
+    import_batch_id = Column(Integer, ForeignKey("cash_advance_import_batches.id"), nullable=True)
+    balance_adjustment_batch_id = Column(Integer, ForeignKey("cash_advance_import_batches.id"), nullable=True)
     account_number = Column(String(100), nullable=False)
     bank_account_info_id = Column(Integer, ForeignKey("cash_mng_bank_account_infos.id"), nullable=True)
-    borrowing_ticket_start_date = Column(Date, nullable=False)
-    borrowing_ticket_end_date = Column(Date, nullable=False)
+    borrowing_ticket_start_date = Column(Date, nullable=True)
+    borrowing_ticket_end_date = Column(Date, nullable=True)
     finance_verified = Column(Boolean, nullable=False, default=False)
     due_date = Column(Date, nullable=False)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -189,7 +241,7 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     rejection_comment = Column(String(1000), nullable=True)
     finance_note = Column(String(2000), nullable=True)
     aip_ref_no = Column(String(255), nullable=False)
-    aip_ref_date = Column(Date, nullable=False)
+    aip_ref_date = Column(Date, nullable=True)
     last_notified_type = Column(String(50), nullable=True)
     last_notified_date = Column(Date, nullable=True)
 
@@ -197,6 +249,8 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
         "BankAccountInfo",
         foreign_keys=[bank_account_info_id],
     )
+    import_batch = relationship("CashAdvanceImportBatch", foreign_keys=[import_batch_id])
+    balance_adjustment_batch = relationship("CashAdvanceImportBatch", foreign_keys=[balance_adjustment_batch_id])
     creator_user = relationship(
         StaffAccount,
         foreign_keys=[creator_id],
@@ -493,6 +547,12 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
 
 class ReturnReceiptItem(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_receipt_items"
+    __table_args__ = (
+        CheckConstraint(
+            "category_type IS NULL OR (NOT is_cash AND category_type IN (1, 2, 3, 4, 7, 8))",
+            name="ck_return_receipt_item_finance_category",
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     return_detail_id = Column(
@@ -504,6 +564,7 @@ class ReturnReceiptItem(FinanceEditMixin, db.Model):
     store_name = Column(String(255), nullable=False, default="")
     description = Column(String, nullable=False, default="")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
+    category_type = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     is_cash = Column(Boolean, nullable=False, default=False, server_default=text("false"))
 
@@ -1183,7 +1244,7 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     transferred_at = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     reference_number = Column(String(255), nullable=True)
-    reference_date = Column(Date, nullable=True)
+    reference_date = Column(String, nullable=True)
     product_code_id = Column(String(12), ForeignKey("product_codes.id"), nullable=True)
     cost_center_id = Column(String(12), ForeignKey("cost_centers.id"), nullable=True)
     iocode_id = Column(String(16), ForeignKey("iocodes.id"), nullable=True)

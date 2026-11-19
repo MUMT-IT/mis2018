@@ -1,11 +1,13 @@
 import os
 import json
 import uuid
+from calendar import monthrange
+from io import BytesIO
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
-from sqlalchemy import extract, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import extract, inspect, text
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from functools import wraps
 import re
 from types import SimpleNamespace
@@ -25,7 +27,8 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required as flask_login_required
-from flask_wtf.csrf import generate_csrf
+from flask_principal import PermissionDenied
+from flask_wtf.csrf import CSRFError, generate_csrf
 from flask_mail import Message
 from app.roles import (
     cash_management_coordinator_permission,
@@ -34,14 +37,16 @@ from app.roles import (
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import Forbidden
 
 from .borrowing_ticket_eligibility import (
     ACTIVE_BORROWING_MESSAGE,
     TEMPORARY_EMPLOYEE_MESSAGE,
     calculate_borrowing_ticket_eligibility,
 )
+from .categories import CATEGORY_CHOICES, parse_return_item_categories
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, FinanceReportLog, FinanceReportLogItem, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
 from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
@@ -49,7 +54,25 @@ from .email_utils import (
     generate_notification_email_content,
     latest_rejection_comment,
 )
-from . import advance_payment as bp, thai_date
+from . import advance_payment as bp
+from .date_utils import (
+    coerce_date as _coerce_date,
+    normalize_reference_date,
+    parse_date,
+    parse_datetime,
+)
+from .legacy_xls import (
+    check_legacy_contracts,
+    legacy_borrower_name_key,
+    LegacyXlsError,
+    MAX_FILE_BYTES as LEGACY_XLS_MAX_FILE_BYTES,
+    parse_legacy_cash_advance_xls,
+)
+from .receivables_report import (
+    borrower_name_parts, build_receivable_row, generate_receivables_xls, generate_individual_debtors_xls,
+    generate_outstanding_debt_xls, generate_borrowing_register_xls,
+    _fund_register_rows, generate_fund_register_xls,
+)
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
 from app.staff.models import StaffHeadPosition, StaffPersonalInfo
@@ -318,8 +341,11 @@ def _borrowing_passthrough_validation_message():
 
 from .pdf_utils import (
     generate_fnar02_pdf,
+    build_reminder_letter,
+    generate_overdue_reminders_pdf,
     generate_fund_request_pdf,
     generate_petty_claim,
+    generate_petty_claim_docx,
     generate_ticket_return,
     generate_petty_cash_monthly_report_pdf,
     append_petty_cash_monthly_attachments,
@@ -466,6 +492,25 @@ def _get_staff_org(staff):
     personal_info = getattr(staff, "personal_info", None)
     org = getattr(personal_info, "org", None)
     return org
+
+
+def _find_dean_name(org=None):
+    """Return the current dean name from staff head-position records."""
+    query = db.session.query(StaffHeadPosition).filter(
+        func.replace(StaffHeadPosition.position, " ", "").contains("คณบดีคณะเทคนิคการแพทย์")
+    )
+    if org is not None and getattr(org, "id", None):
+        scoped = query.filter(StaffHeadPosition.org_id == org.id).order_by(
+            StaffHeadPosition.id.desc()
+        ).first()
+        if scoped is not None:
+            dean = getattr(scoped, "staff", None)
+            person = getattr(dean, "personal_info", None)
+            return getattr(person, "fullname", None) if person is not None else None
+    record = query.order_by(StaffHeadPosition.id.desc()).first()
+    dean = getattr(record, "staff", None) if record is not None else None
+    person = getattr(dean, "personal_info", None)
+    return getattr(person, "fullname", None) if person is not None else None
 
 
 def _is_staff_org_head(staff):
@@ -1183,8 +1228,10 @@ def module_role_required(permission, role, system):
                 and _can_use_module_system(current_user, system)
             ):
                 _set_selected_system(system)
-            if _selected_system() != system or _current_module_role() != role:
-                abort(403)
+            if _selected_system() != system:
+                abort(403, description="ระบบงานที่เลือกไม่ตรงกับรายการนี้ กรุณากลับไปเลือกระบบงานให้ถูกต้อง แล้วเปิดรายการนี้ใหม่อีกครั้ง")
+            if _current_module_role() != role:
+                abort(403, description="บัญชีของคุณไม่มีสิทธิ์ดำเนินการรายการนี้ตามบทบาทที่ได้รับ")
             return view_func(*args, **kwargs)
 
         return flask_login_required(permission.require()(wrapped))
@@ -1220,11 +1267,10 @@ def module_system_required(systems):
                 )
                 if selected_system:
                     _set_selected_system(selected_system)
-            if (
-                selected_system not in allowed_systems
-                or not _can_use_module_system(current_user, selected_system)
-            ):
-                abort(403)
+            if selected_system not in allowed_systems:
+                abort(403, description="ระบบงานที่เลือกไม่ตรงกับรายการนี้ กรุณากลับไปเลือกระบบงานให้ถูกต้อง แล้วเปิดรายการนี้ใหม่อีกครั้ง")
+            if not _can_use_module_system(current_user, selected_system):
+                abort(403, description="บัญชีของคุณไม่มีสิทธิ์ใช้งานระบบงานที่เลือก")
             if (
                 selected_system == ADVANCE_PAYMENT_SYSTEM
                 and request.method not in {"GET", "HEAD", "OPTIONS"}
@@ -1317,9 +1363,12 @@ def _can_download_petty_cash_claim_pdf(user, claim, setting):
     """Allow claim managers and the linked fund request's requester to export PDF."""
     if not user or not claim or not setting or not getattr(setting, "id", None):
         return False
-    # if not getattr(claim, "approved_at", None): # allow user to donwload without approval
+    # if not getattr(claim, "approved_at", None): # allow user to download without approval
     #     return False
     if getattr(claim, "petty_cash_setting_id", None) != setting.id:
+        return False
+    claim_items = getattr(claim, "items", None) or []
+    if any(int(getattr(item, "category_type", 0) or 0) == 6 for item in claim_items):
         return False
 
     user_id = getattr(user, "id", None)
@@ -2299,20 +2348,6 @@ def recheck_overdue_and_upcoming_statuses():
     except Exception as e:
         db.session.rollback()
 
-def _coerce_date(value):
-    if isinstance(value, date):
-        return value
-    if isinstance(value, str):
-        value = value.strip()
-        if not value:
-            return None
-        try:
-            return datetime.strptime(value, "%Y-%m-%d").date()
-        except ValueError:
-            return None
-    return None
-
-
 def _normalize_ledger_row_dates(receipt_date, created_at):
     """Return comparable dates for a ledger row, or None when it is undated."""
     if isinstance(receipt_date, datetime):
@@ -3033,8 +3068,9 @@ def mark_return_received(return_id):
     if not closing_document or not closing_document.is_settled:
         return _validation_error_response("ต้องล้างลูกหนี้ผ่านฎีกาที่ปิดบัญชีแล้วก่อน")
 
+    if return_detail.settled_at is None:
+        return _validation_error_response("ไม่พบวันที่ล้างลูกหนี้ของรายการนี้")
     return_detail.status_id = _status_id_for_record(return_detail, "SETTLED")
-    return_detail.settled_at = closing_document.settled_at
     for ticket_id in _return_ticket_ids(return_detail):
         _recalculate_borrowing_ticket_status(
             ticket_id,
@@ -3103,8 +3139,6 @@ def _sync_closing_document_settled_at(closing_document, event_time):
     )
     if all_active_records_settled:
         closing_document.settled_at = closing_document.settled_at or event_time
-        for record in active_records:
-            record.settled_at = closing_document.settled_at
     else:
         closing_document.settled_at = None
     return all_active_records_settled
@@ -3207,6 +3241,15 @@ def bulk_receive_closing_doc(closing_doc_id):
     if not closing_doc.is_active:
         abort(400, description="Cannot settle a cancelled closing document")
 
+    try:
+        settlement_date = parse_date(request.form.get("settlement_date", ""))
+    except ValueError:
+        return _validation_error_response("กรุณาระบุวันที่ล้างลูกหนี้ให้ถูกต้อง")
+    # Noon keeps the entered calendar day intact when a database stores UTC.
+    settlement_time = datetime.combine(
+        settlement_date, datetime.min.time()
+    ).replace(hour=12, tzinfo=ZoneInfo("Asia/Bangkok"))
+
     selection_fields = (
         "selected_return_ids[]",
         "selected_parcel_return_ids[]",
@@ -3252,7 +3295,6 @@ def bulk_receive_closing_doc(closing_doc_id):
             "ไม่มีรายการเอกสารส่งใช้เงินยืม พัสดุ หรือเงินสดย่อยที่ต้องล้างลูกหนี้ในฎีกานี้เพิ่มเติม"
         )
 
-    settlement_time = datetime.now(ZoneInfo("Asia/Bangkok"))
     updated_tickets = set()
     for ret in returns_in_doc:
         ret.status_id = _status_id_for_record(ret, "SETTLED")
@@ -3272,7 +3314,7 @@ def bulk_receive_closing_doc(closing_doc_id):
         if pr.fund_request_id:
             _recalculate_fund_request_submission_status(pr.fund_request_id)
 
-    _sync_closing_document_settled_at(closing_doc, settlement_time)
+    _sync_closing_document_settled_at(closing_doc, datetime.now(ZoneInfo("Asia/Bangkok")))
     for ticket_id in updated_tickets:
         _recalculate_borrowing_ticket_status(
             ticket_id,
@@ -3330,6 +3372,59 @@ def _money_decimal(value):
     return Decimal(str(value or 0)).quantize(Decimal("0.01"))
 
 
+def _ticket_opening_budget(ticket):
+    """The amount that can be returned through this system."""
+    opening = ticket.opening_balance_amount
+    return _money_decimal(opening if opening is not None else ticket.required_budget)
+
+
+def _ticket_accounting_opening_balance(ticket):
+    """Use H as debt; pending requisitions are still awaiting settlement."""
+    borrowed = _money_decimal(ticket.required_budget)
+    historical_repaid, _ = _historical_ticket_amounts(ticket)
+    return borrowed - historical_repaid
+
+
+def _historical_ticket_amounts(ticket):
+    """Read imported balances from the ticket, never from the archived XLS."""
+    repaid = ticket.historical_repaid_amount
+    pending = ticket.historical_pending_amount
+    if ticket.import_batch_id is not None and (repaid is None or pending is None):
+        raise ValueError(f"สัญญา {ticket.number} ยังไม่มียอดย้อนหลังในฐานข้อมูล")
+    return _money_decimal(repaid), _money_decimal(pending)
+
+
+def _ticket_has_imported_reduction(ticket):
+    """The XLS opening balance is below the original borrowed amount."""
+    if ticket is None or ticket.opening_balance_amount is None:
+        return False
+    return _money_decimal(ticket.opening_balance_amount) < _money_decimal(ticket.required_budget)
+
+
+def _legacy_verification_display_summary(
+    summary, ticket, *, settled_amount=None, documented_amount=None
+):
+    """Display accounting settlement separately from requisitions in progress."""
+    display = dict(summary)
+    if settled_amount is None or documented_amount is None:
+        return display
+    historical_repaid, historical_pending = _historical_ticket_amounts(ticket)
+    display["budget"] = _money_decimal(ticket.required_budget)
+    display["cumulative_total"] = (
+        historical_repaid
+        + _money_decimal(settled_amount)
+    )
+    display["pending_amount"] = (
+        historical_pending
+        + max(_money_decimal(documented_amount) - _money_decimal(settled_amount), Decimal("0.00"))
+    )
+    display["unsubmitted_amount"] = max(
+        display["budget"] - display["cumulative_total"] - display["pending_amount"],
+        Decimal("0.00"),
+    )
+    return display
+
+
 def _parse_money_input(value):
     """Parse user-entered money without passing through binary floating point."""
     try:
@@ -3343,14 +3438,25 @@ def _parse_money_input(value):
 
 def _advance_payment_dashboard_amounts():
     """Calculate the five finance revolving-fund dashboard amounts."""
-    active_ticket_rows = (
+    active_tickets = (
         _finance_revolving_borrowing_ticket_query()
-        .with_entities(BorrowingTicket.id, BorrowingTicket.required_budget)
         .all()
     )
-    active_ticket_ids = [ticket_id for ticket_id, _ in active_ticket_rows]
+    active_ticket_balances = [
+        (ticket, _ticket_accounting_opening_balance(ticket))
+        for ticket in active_tickets
+    ]
+    active_ticket_balances = [
+        (ticket, balance) for ticket, balance in active_ticket_balances
+        if balance > 0
+    ]
+    active_ticket_ids = [ticket.id for ticket, _ in active_ticket_balances]
     total_lent = sum(
-        (_money_decimal(required_budget) for _, required_budget in active_ticket_rows),
+        (_money_decimal(ticket.required_budget) for ticket, _ in active_ticket_balances),
+        Decimal("0.00"),
+    )
+    opening_debit = sum(
+        (balance for _, balance in active_ticket_balances),
         Decimal("0.00"),
     )
 
@@ -3362,7 +3468,7 @@ def _advance_payment_dashboard_amounts():
         "total_received_amount": Decimal("0.00"),
         "total_cash_return_amount": Decimal("0.00"),
         "remaining_budget_amount": (
-            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET - total_lent
+            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET - opening_debit
         ),
     }
     if not active_ticket_ids:
@@ -3479,7 +3585,7 @@ def _advance_payment_dashboard_amounts():
         "total_cash_return_amount": total_cash_return_amount,
         "remaining_budget_amount": (
             ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET
-            - total_lent
+            - opening_debit
             + total_received_amount
             + total_cash_return_amount
         ),
@@ -3590,6 +3696,22 @@ def _petty_cash_dashboard_payload():
     }
 
 
+def _allocate_return_record(amount, linked_ids, ticket_ids, priority, remaining):
+    """Allocate one return across linked tickets in the existing FIFO order."""
+    unallocated = _money_decimal(amount)
+    portions = []
+    for ticket_id in sorted(linked_ids & ticket_ids, key=lambda value: priority.get(value, 10**9)):
+        if unallocated <= 0:
+            break
+        portion = min(unallocated, max(remaining.get(ticket_id, Decimal("0.00")), Decimal("0.00")))
+        if portion <= 0:
+            continue
+        remaining[ticket_id] -= portion
+        unallocated -= portion
+        portions.append((ticket_id, portion))
+    return portions, unallocated
+
+
 def _allocate_settled_records_to_tickets(ticket_budgets, settled_records):
     """FIFO-allocate each settled source record once across its linked tickets."""
     normalized_budgets = {
@@ -3597,6 +3719,8 @@ def _allocate_settled_records_to_tickets(ticket_budgets, settled_records):
         for ticket_id, budget in ticket_budgets.items()
     }
     remaining = dict(normalized_budgets)
+    ticket_ids = set(normalized_budgets)
+    priority = {ticket_id: index for index, ticket_id in enumerate(normalized_budgets)}
     allocated = {
         ticket_id: Decimal("0.00") for ticket_id in normalized_budgets
     }
@@ -3619,17 +3743,12 @@ def _allocate_settled_records_to_tickets(ticket_budgets, settled_records):
             })
             continue
 
-        unallocated = amount
-        for ticket_id in linked_ticket_ids:
-            if unallocated <= 0:
-                break
-            portion = min(unallocated, max(remaining[ticket_id], Decimal("0.00")))
-            if portion <= 0:
-                continue
+        portions, unallocated = _allocate_return_record(
+            amount, set(linked_ticket_ids), ticket_ids, priority, remaining,
+        )
+        for ticket_id, portion in portions:
             allocated[ticket_id] += portion
-            remaining[ticket_id] -= portion
             latest_settled_at[ticket_id] = record.get("settled_at")
-            unallocated -= portion
 
         if unallocated > 0:
             anomalies.append({
@@ -3684,7 +3803,7 @@ def _recalculate_borrowing_ticket_settlement(ticket_ids):
         ),
     )
     ticket_budgets = {
-        ticket.id: _money_decimal(ticket.required_budget) for ticket in tickets
+        ticket.id: _ticket_opening_budget(ticket) for ticket in tickets
     }
 
     return_rows = db.session.query(ReturnDetail).filter(
@@ -3817,7 +3936,10 @@ def _ticket_group_ids(ticket_id):
     return group
 
 
-def _calculate_ticket_group_totals(ticket_ids):
+def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
+    """Allocate approved returns; report stages can require accounting settlement."""
+    if report_stage not in (None, "settled", "documented_or_settled"):
+        raise ValueError(f"Unknown report stage: {report_stage}")
     ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
     if not ticket_ids:
         return {"cumulative_total": Decimal("0.00"), "budget": Decimal("0.00"), "remaining_amount": Decimal("0.00")}
@@ -3827,11 +3949,11 @@ def _calculate_ticket_group_totals(ticket_ids):
         tickets,
         key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
     )
-    remaining = {ticket.id: _money_decimal(ticket.required_budget) for ticket in ticket_order}
+    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in ticket_order}
     allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     excluded_return_statuses = {"PENDING", "IN_PROGRESS", "DRAFT", "REJECTED"}
 
-    return_rows = db.session.query(ReturnDetail).filter(
+    return_query = db.session.query(ReturnDetail).filter(
         ReturnDetail.approved_at.isnot(None),
         or_(
             ReturnDetail.reject_approved_at.is_(None),
@@ -3846,8 +3968,8 @@ def _calculate_ticket_group_totals(ticket_ids):
                 )
             ),
         ),
-    ).all()
-    parcel_rows = db.session.query(ParcelReturnDetail).filter(
+    )
+    parcel_query = db.session.query(ParcelReturnDetail).filter(
         ParcelReturnDetail.approved_at.isnot(None),
         ParcelReturnDetail.status_id.notin_(_status_ids("parcel_return", excluded_return_statuses)),
         or_(
@@ -3858,8 +3980,41 @@ def _calculate_ticket_group_totals(ticket_ids):
                 )
             ),
         ),
-    ).all()
-    records = [(row.created_at, row.id, _money_decimal(row.amount_spent), _return_ticket_ids(row), False) for row in return_rows]
+    )
+    if report_stage == "settled":
+        return_query = return_query.filter(ReturnDetail.settled_at.isnot(None))
+        parcel_query = parcel_query.filter(ParcelReturnDetail.settled_at.isnot(None))
+    elif report_stage == "documented_or_settled":
+        active_return_docs = (
+            db.session.query(ClosingDocumentLink.ticket_return_id)
+            .join(ClosingDocument, ClosingDocument.id == ClosingDocumentLink.document_id)
+            .filter(ClosingDocumentLink.is_active.is_(True), ClosingDocument.is_active.is_(True))
+        )
+        active_parcel_docs = (
+            db.session.query(ClosingDocumentLink.parcel_return_id)
+            .join(ClosingDocument, ClosingDocument.id == ClosingDocumentLink.document_id)
+            .filter(ClosingDocumentLink.is_active.is_(True), ClosingDocument.is_active.is_(True))
+        )
+        return_query = return_query.filter(or_(
+            ReturnDetail.settled_at.isnot(None),
+            ReturnDetail.id.in_(active_return_docs),
+        ))
+        parcel_query = parcel_query.filter(or_(
+            ParcelReturnDetail.settled_at.isnot(None),
+            ParcelReturnDetail.id.in_(active_parcel_docs),
+        ))
+    return_rows = return_query.all()
+    parcel_rows = parcel_query.all()
+    cash_return_ids = {
+        row.id for row in return_rows
+        if row.receipt_items and all(item.is_cash for item in row.receipt_items)
+    }
+    records = [
+        (row.created_at, row.id, _money_decimal(row.amount_spent),
+         _return_ticket_ids(row), False, row.settled_at is not None,
+         row.id in cash_return_ids)
+        for row in return_rows
+    ]
     for row in parcel_rows:
         linked_ids = {row.ticket_id} if row.ticket_id else set()
         linked_ids.update(
@@ -3867,12 +4022,24 @@ def _calculate_ticket_group_totals(ticket_ids):
                 parcel_borrowing_ticket_association.c.ticket_id
             ).filter(parcel_borrowing_ticket_association.c.parcel_return_id == row.id).all()
         )
-        records.append((row.created_at, row.id, _money_decimal(row.amount_spent), linked_ids, True))
+        records.append((
+            row.created_at, row.id, _money_decimal(row.amount_spent),
+            linked_ids, True, row.settled_at is not None, False,
+        ))
 
     priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
     parcel_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     normal_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
-    for _, _, amount, linked_ids, is_parcel in sorted(records, key=lambda item: (item[0] or datetime.min, item[1])):
+    cash_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    receipt_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    for _, _, amount, linked_ids, is_parcel, _, is_cash in sorted(
+        records,
+        key=lambda item: (
+            0 if report_stage == "documented_or_settled" and item[5] else 1,
+            item[0] or datetime.min,
+            item[1],
+        ),
+    ):
         for linked_id in sorted(linked_ids & ticket_ids, key=lambda value: priority.get(value, 10**9)):
             if amount <= 0:
                 break
@@ -3882,10 +4049,14 @@ def _calculate_ticket_group_totals(ticket_ids):
                 parcel_allocated[linked_id] += portion
             else:
                 normal_allocated[linked_id] += portion
+                if is_cash:
+                    cash_allocated[linked_id] += portion
+                else:
+                    receipt_allocated[linked_id] += portion
             remaining[linked_id] -= portion
             amount -= portion
     cumulative_total = sum(allocated.values())
-    budget = sum((_money_decimal(ticket.required_budget) for ticket in ticket_order), Decimal("0.00"))
+    budget = sum((_ticket_opening_budget(ticket) for ticket in ticket_order), Decimal("0.00"))
     return {
         "cumulative_total": cumulative_total,
         "budget": budget,
@@ -3893,6 +4064,156 @@ def _calculate_ticket_group_totals(ticket_ids):
         "allocated_by_ticket": allocated,
         "parcel_allocated_by_ticket": parcel_allocated,
         "normal_allocated_by_ticket": normal_allocated,
+        "cash_allocated_by_ticket": cash_allocated,
+        "receipt_allocated_by_ticket": receipt_allocated,
+    }
+
+
+def _ticket_return_rows_as_of(ticket_ids, target_date, *, report_stage=None,
+                              require_approval_by_target=True):
+    """Find eligible returns, optionally requiring approval by the snapshot date."""
+    if report_stage not in (None, "settled", "documented_or_settled"):
+        raise ValueError(f"Unknown report stage: {report_stage}")
+    cutoff = datetime.combine(target_date, datetime.max.time())
+    excluded_return_statuses = {"PENDING", "IN_PROGRESS", "DRAFT", "REJECTED"}
+
+    return_query = db.session.query(ReturnDetail).filter(
+        ReturnDetail.approved_at.isnot(None),
+        or_(
+            ReturnDetail.reject_approved_at.is_(None),
+            ReturnDetail.approved_at > ReturnDetail.reject_approved_at,
+        ),
+        ReturnDetail.status_id.notin_(_status_ids("return_detail", excluded_return_statuses)),
+        or_(
+            ReturnDetail.ticket_id.in_(ticket_ids),
+            ReturnDetail.id.in_(
+                db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+                    return_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                )
+            ),
+        ),
+    )
+    parcel_query = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.approved_at.isnot(None),
+        ParcelReturnDetail.status_id.notin_(_status_ids("parcel_return", excluded_return_statuses)),
+        or_(
+            ParcelReturnDetail.ticket_id.in_(ticket_ids),
+            ParcelReturnDetail.id.in_(
+                db.session.query(parcel_borrowing_ticket_association.c.parcel_return_id).filter(
+                    parcel_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                )
+            ),
+        ),
+    )
+    if require_approval_by_target:
+        return_query = return_query.filter(ReturnDetail.approved_at <= cutoff)
+        parcel_query = parcel_query.filter(ParcelReturnDetail.approved_at <= cutoff)
+    if report_stage == "settled":
+        return_query = return_query.filter(ReturnDetail.settled_at.isnot(None))
+        parcel_query = parcel_query.filter(ParcelReturnDetail.settled_at.isnot(None))
+        return_query = return_query.filter(func.date(ReturnDetail.settled_at) <= target_date)
+        parcel_query = parcel_query.filter(func.date(ParcelReturnDetail.settled_at) <= target_date)
+    elif report_stage == "documented_or_settled":
+        active_return_docs = (
+            db.session.query(ClosingDocumentLink.ticket_return_id)
+            .join(ClosingDocument, ClosingDocument.id == ClosingDocumentLink.document_id)
+            .filter(ClosingDocumentLink.is_active.is_(True), ClosingDocument.is_active.is_(True))
+        )
+        active_parcel_docs = (
+            db.session.query(ClosingDocumentLink.parcel_return_id)
+            .join(ClosingDocument, ClosingDocument.id == ClosingDocumentLink.document_id)
+            .filter(ClosingDocumentLink.is_active.is_(True), ClosingDocument.is_active.is_(True))
+        )
+        active_return_docs = active_return_docs.filter(ClosingDocument.created_at <= cutoff)
+        active_parcel_docs = active_parcel_docs.filter(ClosingDocument.created_at <= cutoff)
+        return_query = return_query.filter(or_(
+            func.date(ReturnDetail.settled_at) <= target_date,
+            ReturnDetail.id.in_(active_return_docs),
+        ))
+        parcel_query = parcel_query.filter(or_(
+            func.date(ParcelReturnDetail.settled_at) <= target_date,
+            ParcelReturnDetail.id.in_(active_parcel_docs),
+        ))
+    return return_query.all(), parcel_query.all()
+
+
+def _calculate_ticket_group_totals_as_of(ticket_ids, target_date, *, report_stage=None):
+    """Allocate returns approved through the receivables report date."""
+    if report_stage not in (None, "settled", "documented_or_settled"):
+        raise ValueError(f"Unknown report stage: {report_stage}")
+    ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
+    if not ticket_ids:
+        return {"cumulative_total": Decimal("0.00"), "budget": Decimal("0.00"), "remaining_amount": Decimal("0.00")}
+
+    cutoff = datetime.combine(target_date, datetime.max.time())
+    tickets = db.session.query(BorrowingTicket).filter(
+        BorrowingTicket.id.in_(ticket_ids),
+        BorrowingTicket.approved_at <= cutoff,
+    ).all()
+    ticket_ids = {ticket.id for ticket in tickets}
+    ticket_order = sorted(
+        tickets,
+        key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
+    )
+    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in ticket_order}
+    allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    return_rows, parcel_rows = _ticket_return_rows_as_of(
+        ticket_ids, target_date, report_stage=report_stage,
+    )
+    cash_return_ids = {
+        row.id for row in return_rows
+        if _return_detail_is_cash(row)
+    }
+    records = [
+        (row.created_at, row.id, _money_decimal(row.amount_spent),
+         _return_ticket_ids(row), False,
+         row.settled_at is not None and row.settled_at.date() <= target_date,
+         row.id in cash_return_ids)
+        for row in return_rows
+    ]
+    for row in parcel_rows:
+        records.append((
+            row.created_at, row.id, _money_decimal(row.amount_spent),
+            _parcel_return_ticket_ids(row), True,
+            row.settled_at is not None and row.settled_at.date() <= target_date,
+            False,
+        ))
+
+    priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
+    parcel_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    normal_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    cash_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    receipt_allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    for _, _, amount, linked_ids, is_parcel, _, is_cash in sorted(
+        records,
+        key=lambda item: (
+            0 if report_stage == "documented_or_settled" and item[5] else 1,
+            item[0] or datetime.min,
+            item[1],
+        ),
+    ):
+        portions, _ = _allocate_return_record(amount, linked_ids, ticket_ids, priority, remaining)
+        for linked_id, portion in portions:
+            allocated[linked_id] += portion
+            if is_parcel:
+                parcel_allocated[linked_id] += portion
+            else:
+                normal_allocated[linked_id] += portion
+                if is_cash:
+                    cash_allocated[linked_id] += portion
+                else:
+                    receipt_allocated[linked_id] += portion
+    cumulative_total = sum(allocated.values())
+    budget = sum((_ticket_opening_budget(ticket) for ticket in ticket_order), Decimal("0.00"))
+    return {
+        "cumulative_total": cumulative_total,
+        "budget": budget,
+        "remaining_amount": budget - cumulative_total,
+        "allocated_by_ticket": allocated,
+        "parcel_allocated_by_ticket": parcel_allocated,
+        "normal_allocated_by_ticket": normal_allocated,
+        "cash_allocated_by_ticket": cash_allocated,
+        "receipt_allocated_by_ticket": receipt_allocated,
     }
 
 
@@ -3919,7 +4240,7 @@ def _calculate_return_form_group_totals(
         tickets,
         key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
     )
-    remaining = {ticket.id: _money_decimal(ticket.required_budget) for ticket in ticket_order}
+    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in ticket_order}
     allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
     excluded_statuses = {"DRAFT", "REJECTED"}
 
@@ -3996,7 +4317,7 @@ def _calculate_return_form_group_totals(
             amount -= portion
 
     cumulative_total = sum(allocated.values())
-    budget = sum((_money_decimal(ticket.required_budget) for ticket in ticket_order), Decimal("0.00"))
+    budget = sum((_ticket_opening_budget(ticket) for ticket in ticket_order), Decimal("0.00"))
     return {
         "cumulative_total": cumulative_total,
         "budget": budget,
@@ -4030,7 +4351,7 @@ def _ticket_allocation_rows(tickets, group_totals):
     )
     rows = []
     for ticket in ticket_order:
-        budget = _money_decimal(ticket.required_budget)
+        budget = _ticket_opening_budget(ticket)
         cumulative_total = _money_decimal(allocated_by_ticket.get(ticket.id))
         rows.append({
             "ticket_id": ticket.id,
@@ -4044,11 +4365,8 @@ def _ticket_allocation_rows(tickets, group_totals):
 
 def _calculate_ticket_return_totals(ticket_id):
     group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
-    budget = _money_decimal(
-        db.session.query(BorrowingTicket.required_budget)
-        .filter(BorrowingTicket.id == ticket_id)
-        .scalar() or 0
-    )
+    ticket = db.session.get(BorrowingTicket, ticket_id)
+    budget = _ticket_opening_budget(ticket) if ticket else Decimal("0.00")
     cumulative_total = _money_decimal(group_totals.get("allocated_by_ticket", {}).get(ticket_id))
     return {
         "cumulative_total": cumulative_total,
@@ -4056,7 +4374,7 @@ def _calculate_ticket_return_totals(ticket_id):
         "remaining_amount": budget - cumulative_total,
         "status": (
             "เคลียร์ยอดแล้ว" if cumulative_total >= budget
-            else "มียอดคงค้าง" if cumulative_total > 0
+            else "มียอดคงค้าง" if cumulative_total > 0 or _ticket_has_imported_reduction(ticket)
             else "อนุมัติจ่ายเงิน"
         ),
     }
@@ -4064,7 +4382,8 @@ def _calculate_ticket_return_totals_with_parcel(ticket_id, *, exclude_return_id=
     group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
     return_total = _money_decimal(group_totals.get("normal_allocated_by_ticket", {}).get(ticket_id))
     parcel_total = _money_decimal(group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id))
-    budget = _money_decimal(db.session.query(BorrowingTicket.required_budget).filter(BorrowingTicket.id == ticket_id).scalar())
+    ticket = db.session.get(BorrowingTicket, ticket_id)
+    budget = _ticket_opening_budget(ticket) if ticket else Decimal("0.00")
     combined_total = return_total + parcel_total
     return {
         "return_total": return_total,
@@ -4093,11 +4412,8 @@ def _calculate_ticket_submission_totals_with_parcel(
     parcel_total = _money_decimal(
         group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id)
     )
-    budget = _money_decimal(
-        db.session.query(BorrowingTicket.required_budget)
-        .filter(BorrowingTicket.id == ticket_id)
-        .scalar() or 0
-    )
+    ticket = db.session.get(BorrowingTicket, ticket_id)
+    budget = _ticket_opening_budget(ticket) if ticket else Decimal("0.00")
     combined_total = return_total + parcel_total
     return {
         "return_total": return_total,
@@ -4354,15 +4670,27 @@ def _recalculate_borrowing_ticket_status(
 
     new_status_id = old_status_id
 
-    if budget_covered:
+    if borrowing_ticket.opening_balance_amount is not None and budget == 0:
+        # J=0 permits a new loan, including a finance-adjusted old contract.
+        # Historical settlement has no known date; I may still be pending.
+        new_status_id = _status_id("borrowing_ticket", code="CLOSED")
+        borrowing_ticket.closed_date = None
+    elif budget_covered:
         new_status_id = _status_id("borrowing_ticket", code="CLOSED")
         borrowing_ticket.closed_date = datetime.now().date()
 
-    elif cumulative_total > 0:
+    elif cumulative_total > 0 or _ticket_has_imported_reduction(borrowing_ticket):
         new_status_id = _status_id("borrowing_ticket", code="PARTIAL_RETURN")
+        borrowing_ticket.closed_date = None
 
     else:
-        if old_status_id in _status_ids("borrowing_ticket", {"PENDING", "IN_PROGRESS", "APPROVED", "REJECTED"}):
+        if (
+            borrowing_ticket.opening_balance_amount is not None
+            and old_status_id in _status_ids("borrowing_ticket", {"CLOSED", "PARTIAL_RETURN"})
+        ):
+            new_status_id = _status_id("borrowing_ticket", code="APPROVED")
+            borrowing_ticket.closed_date = None
+        elif old_status_id in _status_ids("borrowing_ticket", {"PENDING", "IN_PROGRESS", "APPROVED", "REJECTED"}):
             new_status_id = old_status_id
 
     borrowing_ticket.status_id = new_status_id
@@ -4560,7 +4888,7 @@ def coordinator_dashboard():
             editing_ticket.creator_id,
             editing_ticket.borrower_id,
         }:
-            abort(403)
+            abort(403, description="คุณไม่ได้เป็นผู้สร้างหรือผู้ยืมของสัญญานี้")
         if not _can_edit_borrowing_ticket(current_user.id, editing_ticket):
             if request.method == "GET":
                 abort(403)
@@ -4847,7 +5175,7 @@ def coordinator_dashboard():
         ticket_remaining = totals["remaining_amount"]
         ticket.ticket_remaining = ticket_remaining
         return_form_totals = _calculate_return_form_group_totals(_ticket_group_ids(ticket.id))
-        return_form_budget = _money_decimal(ticket.required_budget)
+        return_form_budget = _ticket_opening_budget(ticket)
         return_form_submitted_total = _money_decimal(
             return_form_totals.get("allocated_by_ticket", {}).get(ticket.id)
         )
@@ -4885,7 +5213,7 @@ def coordinator_dashboard():
         ticket.submitted_return_total = ticket_display_totals["cumulative_total"]
         ticket.ticket_remaining = _calculate_ticket_return_totals(ticket.id)["remaining_amount"]
         return_form_totals = _calculate_return_form_group_totals(_ticket_group_ids(ticket.id))
-        return_form_budget = _money_decimal(ticket.required_budget)
+        return_form_budget = _ticket_opening_budget(ticket)
         return_form_submitted_total = _money_decimal(
             return_form_totals.get("allocated_by_ticket", {}).get(ticket.id)
         )
@@ -5080,8 +5408,8 @@ def coordinator_dashboard():
                 # the user on the dashboard with the old form still visible.
                 return verification_view(saved_ticket.id)
         form_errors = "; ".join(
-            ", ".join(errors)
-            for errors in form.errors.values()
+            f"{form[field_name].label.text}: {', '.join(errors)}"
+            for field_name, errors in form.errors.items()
         )
         return _validation_error_response(form_errors or "ข้อมูลไม่ครบหรือไม่ถูกต้อง")
 
@@ -5150,6 +5478,8 @@ def coordinator_dashboard():
 def export_ticket_pdf(ticket_id):
     ticket = db.session.query(BorrowingTicket).get(ticket_id)
     if not ticket:
+        abort(404)
+    if ticket.import_batch_id is not None:
         abort(404)
 
     if (
@@ -5269,7 +5599,7 @@ def finance_bank_account_registry(_render_after_post=False):
         if not value:
             return None
         try:
-            return datetime.strptime(value[:10], "%Y-%m-%d")
+            return parse_datetime(value[:10])
         except ValueError:
             return None
 
@@ -5624,11 +5954,718 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         staff_options=staff_options,
     )
 
+def _legacy_contract_checks(report):
+    numbers = {row.ticket_number.strip() for row in report.rows if row.ticket_number.strip()}
+    existing_numbers = {
+        number.strip()
+        for (number,) in db.session.query(BorrowingTicket.number)
+        .filter(func.trim(BorrowingTicket.number).in_(numbers))
+        .all()
+    } if numbers else set()
+    staff_rows = (
+        db.session.query(
+            StaffAccount.id,
+            StaffPersonalInfo.th_firstname,
+            StaffPersonalInfo.th_lastname,
+        )
+        .outerjoin(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .all()
+    )
+    borrower_ids_by_name = {}
+    for staff_id, first_name, last_name in staff_rows:
+        if first_name and last_name:
+            name_key = legacy_borrower_name_key(first_name, last_name)
+            borrower_ids_by_name.setdefault(name_key, []).append(staff_id)
+    _status_id("borrowing_ticket", code="APPROVED")
+    return check_legacy_contracts(
+        report,
+        existing_numbers=existing_numbers,
+        borrower_ids_by_name=borrower_ids_by_name,
+        upload_date=datetime.now(ZoneInfo("Asia/Bangkok")).date(),
+    )
+
+
+def _legacy_import_schema_ready():
+    inspector = inspect(db.engine)
+    if not inspector.has_table("cash_advance_import_batches"):
+        return False
+    columns = {column["name"] for column in inspector.get_columns("cash_advance_borrowing_tickets")}
+    return {"opening_balance_amount", "import_batch_id",
+            "historical_repaid_amount", "historical_pending_amount"} <= columns
+
+
+def _ticket_receivable_snapshot(ticket):
+    """Current F/G/I/J, including the system's settled and documented returns."""
+    historical_repaid, historical_pending = _historical_ticket_amounts(ticket)
+    group_ids = _ticket_group_ids(ticket.id)
+    settled = _calculate_ticket_group_totals(group_ids, report_stage="settled")
+    documented = _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled")
+    submitted = _calculate_return_form_group_totals(group_ids)
+    system_settled = _money_decimal(settled.get("allocated_by_ticket", {}).get(ticket.id))
+    system_documented = _money_decimal(documented.get("allocated_by_ticket", {}).get(ticket.id))
+    system_pending = max(system_documented - system_settled, Decimal("0.00"))
+    borrowed = _money_decimal(ticket.required_budget)
+    repaid = historical_repaid + system_settled
+    pending = historical_pending + system_pending
+    return {
+        "borrowed": borrowed,
+        "repaid": repaid,
+        "before_pending": borrowed - repaid,
+        "pending": pending,
+        "remaining": borrowed - repaid - pending,
+        "system_settled": system_settled,
+        "system_pending": system_pending,
+        "system_submitted": _money_decimal(submitted.get("allocated_by_ticket", {}).get(ticket.id)),
+    }
+
+
+def _snapshot_json(snapshot):
+    return {key: format(value, ".2f") for key, value in snapshot.items()}
+
+
+def _receivables_report_rows(tickets, *, target_date, individual=False):
+    group_cache = {}
+    rows = []
+    for ticket in tickets:
+        group_ids = frozenset(_ticket_group_ids(ticket.id))
+        if group_ids not in group_cache:
+            group_cache[group_ids] = (
+                (_calculate_ticket_group_totals_as_of(
+                    group_ids, target_date, report_stage="settled",
+                ), None)
+                if individual else (
+                    _calculate_ticket_group_totals_as_of(
+                        group_ids, target_date, report_stage="settled",
+                    ),
+                    _calculate_ticket_group_totals_as_of(
+                        group_ids, target_date, report_stage="documented_or_settled",
+                    ),
+                )
+            )
+        allocated_totals, documented = group_cache[group_ids]
+        approved_amount = _money_decimal(
+            allocated_totals.get("allocated_by_ticket", {}).get(ticket.id)
+        )
+        documented_amount = (
+            _money_decimal(documented.get("allocated_by_ticket", {}).get(ticket.id))
+            if documented is not None else approved_amount
+        )
+        historical_repaid, historical_pending = _historical_ticket_amounts(ticket)
+        first_name_with_title, last_name = borrower_name_parts(ticket)
+        report_row = build_receivable_row(
+            ticket,
+            approved_amount=approved_amount,
+            pending_amount=max(documented_amount - approved_amount, Decimal("0.00")),
+            historical_repaid=historical_repaid,
+            historical_pending=historical_pending,
+            first_name_with_title=first_name_with_title,
+            last_name=last_name,
+        )
+        if individual:
+            cash = _money_decimal(allocated_totals["cash_allocated_by_ticket"].get(ticket.id))
+            receipts = _money_decimal(allocated_totals["receipt_allocated_by_ticket"].get(ticket.id))
+            parcel = _money_decimal(allocated_totals["parcel_allocated_by_ticket"].get(ticket.id))
+            report_row["cash"] = cash
+            report_row["receipts"] = receipts + parcel + historical_repaid
+        # A completely cleared loan is no longer a receivable. A J=0 source
+        # row with I>0 remains here because the requisition is not settled.
+        if report_row["before_pending"] > 0:
+            report_row["ticket_id"] = ticket.id
+            rows.append(report_row)
+    return rows
+
+
+def _receivables_export_target_date():
+    try:
+        return date.fromisoformat(request.args.get("target_date", "").strip())
+    except ValueError:
+        return None
+
+
+def _receivables_export_tickets(target_date):
+    cutoff = datetime.combine(target_date, datetime.max.time())
+    return (
+        db.session.query(BorrowingTicket)
+        .filter(
+            BorrowingTicket.approved_at.isnot(None),
+            BorrowingTicket.approved_at <= cutoff,
+            BorrowingTicket.status_id.notin_(_status_ids("borrowing_ticket", {"REJECTED"})),
+        )
+        .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.id.asc())
+        .all()
+    )
+
+
+def _borrowing_register_rows(target_date):
+    """Build dated loan and settled-return movements for one calendar month."""
+    from collections import defaultdict
+
+    first_day = target_date.replace(day=1)
+    tickets = _receivables_export_tickets(target_date)
+    ticket_by_id = {ticket.id: ticket for ticket in tickets}
+    if not tickets:
+        return []
+    ticket_ids = set(ticket_by_id)
+    priority = {ticket.id: index for index, ticket in enumerate(tickets)}
+    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in tickets}
+    movements = defaultdict(list)
+
+    for ticket in tickets:
+        transaction_day = ticket.approved_at.date()
+        if first_day <= transaction_day <= target_date and ticket.import_batch_id is None:
+            movements[transaction_day].append(("loan", ticket, _money_decimal(ticket.required_budget),
+                                               (ticket.approved_at, ticket.id)))
+
+    returns, parcels = _ticket_return_rows_as_of(
+        ticket_ids, target_date, report_stage="settled",
+        require_approval_by_target=False,
+    )
+
+    def local_day(value):
+        return (value.astimezone(ZoneInfo("Asia/Bangkok")).date()
+                if value.tzinfo else value.date())
+
+    records = []
+    for detail in returns:
+        if local_day(detail.settled_at) > target_date:
+            continue
+        linked_ids = _return_ticket_ids(detail) & ticket_ids
+        if _return_detail_is_cash(detail):
+            cash_total = sum((_money_decimal(item.amount) for item in detail.receipt_items), Decimal("0.00"))
+            if cash_total != _money_decimal(detail.amount_spent):
+                raise ValueError(f"ยอดเงินสดของรายการคืน {detail.id} ไม่ตรงกับยอดส่งใช้")
+            for item in detail.receipt_items:
+                records.append((detail.created_at, 0, detail.id, item.id,
+                                "cash", item.receipt_date, _money_decimal(item.amount), linked_ids))
+        else:
+            records.append((detail.created_at, 0, detail.id, 0, "noncash",
+                            local_day(detail.settled_at), _money_decimal(detail.amount_spent), linked_ids))
+    for parcel in parcels:
+        if parcel.fund_request_id is not None or local_day(parcel.settled_at) > target_date:
+            continue
+        records.append((parcel.created_at, 1, parcel.id, 0, "noncash",
+                        local_day(parcel.settled_at), _money_decimal(parcel.amount_spent),
+                        _parcel_return_ticket_ids(parcel) & ticket_ids))
+
+    for created_at, source_type, source_id, item_id, kind, transaction_day, total, linked_ids in sorted(
+        records, key=lambda entry: (entry[0] or datetime.min, entry[2], entry[1], entry[3])
+    ):
+        if total < 0 or not linked_ids:
+            raise ValueError(f"รายการคืน {source_type}/{source_id} มียอดหรือใบยืมไม่ถูกต้อง")
+        portions, unallocated = _allocate_return_record(
+            total, linked_ids, ticket_ids, priority, remaining,
+        )
+        for ticket_id, portion in portions:
+            if first_day <= transaction_day <= target_date:
+                movements[transaction_day].append((kind, ticket_by_id[ticket_id], portion,
+                                                   (created_at, source_type, source_id, item_id, priority[ticket_id])))
+        if unallocated:
+            raise ValueError(f"ยอดรายการคืน {source_type}/{source_id} เกินยอดใบยืมที่เกี่ยวข้อง")
+
+    rows = []
+    for transaction_day in sorted(movements):
+        entries = movements[transaction_day]
+        for _, ticket, amount, _ in sorted((e for e in entries if e[0] == "loan"), key=lambda e: e[3]):
+            first, last = borrower_name_parts(ticket)
+            rows.extend((
+                {"date": transaction_day, "description": "รับจากเงินทดรองจ่าย(งานคลัง)",
+                 "f": amount, "i": amount, "ticket_id": ticket.id},
+                {"due_date": ticket.due_date, "description": f"จ่ายเงินยืม{first or ''}",
+                 "last_name": last, "ticket_number": ticket.number, "g": amount,
+                 "ticket_id": ticket.id},
+            ))
+        noncash = sorted((e for e in entries if e[0] == "noncash"), key=lambda e: e[3])
+        daily_total = Decimal("0.00")
+        for index, (_, ticket, amount, _) in enumerate(noncash):
+            first, last = borrower_name_parts(ticket)
+            rows.append({"date": transaction_day if index == 0 else None,
+                         "description": f"รับคืนเงินยืม{first or ''}", "last_name": last,
+                         "ticket_number": ticket.number, "g": -amount, "h": amount,
+                         "ticket_id": ticket.id})
+            daily_total += amount
+        if daily_total:
+            rows.append({"description": "จ่ายคืนเงินทดรองจ่าย",
+                         "f": -daily_total, "h": -daily_total})
+        for _, ticket, amount, _ in sorted((e for e in entries if e[0] == "cash"), key=lambda e: e[3]):
+            first, last = borrower_name_parts(ticket)
+            rows.extend((
+                {"date": transaction_day, "description": f"รับคืนเงินยืม{first or ''}",
+                 "last_name": last, "ticket_number": ticket.number,
+                 "g": -amount, "i": amount, "ticket_id": ticket.id},
+                {"description": "จ่ายคืนเงินทดรองจ่าย", "f": -amount, "i": -amount},
+            ))
+    return rows
+
+
+def _borrowing_register_month_end():
+    selected_date = _receivables_export_target_date()
+    if selected_date is None:
+        return None
+    return selected_date.replace(day=monthrange(selected_date.year, selected_date.month)[1])
+
+
+def _log_receivables_export(report_type, target_date, rows):
+    db.session.add(FinanceReportLog(
+        report_type=report_type,
+        creator_id=current_user.id,
+        target_date=target_date,
+        items=[FinanceReportLogItem(ticket_id=ticket_id)
+               for ticket_id in sorted({row["ticket_id"] for row in rows if row.get("ticket_id")})],
+    ))
+    db.session.commit()
+
+
+@bp.route("/finance/borrowing-register.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_borrowing_register():
+    """Download every borrowing-register movement in the selected month."""
+    target_date = _borrowing_register_month_end()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับทะเบียนคุมการยืมเงิน", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+    try:
+        rows = _borrowing_register_rows(target_date)
+        workbook = generate_borrowing_register_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
+            download_name=f"borrowing_register_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("borrowing_register", target_date, rows)
+        return response
+    except (OSError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        current_app.logger.exception("Could not generate borrowing register")
+        message = "สร้างทะเบียนคุมการยืมเงินไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+
+
+@bp.route("/finance/fund-register.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_fund_register():
+    """Download and log the advance-fund register for the selected month."""
+    target_date = _borrowing_register_month_end()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับทะเบียนคุมเงินทดรองจ่าย", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+    try:
+        rows = _fund_register_rows(target_date)
+        workbook = generate_fund_register_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
+            download_name=f"fund_register_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("fund_register", target_date, [
+            {"ticket_id": ticket_id} for row in rows for ticket_id in row["ticket_ids"]
+        ])
+        return response
+    except (OSError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        current_app.logger.exception("Could not generate fund register")
+        message = "สร้างทะเบียนคุมเงินทดรองจ่ายไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+
+
+@bp.route("/finance/receivables-report.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_receivables_report():
+    """Download a dated receivables snapshot and record its included tickets."""
+    target_date = _receivables_export_target_date()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับรายงานลูกหนี้เงินยืม", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+    try:
+        rows = _receivables_report_rows(_receivables_export_tickets(target_date), target_date=target_date)
+        workbook = generate_receivables_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook),
+            mimetype="application/vnd.ms-excel",
+            as_attachment=True,
+            download_name=f"cash_advance_receivables_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("receivables", target_date, rows)
+        return response
+    except (OSError, LegacyXlsError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        current_app.logger.exception("Could not generate cash advance receivables report")
+        message = "สร้างรายงานลูกหนี้เงินยืมไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
+        return redirect(url_for("advance_payment.finance_dashboard"))
+
+
+@bp.route("/finance/individual-debtors-report.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_individual_debtors_report():
+    """Download the individual debtor register in the legacy A–J layout."""
+    target_date = _receivables_export_target_date()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับทะเบียนคุมลูกหนี้รายตัว", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+    try:
+        rows = _receivables_report_rows(
+            _receivables_export_tickets(target_date), individual=True, target_date=target_date,
+        )
+        workbook = generate_individual_debtors_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
+            download_name=f"individual_debtors_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("individual_debtors", target_date, rows)
+        return response
+    except (OSError, LegacyXlsError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        current_app.logger.exception("Could not generate individual debtors report")
+        message = "สร้างทะเบียนคุมลูกหนี้เงินยืมรายตัวไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+
+
+@bp.route("/finance/outstanding-debt-report.xls", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_outstanding_debt_report():
+    """Download a dated outstanding debtor aging report and log its tickets."""
+    target_date = _receivables_export_target_date()
+    if target_date is None:
+        flash("กรุณาเลือกวันที่สำหรับรายงานยอดลูกหนี้คงค้าง", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+    try:
+        rows = _receivables_report_rows(
+            _receivables_export_tickets(target_date), individual=True, target_date=target_date,
+        )
+        workbook = generate_outstanding_debt_xls(rows, report_date=target_date)
+        response = send_file(
+            BytesIO(workbook), mimetype="application/vnd.ms-excel", as_attachment=True,
+            download_name=f"outstanding_debt_{target_date.isoformat()}.xls",
+        )
+        _log_receivables_export("outstanding_debt", target_date, rows)
+        return response
+    except (OSError, LegacyXlsError, ValueError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        current_app.logger.exception("Could not generate outstanding debtor report")
+        message = "สร้างรายงานยอดลูกหนี้คงค้างไม่สำเร็จ"
+        flash(message if isinstance(exc, SQLAlchemyError) else f"{message}: {exc}", "danger")
+        return redirect(url_for("advance_payment.tickets_view", filter="pending_debt"))
+
+
+@bp.route("/finance/legacy-import", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def legacy_import():
+    """Import valid tickets and return only rejected rows for the finance modal."""
+    report = None
+    filename = None
+    error = None
+    contract_checks = None
+    imported_count = None
+    batch_id = None
+    error_status = 400
+    uploaded = request.files.get("file")
+    if not uploaded or not uploaded.filename:
+        error = "กรุณาเลือกไฟล์ .xls"
+    elif not uploaded.filename.lower().endswith(".xls"):
+        error = "รองรับเฉพาะไฟล์ .xls ของรายงานลูกหนี้เงินยืม"
+    else:
+        filename = uploaded.filename
+        file_bytes = uploaded.read(LEGACY_XLS_MAX_FILE_BYTES + 1)
+        try:
+            report = parse_legacy_cash_advance_xls(file_bytes)
+        except LegacyXlsError as exc:
+            current_app.logger.info("Legacy XLS import rejected: %s", exc)
+            error = "อ่านไฟล์ไม่ได้ กรุณาตรวจว่าเป็นไฟล์ .xls รายงานลูกหนี้เงินยืมที่ถูกต้อง และมีขนาดไม่เกิน 5 MB"
+        if report is not None:
+            final_path = None
+            try:
+                if not _legacy_import_schema_ready():
+                    raise ValueError("ยังไม่ได้ปรับฐานข้อมูลสำหรับการนำเข้า กรุณารัน migration บนฐานทดสอบก่อน")
+                contract_checks = _legacy_contract_checks(report)
+                ready_checks = [check for check in contract_checks if check.ready_after_migration]
+                duplicate_checks = [
+                    check for check in contract_checks
+                    if getattr(check, "duplicate_in_database", False)
+                ]
+                imported_count = 0
+                if ready_checks or duplicate_checks:
+                    private_dir = os.path.join(current_app.instance_path, "legacy_cash_advance_sources")
+                    os.makedirs(private_dir, exist_ok=True)
+                    final_path = os.path.join(private_dir, f"{uuid.uuid4().hex}.xls")
+                    with open(final_path, "xb") as source_file:
+                        source_file.write(file_bytes)
+                    batch = CashAdvanceImportBatch(
+                        source_file_path=final_path,
+                        uploaded_by_id=current_user.id,
+                        uploaded_on=datetime.now(ZoneInfo("Asia/Bangkok")).date(),
+                    )
+                    db.session.add(batch)
+                    db.session.flush()
+                    batch_id = batch.id
+                    approved_status = _status_id("borrowing_ticket", code="APPROVED")
+                    partial_status = _status_id("borrowing_ticket", code="PARTIAL_RETURN")
+                    closed_status = _status_id("borrowing_ticket", code="CLOSED")
+                    for check in ready_checks:
+                        row = check.row
+                        db.session.add(BorrowingTicket(
+                            number=row.ticket_number.strip(),
+                            creator_id=current_user.id,
+                            borrower_id=check.borrower_ids[0],
+                            status_id=(
+                                closed_status if row.opening_balance_amount == 0
+                                else partial_status if row.opening_balance_amount < row.borrowed_amount
+                                else approved_status
+                            ),
+                            borrowing_ticket_purpose=row.purpose,
+                            required_budget=row.borrowed_amount,
+                            opening_balance_amount=row.opening_balance_amount,
+                            historical_repaid_amount=row.repaid_amount,
+                            historical_pending_amount=row.pending_documents_amount,
+                            import_batch_id=batch.id,
+                            account_number="",
+                            borrowing_ticket_start_date=None,
+                            borrowing_ticket_end_date=None,
+                            due_date=row.due_date,
+                            approved_at=datetime.combine(row.borrow_date, datetime.min.time()),
+                            created_at=datetime.utcnow(),
+                            aip_ref_no="",
+                            aip_ref_date=None,
+                            finance_verified=True,
+                        ))
+                    db.session.commit()
+                    imported_count = len(ready_checks)
+            except (ValueError, SQLAlchemyError, OSError, LookupError) as exc:
+                db.session.rollback()
+                if final_path and os.path.isfile(final_path):
+                    os.remove(final_path)
+                current_app.logger.exception("Legacy cash advance import failed")
+                error = str(exc) if isinstance(exc, ValueError) else "บันทึกข้อมูลไม่สำเร็จ กรุณาตรวจเลขที่ยืมและลองอีกครั้ง"
+                imported_count = None
+                error_status = 500
+
+    if error:
+        return jsonify({"error": error}), error_status
+    duplicate_numbers = {
+        check.row.ticket_number.strip() for check in contract_checks
+        if getattr(check, "duplicate_in_database", False)
+    }
+    duplicate_tickets = {
+        ticket.number.strip(): ticket
+        for ticket in db.session.query(BorrowingTicket)
+        .filter(func.trim(BorrowingTicket.number).in_(duplicate_numbers)).all()
+    } if duplicate_numbers else {}
+    rejected = []
+    for check in contract_checks:
+        if check.ready_after_migration:
+            continue
+        item = {
+            "source_row": check.row.source_row,
+            "ticket_number": check.row.ticket_number,
+            "borrower_name": check.row.borrower_name,
+            "reasons": check.reasons,
+        }
+        existing = duplicate_tickets.get(check.row.ticket_number.strip())
+        if existing:
+            try:
+                item["duplicate"] = {
+                    "ticket_id": existing.id,
+                    "borrower_name": existing.borrower_name,
+                    "current": _snapshot_json(_ticket_receivable_snapshot(existing)),
+                    "uploaded": {
+                        key: format(_money_decimal(value), ".2f") if value is not None else None
+                        for key, value in (
+                            ("borrowed", check.row.borrowed_amount),
+                            ("repaid", check.row.repaid_amount),
+                            ("before_pending", check.row.balance_before_pending),
+                            ("pending", check.row.pending_documents_amount),
+                            ("remaining", check.row.opening_balance_amount),
+                        )
+                    },
+                }
+            except (OSError, LegacyXlsError, ValueError):
+                item["reasons"].append("อ่านยอดปัจจุบันของสัญญาเดิมไม่ได้ กรุณาตรวจไฟล์ต้นฉบับ")
+        rejected.append(item)
+    return jsonify({
+        "filename": filename,
+        "batch_id": batch_id,
+        "found_count": len(report.rows),
+        "imported_count": imported_count,
+        "rejected": rejected,
+    })
+
+
+@bp.route("/finance/legacy-import/adjust", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def legacy_import_adjust():
+    """Overwrite an existing contract's balance using its reviewed upload batch."""
+    try:
+        batch_id = int(request.form.get("batch_id") or "")
+        batch = db.session.get(CashAdvanceImportBatch, batch_id)
+        if batch is None or batch.uploaded_by_id != current_user.id:
+            raise ValueError("ไม่พบ batch ของไฟล์ที่อัปโหลด กรุณาอัปโหลดไฟล์อีกครั้ง")
+        with open(batch.source_file_path, "rb") as source_file:
+            file_bytes = source_file.read(LEGACY_XLS_MAX_FILE_BYTES + 1)
+        report = parse_legacy_cash_advance_xls(file_bytes)
+        if report.report_date is None:
+            raise ValueError("อ่านวันที่รายงานจากไฟล์ไม่ได้")
+        ticket_id = int(request.form.get("ticket_id") or "")
+        source_row = int(request.form.get("source_row") or "")
+        number = (request.form.get("ticket_number") or "").strip()
+        source = next(
+            (row for row in report.rows
+             if row.source_row == source_row and row.ticket_number.strip() == number),
+            None,
+        )
+        if source is None:
+            raise ValueError("ไม่พบเลขที่ยืมและแถวที่เลือกในไฟล์ที่อัปโหลด")
+        ticket = db.session.query(BorrowingTicket).filter(
+            BorrowingTicket.id == ticket_id,
+            func.trim(BorrowingTicket.number) == number,
+        ).with_for_update().first()
+        if ticket is None:
+            raise ValueError("ไม่พบสัญญาเดิมตามเลขที่ยืม")
+        current = _ticket_receivable_snapshot(ticket)
+        for key in ("borrowed", "repaid", "pending"):
+            if not (request.form.get("expected_" + key) or "").strip():
+                raise ValueError("ข้อมูลยอดเดิมไม่ครบ กรุณาอัปโหลดไฟล์อีกครั้ง")
+            if _parse_money_input(request.form.get("expected_" + key)) != current[key]:
+                db.session.rollback()
+                return jsonify({"error": "ยอดสัญญาเดิมเปลี่ยนไปแล้ว กรุณาอัปโหลดไฟล์อีกครั้งเพื่อตรวจยอดล่าสุด"}), 409
+        for key in ("borrowed", "repaid", "pending"):
+            if not (request.form.get(key) or "").strip():
+                raise ValueError("กรุณากรอกยอด F, G และ I ให้ครบ")
+        borrowed = _parse_money_input(request.form.get("borrowed"))
+        repaid = _parse_money_input(request.form.get("repaid"))
+        pending = _parse_money_input(request.form.get("pending"))
+        if borrowed <= 0 or repaid < 0 or pending < 0 or repaid + pending > borrowed:
+            raise ValueError("ยอดต้องเป็นบวกและเป็นไปตาม F − G − I ≥ 0")
+        baseline_repaid = repaid - current["system_settled"]
+        baseline_pending = pending - current["system_pending"]
+        if baseline_repaid < 0 or baseline_pending < 0:
+            raise ValueError("ยอดที่กรอกต่ำกว่ายอดคืนหรือยอดรอเบิกที่บันทึกในระบบแล้ว")
+        opening_budget = borrowed - baseline_repaid - baseline_pending
+        if opening_budget < current["system_submitted"]:
+            raise ValueError("ยอดคงเหลือใหม่ต่ำกว่ารายการส่งใช้ที่บันทึกในระบบแล้ว")
+        if (borrowed, repaid, pending) == (current["borrowed"], current["repaid"], current["pending"]):
+            db.session.rollback()
+            return jsonify({"updated": False, "current": _snapshot_json(current)})
+
+        group_ids = _ticket_group_ids(ticket.id)
+        other_ticket_ids = group_ids - {ticket.id}
+        if other_ticket_ids:
+            before_allocations = (
+                _calculate_ticket_group_totals(group_ids, report_stage="settled"),
+                _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled"),
+                _calculate_return_form_group_totals(group_ids),
+            )
+
+        ticket.required_budget = borrowed
+        ticket.historical_repaid_amount = baseline_repaid
+        ticket.historical_pending_amount = baseline_pending
+        ticket.opening_balance_amount = opening_budget
+        ticket.balance_adjustment_batch_id = batch.id
+        for linked_ticket_id in group_ids:
+            _recalculate_borrowing_ticket_status(
+                linked_ticket_id, commit=False, notify=False, recalculate_settlement=False
+            )
+        _recalculate_borrowing_ticket_settlement(group_ids)
+        updated = _ticket_receivable_snapshot(ticket)
+        if (updated["borrowed"], updated["repaid"], updated["pending"]) != (borrowed, repaid, pending):
+            raise ValueError("ยอดนี้ทำให้การจัดสรรรายการคืนร่วมกับสัญญาอื่นเปลี่ยน กรุณาตรวจสอบรายการคืนก่อน")
+        if other_ticket_ids:
+            after_allocations = (
+                _calculate_ticket_group_totals(group_ids, report_stage="settled"),
+                _calculate_ticket_group_totals(group_ids, report_stage="documented_or_settled"),
+                _calculate_return_form_group_totals(group_ids),
+            )
+            if any(
+                _money_decimal(before.get("allocated_by_ticket", {}).get(other_id))
+                != _money_decimal(after.get("allocated_by_ticket", {}).get(other_id))
+                for before, after in zip(before_allocations, after_allocations)
+                for other_id in other_ticket_ids
+            ):
+                raise ValueError("การแก้ยอดนี้จะเปลี่ยนยอดของสัญญาอื่นที่ใช้รายการคืนร่วมกัน กรุณาตรวจสอบก่อน")
+        db.session.commit()
+        return jsonify({"updated": True, "current": _snapshot_json(updated)})
+    except (LegacyXlsError, ValueError, TypeError) as exc:
+        db.session.rollback()
+        return jsonify({"error": str(exc)}), 400
+    except (OSError, SQLAlchemyError):
+        db.session.rollback()
+        current_app.logger.exception("Could not adjust an existing cash advance contract")
+        return jsonify({"error": "ปรับยอดสัญญาไม่สำเร็จ กรุณาลองใหม่"}), 500
+
+
+@bp.route("/finance/overdue-reminders.pdf", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def export_overdue_reminders():
+    """Print one reminder per ticket in the finance overdue list."""
+    target_date_text = request.args.get("target_date", "").strip()
+    try:
+        target_date = date.fromisoformat(target_date_text)
+    except ValueError:
+        flash("กรุณาเลือกวันที่สำหรับหนังสือเร่งรัด", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
+    excluded = _status_ids("borrowing_ticket", {"CLOSED", "REJECTED", "PENDING", "IN_PROGRESS"})
+    tickets = (
+        db.session.query(BorrowingTicket)
+        .filter(
+            BorrowingTicket.approved_at.isnot(None),
+            BorrowingTicket.settled_at.is_(None),
+            BorrowingTicket.due_date < target_date,
+            BorrowingTicket.status_id.notin_(excluded),
+        )
+        .order_by(BorrowingTicket.due_date.asc(), BorrowingTicket.id.asc())
+        .all()
+    )
+    creator_org = _get_staff_org(current_user)
+    header_org = getattr(creator_org, "parent", None) or creator_org
+    dean_name = _find_dean_name(header_org)
+    header_department_name = getattr(header_org, "name", None)
+    header_telephone = (
+        getattr(creator_org, "phone_number", None)
+        or getattr(header_org, "phone_number", None)
+    )
+    letters = []
+    logged_ticket_ids = []
+    try:
+        for ticket in tickets:
+            remaining = _money_decimal(_calculate_ticket_return_totals(ticket.id)["remaining_amount"])
+            if remaining <= 0:
+                continue
+            letters.append(build_reminder_letter(
+                ticket,
+                target_date=target_date,
+                remaining_amount=remaining,
+                dean_name=dean_name,
+                header_department_name=header_department_name,
+                header_telephone=header_telephone,
+            ))
+            logged_ticket_ids.append(ticket.id)
+        if not letters:
+            flash("ไม่มีสัญญาเลยกำหนดที่ยังมียอดต้องส่งใช้", "info")
+            return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
+        pdf_bytes = generate_overdue_reminders_pdf(letters)
+        db.session.add(
+            FinanceReportLog(
+                report_type="overdue_reminder",
+                creator_id=current_user.id,
+                target_date=target_date,
+                items=[FinanceReportLogItem(ticket_id=ticket_id) for ticket_id in logged_ticket_ids],
+            )
+        )
+        db.session.commit()
+    except ValueError as exc:
+        current_app.logger.warning("Could not generate overdue reminders: %s", exc)
+        flash("สร้างหนังสือเร่งรัดไม่ได้ กรุณาตรวจข้อมูลสัญญาที่เลยกำหนด", "warning")
+        return redirect(url_for("advance_payment.tickets_view", filter="overdue"))
+    return send_file(
+        BytesIO(pdf_bytes), mimetype="application/pdf", as_attachment=True,
+        download_name=f"overdue_borrowing_reminders_{target_date.isoformat()}.pdf",
+    )
+
+
 @bp.route("/finance/tickets", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def tickets_view():
     filter_type = request.args.get("filter", "").strip()
-    today_date = datetime.now().date()
+    today_date = datetime.now(ZoneInfo("Asia/Bangkok")).date()
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
 
     # Query ข้อมูลตั๋วเงินยืมทั้งหมด
@@ -5687,10 +6724,17 @@ def tickets_view():
 
     near_due_count = 0
     overdue_count = 0
-    shadow_sum_debt = sum(
-        (_money_decimal(ticket.required_budget) for ticket in unsettled_tickets),
-        Decimal("0.00"),
-    )
+    remaining_by_ticket = {
+        ticket.id: max(_calculate_ticket_return_totals(ticket.id)["remaining_amount"], Decimal("0.00"))
+        for ticket in unsettled_tickets
+    }
+    overdue_preview_tickets = [
+        ticket for ticket in unsettled_tickets
+        if ticket.due_date and ticket.due_date < today_date
+        and ticket.status_id not in _status_ids("borrowing_ticket", ticket_summary_excluded_statuses)
+        and remaining_by_ticket.get(ticket.id, Decimal("0.00")) > 0
+    ]
+    shadow_sum_debt = sum(remaining_by_ticket.values(), Decimal("0.00"))
 
     for ticket in all_tickets:
         borrower_user = getattr(ticket, "borrower_user", None)
@@ -5703,7 +6747,7 @@ def tickets_view():
         if not ticket.search_account_number:
             ticket.search_account_number = ticket.account_number or ""
         raw_status_id = ticket.status_id
-        if ticket.due_date:
+        if ticket.due_date and remaining_by_ticket.get(ticket.id, Decimal("0.00")) > 0:
             if today_date > ticket.due_date:
                 if raw_status_id not in _status_ids("borrowing_ticket", ticket_summary_excluded_statuses):
                     overdue_count += 1
@@ -5717,6 +6761,7 @@ def tickets_view():
         tickets = [
             t for t in all_tickets
             if t.status_id not in _status_ids_for_record(t, ticket_summary_excluded_statuses)
+            and remaining_by_ticket.get(t.id, Decimal("0.00")) > 0
             and t.due_date
             and 0 <= (t.due_date - today_date).days <= 15
         ]
@@ -5724,11 +6769,12 @@ def tickets_view():
         tickets = [
             t for t in all_tickets
             if t.status_id not in _status_ids_for_record(t, ticket_summary_excluded_statuses)
+            and remaining_by_ticket.get(t.id, Decimal("0.00")) > 0
             and t.due_date
             and today_date > t.due_date
         ]
     elif filter_type == "pending_debt":
-        tickets = unsettled_tickets
+        tickets = [t for t in unsettled_tickets if remaining_by_ticket[t.id] > 0]
     else:
         tickets = all_tickets
 
@@ -5753,7 +6799,10 @@ def tickets_view():
         near_due_count=near_due_count,
         overdue_count=overdue_count,
         shadow_sum_debt=shadow_sum_debt,
+        remaining_by_ticket=remaining_by_ticket,
+        overdue_preview_tickets=overdue_preview_tickets,
         org_options=org_options,
+        today_date=today_date,
     )
 
 @bp.route("/tickets/<int:ticket_id>/verification")
@@ -5891,9 +6940,9 @@ def verification_view(ticket_id):
         {
             "ticket_id": ticket_id,
             "ticket_number": borrowing_ticket.number or f"#{ticket_id}",
-            "budget": _money_decimal(borrowing_ticket.required_budget),
+            "budget": _ticket_opening_budget(borrowing_ticket),
             "cumulative_total": Decimal("0.00"),
-            "remaining_amount": _money_decimal(borrowing_ticket.required_budget),
+            "remaining_amount": _ticket_opening_budget(borrowing_ticket),
         },
     )
     summary = _with_pending_return_amounts(
@@ -5926,12 +6975,23 @@ def verification_view(ticket_id):
         StaffAccount, StaffAccount.personal_id == StaffPersonalInfo.id
     ).filter(StaffAccount.id == borrowing_ticket.borrower_id).scalar()
 
+    settled_totals = _calculate_ticket_group_totals(ticket_group_ids, report_stage="settled")
+    documented_totals = _calculate_ticket_group_totals(
+        ticket_group_ids, report_stage="documented_or_settled"
+    )
+    display_summary = _legacy_verification_display_summary(
+        summary, borrowing_ticket,
+        settled_amount=settled_totals.get("allocated_by_ticket", {}).get(ticket_id),
+        documented_amount=documented_totals.get("allocated_by_ticket", {}).get(ticket_id),
+    )
+
     return render_template(
         "verification.html",
         borrowing_ticket=borrowing_ticket,
         return_details=return_details,
         parcel_returns=parcel_returns,
         summary=summary,
+        display_summary=display_summary,
         group_summary=approved_return_totals,
         ticket_allocation_rows=ticket_allocation_rows,
         notifications=notifications,
@@ -6165,7 +7225,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     combined_total = claim_total + parcel_total
     target_total = _money_decimal(fund_request.amount)
 
-    if combined_total == target_total and target_total > 0:
+    if combined_total >= target_total and target_total > 0:
         # A petty-cash parcel return is not complete until finance records the
         # transfer. While it is only received, keep the fund request at the
         # submission-complete stage, just like a petty-cash claim awaiting transfer.
@@ -6230,7 +7290,7 @@ def submit_parcel_return(ticket_id):
             ),
         )
 
-    sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
+    sent_date = parse_date(sent_date_str)
 
     try:
         _create_parcel_return_record(
@@ -6331,7 +7391,7 @@ def submit_fund_request_parcel_return(fund_request_id):
             ),
         )
 
-    sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
+    sent_date = parse_date(sent_date_str)
 
     _create_parcel_return_record(
         fund_request_id=fund_request.id,
@@ -6411,7 +7471,7 @@ def update_parcel_return(parcel_return_id):
 
     parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
-    parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
+    parcel_return.sent_date = parse_date(sent_date_str)
     parcel_return.status_id = _status_id_for_record(parcel_return, "PENDING")
     parcel_return.approved_at = None
     parcel_return.settled_at = None
@@ -6519,7 +7579,7 @@ def mark_parcel_return_transferred(parcel_return_id):
         return _validation_error_response("กรุณาระบุวันที่โอนเงินสดย่อย")
 
     try:
-        transferred_at = datetime.strptime(transferred_date_str, "%Y-%m-%d").date()
+        transferred_at = parse_date(transferred_date_str)
     except (TypeError, ValueError):
         return _validation_error_response("กรุณาระบุวันที่โอนเงินสดย่อยให้ถูกต้อง")
 
@@ -6625,7 +7685,7 @@ def submit_return_details():
         except (TypeError, ValueError):
             return _validation_error_response("พบเอกสารสัญญาเงินยืมที่ไม่ถูกต้อง")
     if len(selected_ticket_ids) > MAX_RETURN_LINKED_TICKETS:
-        return _validation_error_response("สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ")
+        return _validation_error_response("สามารถเลือกคืนพร้อมกันได้ไม่เกิน 2 สัญญา")
 
     borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if borrowing_ticket is None:
@@ -6650,7 +7710,7 @@ def submit_return_details():
             abort(403)
         selected_ticket_ids.update(_return_ticket_ids(edit_return_detail))
         if len(selected_ticket_ids) > MAX_RETURN_LINKED_TICKETS:
-            return _validation_error_response("สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ")
+            return _validation_error_response("สามารถเลือกคืนพร้อมกันได้ไม่เกิน 2 สัญญา")
 
     selected_tickets = db.session.query(BorrowingTicket).filter(
         BorrowingTicket.id.in_(selected_ticket_ids)
@@ -6695,7 +7755,7 @@ def submit_return_details():
             return _validation_error_response("กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุให้ครบถ้วน")
         try:
             parcel_amount = _parse_money_input(parcel_amount_raw)
-            parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
+            parcel_sent_date = parse_date(parcel_sent_date_raw)
             if parcel_amount < 0:
                 raise ValueError
         except (TypeError, ValueError):
@@ -6725,7 +7785,7 @@ def submit_return_details():
             return _validation_error_response("กรุณากรอกข้อมูลยอดการคืนที่ส่ง ว-119 / ว-5763 ให้ครบถ้วน")
         try:
             circular_amount = _parse_money_input(circular_amount_raw)
-            circular_sent_date = datetime.strptime(circular_sent_date_raw, "%Y-%m-%d").date()
+            circular_sent_date = parse_date(circular_sent_date_raw)
             if circular_amount < 0:
                 raise ValueError
         except (TypeError, ValueError):
@@ -6747,7 +7807,7 @@ def submit_return_details():
             return _validation_error_response("กรุณาแนบไฟล์หลักฐานการโอนเงินเหลือส่งใช้เงินยืม")
         try:
             cash_return_amount = _parse_money_input(cash_return_amount_raw)
-            cash_return_date = datetime.strptime(cash_return_date_raw, "%Y-%m-%d").date()
+            cash_return_date = parse_date(cash_return_date_raw)
             if cash_return_amount < 0:
                 raise ValueError
         except (TypeError, ValueError):
@@ -7689,6 +8749,9 @@ def mark_return_proofed(return_id):
     if return_detail.status_id == _status_id_for_record(return_detail, "APPROVED"):
         return _validation_error_response("รายการหลักฐานเอกสารส่งใช้เงินยืมนี้ได้รับการตรวจสอบและยืนยันแล้ว")
 
+    if return_detail.status_id != _status_id_for_record(return_detail, "IN_PROGRESS"):
+        return _validation_error_response("ต้องเริ่มการตรวจสอบรายการนี้ก่อนยืนยัน")
+
     if (
         _return_detail_has_over_limit_item(return_detail)
         and request.form.get("dean_document_acknowledged") != "1"
@@ -7697,6 +8760,18 @@ def mark_return_proofed(return_id):
             "กรุณายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีแล้ว"
         )
 
+    receipt_items = list(return_detail.receipt_items)
+    if not receipt_items or sum(
+        (_money_decimal(item.amount) for item in receipt_items), Decimal("0.00")
+    ) != _money_decimal(return_detail.amount_spent):
+        return _validation_error_response("ยอดรายการใบเสร็จไม่ตรงกับยอดส่งใช้เงินยืม")
+    try:
+        categories = parse_return_item_categories(request.form, receipt_items)
+    except ValueError as exc:
+        return _validation_error_response(str(exc))
+
+    for item in receipt_items:
+        item.category_type = categories.get(item.id)
     approved_at = datetime.now()
     return_detail.status_id = _status_id_for_record(return_detail, "APPROVED")
     return_detail.approved_at = approved_at
@@ -7712,6 +8787,31 @@ def mark_return_proofed(return_id):
     flash("ทำเครื่องหมายรายการเอกสารส่งใช้เงินยืมเป็น ผ่านการตรวจสอบ เรียบร้อยแล้ว")
 
     return verification_view(return_detail.ticket_id)
+
+@bp.route("/finance/returns/<int:return_id>/categories", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def update_return_categories(return_id):
+    return_detail = _get_finance_visible_return(return_id)
+    if return_detail.approved_at is None:
+        return _validation_error_response("ต้องยืนยันการตรวจสอบรายการก่อนจัดหมวด")
+
+    receipt_items = list(return_detail.receipt_items)
+    if not any(not item.is_cash for item in receipt_items):
+        return _validation_error_response("ไม่พบรายการใบเสร็จที่ต้องจัดหมวด")
+    if sum(
+        (_money_decimal(item.amount) for item in receipt_items), Decimal("0.00")
+    ) != _money_decimal(return_detail.amount_spent):
+        return _validation_error_response("ยอดรายการใบเสร็จไม่ตรงกับยอดส่งใช้เงินยืม")
+    try:
+        categories = parse_return_item_categories(request.form, receipt_items)
+    except ValueError as exc:
+        return _validation_error_response(str(exc))
+
+    for item in receipt_items:
+        item.category_type = categories.get(item.id)
+    db.session.commit()
+    flash("บันทึกหมวดรายการเรียบร้อยแล้ว")
+    return redirect(url_for("advance_payment.return_proof_detail", return_id=return_id))
 
 @bp.route("/finance/returns/<int:return_id>/reject", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -7767,23 +8867,32 @@ def approve_borrowing_ticket(ticket_id):
     if not approval_ref_no:
         return _validation_error_response("กรุณาระบุเลขที่อว.อนุมัติยืมเงิน")
     try:
-        approval_date = datetime.strptime(raw_approval_date, "%Y-%m-%d").date()
+        approval_date = parse_date(raw_approval_date)
     except ValueError:
         return _validation_error_response("กรุณาระบุวันที่อนุมัติให้ถูกต้อง")
     try:
-        approved_at = datetime.strptime(raw_approved_at, "%Y-%m-%d")
+        approved_at = parse_datetime(raw_approved_at)
     except ValueError:
         return _validation_error_response("กรุณาระบุวันที่อนุมัติจ่ายเงินให้ถูกต้อง")
 
     # Contract numbers may contain prefixes, separators, or leading zeroes.
     number = raw_number
+    if db.session.query(BorrowingTicket.id).filter(
+        BorrowingTicket.id != ticket_id,
+        func.trim(BorrowingTicket.number) == number,
+    ).first():
+        return _validation_error_response("เลขที่ยืมนี้มีในระบบแล้ว")
     borrowing_ticket.status_id = _status_id_for_record(borrowing_ticket, "APPROVED")
     borrowing_ticket.number = number
     borrowing_ticket.borrowing_approval_ref_no = approval_ref_no
     borrowing_ticket.borrowing_approval_date = approval_date
     borrowing_ticket.approved_at = approved_at
     borrowing_ticket.finance_verified = True
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return _validation_error_response("เลขที่ยืมนี้มีในระบบแล้ว")
 
     _send_notification_email(borrowing_ticket)
 
@@ -8908,17 +10017,19 @@ def petty_cash_fiscal_year_top_up_transfers():
                 reduction_request = _single_reduction_request(
                     reduction_requests_by_setting_id, setting_id
                 )
-                transferred_at = reduction_request.request_date
-            else:
-                raw_transferred_at = (request.form.get("transferred_at") or "").strip()
-                try:
-                    transferred_at = (
-                        date.fromisoformat(raw_transferred_at) if raw_transferred_at else None
-                    )
-                except ValueError as exc:
-                    raise ValueError("วันที่โอนเงินสำเร็จไม่ถูกต้อง") from exc
-                if transfer_type == PETTY_CASH_TRANSFER_NONE and transferred_at is not None:
-                    raise ValueError("รายการไม่มีการโอนไม่ควรมีวันที่โอนเงินสำเร็จ")
+                if reduction_request.request_date is None:
+                    raise ValueError("ต้องบันทึกวันที่เบิกเงินของใบเบิกลดวงเงินก่อน")
+                if amount != _money_decimal(reduction_request.amount):
+                    raise ValueError("ยอดลดวงเงินต้องตรงกับยอดใบเบิกลดวงเงิน")
+            raw_transferred_at = (request.form.get("transferred_at") or "").strip()
+            try:
+                transferred_at = parse_date(raw_transferred_at) if raw_transferred_at else None
+            except ValueError as exc:
+                raise ValueError("วันที่โอนหรือได้รับเงินไม่ถูกต้อง") from exc
+            if transfer_type == PETTY_CASH_TRANSFER_NONE and transferred_at is not None:
+                raise ValueError("รายการไม่มีการโอนไม่ควรมีวันที่โอนเงินสำเร็จ")
+            if transfer_type == PETTY_CASH_TRANSFER_REDUCTION and transferred_at is None:
+                raise ValueError("กรุณาระบุวันที่ได้รับเงินคืนจริง")
 
             transfer = transfers_by_setting_id.get(setting_id)
             if transfer is None:
@@ -8971,22 +10082,13 @@ def petty_cash_fiscal_year_top_up_transfers():
             transfer_amount = reduction_request.amount
         else:
             transfer_amount = abs(suggested_difference)
-        reduction_recorded_by_request = (
-            transfer_type == PETTY_CASH_TRANSFER_REDUCTION
-            and reduction_request is not None
-            and reduction_request.request_date is not None
-        )
-        if transfer_type == PETTY_CASH_TRANSFER_REDUCTION:
-            display_transferred_at = reduction_request.request_date if reduction_request else None
-        else:
-            display_transferred_at = transfer.transferred_at if transfer is not None else None
+        display_transferred_at = transfer.transferred_at if transfer is not None else None
         rows.append(
             SimpleNamespace(
                 setting=setting,
                 previous_carryover=previous_carryover,
                 previous_budget=previous_budget,
                 transfer=transfer,
-                reduction_recorded_by_request=reduction_recorded_by_request,
                 transfer_type=transfer_type,
                 transfer_amount=transfer_amount,
                 reduction_request=reduction_request,
@@ -9205,7 +10307,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
     if request.method == "POST" and not _render_after_post:
         document_number = request.form.get("document_number", "").strip()
         try:
-            filing_date = datetime.strptime(request.form.get("filing_date", ""), "%Y-%m-%d").date()
+            filing_date = parse_date(request.form.get("filing_date", ""))
             selections = [
                 (ReturnDetail, {int(value) for value in request.form.getlist("return_ids[]")}),
                 (ParcelReturnDetail, {int(value) for value in request.form.getlist("parcel_return_ids[]")}),
@@ -9555,8 +10657,38 @@ def update_finance_note(ticket_id):
 
     return verification_view(ticket_id)
 
+@bp.errorhandler(CSRFError)
+def csrf_error(error):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(
+            ok=False,
+            title="แบบฟอร์มหมดอายุ",
+            message="แบบฟอร์มนี้หมดอายุแล้ว กรุณาโหลดหน้าเว็บใหม่ แล้วลองส่งข้อมูลอีกครั้ง",
+        ), 400
+    return error.get_response()
+
+
 @bp.errorhandler(403)
-def forbidden(_exception):
+def forbidden(error):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        message = (
+            error.description
+            if error.description != Forbidden.description
+            else "บัญชีของคุณไม่มีสิทธิ์ดำเนินการรายการนี้ กรุณาติดต่อผู้ดูแลระบบหากต้องการความช่วยเหลือ"
+        )
+        title = "ไม่สามารถทำรายการได้" if message.startswith("ระบบงานที่เลือกไม่ตรงกับรายการนี้") else "ไม่มีสิทธิ์ทำรายการ"
+        return jsonify(ok=False, title=title, message=message), 403
+    return render_template("advance_payment/403.html"), 403
+
+
+@bp.errorhandler(PermissionDenied)
+def permission_denied(_error):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(
+            ok=False,
+            title="ไม่มีสิทธิ์ทำรายการ",
+            message="บัญชีของคุณไม่มีสิทธิ์ดำเนินการรายการนี้ตามบทบาทที่ได้รับ",
+        ), 403
     return render_template("advance_payment/403.html"), 403
 
 @bp.route("/staff/fund-request", methods=["GET", "POST"])
@@ -10201,19 +11333,34 @@ def record_fund_request_withdrawal(request_id):
             )
             fund_req.withdrawal_proof_filename = original_filename
 
-    fund_req.request_date = request_date
     if fund_req.form_type == FUND_REQUEST_FORM_REDUCTION:
+        if fund_req.petty_cash_setting_id is None:
+            return _validation_error_response("ใบเบิกลดวงเงินยังไม่ได้เชื่อมหน่วยงานเงินสดย่อย")
         linked_transfer = (
             db.session.query(PettyCashFiscalYearTopUpTransfer)
             .filter_by(
                 petty_cash_setting_id=fund_req.petty_cash_setting_id,
-                transfer_type=PETTY_CASH_TRANSFER_REDUCTION,
             )
+            .with_for_update()
             .first()
         )
-        if linked_transfer is not None and linked_transfer.fund_request_id in (None, fund_req.id):
-            linked_transfer.fund_request_id = fund_req.id
-            linked_transfer.transferred_at = request_date
+        if linked_transfer is not None and (
+            linked_transfer.transfer_type == PETTY_CASH_TRANSFER_TOP_UP
+            or linked_transfer.fund_request_id not in (None, fund_req.id)
+        ):
+            return _validation_error_response("ข้อมูลปรับวงเงินเชื่อมกับรายการอื่นอยู่ กรุณาติดต่อฝ่ายการเงิน")
+        amount = _money_decimal(fund_req.amount)
+        if amount <= 0:
+            return _validation_error_response("ยอดลดวงเงินต้องมากกว่า 0")
+        if linked_transfer is None:
+            linked_transfer = PettyCashFiscalYearTopUpTransfer(
+                petty_cash_setting_id=fund_req.petty_cash_setting_id,
+            )
+        linked_transfer.transfer_type = PETTY_CASH_TRANSFER_REDUCTION
+        linked_transfer.transfer_amount = amount
+        linked_transfer.fund_request_id = fund_req.id
+        db.session.add(linked_transfer)
+    fund_req.request_date = request_date
     if not is_editing_withdrawal_date:
         fund_req.status_id = _status_id_for_record(fund_req, "WITHDRAWN")
     db.session.commit()
@@ -10321,7 +11468,7 @@ def cancel_fund_request(request_id):
 
     transferred_at_raw = (request.form.get("transferred_at") or "").strip()
     try:
-        cancel_transferred_at = datetime.strptime(transferred_at_raw, "%Y-%m-%d").date()
+        cancel_transferred_at = parse_date(transferred_at_raw)
     except ValueError:
         return _validation_error_response("กรุณาระบุวันที่นำเงินกลับเข้าสู่ระบบให้ถูกต้อง")
 
@@ -10592,7 +11739,7 @@ def staff_legacy_fund_request():
             if not form_values["request_date"]:
                 raise ValueError("กรุณาระบุวันที่เบิกเงิน")
             try:
-                request_date = datetime.strptime(form_values["request_date"], "%Y-%m-%d").date()
+                request_date = parse_date(form_values["request_date"])
             except ValueError:
                 raise ValueError("รูปแบบวันที่เบิกเงินไม่ถูกต้อง")
             if request_date >= target_fiscal_year_start:
@@ -10766,11 +11913,13 @@ def _save_pdf_reference_data(document, borrowing_ticket=None, *, require_referen
         abort(400, description="กรุณากรอกข้อมูลอ้างอิงสำหรับเอกสาร PDF ให้ครบถ้วน")
     if not require_reference:
         parsed_date = None
+    elif isinstance(document, PettyCashClaimDetail):
+        parsed_date = normalize_reference_date(reference_date)
     elif isinstance(reference_date, date):
         parsed_date = reference_date
     else:
         try:
-            parsed_date = datetime.strptime(reference_date, "%Y-%m-%d").date()
+            parsed_date = parse_date(reference_date)
         except ValueError:
             abort(400, description="รูปแบบวันที่หนังสือไม่ถูกต้อง")
     try:
@@ -10829,6 +11978,34 @@ def export_petty_cash_claim_pdf(claim_id):
     response = current_app.response_class(pdf_bytes, mimetype='application/pdf')
     filename = f"Petty_Claim_{claim_id}.pdf"
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    return response
+
+
+@bp.route("/staff/petty-cash-claim/<int:claim_id>/word", methods=["POST"])
+@module_system_required(PETTY_CASH_SYSTEM)
+def export_petty_cash_claim_word(claim_id):
+    claim = db.session.query(PettyCashClaimDetail).get(claim_id)
+    if not claim:
+        abort(404)
+    staff = current_user
+    setting = _resolve_petty_cash_setting(staff)
+    same_setting = bool(setting and setting.id and claim.petty_cash_setting_id == setting.id)
+    requester_id = getattr(getattr(claim, "fund_request", None), "requester_id", None)
+    if staff.id == requester_id and not same_setting:
+        setting = db.session.query(PettyCashSetting).get(claim.petty_cash_setting_id)
+    if not _can_download_petty_cash_claim_pdf(staff, claim, setting):
+        abort(403)
+    claim_type = request.form.get("claim_type")
+    if claim_type not in ("1", "2"):
+        claim_type = "1" if claim.reference_number and claim.reference_date else "2"
+    _save_pdf_reference_data(claim, require_reference=claim_type == "1")
+    _attach_petty_cash_claim_context(claim)
+    document_bytes = generate_petty_claim_docx(claim, claim_type=claim_type)
+    response = current_app.response_class(
+        document_bytes,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    response.headers["Content-Disposition"] = f"attachment; filename=Petty_Claim_{claim_id}.docx"
     return response
 
 
@@ -10898,16 +12075,6 @@ def api_get_department_employees():
     
     staff_list = data.get("staff_members", []) if isinstance(data, dict) else []
     return jsonify(staff_list)
-
-CATEGORY_CHOICES = {
-    1: "ค่าตอบแทน (เช่น ค่าเบี้ยเลี้ยง, ค่าตอบแทนวิทยากร)",
-    2: "ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)",
-    3: "ค่าวัสดุ (เช่น เครื่องเขียน, วัสดุสำนักงาน, อุปกรณ์)",
-    4: "ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)",
-    5: "อื่น ๆ",
-    6: "โอนคืนบัญชีหน่วย"
-}
-
 
 @bp.route("/coordinator/petty-cash-claim/autosave-draft", methods=["GET", "POST"], endpoint="coordinator_petty_cash_claim_autosave_draft")
 @bp.route("/borrower/petty-cash-claim/autosave-draft", methods=["GET", "POST"], endpoint="borrower_petty_cash_claim_autosave_draft")
@@ -11118,11 +12285,8 @@ def autosave_petty_cash_claim_draft():
     claim_detail.total_amount = claim_detail.amount
     claim_detail.note = note
     if reference_number and reference_date_raw:
-        try:
-            claim_detail.reference_date = datetime.strptime(reference_date_raw, "%Y-%m-%d").date()
-            claim_detail.reference_number = reference_number
-        except ValueError:
-            pass
+        claim_detail.reference_date = normalize_reference_date(reference_date_raw)
+        claim_detail.reference_number = reference_number
     elif not reference_number and not reference_date_raw:
         claim_detail.reference_number = None
         claim_detail.reference_date = None
@@ -11466,13 +12630,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     "กรุณากรอกเลขที่อนุมัติในหลักการและวันที่หนังสือให้ครบถ้วน หรือเว้นว่างทั้งสองช่อง",
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
                 )
-            try:
-                reference_date = datetime.strptime(reference_date_raw, "%Y-%m-%d").date()
-            except ValueError:
-                return _validation_redirect_response(
-                    "รูปแบบวันที่หนังสืออนุมัติไม่ถูกต้อง",
-                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
-                )
+            reference_date = normalize_reference_date(reference_date_raw)
 
         existing_reference_files = [
             (path, existing_reference_names[index] if index < len(existing_reference_names) else "reference")
@@ -11505,7 +12663,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 )
             try:
                 parcel_amount = _parse_money_input(parcel_amount_raw)
-                parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
+                parcel_sent_date = parse_date(parcel_sent_date_raw)
                 if parcel_amount < 0:
                     raise ValueError
             except (TypeError, ValueError):
@@ -11552,7 +12710,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 )
             try:
                 circular_amount = _parse_money_input(circular_amount_raw)
-                circular_sent_date = datetime.strptime(circular_sent_date_raw, "%Y-%m-%d").date()
+                circular_sent_date = parse_date(circular_sent_date_raw)
                 if circular_amount < 0:
                     raise ValueError
             except (TypeError, ValueError):
@@ -11582,7 +12740,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
                 )
             try:
-                cash_return_date = datetime.strptime(cash_return_date_raw, "%Y-%m-%d").date()
+                cash_return_date = parse_date(cash_return_date_raw)
                 cash_return_amount = _parse_money_input(cash_return_amount_raw)
                 if cash_return_amount < 0:
                     raise ValueError
@@ -12564,7 +13722,7 @@ def staff_parcel_return_edit(parcel_return_id):
 
     parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
-    parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
+    parcel_return.sent_date = parse_date(sent_date_str)
     parcel_return.status_id = _status_id_for_record(parcel_return, "PENDING")
     parcel_return.approved_at = None
     parcel_return.settled_at = None
@@ -12677,7 +13835,7 @@ def mark_petty_claim_transferred(claim_id):
         return _validation_error_response("กรุณาระบุวันที่หน่วยงานได้รับเงิน/วันที่โอนเงิน")
 
     claim.status_id = _status_id_for_record(claim, "CASH_TRANSFER_COMPLETED")
-    claim.transferred_at = datetime.strptime(transferred_date_str, "%Y-%m-%d").date()
+    claim.transferred_at = parse_date(transferred_date_str)
     fund_req = db.session.query(FundRequest).get(claim.fund_request_id)
     if fund_req:
         _recalculate_fund_request_submission_status(fund_req.id)
@@ -12698,8 +13856,9 @@ def mark_petty_claim_received(claim_id):
     if not closing_document or not closing_document.is_settled:
         return _validation_error_response("ต้องล้างลูกหนี้ผ่านฎีกาที่ปิดบัญชีแล้วก่อน")
         
+    if claim.settled_at is None:
+        return _validation_error_response("ไม่พบวันที่ล้างลูกหนี้ของรายการนี้")
     claim.status_id = _status_id_for_record(claim, "SETTLED")
-    claim.settled_at = closing_document.settled_at
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("เปลี่ยนสถานะเป็น 'ได้รับเงินแล้ว' สิ้นสุดกระบวนการเรียบร้อย", "success")
@@ -12998,6 +14157,7 @@ def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=F
             .filter(
                 BorrowingTicket.account_number == account_number,
                 BorrowingTicket.approved_at.isnot(None),
+                BorrowingTicket.import_batch_id.is_(None),
             )
             .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.created_at.asc())
             .all()

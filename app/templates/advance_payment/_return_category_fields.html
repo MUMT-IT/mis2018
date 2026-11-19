@@ -1,0 +1,33 @@
+<div class="table-responsive">
+  <table class="table table-sm table-bordered align-middle mb-0" style="min-width: 700px; table-layout: fixed;">
+    <colgroup>
+      <col style="width: 70%;">
+      <col style="width: 12%;">
+      <col style="width: 18%;">
+    </colgroup>
+    <thead class="table-light">
+      <tr>
+        <th scope="col">รายการ</th>
+        <th scope="col" class="text-end">จำนวนเงิน</th>
+        <th scope="col">หมวดหมู่</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in noncash_items %}
+        <tr>
+          <td class="text-break">{{ item.description or '-' }}</td>
+          <td class="text-end text-nowrap">{{ "{:,.2f}".format(item.amount or 0) }}</td>
+          <td>
+            <label for="returnCategory{{ item.id }}" class="visually-hidden">หมวดหมู่ของ{{ item.description or 'รายการ' }}</label>
+            <select id="returnCategory{{ item.id }}" name="category_{{ item.id }}" class="form-select form-select-sm" required>
+              <option value="">เลือกหมวดหมู่</option>
+              {% for code, label in return_expense_choices %}
+                <option value="{{ code }}" {% if item.category_type == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
