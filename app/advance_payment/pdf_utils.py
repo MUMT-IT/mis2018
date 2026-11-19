@@ -9,6 +9,7 @@ from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 from .date_utils import reference_date_long, thai_long_date
+from .categories import CATEGORY_LABELS
 from bahttext import bahttext
 from sqlalchemy import func
 
@@ -2796,8 +2797,8 @@ def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
             "(6)<br/>เงินสด", "", "(7-11)<br/>รายละเอียดรายจ่ายต่าง ๆ", "", "", "", "", "",
             "(12)<br/>โอนคืนบัญชีหน่วย", "(13)<br/>ยอดเงินคงเหลือ", "วันที่ส่งเอกสารเบิก"]],
         [heading(text) for text in ["", "", "", "", "รับ", "จ่าย", "รับ", "จ่าย",
-            "(7)<br/>ค่าตอบแทน", "(8)<br/>ค่าใช้สอย", "(9)<br/>ค่าวัสดุ",
-            "(10)<br/>ค่าสาธารณูปโภค", "(11)<br/>อื่น ๆ", "", "", "", ""]],
+            f"(7)<br/>{CATEGORY_LABELS[1]}", f"(8)<br/>{CATEGORY_LABELS[2]}", f"(9)<br/>{CATEGORY_LABELS[3]}",
+            f"(10)<br/>{CATEGORY_LABELS[4]}", f"(11)<br/>{CATEGORY_LABELS[5]}", "", "", "", ""]],
         [heading(text) for text in ["", "", "", "", "", "", "", "", "", "", "", "",
                                    "รายการ", "จำนวนเงิน", "", "", ""]],
     ]

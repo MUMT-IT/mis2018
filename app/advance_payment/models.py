@@ -547,6 +547,12 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
 
 class ReturnReceiptItem(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_receipt_items"
+    __table_args__ = (
+        CheckConstraint(
+            "category_type IS NULL OR (NOT is_cash AND category_type IN (1, 2, 3, 4, 7, 8))",
+            name="ck_return_receipt_item_finance_category",
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     return_detail_id = Column(
@@ -558,6 +564,7 @@ class ReturnReceiptItem(FinanceEditMixin, db.Model):
     store_name = Column(String(255), nullable=False, default="")
     description = Column(String, nullable=False, default="")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
+    category_type = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     is_cash = Column(Boolean, nullable=False, default=False, server_default=text("false"))
 

@@ -44,6 +44,7 @@ from .borrowing_ticket_eligibility import (
     TEMPORARY_EMPLOYEE_MESSAGE,
     calculate_borrowing_ticket_eligibility,
 )
+from .categories import CATEGORY_CHOICES, parse_return_item_categories
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, FinanceReportLog, FinanceReportLogItem, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
 from .models import status_name_for_record
@@ -8717,6 +8718,9 @@ def mark_return_proofed(return_id):
     if return_detail.status_id == _status_id_for_record(return_detail, "APPROVED"):
         return _validation_error_response("รายการหลักฐานเอกสารส่งใช้เงินยืมนี้ได้รับการตรวจสอบและยืนยันแล้ว")
 
+    if return_detail.status_id != _status_id_for_record(return_detail, "IN_PROGRESS"):
+        return _validation_error_response("ต้องเริ่มการตรวจสอบรายการนี้ก่อนยืนยัน")
+
     if (
         _return_detail_has_over_limit_item(return_detail)
         and request.form.get("dean_document_acknowledged") != "1"
@@ -8725,6 +8729,18 @@ def mark_return_proofed(return_id):
             "กรุณายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีแล้ว"
         )
 
+    receipt_items = list(return_detail.receipt_items)
+    if not receipt_items or sum(
+        (_money_decimal(item.amount) for item in receipt_items), Decimal("0.00")
+    ) != _money_decimal(return_detail.amount_spent):
+        return _validation_error_response("ยอดรายการใบเสร็จไม่ตรงกับยอดส่งใช้เงินยืม")
+    try:
+        categories = parse_return_item_categories(request.form, receipt_items)
+    except ValueError as exc:
+        return _validation_error_response(str(exc))
+
+    for item in receipt_items:
+        item.category_type = categories.get(item.id)
     approved_at = datetime.now()
     return_detail.status_id = _status_id_for_record(return_detail, "APPROVED")
     return_detail.approved_at = approved_at
@@ -8740,6 +8756,31 @@ def mark_return_proofed(return_id):
     flash("ทำเครื่องหมายรายการเอกสารส่งใช้เงินยืมเป็น ผ่านการตรวจสอบ เรียบร้อยแล้ว")
 
     return verification_view(return_detail.ticket_id)
+
+@bp.route("/finance/returns/<int:return_id>/categories", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def update_return_categories(return_id):
+    return_detail = _get_finance_visible_return(return_id)
+    if return_detail.approved_at is None:
+        return _validation_error_response("ต้องยืนยันการตรวจสอบรายการก่อนจัดหมวด")
+
+    receipt_items = list(return_detail.receipt_items)
+    if not any(not item.is_cash for item in receipt_items):
+        return _validation_error_response("ไม่พบรายการใบเสร็จที่ต้องจัดหมวด")
+    if sum(
+        (_money_decimal(item.amount) for item in receipt_items), Decimal("0.00")
+    ) != _money_decimal(return_detail.amount_spent):
+        return _validation_error_response("ยอดรายการใบเสร็จไม่ตรงกับยอดส่งใช้เงินยืม")
+    try:
+        categories = parse_return_item_categories(request.form, receipt_items)
+    except ValueError as exc:
+        return _validation_error_response(str(exc))
+
+    for item in receipt_items:
+        item.category_type = categories.get(item.id)
+    db.session.commit()
+    flash("บันทึกหมวดรายการเรียบร้อยแล้ว")
+    return redirect(url_for("advance_payment.return_proof_detail", return_id=return_id))
 
 @bp.route("/finance/returns/<int:return_id>/reject", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -11992,16 +12033,6 @@ def api_get_department_employees():
     
     staff_list = data.get("staff_members", []) if isinstance(data, dict) else []
     return jsonify(staff_list)
-
-CATEGORY_CHOICES = {
-    1: "ค่าตอบแทน (เช่น ค่าเบี้ยเลี้ยง, ค่าตอบแทนวิทยากร)",
-    2: "ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)",
-    3: "ค่าวัสดุ (เช่น เครื่องเขียน, วัสดุสำนักงาน, อุปกรณ์)",
-    4: "ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)",
-    5: "อื่น ๆ",
-    6: "โอนคืนบัญชีหน่วย"
-}
-
 
 @bp.route("/coordinator/petty-cash-claim/autosave-draft", methods=["GET", "POST"], endpoint="coordinator_petty_cash_claim_autosave_draft")
 @bp.route("/borrower/petty-cash-claim/autosave-draft", methods=["GET", "POST"], endpoint="borrower_petty_cash_claim_autosave_draft")
