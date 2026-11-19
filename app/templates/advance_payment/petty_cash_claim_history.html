@@ -235,13 +235,7 @@
     <div class="card-header border-bottom p-0" style="background-color: #e6e8ed;">
       <ul class="nav nav-tabs nav-fill border-bottom-0" id="historySystemTabs" role="tablist">
         <li class="nav-item" role="presentation">
-          <button class="nav-item-tab nav-link active py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">
-            <i class="bi bi-layers me-1 text-secondary"></i> ประวัติทั้งหมด
-            <span class="badge bg-secondary rounded-pill ms-1" id="tab-badge-all">0</span>
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-item-tab nav-link py-3 fw-bold text-success" id="tab-petty_cash" type="button" onclick="switchSystemTab('petty_cash')">
+          <button class="nav-item-tab nav-link active py-3 fw-bold text-success" id="tab-petty_cash" type="button" onclick="switchSystemTab('petty_cash')">
             <i class="bi bi-receipt me-1 text-success"></i> เงินสดย่อย (Petty Cash)
             <span class="badge bg-success rounded-pill ms-1" id="tab-badge-petty_cash">0</span>
           </button>
@@ -250,6 +244,12 @@
           <button class="nav-item-tab nav-link py-3 fw-bold text-warning" id="tab-parcel_return" type="button" onclick="switchSystemTab('parcel_return')">
             <i class="bi bi-box-seam me-1 text-warning"></i> ส่งคืนพัสดุ
             <span class="badge bg-warning text-dark rounded-pill ms-1" id="tab-badge-parcel_return">0</span>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-item-tab nav-link py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">
+            <i class="bi bi-layers me-1 text-secondary"></i> ประวัติทั้งหมด
+            <span class="badge bg-secondary rounded-pill ms-1" id="tab-badge-all">0</span>
           </button>
         </li>
       </ul>
@@ -423,7 +423,7 @@
 </section>
 
 <script>
-  let currentSystemTab = 'all';
+  let currentSystemTab = 'petty_cash';
 
   function switchSystemTab(tabKey) {
     currentSystemTab = tabKey;
