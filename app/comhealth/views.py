@@ -11,6 +11,7 @@ import tempfile
 import time
 import zipfile
 from functools import lru_cache
+from types import SimpleNamespace
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from io import BytesIO
@@ -2052,7 +2053,27 @@ def _split_ordered_tests_for_export(record):
     return profile_items, other_items
 
 
-def _detail_rows_from_record(record, location):
+def _freeze_service_prices(service, extra_items=()):
+    """Called with the service row locked; preserve prices already recorded."""
+    if service.prices_frozen_at is None:
+        return
+    existing_items = {p.test_item_id for p in service.frozen_test_prices}
+    existing_profiles = {p.profile_id for p in service.frozen_profile_prices}
+    for profile in service.profiles:
+        if profile.id not in existing_profiles:
+            service.frozen_profile_prices.append(ComHealthServiceProfilePrice(profile_id=profile.id, quote_price=profile.quote))
+            existing_profiles.add(profile.id)
+    items = list(extra_items)
+    for collection in (service.profiles, service.groups):
+        for parent in collection:
+            items.extend(parent.test_items)
+    for item in items:
+        if item.id not in existing_items:
+            service.frozen_test_prices.append(ComHealthServiceTestPrice(test_item_id=item.id, unit_price=item.price if item.price is not None else 0))
+            existing_items.add(item.id)
+
+
+def _detail_rows_from_record(record, location, prices=None):
     customer = record.customer
     patient_name = '{} {} {}'.format(
         customer.title or '',
@@ -2077,12 +2098,12 @@ def _detail_rows_from_record(record, location):
             'Description': item.test.desc if item.test else '',
             'Test Code': item.test.code if item.test else '',
             'Test Name': item.test.name if item.test else '',
-            'Unit Price': _money(item.price),
+            'Unit Price': _money(prices[item.id] if prices is not None else item.price),
         })
     return rows
 
 
-def _non_reimbursable_row_from_record(record, test_columns, row_number):
+def _non_reimbursable_row_from_record(record, test_columns, row_number, prices=None):
     customer = record.customer
     profile_items, other_items = _split_ordered_tests_for_export(record)
     profile_names = sorted({item.profile.name for item in profile_items if item.profile})
@@ -2104,7 +2125,7 @@ def _non_reimbursable_row_from_record(record, test_columns, row_number):
         'แผนก': customer.unit if customer and customer.unit else '',
         'ประเภทพนักงาน': customer.emptype.name if customer and customer.emptype else '',
         'Profile Names': ', '.join(profile_names),
-        'Sum Other Test': sum([_money(item.price) for item in non_reimbursable_items]),
+        'Sum Other Test': sum([_money(prices[item.id] if prices is not None else item.price) for item in non_reimbursable_items]),
         'เลขที่ใบเสร็จ': _receipt_codes_for_record(record),
         'เงินที่ได้': _paid_amount_for_record(record),
         'note': record.note or '',
@@ -2117,7 +2138,7 @@ def _non_reimbursable_row_from_record(record, test_columns, row_number):
             current_value = row.get(column_name, '')
             if current_value in ('', None):
                 current_value = 0
-            row[column_name] = current_value + _money(item.price)
+            row[column_name] = current_value + _money(prices[item.id] if prices is not None else item.price)
     return row
 
 
@@ -2147,6 +2168,17 @@ def _write_csv_file(file_path, fieldnames, row_iterable):
 @login_required
 def export_finance_test_items(service_id, schedule_date_thaiform):
     service = ComHealthService.query.get_or_404(service_id)
+    prices = None
+    if service.prices_frozen_at:
+        prices = {entry.test_item_id: entry.unit_price for entry in service.frozen_test_prices}
+        missing = set()
+        for record in _comhealth_export_records_query(service_id).yield_per(200):
+            missing.update(item.id for item in record.ordered_tests if item.id not in prices)
+        if missing:
+            flash('ไม่สามารถ Export ได้ เนื่องจากไม่มีราคาที่ตรึงไว้สำหรับรายการตรวจ ID: {}'.format(', '.join(map(str, sorted(missing)))), 'danger')
+            return redirect(url_for('comhealth.finance_summary', service_id=service_id))
+    else:
+        flash('รอบนี้ไม่มีราคาตรึง CSV ใช้ราคาปัจจุบัน', 'warning')
     detail_columns = [
         'Location', 'Checkin date', 'Lab Number', 'HN', 'Patient',
         'Test Type', 'Profile/Group Name', 'Description', 'Test Code',
@@ -2165,7 +2197,7 @@ def export_finance_test_items(service_id, schedule_date_thaiform):
         for record in _comhealth_export_records_query(service_id).yield_per(200):
             if not record.ordered_tests:
                 continue
-            for row in _detail_rows_from_record(record, service.location):
+            for row in _detail_rows_from_record(record, service.location, prices):
                 yield row
 
     def non_reimbursable_rows_csv():
@@ -2174,7 +2206,7 @@ def export_finance_test_items(service_id, schedule_date_thaiform):
             if not record.ordered_tests:
                 continue
             row_number += 1
-            yield _non_reimbursable_row_from_record(record, non_reimbursable_test_columns, row_number)
+            yield _non_reimbursable_row_from_record(record, non_reimbursable_test_columns, row_number, prices)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         detail_path = os.path.join(temp_dir, 'Test_Detail.csv')
@@ -2187,6 +2219,8 @@ def export_finance_test_items(service_id, schedule_date_thaiform):
         with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as zip_file:
             zip_file.write(detail_path, arcname='Test_Detail.csv')
             zip_file.write(non_reimbursable_path, arcname='เบิกไม่ได้.csv')
+            if prices is None:
+                zip_file.writestr('หมายเหตุราคาย้อนหลัง.txt', 'รอบนี้ไม่มีราคาตรึงไว้ ไฟล์ใช้ราคาปัจจุบัน ไม่สามารถยืนยันราคา ณ วันออกตรวจได้'.encode('utf-8-sig'))
 
     output.seek(0)
     filename = 'comhealth_test_items_{}_{}.zip'.format(service_id, schedule_date_thaiform)
@@ -2646,6 +2680,12 @@ def edit_record(record_id):
                 record.customer.dob = date(year, month, day)
 
         if not record.checkin_datetime:
+            with db.session.no_autoflush:
+                service = ComHealthService.query.filter_by(id=record.service_id).with_for_update().one()
+                had_checkins = ComHealthRecord.query.filter(ComHealthRecord.service_id == service.id, ComHealthRecord.checkin_datetime.isnot(None)).first() is not None
+                if not had_checkins and service.prices_frozen_at is None:
+                    service.prices_frozen_at = datetime.now(tz=bangkok)
+                    _freeze_service_prices(service)
             record.checkin_datetime = datetime.now(tz=bangkok)
 
         if not record.labno:
@@ -2682,6 +2722,11 @@ def edit_record(record_id):
         if len(record.ordered_tests) == 0:
             flash(u'กรุณาเลือกรายการทดสอบอย่างน้อยหนึ่งรายการ', 'warning')
             return redirect(request.referrer)
+
+        if record.service.prices_frozen_at is not None:
+            ComHealthService.query.filter_by(id=record.service_id).with_for_update().one()
+            db.session.expire(record.service, ['frozen_test_prices', 'frozen_profile_prices'])
+            _freeze_service_prices(record.service, record.ordered_tests)
 
         record.comment = request.form.get('comment')
         emptype_id = int(request.form.get('emptype_id', 0))
@@ -2802,6 +2847,9 @@ def add_item_to_order(record_id, item_id, profile_item_cost):
         item = ComHealthTestItem.query.get(item_id)
 
         if item not in record.ordered_tests:
+            if record.service.prices_frozen_at is not None:
+                ComHealthService.query.filter_by(id=record.service_id).with_for_update().one()
+                _freeze_service_prices(record.service, [item])
             total_price = float(record.total_group_item_cost) + float(profile_item_cost)
             record.ordered_tests.append(item)
             if total_price + float(item.price) <= 0:
@@ -3303,6 +3351,9 @@ def add_service_profile(service_id=None, profile_id=None):
     service = ComHealthService.query.get(service_id)
     profile = ComHealthTestProfile.query.get(profile_id)
     service.profiles.append(profile)
+    if service.prices_frozen_at is not None:
+        ComHealthService.query.filter_by(id=service.id).with_for_update().one()
+        _freeze_service_prices(service)
     db.session.add(service)
     db.session.commit()
     flash(u'Profile {} has been added to the service.'.format(profile.name))
@@ -3342,10 +3393,42 @@ def add_service_group(service_id=None, group_id=None):
     service = ComHealthService.query.get(service_id)
     group = ComHealthTestGroup.query.get(group_id)
     service.groups.append(group)
+    if service.prices_frozen_at is not None:
+        ComHealthService.query.filter_by(id=service.id).with_for_update().one()
+        _freeze_service_prices(service)
     db.session.add(service)
     db.session.commit()
     flash(u'Group {} has been added to the service.'.format(group.name))
     return redirect(url_for('comhealth.edit_service', service_id=service.id))
+
+
+@comhealth.route('/services/groups/<int:service_id>/add-multiple', methods=['POST'])
+@login_required
+def add_service_groups(service_id):
+    service = ComHealthService.query.filter_by(id=service_id).with_for_update().first_or_404()
+    raw_ids = request.form.getlist('group_ids')
+    if not raw_ids:
+        flash('กรุณาเลือก Group อย่างน้อยหนึ่งรายการ', 'warning')
+        return redirect(url_for('comhealth.add_service_group', service_id=service_id))
+    try:
+        ids = {int(value) for value in raw_ids}
+        if any(value <= 0 for value in ids):
+            raise ValueError
+    except ValueError:
+        flash('ข้อมูล Group ไม่ถูกต้อง', 'danger')
+        return redirect(url_for('comhealth.add_service_group', service_id=service_id))
+    groups = ComHealthTestGroup.query.filter(ComHealthTestGroup.id.in_(ids)).all()
+    if len(groups) != len(ids):
+        flash('ไม่พบ Group ที่เลือกบางรายการ กรุณาลองใหม่', 'danger')
+        return redirect(url_for('comhealth.add_service_group', service_id=service_id))
+    existing_ids = {group.id for group in service.groups}
+    added = [group for group in groups if group.id not in existing_ids]
+    service.groups.extend(added)
+    if added and service.prices_frozen_at is not None:
+        _freeze_service_prices(service)
+    db.session.commit()
+    flash('เพิ่ม Group {} รายการเรียบร้อยแล้ว'.format(len(added)), 'success')
+    return redirect(url_for('comhealth.edit_service', service_id=service_id))
 
 
 @comhealth.route('/services/groups/delete/<int:service_id>/<int:group_id>')
@@ -4558,6 +4641,38 @@ def create_receipt(record_id):
         return redirect(url_for('comhealth.list_all_receipts', record_id=record.id))
 
 
+@comhealth.route('/checkin/records/<int:record_id>/receipts/preview', methods=['POST'])
+@login_required
+def preview_new_receipt(record_id):
+    record = ComHealthRecord.query.get_or_404(record_id)
+    print_profile = request.form.get('print_profile', '')
+    if print_profile not in ('', 'individual', 'consolidated'):
+        return 'รูปแบบรายการตรวจไม่ถูกต้อง', 400
+    issued_tests = record.get_all_tests()
+    invoices = []
+    for item in record.ordered_tests:
+        if not item.test or item.test in issued_tests or (item.profile and not print_profile):
+            continue
+        code = item.test.code
+        invoices.append(SimpleNamespace(test_item=item,
+            billed=bool(request.form.getlist(code + '_billed')),
+            visible=bool(request.form.getlist(code + '_visible')),
+            reimbursable=bool(request.form.getlist(code + '_reimbursable'))))
+    personal_info = getattr(current_user, 'personal_info', None)
+    staff = SimpleNamespace(fullname=escape(getattr(current_user, 'fullname', None) or '#รอข้อมูล#'),
+                            personal_info=SimpleNamespace(position=escape(str(getattr(personal_info, 'position', None) or '#รอข้อมูล#'))))
+    receipt = SimpleNamespace(code='#รอข้อมูล#', created_datetime=None, copy_number=1,
+        issued_for=escape(request.form.get('issued_for', '').strip()) or None,
+        address=escape(request.form.get('receipt_address', '').strip() or '#รอข้อมูล#'),
+        issued_at='', record=record, print_profile_note=bool(print_profile),
+        print_profile_how=print_profile, invoices=invoices, payment_method=None,
+        card_number=None, issuer=SimpleNamespace(staff=staff))
+    response = send_file(generate_receipt_pdf(receipt, draft=True), mimetype='application/pdf',
+                         download_name='receipt-preview.pdf', as_attachment=False)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 @comhealth.route('/checkin/receipts/cancel/confirm/<int:receipt_id>', methods=['GET', 'POST'])
 @login_required
 def confirm_cancel_receipt(receipt_id):
@@ -4744,7 +4859,7 @@ def _profile_consolidated_is_reimbursable(receipt):
     return bool(profile_invoices) and all(t.reimbursable for t in profile_invoices)
 
 
-def generate_receipt_pdf(receipt, sign=False, cancel=False):
+def generate_receipt_pdf(receipt, sign=False, cancel=False, draft=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
     digi_name = Paragraph(
@@ -4775,7 +4890,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             วันที่/Date {issued_date}
             </font>
             '''
-    issued_date = arrow.get(receipt.created_datetime.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+    issued_date = '#รอข้อมูล#' if draft else arrow.get(receipt.created_datetime.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
     receipt_info_ori = receipt_info.format(receipt_number=receipt_number,
                                            issued_date=issued_date,
                                            )
@@ -4796,7 +4911,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     header_ori.setStyle(header_styles)
 
     origin_or_copy = ''
-    if receipt.copy_number == 1:
+    if draft:
+        origin_or_copy = Paragraph('<para align=center><font size=18>ตัวอย่าง ไม่ใช่ใบเสร็จรับเงิน<br/><br/></font></para>', style=style_sheet['ThaiStyle'])
+    elif receipt.copy_number == 1:
         origin_or_copy = Paragraph('<para align=center><font size=20>ต้นฉบับ(Original)<br/><br/></font></para>',
                                style=style_sheet['ThaiStyle'])
     else:
@@ -5028,7 +5145,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         if not is_last_page:
             item_tables.append(PageBreak())
 
-    if receipt.payment_method == 'cash':
+    if draft:
+        payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAYMENT METHOD #รอข้อมูล#</font>', style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == 'cash':
         payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD เงินสด / CASH</font>',
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'QR':
@@ -5117,12 +5236,13 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             '<img src="app/static/img/receipt_comhealth_checking.jpg" width="30" height="30" />',
             style=style_sheet['ThaiStyle']
         )
-        w, h = footer_qr.wrap(doc.width, doc.bottomMargin)
-        footer_qr.drawOn(canvas, doc.leftMargin + 32 , current_y)
-        current_y += h + 1
+        if not draft:
+            w, h = footer_qr.wrap(doc.width, doc.bottomMargin)
+            footer_qr.drawOn(canvas, doc.leftMargin + 32 , current_y)
+            current_y += h + 1
 
         footer_time = Paragraph(
-            'Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+            'Time {} น.'.format('#รอข้อมูล#' if draft else receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
             style=style_sheet['ThaiStyle']
         )
         w, h = footer_time.wrap(doc.width, doc.bottomMargin)
