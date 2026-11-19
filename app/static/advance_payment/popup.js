@@ -246,12 +246,60 @@ function appIsLoginRedirect(response) {
   }
 }
 
-function appRequestFailure(response) {
+const appHttpMessages = {
+  expiredForm: {
+    title: "แบบฟอร์มหมดอายุ",
+    message: "แบบฟอร์มนี้หมดอายุแล้ว กรุณาโหลดหน้าเว็บใหม่ แล้วลองส่งข้อมูลอีกครั้ง",
+  },
+  invalidRequest: {
+    title: "กรุณาตรวจสอบข้อมูล",
+    message: "ข้อมูลที่ส่งไม่ถูกต้อง กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง",
+  },
+  badRequest: {
+    title: "ไม่สามารถส่งข้อมูลได้",
+    message: "ไม่สามารถส่งข้อมูลได้ในขณะนี้ กรุณาโหลดหน้าเว็บใหม่ แล้วลองอีกครั้ง",
+  },
+  login: {
+    title: "กรุณาเข้าสู่ระบบใหม่",
+    message: "การเข้าสู่ระบบหมดอายุแล้ว กรุณาเข้าสู่ระบบอีกครั้ง แล้วลองทำรายการใหม่",
+  },
+  systemMismatch: {
+    title: "ไม่สามารถทำรายการได้",
+    message: "ระบบงานที่เลือกไม่ตรงกับรายการนี้ กรุณากลับไปเลือกระบบงานให้ถูกต้อง แล้วเปิดรายการนี้ใหม่อีกครั้ง",
+  },
+  forbidden: {
+    title: "ไม่มีสิทธิ์ทำรายการ",
+    message: "บัญชีของคุณไม่มีสิทธิ์ดำเนินการรายการนี้ กรุณาติดต่อผู้ดูแลระบบหากต้องการความช่วยเหลือ",
+  },
+  notFound: {
+    title: "ไม่พบรายการที่ต้องการ",
+    message: "ไม่พบรายการที่คุณต้องการแก้ไข รายการอาจถูกลบหรือมีการเปลี่ยนแปลงแล้ว กรุณากลับไปตรวจสอบรายการอีกครั้ง",
+  },
+  closed: {
+    title: "ปิดรับการทำรายการชั่วคราว",
+    message: "ขณะนี้อยู่ในช่วงปิดปีงบประมาณ จึงไม่สามารถเพิ่ม แก้ไข หรือส่งข้อมูลได้ กรุณาลองใหม่เมื่อระบบเปิดให้บริการ",
+  },
+  server: {
+    title: "ระบบขัดข้องชั่วคราว",
+    message: "ขออภัย ระบบไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้งภายหลัง หากยังพบปัญหา กรุณาติดต่อผู้ดูแลระบบ",
+  },
+  unavailable: {
+    title: "ระบบขัดข้องชั่วคราว",
+    message: "ขออภัย ระบบไม่สามารถให้บริการได้ในขณะนี้ กรุณาลองใหม่อีกครั้งภายหลัง หากยังพบปัญหา กรุณาติดต่อผู้ดูแลระบบ",
+  },
+  unreadable: {
+    title: "ระบบไม่สามารถแสดงผลได้",
+    message: "ระบบไม่สามารถแสดงผลการตรวจสอบข้อมูลได้ในขณะนี้ กรุณาลองอีกครั้ง หากยังพบปัญหา กรุณาติดต่อผู้ดูแลระบบ",
+  },
+  saveUnknown: {
+    title: "ไม่สามารถยืนยันผลการบันทึกได้",
+    message: "ระบบไม่สามารถยืนยันผลการบันทึกข้อมูลได้ กรุณาตรวจสอบรายการของคุณก่อนทำรายการซ้ำ เพื่อป้องกันการบันทึกข้อมูลซ้ำ หากไม่พบรายการ กรุณาติดต่อผู้ดูแลระบบ",
+  },
+};
+
+function appRequestFailure(response, stage = "validation") {
   if (appIsLoginRedirect(response) || response.status === 401) {
-    return {
-      title: "กรุณาเข้าสู่ระบบใหม่",
-      message: "การเข้าสู่ระบบอาจหมดอายุ กรุณาเข้าสู่ระบบใหม่แล้วส่งข้อมูลอีกครั้ง",
-    };
+    return appHttpMessages.login;
   }
   if (response.redirected) {
     return {
@@ -260,22 +308,21 @@ function appRequestFailure(response) {
     };
   }
   if (response.status === 403) {
-    return {
-      title: "ไม่มีสิทธิ์ทำรายการ",
-      message: "บัญชีนี้ไม่ได้รับอนุญาตให้ทำรายการตามบทบาทหรือผู้รับผิดชอบที่กำหนด",
-    };
+    return appHttpMessages.forbidden;
   }
   if (response.status === 400) {
-    return {
-      title: "แบบฟอร์มส่งไม่สำเร็จ",
-      message: "การยืนยันแบบฟอร์มไม่ผ่านหรือข้อมูลที่ส่งไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วส่งอีกครั้ง",
-    };
+    return appHttpMessages.badRequest;
+  }
+  if (response.status === 404) {
+    return appHttpMessages.notFound;
+  }
+  if (response.status === 423) {
+    return appHttpMessages.closed;
   }
   if (response.status >= 500) {
-    return {
-      title: "ระบบขัดข้องชั่วคราว",
-      message: "เซิร์ฟเวอร์ไม่สามารถตรวจสอบข้อมูลได้ในขณะนี้ กรุณาลองอีกครั้งภายหลัง หากยังเกิดซ้ำให้แจ้งผู้ดูแลระบบ",
-    };
+    if (stage === "save") return appHttpMessages.saveUnknown;
+    return response.status === 502 || response.status === 503
+      ? appHttpMessages.unavailable : appHttpMessages.server;
   }
   return {
     title: "ไม่สามารถตรวจสอบข้อมูลได้",
@@ -284,6 +331,75 @@ function appRequestFailure(response) {
 }
 
 window.appRequestFailure = appRequestFailure;
+function appJsonFailure(response, payload, stage = "validation") {
+  const failure = appRequestFailure(response, stage);
+  if (response.status >= 500 || [401, 404, 423].includes(response.status)) {
+    return failure;
+  }
+  if (response.status === 400 && payload?.title === appHttpMessages.expiredForm.title) {
+    return appHttpMessages.expiredForm;
+  }
+  if (response.status === 400 && !payload?.title) {
+    return appHttpMessages.invalidRequest;
+  }
+  if (response.status === 403 && payload?.title === appHttpMessages.systemMismatch.title) {
+    return { ...appHttpMessages.systemMismatch, message: payload?.message || appHttpMessages.systemMismatch.message };
+  }
+  return {
+    title: payload?.title || (response.status === 403 ? failure.title : "กรุณาตรวจสอบข้อมูล"),
+    message: payload?.message || failure.message,
+  };
+}
+
+function appUnreadableResponse(response, stage = "validation") {
+  return stage === "save" && (response.ok || response.status >= 500)
+    ? appHttpMessages.saveUnknown : appHttpMessages.unreadable;
+}
+window.readAppAjaxResponse = async function (response, stage = "save", options = {}) {
+  if (appIsLoginRedirect(response)) {
+    return { ok: false, ...appHttpMessages.login };
+  }
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    return {
+      ok: false,
+      ...(response.ok ? appUnreadableResponse(response, stage) : appRequestFailure(response, stage)),
+    };
+  }
+  let payload;
+  try {
+    payload = await response.json();
+  } catch (error) {
+    return { ok: false, ...appUnreadableResponse(response, stage) };
+  }
+  if (!response.ok || !payload || payload.ok === false || payload.success === false) {
+    const failure = appJsonFailure(response, payload, stage);
+    const specificBadRequest = payload?.error || payload?.message;
+    if (options.preserveBadRequestMessage && response.status === 400 && specificBadRequest) {
+      return { ok: false, title: appHttpMessages.invalidRequest.title, message: specificBadRequest };
+    }
+    return { ok: false, ...failure };
+  }
+  return { ok: true, payload };
+};
+window.appErrorFromFailure = function (failure) {
+  const error = new Error(failure.message);
+  error.popupTitle = failure.title;
+  return error;
+};
+window.appSaveUnknownFailure = function () {
+  return appHttpMessages.saveUnknown;
+};
+window.appUnreadableFailure = appUnreadableResponse;
+window.showAppPopupFailure = function (failure) {
+  window.openAppPopup({
+    title: failure.title,
+    message: failure.message,
+    confirmText: "ตกลง",
+    confirmClass: "btn-danger",
+    alertOnly: true,
+  });
+};
 const appPopupErrors = {
   network: {
     title: "การเชื่อมต่อขัดข้อง",
@@ -313,24 +429,11 @@ window.readBorrowingValidationResponse = async function (response) {
   try {
     payload = await response.json();
   } catch (error) {
-    return {
-      ok: false,
-      title: "ข้อมูลตอบกลับไม่สมบูรณ์",
-      message: "เซิร์ฟเวอร์ส่งผลตรวจสอบที่อ่านไม่ได้ กรุณาลองอีกครั้ง หากยังเกิดซ้ำให้แจ้งผู้ดูแลระบบ",
-    };
+    return { ok: false, ...appUnreadableResponse(response) };
   }
 
   if (!response.ok || !payload || payload.ok === false) {
-    const failure = appRequestFailure(response);
-    const isFormError = response.status >= 400 && response.status < 500
-      && response.status !== 401 && response.status !== 403;
-    return {
-      ok: false,
-      title: (payload && payload.title) || (isFormError && payload && payload.message
-        ? "กรุณาตรวจสอบข้อมูล" : failure.title),
-      message: response.status >= 500 ? failure.message
-        : (payload && payload.message) || failure.message,
-    };
+    return { ok: false, ...appJsonFailure(response, payload) };
   }
   return { ok: true };
 };
@@ -345,6 +448,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // The borrowing-ticket form has an existing acknowledgement popup.
       // Never bypass it when this async handler is installed first.
       const requiresBorrowingConfirmation = form.id === "createBorrowingTicketForm";
+      const requestStage = "save";
       if (requiresBorrowingConfirmation && form.dataset.popupConfirmed !== "true") {
         return;
       }
@@ -392,7 +496,7 @@ document.addEventListener("DOMContentLoaded", function () {
           throw error;
         }
         if (appIsLoginRedirect(response)) {
-          const failure = appRequestFailure(response);
+          const failure = appRequestFailure(response, requestStage);
           const error = new Error(failure.message);
           error.popupTitle = failure.title;
           throw error;
@@ -421,17 +525,16 @@ document.addEventListener("DOMContentLoaded", function () {
           try {
             payload = await response.json();
           } catch (parseError) {
-            const error = new Error("เซิร์ฟเวอร์ส่งข้อมูลตอบกลับที่อ่านไม่ได้ กรุณาลองอีกครั้ง หากยังเกิดซ้ำให้แจ้งผู้ดูแลระบบ");
-            error.popupTitle = "ข้อมูลตอบกลับไม่สมบูรณ์";
+            const failure = appUnreadableResponse(response, requestStage);
+            const error = new Error(failure.message);
+            error.popupTitle = failure.title;
             throw error;
           }
           if (!response.ok || !payload || payload.ok === false) {
-            const failure = appRequestFailure(response);
+            const failure = appJsonFailure(response, payload, requestStage);
             window.openAppPopup({
-              title: (payload && payload.title) || (response.status >= 500 || response.status === 403 || response.status === 401
-                ? failure.title : "กรุณาตรวจสอบข้อมูล"),
-              message: response.status >= 500 ? failure.message
-                : (payload && payload.message) || failure.message,
+              title: failure.title,
+              message: failure.message,
               confirmText: "ตกลง",
               confirmClass: "btn-danger",
               alertOnly: true,
@@ -446,7 +549,7 @@ document.addEventListener("DOMContentLoaded", function () {
           document.close();
           return;
         } else {
-          const failure = appRequestFailure(response);
+          const failure = appRequestFailure(response, requestStage);
           const error = new Error(failure.message);
           error.popupTitle = failure.title;
           throw error;

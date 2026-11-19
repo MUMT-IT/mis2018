@@ -562,7 +562,7 @@
           await (autoSaveQueues.get(String(ticketId)) || Promise.resolve());
           await refreshReturnCsrf(ticketId);
         } catch (error) {
-          showReturnSaveError(error.message);
+          showReturnSaveError(error);
           return;
         }
         form.requestSubmit();
@@ -665,7 +665,7 @@
           await (autoSaveQueues.get(String(ticketId)) || Promise.resolve());
           await refreshReturnCsrf(ticketId);
         } catch (error) {
-          showReturnSaveError(error.message);
+          showReturnSaveError(error);
           return;
         }
         form.querySelectorAll(".item-amount-input, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input").forEach(input => {
@@ -924,22 +924,28 @@
 
     const autoSaveTimers = new Map();
     const autoSaveQueues = new Map();
+    const reportedAutoSaveFailures = new Set();
 
     function showReturnDraftDateError(ticketId, visible) {
       document.getElementById(`returnDraftDateError_${ticketId}`)?.classList.toggle('d-none', !visible);
     }
 
-    function showReturnSaveError(message) {
+    function showReturnSaveError(error) {
+      if (error instanceof TypeError && !error.popupTitle) {
+        window.showAppPopupError('network');
+        return;
+      }
+      const message = error?.message || 'กรุณาลองใหม่อีกครั้ง';
       if (typeof window.openAppPopup === 'function') {
         window.openAppPopup({
-          title: 'ไม่สามารถบันทึกข้อมูลได้',
-          message: message || 'กรุณาลองใหม่อีกครั้ง',
+          title: error?.popupTitle || 'ไม่สามารถบันทึกข้อมูลได้',
+          message,
           confirmText: 'ตกลง',
           confirmClass: 'btn-danger',
           alertOnly: true,
         });
       } else {
-        window.alert(message || 'ไม่สามารถบันทึกข้อมูลได้');
+        window.alert(message);
       }
     }
 
@@ -947,8 +953,12 @@
       const response = await fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
         credentials: 'same-origin'
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.csrf_token) throw new Error('ไม่สามารถต่ออายุ token ได้ กรุณาเข้าสู่ระบบใหม่หรือโหลดหน้าอีกครั้ง');
+      const result = await window.readAppAjaxResponse(response, 'validation');
+      if (!result.ok) throw window.appErrorFromFailure(result);
+      const data = result.payload;
+      if (!data.csrf_token) {
+        throw window.appErrorFromFailure(window.appUnreadableFailure(response, 'validation'));
+      }
       document.getElementById(`returnForm_${ticketId}`).querySelector('[name="csrf_token"]').value = data.csrf_token;
       return data.csrf_token;
     }
@@ -1007,8 +1017,13 @@
         credentials: 'same-origin',
         body
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) throw new Error(data.message || `Auto-save failed (HTTP ${res.status})`);
+      const result = await window.readAppAjaxResponse(res, 'save', {
+        preserveBadRequestMessage: true,
+      });
+      if (!result.ok) throw window.appErrorFromFailure(result);
+      const data = result.payload;
+      if (data.success !== true) throw window.appErrorFromFailure(window.appSaveUnknownFailure());
+      reportedAutoSaveFailures.delete(key);
       uploads.forEach((upload, index) => {
         if (!upload.files.length || !upload.row.isConnected) return;
         const savedProofs = data.proof_files?.[index] || [];
@@ -1043,7 +1058,17 @@
       };
       const queued = (autoSaveQueues.get(key) || Promise.resolve()).then(save, save).catch(err => {
         console.error('Auto-save error:', err);
-        if (includeFiles) showReturnSaveError(err.message);
+        const needsNotice = err instanceof TypeError || [
+          'ไม่สามารถยืนยันผลการบันทึกได้',
+          'กรุณาเข้าสู่ระบบใหม่',
+          'ไม่มีสิทธิ์ทำรายการ',
+          'ไม่สามารถทำรายการได้',
+          'ปิดรับการทำรายการชั่วคราว',
+        ].includes(err.popupTitle);
+        if (includeFiles || (needsNotice && !reportedAutoSaveFailures.has(key))) {
+          showReturnSaveError(err);
+          reportedAutoSaveFailures.add(key);
+        }
       });
       autoSaveQueues.set(key, queued);
       return queued;

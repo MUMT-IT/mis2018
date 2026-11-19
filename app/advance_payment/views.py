@@ -1228,9 +1228,9 @@ def module_role_required(permission, role, system):
             ):
                 _set_selected_system(system)
             if _selected_system() != system:
-                abort(403, description="ระบบงานที่เลือกไว้ไม่ตรงกับรายการนี้ กรุณาเปิดหน้านี้ใหม่แล้วส่งอีกครั้ง")
+                abort(403, description="ระบบงานที่เลือกไม่ตรงกับรายการนี้ กรุณากลับไปเลือกระบบงานให้ถูกต้อง แล้วเปิดรายการนี้ใหม่อีกครั้ง")
             if _current_module_role() != role:
-                abort(403, description="บทบาทของบัญชีนี้ไม่อนุญาตให้ดำเนินการรายการดังกล่าว")
+                abort(403, description="บัญชีของคุณไม่มีสิทธิ์ดำเนินการรายการนี้ตามบทบาทที่ได้รับ")
             return view_func(*args, **kwargs)
 
         return flask_login_required(permission.require()(wrapped))
@@ -1267,9 +1267,9 @@ def module_system_required(systems):
                 if selected_system:
                     _set_selected_system(selected_system)
             if selected_system not in allowed_systems:
-                abort(403, description="ระบบงานที่เลือกไว้ไม่ตรงกับรายการนี้ กรุณาเปิดหน้านี้ใหม่แล้วส่งอีกครั้ง")
+                abort(403, description="ระบบงานที่เลือกไม่ตรงกับรายการนี้ กรุณากลับไปเลือกระบบงานให้ถูกต้อง แล้วเปิดรายการนี้ใหม่อีกครั้ง")
             if not _can_use_module_system(current_user, selected_system):
-                abort(403, description="บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบงานที่เลือก")
+                abort(403, description="บัญชีของคุณไม่มีสิทธิ์ใช้งานระบบงานที่เลือก")
             if (
                 selected_system == ADVANCE_PAYMENT_SYSTEM
                 and request.method not in {"GET", "HEAD", "OPTIONS"}
@@ -4887,7 +4887,7 @@ def coordinator_dashboard():
             editing_ticket.creator_id,
             editing_ticket.borrower_id,
         }:
-            abort(403, description="บัญชีนี้ไม่ใช่ผู้สร้างหรือผู้ยืมของสัญญาเงินยืมรายการนี้")
+            abort(403, description="คุณไม่ได้เป็นผู้สร้างหรือผู้ยืมของสัญญานี้")
         if not _can_edit_borrowing_ticket(current_user.id, editing_ticket):
             if request.method == "GET":
                 abort(403)
@@ -10639,8 +10639,8 @@ def csrf_error(error):
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return jsonify(
             ok=False,
-            title="การยืนยันแบบฟอร์มไม่ผ่าน",
-            message="แบบฟอร์มอาจหมดอายุ กรุณาโหลดหน้าใหม่แล้วส่งอีกครั้ง",
+            title="แบบฟอร์มหมดอายุ",
+            message="แบบฟอร์มนี้หมดอายุแล้ว กรุณาโหลดหน้าเว็บใหม่ แล้วลองส่งข้อมูลอีกครั้ง",
         ), 400
     return error.get_response()
 
@@ -10651,9 +10651,10 @@ def forbidden(error):
         message = (
             error.description
             if error.description != Forbidden.description
-            else "บัญชีนี้ไม่ได้รับอนุญาตให้ทำรายการตามบทบาทหรือผู้รับผิดชอบที่กำหนด"
+            else "บัญชีของคุณไม่มีสิทธิ์ดำเนินการรายการนี้ กรุณาติดต่อผู้ดูแลระบบหากต้องการความช่วยเหลือ"
         )
-        return jsonify(ok=False, title="ไม่มีสิทธิ์ทำรายการ", message=message), 403
+        title = "ไม่สามารถทำรายการได้" if message.startswith("ระบบงานที่เลือกไม่ตรงกับรายการนี้") else "ไม่มีสิทธิ์ทำรายการ"
+        return jsonify(ok=False, title=title, message=message), 403
     return render_template("advance_payment/403.html"), 403
 
 
@@ -10663,7 +10664,7 @@ def permission_denied(_error):
         return jsonify(
             ok=False,
             title="ไม่มีสิทธิ์ทำรายการ",
-            message="บทบาทของบัญชีนี้ไม่อนุญาตให้ดำเนินการรายการดังกล่าว",
+            message="บัญชีของคุณไม่มีสิทธิ์ดำเนินการรายการนี้ตามบทบาทที่ได้รับ",
         ), 403
     return render_template("advance_payment/403.html"), 403
 

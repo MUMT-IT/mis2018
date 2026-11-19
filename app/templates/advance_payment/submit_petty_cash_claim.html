@@ -1102,6 +1102,7 @@ function togglePettyCashClaimForm() {
 <script>
 let autoSaveTimer = null;
 let claimAutoSaveQueue = Promise.resolve();
+let claimAutoSaveFailureReported = false;
 
 document.addEventListener('DOMContentLoaded', function() {
   calculateTotal();
@@ -1475,17 +1476,22 @@ function showClaimDraftDateError(visible) {
   document.getElementById('claimDraftDateError')?.classList.toggle('d-none', !visible);
 }
 
-function showClaimSaveError(message) {
+function showClaimSaveError(error) {
+  if (error instanceof TypeError && !error.popupTitle) {
+    window.showAppPopupError('network');
+    return;
+  }
+  const message = error?.message || 'กรุณาลองใหม่อีกครั้ง';
   if (typeof window.openAppPopup === 'function') {
     window.openAppPopup({
-      title: 'ไม่สามารถบันทึกข้อมูลได้',
-      message: message || 'กรุณาลองใหม่อีกครั้ง',
+      title: error?.popupTitle || 'ไม่สามารถบันทึกข้อมูลได้',
+      message,
       confirmText: 'ตกลง',
       confirmClass: 'btn-danger',
       alertOnly: true,
     });
   } else {
-    window.alert(message || 'ไม่สามารถบันทึกข้อมูลได้');
+    window.alert(message);
   }
 }
 
@@ -1550,8 +1556,12 @@ function autoSavePettyCashDraft(includeFiles = false) {
 
     const endpoint = "{{ url_for('advance_payment.coordinator_petty_cash_claim_autosave_draft') }}";
     const tokenResponse = await fetch(endpoint, { credentials: 'same-origin' });
-    const tokenData = await tokenResponse.json().catch(() => ({}));
-    if (!tokenResponse.ok || !tokenData.csrf_token) throw new Error('ไม่สามารถต่ออายุ token ได้ กรุณาเข้าสู่ระบบใหม่หรือโหลดหน้าอีกครั้ง');
+    const tokenResult = await window.readAppAjaxResponse(tokenResponse, 'validation');
+    if (!tokenResult.ok) throw window.appErrorFromFailure(tokenResult);
+    const tokenData = tokenResult.payload;
+    if (!tokenData.csrf_token) {
+      throw window.appErrorFromFailure(window.appUnreadableFailure(tokenResponse, 'validation'));
+    }
     claimForm.querySelector('[name="csrf_token"]').value = tokenData.csrf_token;
 
     const response = await fetch(endpoint, {
@@ -1560,8 +1570,13 @@ function autoSavePettyCashDraft(includeFiles = false) {
       credentials: 'same-origin',
       body,
     });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.success) throw new Error(result.message || `บันทึกร่างไม่สำเร็จ (HTTP ${response.status})`);
+    const saveResult = await window.readAppAjaxResponse(response, 'save', {
+      preserveBadRequestMessage: true,
+    });
+    if (!saveResult.ok) throw window.appErrorFromFailure(saveResult);
+    const result = saveResult.payload;
+    if (result.success !== true) throw window.appErrorFromFailure(window.appSaveUnknownFailure());
+    claimAutoSaveFailureReported = false;
     if (hasFiles) {
       const receipt_proofs = {};
       result.proof_files?.forEach((proofs, index) => {
@@ -1574,7 +1589,17 @@ function autoSavePettyCashDraft(includeFiles = false) {
   };
   const queued = claimAutoSaveQueue.then(save, save).catch(error => {
     console.error('AutoSave Error:', error);
-    if (includeFiles) showClaimSaveError(error.message);
+    const needsNotice = error instanceof TypeError || [
+      'ไม่สามารถยืนยันผลการบันทึกได้',
+      'กรุณาเข้าสู่ระบบใหม่',
+      'ไม่มีสิทธิ์ทำรายการ',
+      'ไม่สามารถทำรายการได้',
+      'ปิดรับการทำรายการชั่วคราว',
+    ].includes(error.popupTitle);
+    if (includeFiles || (needsNotice && !claimAutoSaveFailureReported)) {
+      showClaimSaveError(error);
+      claimAutoSaveFailureReported = true;
+    }
   });
   claimAutoSaveQueue = queued;
   claimForm.pendingDraftSave = queued;

@@ -496,18 +496,29 @@
         importError.classList.add("d-none");
         importResult.classList.add("d-none");
         try {
-          const response = await fetch(importForm.getAttribute("action"), {
-            method: "POST",
-            body: new FormData(importForm),
-            credentials: "same-origin",
-            headers: { "Accept": "application/json" },
-          });
-          if (!(response.headers.get("content-type") || "").includes("application/json")) {
-            throw new Error("ไม่สามารถรับผลนำเข้าได้ กรุณาเข้าสู่ระบบใหม่แล้วลองอีกครั้ง");
+          let response;
+          try {
+            response = await fetch(importForm.getAttribute("action"), {
+              method: "POST",
+              body: new FormData(importForm),
+              credentials: "same-origin",
+              headers: { "Accept": "application/json" },
+            });
+          } catch (requestError) {
+            window.showAppPopupError("network");
+            return;
           }
-          const result = await response.json();
-          if (!response.ok) {
-            throw new Error(result.error || "นำเข้าไม่สำเร็จ กรุณาลองอีกครั้ง");
+          const parsed = await window.readAppAjaxResponse(response, "save", {
+            preserveBadRequestMessage: true,
+          });
+          if (!parsed.ok) {
+            window.showAppPopupFailure(parsed);
+            return;
+          }
+          const result = parsed.payload;
+          if (!Array.isArray(result.rejected) || typeof result.imported_count !== "number") {
+            window.showAppPopupFailure(window.appSaveUnknownFailure());
+            return;
           }
           if (result.rejected.length === 0 && result.imported_count > 0) {
             document.getElementById("legacyImportSuccessCount").textContent = result.imported_count;
@@ -629,17 +640,35 @@
                     formData.set(key, inputs[key].value);
                     formData.set("expected_" + key, detail.current[key]);
                   });
-                  const response = await fetch(importForm.dataset.adjustUrl, {
-                    method: "POST", body: formData, credentials: "same-origin",
-                    headers: { "Accept": "application/json" },
+                  let response;
+                  try {
+                    response = await fetch(importForm.dataset.adjustUrl, {
+                      method: "POST", body: formData, credentials: "same-origin",
+                      headers: { "Accept": "application/json" },
+                    });
+                  } catch (requestError) {
+                    window.showAppPopupError("network");
+                    feedback.textContent = "";
+                    saveButton.disabled = false;
+                    return;
+                  }
+                  const parsed = await window.readAppAjaxResponse(response, "save", {
+                    preserveBadRequestMessage: true,
                   });
-                  const saved = await response.json();
-                  if (!response.ok) throw new Error(saved.error || "บันทึกยอดไม่สำเร็จ");
+                  if (!parsed.ok || typeof parsed.payload?.updated !== "boolean") {
+                    window.showAppPopupFailure(parsed.ok ? window.appSaveUnknownFailure() : parsed);
+                    feedback.textContent = "";
+                    saveButton.disabled = false;
+                    return;
+                  }
+                  const saved = parsed.payload;
                   actionCell.textContent = saved.updated ? "ปรับยอดแล้ว" : "ใช้ข้อมูลเดิม";
                   detailRow.remove();
                 } catch (error) {
                   feedback.className = "small text-danger mt-2";
-                  feedback.textContent = error.message || "บันทึกยอดไม่สำเร็จ";
+                  console.error("Legacy import adjustment failed", error);
+                  feedback.textContent = "";
+                  window.showAppPopupError("page");
                   saveButton.disabled = false;
                 }
               });
@@ -658,8 +687,8 @@
           importResult.classList.remove("d-none");
           importForm.reset();
         } catch (error) {
-          importError.textContent = error.message || "นำเข้าไม่สำเร็จ กรุณาลองอีกครั้ง";
-          importError.classList.remove("d-none");
+          console.error("Legacy import response failed", error);
+          window.showAppPopupError("page");
         } finally {
           importButton.disabled = false;
           importButton.textContent = "อัปโหลดและสร้างสัญญา";
