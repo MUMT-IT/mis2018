@@ -10,69 +10,69 @@
       <p class="text-uppercase fw-bold text-muted small mb-1" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
       <h1 class="fw-bold display-6 mb-2">รายการสัญญาเงินยืมทดรองจ่าย</h1>
     </div>
-    <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
-      <button type="button" class="btn btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#legacyImportModal">
-        <i class="bi bi-file-earmark-spreadsheet me-1"></i> นำเข้ารายงานลูกหนี้เงินยืมย้อนหลัง
-      </button>
-      <button type="button" class="btn btn-outline-success fw-bold" data-bs-toggle="modal" data-bs-target="#receivablesPreviewModal">
-        <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงานลูกหนี้เงินยืม
-      </button>
-      <button type="button" class="btn btn-outline-danger fw-bold" data-bs-toggle="modal" data-bs-target="#overdueReminderDateModal">
-        <i class="bi bi-file-earmark-pdf me-1"></i> สร้างหนังสือเร่งรัดลูกหนี้
-      </button>
-    </div>
-  </div>
+<!--    <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">-->
+<!--      <button type="button" class="btn btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#legacyImportModal">-->
+<!--        <i class="bi bi-file-earmark-spreadsheet me-1"></i> นำเข้ารายงานลูกหนี้เงินยืมย้อนหลัง-->
+<!--      </button>-->
+<!--      <button type="button" class="btn btn-outline-success fw-bold" data-bs-toggle="modal" data-bs-target="#receivablesPreviewModal">-->
+<!--        <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงานลูกหนี้เงินยืม-->
+<!--      </button>-->
+<!--      <button type="button" class="btn btn-outline-danger fw-bold" data-bs-toggle="modal" data-bs-target="#overdueReminderDateModal">-->
+<!--        <i class="bi bi-file-earmark-pdf me-1"></i> สร้างหนังสือเร่งรัดลูกหนี้-->
+<!--      </button>-->
+<!--    </div>-->
+<!--  </div>-->
 
-  <div class="modal fade" id="overdueReminderDateModal" tabindex="-1" aria-labelledby="overdueReminderDateModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-      <div class="modal-content">
-        <form method="get" action="{{ url_for('advance_payment.export_overdue_reminders') }}">
-          <div class="modal-header">
-            <div>
-              <h2 class="modal-title fs-5" id="overdueReminderDateModalTitle">ตัวอย่างรายการหนังสือเร่งรัดลูกหนี้</h2>
-              <p class="text-muted small mb-0">ตรวจสอบรายการที่เลยกำหนดและมียอดคงค้างก่อนสร้างหนังสือ</p>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
-          </div>
-          <div class="modal-body">
-            <label for="overdueReminderTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>
-            <input id="overdueReminderTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>
-            <div class="table-responsive mt-4">
-              <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th class="small fw-bold text-secondary">เลขที่ใบยืม</th>
-                    <th class="small fw-bold text-secondary">ชื่อผู้ยืม</th>
-                    <th class="small fw-bold text-secondary text-center">วันที่ครบกำหนด</th>
-                    <th class="small fw-bold text-secondary text-end">ยอดคงค้างสุทธิ</th>
-                    <th class="small fw-bold text-secondary text-center">สัญญา</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for borrowing_ticket in overdue_preview_tickets %}
-                    <tr>
-                      <td class="fw-semibold">{{ borrowing_ticket.number or '-' }}</td>
-                      <td>{{ borrowing_ticket.borrower_name or '-' }}</td>
-                      <td class="text-center text-danger fw-bold">{{ borrowing_ticket.due_date.strftime('%d/%m/%Y') }}</td>
-                      <td class="text-end fw-bold text-danger">{{ "{:,.2f}".format(remaining_by_ticket.get(borrowing_ticket.id, 0)|float) }}</td>
-                      <td class="text-center">
-                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" target="_blank" rel="noopener">ดูสัญญา</a>
-                      </td>
-                    </tr>
-                  {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-3">ไม่พบรายการที่เลยกำหนดและมียอดคงค้าง</td></tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-      <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-            <button type="submit" class="btn btn-danger"><i class="bi bi-file-earmark-pdf me-1"></i>สร้างหนังสือเร่งรัด</button>
-          </div>
-        </form>
-      </div>
-    </div>
+<!--  <div class="modal fade" id="overdueReminderDateModal" tabindex="-1" aria-labelledby="overdueReminderDateModalTitle" aria-hidden="true">-->
+<!--    <div class="modal-dialog modal-xl modal-dialog-scrollable">-->
+<!--      <div class="modal-content">-->
+<!--        <form method="get" action="{{ url_for('advance_payment.export_overdue_reminders') }}">-->
+<!--          <div class="modal-header">-->
+<!--            <div>-->
+<!--              <h2 class="modal-title fs-5" id="overdueReminderDateModalTitle">ตัวอย่างรายการหนังสือเร่งรัดลูกหนี้</h2>-->
+<!--              <p class="text-muted small mb-0">ตรวจสอบรายการที่เลยกำหนดและมียอดคงค้างก่อนสร้างหนังสือ</p>-->
+<!--            </div>-->
+<!--            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>-->
+<!--          </div>-->
+<!--          <div class="modal-body">-->
+<!--            <label for="overdueReminderTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>-->
+<!--            <input id="overdueReminderTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>-->
+<!--            <div class="table-responsive mt-4">-->
+<!--              <table class="table table-sm table-hover align-middle mb-0">-->
+<!--                <thead class="table-light">-->
+<!--                  <tr>-->
+<!--                    <th class="small fw-bold text-secondary">เลขที่ใบยืม</th>-->
+<!--                    <th class="small fw-bold text-secondary">ชื่อผู้ยืม</th>-->
+<!--                    <th class="small fw-bold text-secondary text-center">วันที่ครบกำหนด</th>-->
+<!--                    <th class="small fw-bold text-secondary text-end">ยอดคงค้างสุทธิ</th>-->
+<!--                    <th class="small fw-bold text-secondary text-center">สัญญา</th>-->
+<!--                  </tr>-->
+<!--                </thead>-->
+<!--                <tbody>-->
+<!--                  {% for borrowing_ticket in overdue_preview_tickets %}-->
+<!--                    <tr>-->
+<!--                      <td class="fw-semibold">{{ borrowing_ticket.number or '-' }}</td>-->
+<!--                      <td>{{ borrowing_ticket.borrower_name or '-' }}</td>-->
+<!--                      <td class="text-center text-danger fw-bold">{{ borrowing_ticket.due_date.strftime('%d/%m/%Y') }}</td>-->
+<!--                      <td class="text-end fw-bold text-danger">{{ "{:,.2f}".format(remaining_by_ticket.get(borrowing_ticket.id, 0)|float) }}</td>-->
+<!--                      <td class="text-center">-->
+<!--                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" target="_blank" rel="noopener">ดูสัญญา</a>-->
+<!--                      </td>-->
+<!--                    </tr>-->
+<!--                  {% else %}-->
+<!--                    <tr><td colspan="5" class="text-center text-muted py-3">ไม่พบรายการที่เลยกำหนดและมียอดคงค้าง</td></tr>-->
+<!--                  {% endfor %}-->
+<!--                </tbody>-->
+<!--              </table>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--      <div class="modal-footer">-->
+<!--            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>-->
+<!--            <button type="submit" class="btn btn-danger"><i class="bi bi-file-earmark-pdf me-1"></i>สร้างหนังสือเร่งรัด</button>-->
+<!--          </div>-->
+<!--        </form>-->
+<!--      </div>-->
+<!--    </div>-->
   </div>
 </header>
 
