@@ -171,7 +171,7 @@
                     <span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span>
                   </td>
                   <td>
-                    <div class="fw-bold text-dark">{{ claim.number if claim.number else claim.fund_request.ticket_number }}</div>
+                    <div class="fw-bold text-dark">{{ claim.claim_number or (claim.fund_request.ticket_number if claim.fund_request_id and claim.fund_request and claim.fund_request.ticket_number else '-') }}</div>
                   </td>
                   <td>
                     <div class="fw-bold text-dark">{{ claim.setting.department_name if claim.setting else 'ไม่ระบุ' }}</div>
@@ -381,7 +381,7 @@
                             <td class="ps-3"><input type="checkbox" name="selected_claim_ids[]" value="{{ petty.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or petty.id in result.historical_claim_ids or petty.status in ['ล้างลูกหนี้เงินยืม', 'เสร็จสิ้นกระบวนการ'] %}disabled{% endif %}></td>
                             <td><span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span></td>
                             <td>
-                              <div class="fw-bold text-dark">{{ (petty.fund_request.ticket_number if petty.fund_request else none) or petty.display_claim_number or petty.claim_number or '-' }}</div>
+                              <div class="fw-bold text-dark">{{ petty.claim_number or (petty.fund_request.ticket_number if petty.fund_request_id and petty.fund_request and petty.fund_request.ticket_number else '-') }}</div>
                             </td>
                             <td><div class="fw-bold text-dark">{{ petty.department_name }}</div><small class="text-muted">ผู้เบิก: {{ petty.requester_name or petty.name or '-' }}</small></td>
                             <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(petty.amount or 0) }}</td>
@@ -521,7 +521,7 @@
                   <span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span>
                 </td>
                 <td>
-                  <div class="fw-bold text-dark">{{ (petty.fund_request.ticket_number if petty.fund_request else none) or petty.display_claim_number or petty.claim_number or '-' }}</div>
+                  <div class="fw-bold text-dark">{{ petty.claim_number or (petty.fund_request.ticket_number if petty.fund_request_id and petty.fund_request and petty.fund_request.ticket_number else '-') }}</div>
                 </td>
                 <td>
                   <div class="fw-bold text-dark">{{ petty.department_name }}</div>
