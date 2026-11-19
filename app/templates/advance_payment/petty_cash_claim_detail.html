@@ -105,9 +105,9 @@
           <span class="badge {{ status_badge_class(claim_detail.status) }} mt-1 px-2 py-1">{{ c_status }}</span>
         </div>
 
-        <!-- วันที่ส่งเอกสาร -->
+        <!-- วันที่บันทึกข้อมูล -->
         <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">วันที่ส่งเอกสาร</span>
+          <span class="text-muted small d-block">วันที่บันทึกข้อมูล</span>
           <strong class="text-dark">{{ claim_detail.created_at|thai_date if claim_detail.created_at else '-' }}</strong>
         </div>
 
