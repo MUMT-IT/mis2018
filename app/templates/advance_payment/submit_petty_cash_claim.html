@@ -791,7 +791,7 @@
         </button>
       </div>
       <div id="claimDraftDateError" class="small text-danger text-end mt-2 d-none" role="alert">
-        กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่าง
+        กรุณาระบุวันที่ของรายการที่ต้องการบันทึก และลบรายการที่ระบบเพิ่มให้อัตโนมัติในช่องรายการส่งฝ่ายการเงินออกก่อน หากต้องการบันทึกข้อมูลประเภทอื่น
       </div>
       <div id="claimDraftSaveStatus" class="small text-success text-end mt-2" role="status" aria-live="polite"></div>
     </form>
@@ -1229,6 +1229,25 @@ document.addEventListener('DOMContentLoaded', function() {
       delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
+        const claimRows = Array.from(claimForm.querySelectorAll('#claimBody tr'));
+        const rowHasData = row => Array.from(row.querySelectorAll(
+          'input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]'
+        )).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
+        const hasMissingReceiptDate = claimRows.some(row =>
+          rowHasData(row) && !row.querySelector('input[name="receipt_date[]"]')?.value.trim()
+        );
+        const cashReturnDate = claimForm.querySelector('[name="cash_return_date"]');
+        const cashReturnInputs = claimForm.querySelectorAll('.cash-return-input');
+        const hasCashReturnData = Array.from(cashReturnInputs).some(input =>
+          input.type === 'file' ? input.files.length > 0 : input.value.trim()
+        );
+        const hasMissingCashReturnDate = hasCashReturnData && !cashReturnDate?.value.trim();
+        if (hasMissingReceiptDate || hasMissingCashReturnDate) {
+          event.preventDefault();
+          showClaimDraftDateError(true);
+          return;
+        }
+        showClaimDraftDateError(false);
         claimForm.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
         claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input').forEach(input => {
           input.value = input.value.replace(/,/g, '');
