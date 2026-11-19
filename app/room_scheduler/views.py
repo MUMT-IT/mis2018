@@ -1704,6 +1704,12 @@ def edit_detail(event_id):
         event.end = event_end
         event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
+        if not form.is_refreshment.data:
+            event.refreshment = 0
+            event.refreshment_detail = None
+            event.cost_center_id = None
+            event.iocode_id = None
+            event.product_code_id = None
         _set_event_rooms(event, selected_rooms)
 
         if not form.is_repeat_booking.data:
@@ -2165,6 +2171,12 @@ def room_reserve(room_id):
             new_event.end = enddatetime
             new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
+            if not form.is_refreshment.data:
+                new_event.refreshment = 0
+                new_event.refreshment_detail = None
+                new_event.cost_center_id = None
+                new_event.iocode_id = None
+                new_event.product_code_id = None
             _set_event_rooms(new_event, selected_rooms)
 
             if not form.is_repeat_booking.data:
