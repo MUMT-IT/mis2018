@@ -46,6 +46,28 @@ class RoomEventForm(ModelForm):
     category = QuerySelectField(query_factory=lambda: EventCategory.query.all())
     participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(
                                  StaffAccount.personal_info.has(retired=False)).all(), get_label='fullname')
+    cost_center = QuerySelectField(
+        query_factory=lambda: CostCenter.query.all(),
+        get_label='id',
+        allow_blank=True,
+        blank_text='กรุณาเลือกรหัสศูนย์ต้นทุน',
+        validators=[Optional()],
+    )
+    iocode = QuerySelectField(
+        query_factory=lambda: IOCode.query.all(),
+        get_label='id',
+        allow_blank=True,
+        blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน',
+        validators=[Optional()],
+    )
+    product_code = QuerySelectField(
+        query_factory=lambda: ProductCode.query.all(),
+        get_label='product_code',
+        allow_blank=True,
+        blank_text='กรุณาเลือกผลผลิต',
+        validators=[Optional()],
+    )
+
 
 class RoomParticipantListForm(ModelForm):
     class Meta:
