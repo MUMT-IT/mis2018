@@ -3,6 +3,19 @@
 {% block title %}รายการสัญญาเงินยืมทดรองจ่าย | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
+<style>
+  /* Keep modal previews compact while allowing the full result set to be reviewed. */
+  .modal-preview-table-scroll {
+    max-height: 20rem;
+    overflow-y: auto;
+  }
+
+  .modal-preview-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+</style>
 <!-- Header Section -->
 <header class="mb-4 pb-2 border-bottom">
   <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 pt-3">
@@ -37,7 +50,7 @@
 <!--          <div class="modal-body">-->
 <!--            <label for="overdueReminderTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>-->
 <!--            <input id="overdueReminderTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>-->
-<!--            <div class="table-responsive mt-4">-->
+<!--            <div class="table-responsive modal-preview-table-scroll mt-4">-->
 <!--              <table class="table table-sm table-hover align-middle mb-0">-->
 <!--                <thead class="table-light">-->
 <!--                  <tr>-->
@@ -289,7 +302,7 @@
         <label for="receivablesTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>
         <input id="receivablesTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>
         <p class="text-muted small mt-2 mb-0">ตัวอย่างด้านล่างแสดงยอดคงค้างปัจจุบัน รายงานลูกหนี้คำนวณ ณ วันที่เลือก ส่วนทะเบียนคุมการยืมเงินและทะเบียนคุมเงินทดรองจ่ายแสดงรายการทั้งเดือนของวันที่เลือก และเว้นยอดยกมาให้กรอกจากเดือนก่อน</p>
-        <div class="table-responsive mt-4">
+        <div class="table-responsive modal-preview-table-scroll mt-4">
           <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
@@ -327,9 +340,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button type="submit" class="btn btn-success">
-          <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงาน
+        <button type="submit" class="btn btn-outline-success">
+          <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงานลูกหนี้เงินยืม
         </button>
         <button type="submit" class="btn btn-outline-success" formaction="{{ url_for('advance_payment.export_individual_debtors_report') }}">
           <i class="bi bi-download me-1"></i> ดาวน์โหลดทะเบียนคุมลูกหนี้รายตัว

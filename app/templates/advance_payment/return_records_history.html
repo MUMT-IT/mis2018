@@ -84,8 +84,8 @@
     <div class="col-md-3">
       <label for="sortOrder" class="form-label fw-bold text-secondary small">จัดเรียงตามลำดับ</label>
       <select id="sortOrder" class="form-select style-select" onchange="sortHistoryTable()">
-        <option value="created_desc">วันที่สร้างรายการล่าสุด → เก่าสุด</option>
-        <option value="created_asc">วันที่สร้างรายการเก่าสุด → ล่าสุด</option>
+        <option value="created_desc">วันที่บันทึกข้อมูลล่าสุด → เก่าสุด</option>
+        <option value="created_asc">วันที่บันทึกข้อมูลเก่าสุด → ล่าสุด</option>
         <option value="เอกสารตั้งฎีกา_desc">วันที่ปิดยอดล่าสุด → เก่าสุด</option>
         <option value="amount_desc">จำนวนเงินมากสุด → น้อยสุด</option>
       </select>
@@ -131,7 +131,7 @@
               <th scope="col" class="small fw-bold text-secondary">ชื่อผู้ประสานงาน / ผู้เบิก</th>
               <th scope="col" class="small fw-bold text-secondary text-center">ประเภทรายการ</th>
               <th scope="col" class="small fw-bold text-secondary text-end">จำนวนเงิน</th>
-              <th scope="col" class="small fw-bold text-secondary text-center">วันที่สร้างรายการ</th>
+              <th scope="col" class="small fw-bold text-secondary text-center">วันที่บันทึกข้อมูล</th>
               <th scope="col" class="small fw-bold text-secondary text-center">สถานะ</th>
               <th scope="col" class="small fw-bold text-secondary text-center">หมายเลขฎีกา</th>
               <th scope="col" class="small fw-bold text-secondary text-center pe-3">การจัดการ</th>
@@ -188,7 +188,7 @@
                 {{ "{:,.2f}".format(record.total_amount or record.amount_spent or 0) }}
               </td>
 
-              <!-- 5. วันที่สร้างรายการ -->
+              <!-- 5. วันที่บันทึกข้อมูล -->
               <td class="text-center small text-secondary">
                 {{ record.created_at|thai_date if record.created_at else '-' }}
               </td>

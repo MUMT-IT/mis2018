@@ -772,7 +772,7 @@
           <div class="text-end fw-bold fs-4 lh-1">==============</div>
           <span class="visually-hidden" id="totalAmountLabel">ยอดรวมส่งเบิกทั้งสิ้น</span>
           <span class="visually-hidden" id="totalAmountUnit">บาท</span>
-          <span class="visually-hidden" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
+          <span class="visually-hidden" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-existing-non-category6-claim-total="{{ fund_request_total_info.non_category6_claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
         </div>
       </div>
 
@@ -1226,6 +1226,11 @@ document.addEventListener('DOMContentLoaded', function() {
       delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
+        if (!validateFundRequestTotal(overRequestConfirmed)) {
+          event.preventDefault();
+          return;
+        }
+
         const claimRows = Array.from(claimForm.querySelectorAll('#claimBody tr'));
         const rowHasData = row => Array.from(row.querySelectorAll(
           'input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]'
@@ -1749,24 +1754,29 @@ function validateFundRequestTotal(overRequestConfirmed = false) {
     return true;
   }
 
-  let currentClaimTotal = 0;
-  document.querySelectorAll('#claimBody .claim-amount').forEach(input => {
-    currentClaimTotal += parseFloat((input.value || '0').replace(/,/g, '')) || 0;
+  let currentNonCategory6Total = 0;
+  document.querySelectorAll('#claimBody tr').forEach(row => {
+    const amountInput = row.querySelector('.claim-amount');
+    const categoryType = (row.querySelector('select[name="category_type[]"]')?.value || '').trim();
+    const amount = parseFloat((amountInput?.value || '0').replace(/,/g, '')) || 0;
+
+    if (categoryType !== '6') {
+      currentNonCategory6Total += amount;
+    }
   });
-  const existingClaimTotal = parseFloat(display.dataset.existingClaimTotal || '0') || 0;
+  const existingNonCategory6ClaimTotal = parseFloat(display.dataset.existingNonCategory6ClaimTotal || '0') || 0;
   const parcelTotal = parseFloat(display.dataset.parcelTotal || '0') || 0;
   const currentParcelAmount = parseFloat(document.querySelector('.parcel-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
   const currentCircularAmount = parseFloat(document.querySelector('.circular-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
-  const currentCashReturnAmount = parseFloat(document.querySelector('.cash-return-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
-  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount + currentCashReturnAmount;
+  const projectedNonCategory6Total = currentNonCategory6Total + existingNonCategory6ClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount;
 
-  if (projectedTotal > requestAmount && !overRequestConfirmed) {
+  if (projectedNonCategory6Total > requestAmount && !overRequestConfirmed) {
     window.openAppPopup({
       title: "ยอดเกินยอดขอเบิก",
-      message: `ยอดรวมจะเป็น ${projectedTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ต้องการส่งข้อมูลต่อหรือไม่`,
-      confirmText: "ยืนยันส่งข้อมูล",
+      message: `ยอดรวมรายการที่ไม่ใช่หมวด 6 จะเป็น ${projectedNonCategory6Total.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท กรุณาตรวจสอบข้อมูลการขอเบิกอีกครั้ง`,
+      confirmText: "ตกลง",
       confirmClass: "btn-warning",
-      targetFormId: "claimForm",
+      alertOnly: true,
     });
     return false;
   }

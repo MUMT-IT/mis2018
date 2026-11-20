@@ -4485,6 +4485,21 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
         parcel_query = parcel_query.filter(ParcelReturnDetail.id != exclude_parcel_return_id)
 
     claim_total = _money_decimal(claim_query.scalar())
+    non_category6_claim_query = db.session.query(
+        func.coalesce(func.sum(PettyCashClaimItem.amount), 0)
+    ).join(
+        PettyCashClaimDetail,
+        PettyCashClaimDetail.id == PettyCashClaimItem.claim_id,
+    ).filter(
+        PettyCashClaimDetail.fund_request_id == fund_request_id,
+        PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
+        PettyCashClaimItem.category_type != 6,
+    )
+    if exclude_claim_id:
+        non_category6_claim_query = non_category6_claim_query.filter(
+            PettyCashClaimDetail.id != exclude_claim_id
+        )
+    non_category6_claim_total = _money_decimal(non_category6_claim_query.scalar())
     parcel_total = _money_decimal(parcel_query.scalar())
     request_amount = _money_decimal(
         db.session.query(FundRequest.amount)
@@ -4495,6 +4510,7 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
     combined_total = claim_total + parcel_total
     return {
         "claim_total": claim_total,
+        "non_category6_claim_total": non_category6_claim_total,
         "parcel_total": parcel_total,
         "cumulative_total": combined_total,
         "request_amount": request_amount,
