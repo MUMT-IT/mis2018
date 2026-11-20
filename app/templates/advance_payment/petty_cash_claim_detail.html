@@ -352,10 +352,18 @@
                 
                 <td>
                     {% if proof_file and proof_file.proof_reference %}
-                    <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ proof_file.filename }}">
                     {% set proof_filename = proof_file.filename or proof_file.proof_reference or '' %}
+                    {% set is_previewable_proof = proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf')) %}
+                    <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden{% if is_previewable_proof %} evidence-preview-trigger{% endif %}"
+                         style="width: 60px; height: 60px;"
+                         title="{{ proof_file.filename }}{% if is_previewable_proof %} — วางเมาส์เพื่อดูตัวอย่าง หรือคลิกเพื่อเปิดค้างไว้{% endif %}"
+                         {% if is_previewable_proof %}tabindex="0" role="button"
+                         aria-label="ดูตัวอย่าง {{ proof_file.filename or 'ไฟล์หลักฐาน' }}"
+                         data-preview-url="{{ proof_file.proof_reference|advance_payment_file_url }}"
+                         data-preview-title="{{ proof_file.filename or 'ไฟล์หลักฐาน' }}"
+                         data-preview-type="{{ 'pdf' if proof_filename.lower().endswith('.pdf') else 'image' }}"{% endif %}>
                     {% if proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
-                        <img src="{{ proof_file.proof_reference|advance_payment_file_url }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{ proof_file.proof_reference|advance_payment_file_url }}" alt="ภาพย่อ {{ proof_file.filename or 'ไฟล์หลักฐาน' }}" class="w-100 h-100" style="object-fit: cover;">
                     {% else %}
                         <i class="bi bi-file-earmark fs-2 text-primary"></i>
                     {% endif %}
@@ -573,5 +581,6 @@ function bindModalReceiptAgeWarnings() {
   });
 }
 </script>
+{% include 'advance_payment/_evidence_hover_preview.html' %}
 {% endblock %}
 
