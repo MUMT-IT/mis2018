@@ -73,7 +73,6 @@ class RoomEventForm(ModelForm):
         allow_blank=True,
         blank_text='กรุณาเลือกรหัสศูนย์ต้นทุน',
         validators=[_required_when_refreshment_requested('กรุณาเลือกรหัสศูนย์ต้นทุน')],
-        render_kw={'required': True},
     )
     iocode = QuerySelectFieldRequired(
         query_factory=lambda: IOCode.query.all(),
@@ -81,7 +80,6 @@ class RoomEventForm(ModelForm):
         allow_blank=True,
         blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน',
         validators=[_required_when_refreshment_requested('กรุณาเลือกรหัสใบสั่งงานภายใน')],
-        render_kw={'required': True},
     )
     product_code = QuerySelectFieldRequired(
         query_factory=lambda: ProductCode.query.all(),
@@ -89,7 +87,6 @@ class RoomEventForm(ModelForm):
         allow_blank=True,
         blank_text='กรุณาเลือกผลผลิต',
         validators=[_required_when_refreshment_requested('กรุณาเลือกผลผลิต / หมวดค่าใช้จ่าย')],
-        render_kw={'required': True},
     )
 
 
