@@ -1199,17 +1199,22 @@ def index():
                            )
 
 
+def _staff_related_procurement_plan_filter(staff_id):
+    return or_(
+        ProcurementPlan.budget_proposer_id == staff_id,
+        ProcurementPlan.operator_staff_id == staff_id,
+        ProcurementPlan.committee_members.any(
+            ProcurementPlanCommitteeMember.staff_id == staff_id
+        ),
+    )
+
+
 @staff.route('/procurement-budget-tracking')
 @login_required
 def procurement_budget_tracking():
     current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
     fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
-    related_plan_filter = or_(
-        ProcurementPlan.budget_proposer_id == current_user.id,
-        ProcurementPlan.committee_members.any(
-            ProcurementPlanCommitteeMember.staff_id == current_user.id
-        ),
-    )
+    related_plan_filter = _staff_related_procurement_plan_filter(current_user.id)
     available_years = [
         year for year, in ProcurementPlan.query.with_entities(ProcurementPlan.fiscal_year)
         .filter(related_plan_filter)
@@ -1224,6 +1229,13 @@ def procurement_budget_tracking():
         ProcurementPlan.fiscal_year == fiscal_year,
         related_plan_filter,
     ).order_by(ProcurementPlan.id.asc()).all()
+    committee_roles = {
+        member.plan_id: member.role_label
+        for member in ProcurementPlanCommitteeMember.query.filter(
+            ProcurementPlanCommitteeMember.staff_id == current_user.id,
+            ProcurementPlanCommitteeMember.plan_id.in_([plan.id for plan in plans]),
+        ).all()
+    } if plans else {}
     total_amount = sum((plan.amount or 0 for plan in plans), 0)
     return render_template(
         'staff/procurement_budget_tracking.html',
@@ -1231,6 +1243,7 @@ def procurement_budget_tracking():
         available_years=available_years,
         plans=plans,
         total_amount=total_amount,
+        committee_roles=committee_roles,
     )
 
 
@@ -1239,12 +1252,7 @@ def procurement_budget_tracking():
 def procurement_budget_plan_detail(plan_id):
     plan = ProcurementPlan.query.filter(
         ProcurementPlan.id == plan_id,
-        or_(
-            ProcurementPlan.budget_proposer_id == current_user.id,
-            ProcurementPlan.committee_members.any(
-                ProcurementPlanCommitteeMember.staff_id == current_user.id
-            ),
-        ),
+        _staff_related_procurement_plan_filter(current_user.id),
     ).first_or_404()
     fiscal_year = request.args.get('fiscal_year', type=int) or plan.fiscal_year
     from app.procurement.views import _procurement_plan_gantt_data
@@ -4807,6 +4815,16 @@ def _has_existing_checkin(staff_id, date_id):
     )
 
 
+def _is_earlier_checkin_correction(staff_id, date_id, work_datetime):
+    existing_checkins = [
+        _to_bangkok(record.start_datetime)
+        for record in StaffWorkLogin.query.filter_by(staff_id=staff_id, date_id=date_id).all()
+        if record.start_datetime is not None and record.correction_type != 'checkout'
+    ]
+    target_datetime = _to_bangkok(work_datetime)
+    return bool(existing_checkins) and all(target_datetime < existing for existing in existing_checkins)
+
+
 @staff.route('/clockin-clockout/request/', methods=['GET', 'POST'])
 @login_required
 def request_for_clockin_clockout():
@@ -4819,7 +4837,9 @@ def request_for_clockin_clockout():
         work_datetime = tz.localize(work_datetime)
         date_id = StaffRequestWorkLogin.generate_date_id(work_datetime)
         work_datetime_display = work_datetime.strftime('%d/%m/%Y %H:%M')
-        if request.form.get('clock') == 'checkin' and _has_existing_checkin(current_user.id, date_id):
+        if (request.form.get('clock') == 'checkin'
+                and _has_existing_checkin(current_user.id, date_id)
+                and not _is_earlier_checkin_correction(current_user.id, date_id, work_datetime)):
             flash('มีข้อมูลเข้างานในวันที่เลือกแล้ว ไม่สามารถขอรับรองเวลาเข้างานซ้ำได้', 'warning')
             return redirect(url_for('staff.show_time_report'))
         # TODO: check duplicate request
@@ -5000,9 +5020,13 @@ def approved_for_clockin_clockout(request_id):
             return redirect(url_for('staff.approved_for_clockin_clockout', request_id=request_id))
         clock_request.approver = current_user
         if approved == 'yes':
-            if clock_request.is_checkin and _has_existing_checkin(
-                clock_request.staff_account_id, clock_request.date_id
-            ):
+            if (clock_request.is_checkin
+                    and _has_existing_checkin(clock_request.staff_account_id, clock_request.date_id)
+                    and not _is_earlier_checkin_correction(
+                        clock_request.staff_account_id,
+                        clock_request.date_id,
+                        clock_request.work_datetime,
+                    )):
                 flash('มีข้อมูลเข้างานในวันที่เลือกแล้ว ไม่สามารถอนุมัติรับรองเวลาเข้างานซ้ำได้', 'warning')
                 return redirect(url_for('staff.approved_for_clockin_clockout', request_id=request_id))
             clock_request.approved_at = datetime.now(pytz.utc)
@@ -5179,8 +5203,8 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
 
 
 def _build_missing_checkout_recipients(target_date, round_time, records=None):
-    """Split recipients by hours at 16:30, checking current checkout records."""
-    if round_time not in {'16:30', '17:00'}:
+    """Assign staff to their first scheduled round with eight work hours."""
+    if round_time not in {'16:30', '16:40', '16:50', '17:00'}:
         raise ValueError('Invalid checkout reminder round')
     if records is None:
         records = StaffWorkLogin.query.filter_by(date_id=target_date.strftime('%Y%m%d')).all()
@@ -5190,7 +5214,8 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
         if record.staff_id and start and start.date() == target_date:
             grouped[record.staff_id].append(record)
 
-    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime('16:30', '%H:%M').time()))
+    cutoff = tz.localize(datetime.combine(target_date, datetime.strptime(round_time, '%H:%M').time()))
+    previous_cutoff = cutoff - timedelta(minutes=10) if round_time != '16:30' else None
     recipients = []
     for account in StaffAccount.get_active_accounts():
         day_records = grouped.get(account.id, [])
@@ -5203,8 +5228,8 @@ def _build_missing_checkout_recipients(target_date, round_time, records=None):
         ):
             continue
         start = _to_bangkok(day_records[0].start_datetime)
-        early_round = _calculate_work_hours(start, cutoff) >= 8.0
-        if early_round == (round_time == '16:30'):
+        if (_calculate_work_hours(start, cutoff) >= 8.0
+                and (previous_cutoff is None or _calculate_work_hours(start, previous_cutoff) < 8.0)):
             recipients.append(account)
     return recipients
 
@@ -5219,7 +5244,7 @@ def line_remind_missing_checkout():
         if not admin_permission.can():
             abort(403)
     round_time = request.values.get('round')
-    if round_time not in {'16:30', '17:00'}:
+    if round_time not in {'16:30', '16:40', '16:50', '17:00'}:
         abort(400)
     now = datetime.now(tz)
     target_date = now.date()
@@ -5236,9 +5261,11 @@ def line_remind_missing_checkout():
     }
     if request.method == 'GET':
         return jsonify(payload)
-    # Do not send an early reminder or replay the first round after 17:00.
+    # Reject early requests, expired rounds and delivery outside the window.
     local_time = now.strftime('%H:%M')
-    if local_time < round_time or (round_time == '16:30' and local_time >= '17:00'):
+    next_round = (datetime.combine(target_date, datetime.strptime(round_time, '%H:%M').time())
+                  + timedelta(minutes=10)).strftime('%H:%M')
+    if local_time < round_time or local_time >= next_round or local_time > '17:00':
         abort(400)
     for account in recipients:
         try:
@@ -7004,13 +7031,22 @@ def seminar_records():
             start_date, end_date = end_date, start_date
 
         seminar_list = []
+        # seminar_query = db.session.query(StaffSeminar). \
+        #     outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
+        #     outerjoin(staff_seminar_mission_assoc_table,
+        #               staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
+        #     outerjoin(StaffSeminarMission,
+        #               StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
+        #     filter(StaffSeminar.cancelled_at == None,
+        #            func.date(func.coalesce(StaffSeminar.end_datetime, StaffSeminar.start_datetime)) >= start_date,
+        #            func.date(StaffSeminar.start_datetime) <= end_date).all()
         seminar_query = db.session.query(StaffSeminar). \
             outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
             outerjoin(staff_seminar_mission_assoc_table,
                       staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
             outerjoin(StaffSeminarMission,
                       StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
-            filter(StaffSeminar.cancelled_at == None,
+            filter(
                    func.date(func.coalesce(StaffSeminar.end_datetime, StaffSeminar.start_datetime)) >= start_date,
                    func.date(StaffSeminar.start_datetime) <= end_date).all()
         for seminar in seminar_query:
@@ -7031,6 +7067,7 @@ def seminar_records():
                 missions.append(mission.mission)
 
             record["missions"] = missions
+            record["cancelled_at"] = seminar.cancelled_at
             seminar_list.append(record)
         return render_template('staff/seminar_records.html', seminar_list=seminar_list,
                                start_date=start_date.isoformat(), end_date=end_date.isoformat())
@@ -7385,14 +7422,14 @@ def edit_seminar_attend(attend_id):
                 float(getattr(attend, field) or 0)
                 for field in ('registration_fee', 'accommodation_cost', *active_travel_fields)
             ) or None
-            if attend.budget and not (attend.budget_type or '').strip():
-                flash('กรุณาระบุแหล่งงบประมาณ/เงินทุนเมื่อมีค่าใช้จ่าย', 'warning')
-                return render_template(
-                    'staff/seminar_create_record.html', seminar=seminar, form=form,
-                    is_secretary=False, staff_list=[], fiscal_year=get_fiscal_date(seminar.start_datetime)[1].year,
-                    is_edit=True, attend=attend, form_initial=form_initial,
-                    edit_position_id=document_approver.position_id if document_approver else None,
-                )
+            # if attend.budget and not (attend.budget_type or '').strip():
+            #     flash('กรุณาระบุแหล่งงบประมาณ/เงินทุนเมื่อมีค่าใช้จ่าย', 'warning')
+            #     return render_template(
+            #         'staff/seminar_create_record.html', seminar=seminar, form=form,
+            #         is_secretary=False, staff_list=[], fiscal_year=get_fiscal_date(seminar.start_datetime)[1].year,
+            #         is_edit=True, attend=attend, form_initial=form_initial,
+            #         edit_position_id=document_approver.position_id if document_approver else None,
+            #     )
             if not attend.budget:
                 attend.deduct_transfer = False
         attend.start_datetime = tz.localize(form.start_datetime.data) if form.start_datetime.data.tzinfo is None else form.start_datetime.data
@@ -8027,7 +8064,7 @@ def download_seminar_request_docx(record_id):
     if attend.deduct_transfer:
         _, fiscal_end = get_fiscal_date(attend.start_datetime)
         cost_items.append(f'ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {fiscal_end.year + 543}')
-    costs_text = ' '.join(cost_items) if cost_items else 'ไม่มีค่าใช้จ่าย'
+    costs_text = ' '.join(cost_items) if cost_items else ''
     objective_names = ', '.join(attend.objective_list) or '-'
     mission_names = ', '.join(attend.mission_list) or '-'
     is_idp_objective = any('IDP' in objective.objective for objective in attend.objectives)
@@ -8151,9 +8188,6 @@ def download_seminar_request_docx(record_id):
     # Replace each existing footer-slot paragraph's full text while retaining
     # the paragraph formatting and the first run's character formatting.
     for paragraph in document.paragraphs:
-        if 'เหตุผลความจำเป็น' in paragraph.text:
-            for run in paragraph.runs:
-                run.text = ''
         if 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ' in paragraph.text:
             paragraph.paragraph_format.keep_with_next = True
     if document.paragraphs:
@@ -8637,6 +8671,44 @@ def save_checkin_reminder_settings():
     db.session.commit()
     flash('บันทึกการตั้งค่าแจ้งเตือนแล้ว', 'success')
     return redirect(url_for('staff.show_time_report'))
+
+
+@staff.route('/time-report/reminder-settings/content', methods=['GET'])
+@login_required
+def load_checkin_reminder_settings_content():
+    from .reminder_times import calculate_reminder_time
+
+    today = datetime.now(tz).date()
+    setting = StaffCheckinReminderSetting.query.filter_by(staff_id=current_user.id).first()
+    if setting and setting.calculated_for == today:
+        calculation = {
+            'sample_days': setting.sample_days,
+            'average_checkin_time': setting.average_checkin_time,
+            'reminder_time': setting.reminder_time,
+        }
+    else:
+        start = tz.localize(datetime.combine(today - timedelta(days=56), time.min))
+        end = tz.localize(datetime.combine(today, time.min))
+        records = StaffWorkLogin.query.filter(
+            StaffWorkLogin.staff_id == current_user.id,
+            StaffWorkLogin.start_datetime >= start,
+            StaffWorkLogin.start_datetime < end,
+        ).all()
+        calculation = calculate_reminder_time(records, today)
+        if setting:
+            setting.sample_days = calculation['sample_days']
+            setting.average_checkin_time = calculation['average_checkin_time']
+            setting.reminder_time = calculation['reminder_time']
+            setting.calculated_for = today
+            db.session.add(setting)
+            db.session.commit()
+
+    return render_template(
+        'staff/_checkin_reminder_settings_content.html',
+        reminder=setting,
+        reminder_calculation=calculation,
+        calculation_date=today,
+    )
 
 
 @staff.route('/time-report/report')

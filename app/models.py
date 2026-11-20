@@ -297,6 +297,10 @@ cost_center_iocode_assoc = db.Table('cost_center_iocode_assoc',
 class CostCenter(db.Model):
     __tablename__ = 'cost_centers'
     id = db.Column('id', db.String(12), primary_key=True)
+    mission_id = db.Column('mission_id', db.Integer(), db.ForeignKey('missions.id'), nullable=True)
+    mission = db.relationship('Mission', backref=db.backref('cost_centers'))
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=True)
+    org = db.relationship('Org', backref=db.backref('cost_centers'))
 
     def __repr__(self):
         return u'{}'.format(self.id)

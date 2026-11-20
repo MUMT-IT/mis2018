@@ -927,22 +927,26 @@
                                               action="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
                                               hx-post="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
                                               hx-confirm="ยืนยันการอนุมัติคำขอนี้หรือไม่?"
+                                              hx-indicator="this button .htmx-indicator"
                                               hx-swap="none">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <input type="hidden" name="approved" value="yes">
                                             <button type="submit" class="button is-small is-success is-rounded">
-                                                อนุมัติ
+                                                <span class="htmx-indicator" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span>
+                                                <span>อนุมัติ</span>
                                             </button>
                                         </form>
                                         <form method="post"
                                               action="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
                                               hx-post="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
                                               hx-confirm="ยืนยันการไม่อนุมัติคำขอนี้หรือไม่?"
+                                              hx-indicator="this button .htmx-indicator"
                                               hx-swap="none">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <input type="hidden" name="approved" value="no">
                                             <button type="submit" class="button is-small is-danger is-rounded">
-                                                ไม่อนุมัติ
+                                                <span class="htmx-indicator" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span>
+                                                <span>ไม่อนุมัติ</span>
                                             </button>
                                         </form>
                                         <button type="button" class="button is-small is-link is-light is-rounded staff-login-history-button"

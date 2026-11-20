@@ -57,6 +57,7 @@
                         <thead>
                             <tr>
                                 <th>รายการ</th>
+                                <th>บทบาทของท่าน</th>
                                 <th>ผลผลิต/โครงการ/รายงาน</th>
                                 <th>แหล่งงบประมาณ</th>
                                 <th>วิธีการจัดซื้อจัดจ้าง</th>
@@ -68,6 +69,13 @@
                             {% for plan in plans %}
                                 <tr>
                                     <td><a href="{{ url_for('staff.procurement_budget_plan_detail', plan_id=plan.id, fiscal_year=fiscal_year) }}"><strong>{{ plan.item or '-' }}</strong></a></td>
+                                    <td>
+                                        <div class="tags">
+                                            {% if plan.budget_proposer_id == current_user.id %}<span class="tag is-info is-light">ผู้เสนอของบประมาณ</span>{% endif %}
+                                            {% if plan.operator_staff_id == current_user.id %}<span class="tag is-link is-light">ผู้ดำเนินการ</span>{% endif %}
+                                            {% if plan.id in committee_roles %}<span class="tag is-success is-light">คณะกรรมการ ({{ committee_roles[plan.id] }})</span>{% endif %}
+                                        </div>
+                                    </td>
                                     <td>{{ plan.output_project_report }}</td>
                                     <td>{{ plan.funding_source_label }}</td>
                                     <td>{{ plan.procurement_method }}</td>
@@ -75,7 +83,7 @@
                                     <td><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span></td>
                                 </tr>
                             {% else %}
-                                <tr><td colspan="6" class="has-text-centered has-text-grey">ยังไม่มีแผนจัดซื้อครุภัณฑ์ที่ท่านเป็นผู้เสนอของบประมาณหรือเป็นคณะกรรมการในปีงบประมาณ {{ fiscal_year }}</td></tr>
+                                <tr><td colspan="7" class="has-text-centered has-text-grey">ยังไม่มีแผนจัดซื้อครุภัณฑ์ที่ท่านเป็นผู้เสนอของบประมาณ ผู้ดำเนินการ หรือคณะกรรมการในปีงบประมาณ {{ fiscal_year }}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

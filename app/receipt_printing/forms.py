@@ -5,7 +5,7 @@ from wtforms import FormField, FieldList, FileField, StringField, RadioField, Fi
     PasswordField, SubmitField
 from wtforms.validators import DataRequired
 from wtforms.widgets import TextInput
-from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from wtforms_components import EmailField
 
 from app.main import db
@@ -85,7 +85,17 @@ class ReportDateForm(FlaskForm):
 class CostCenterForm(ModelForm):
     class Meta:
         model = CostCenter
-    cost_center = StringField(u'Cost Center')
+    id = StringField(
+            'Cost',
+            validators=[DataRequired()]
+        )
+
+    mission = QuerySelectField('mission', query_factory=lambda: Mission.query.all(),
+                               get_label='name', blank_text='Select Mission..', allow_blank=True)
+    org = QuerySelectField(query_factory=lambda: Org.query.all(),
+                           get_label='name',
+                           label=u'ภาควิชา/หน่วยงาน',
+                           blank_text='Select Org..', allow_blank=True)
 
 
 class IOCodeForm(ModelForm):
@@ -101,7 +111,11 @@ class IOCodeForm(ModelForm):
                            get_label='name',
                            label=u'ภาควิชา/หน่วยงาน',
                            blank_text='Select Org..', allow_blank=True)
-    io = StringField(u'Internal Order/IO')
+    cost_center = QuerySelectMultipleField(query_factory=lambda: CostCenter.query.order_by(CostCenter.id).all(),
+                                           get_label='id')
+    id = StringField(
+        validators=[DataRequired()]
+    )
 
 
 class GLForm(ModelForm):

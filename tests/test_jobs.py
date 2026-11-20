@@ -65,13 +65,14 @@ def test_jobs_registers_weekday_checkin_reminder(monkeypatch):
     assert scheduler.started is True
 
 
-def test_jobs_registers_two_weekday_checkout_reminder_rounds(monkeypatch):
+def test_jobs_registers_four_weekday_checkout_reminder_rounds(monkeypatch):
     jobs = _import_jobs(monkeypatch)
     rounds = [kwargs for func, _, kwargs in jobs.scheduler.added_jobs
               if func is jobs.send_checkout_reminder]
 
     assert [(item['hour'], item['minute'], item['kwargs']['round_time'])
-            for item in rounds] == [('16', '30', '16:30'), ('17', '00', '17:00')]
+            for item in rounds] == [('16', '30', '16:30'), ('16', '40', '16:40'),
+                                     ('16', '50', '16:50'), ('17', '00', '17:00')]
     assert all(item['day_of_week'] == 'mon-fri' for item in rounds)
     assert all(item['timezone'] == 'Asia/Bangkok' for item in rounds)
 

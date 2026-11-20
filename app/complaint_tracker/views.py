@@ -1226,10 +1226,6 @@ def closing_page():
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
     organization = request.args.get('organization')
-    if organization is None:
-        organization = _default_complaint_organization()
-    if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
-        organization = 'all'
     procurement_no = request.args.get('procurement_no')
     pro_number = request.args.get('pro_number')
     statuses = ComplaintStatus.query.all()
@@ -1426,7 +1422,7 @@ def admin_index():
     tab = request.args.get('tab')
     organization = request.args.get('organization')
     if organization is None:
-        organization = _default_complaint_organization()
+        organization = 'all' if tab == 'new' else _default_complaint_organization()
     if organization not in COMPLAINT_RESPONSIBLE_ORGANIZATIONS | {'all'}:
         organization = 'all'
     admin_rows = ComplaintAdmin.query.with_entities(
@@ -1990,17 +1986,33 @@ def view_performance_report(record_id):
 @complaint_tracker.route('/complaint/user/cancel/<int:record_id>', methods=['POST'])
 @login_required
 def cancel_complaint(record_id):
+    datetime_now = arrow.now('Asia/Bangkok').datetime
     status = ComplaintStatus.query.filter_by(code='cancelled').first()
     record = ComplaintRecord.query.get(record_id)
     record.status = status
-    record.closed_at = arrow.now('Asia/Bangkok').datetime
+    record.closed_at = datetime_now
     db.session.add(record)
     db.session.commit()
     if record.status_id:
         rec = ComplaintRecordStatusAssociation(status_id=record.status_id, record_id=record_id,
-                                               updated_at=arrow.now('Asia/Bangkok').datetime)
+                                               updated_at=datetime_now)
         db.session.add(rec)
         db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for("comp_tracker.edit_record_admin", record_id=record.id, _external=True, _scheme=scheme)
+    msg = (f'มีการยกเลิกคำร้องขอ{record.topic.topic}\n'
+           f'รายละเอียด : {record.desc}\n'
+           f'วันที่ยกเลิก : {datetime_now}'
+           f'คลิกที่ Link เพื่อตรวจสอบ {link}')
+    if not current_app.debug:
+        for a in record.topic.admins:
+            if a.is_supervisor == False:
+                try:
+                    line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+    else:
+        print('msg:', msg, 'line_id', [a.admin.line_id for a in record.topic.admins if a.is_supervisor == False])
     flash('ยกเลิกรายการแจ้งปัญหาสำเร็จ', 'success')
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
@@ -2775,9 +2787,6 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.record_id = record_id
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
             rep_approval.creator_id = current_user.id
-            rep_approval.requester_id = requester_id
-            rep_approval.approver_id = approver_id
-            rep_approval.owner_id = owner_id
         else:
             rep_approval.updated_at = arrow.now('Asia/Bangkok').datetime
 
@@ -2790,6 +2799,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.receipt_date = None
             rep_approval.supplier = None
             rep_approval.loan_no = None
+        rep_approval.requester_id = requester_id
+        rep_approval.approver_id = approver_id
+        rep_approval.owner_id = owner_id
         rep_approval.is_print = False
         rep_approval.reviewed_at = None
         db.session.add(rep_approval)
