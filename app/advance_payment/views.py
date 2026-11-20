@@ -7181,6 +7181,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     # may already have their amount copied into total_amount, so adding the
     # cat_6 item on top of total_amount would count the return twice.
     claim_total = Decimal("0.00")
+    transferred_claim_total = Decimal("0.00")
     for claim in claims:
         claim_items = list(claim.items or [])
         claim_status_id = claim.status_id
@@ -7220,22 +7221,16 @@ def _recalculate_fund_request_submission_status(fund_request_id):
             # step, so its submission time is also its approval time.
             claim.approved_at = claim.created_at or datetime.now()
         if claim_items:
-            claim_total += sum((_money_decimal(item.amount) for item in claim_items), Decimal("0.00"))
+            claim_amount = sum(
+                (_money_decimal(item.amount) for item in claim_items),
+                Decimal("0.00"),
+            )
         else:
             # Keep compatibility with old claims that have no item rows.
-            claim_total += _money_decimal(claim.total_amount)
-
-    # A full submission is not cleared until every payable claim has actually
-    # been transferred. A cat_6-only claim is already a completed return and
-    # therefore does not wait for a finance transfer.
-    pending_claim_transfer = any(
-        any(
-            int(item.category_type or 0) != 6 and _money_decimal(item.amount) > 0
-            for item in claim.items
-        )
-        and claim.status_id not in _status_ids_for_record(claim, {"CASH_RETURNED", CASH_TRANSFER_CODE, "SETTLED"})
-        for claim in claims
-    )
+            claim_amount = _money_decimal(claim.total_amount)
+        claim_total += claim_amount
+        if claim.transferred_at is not None:
+            transferred_claim_total += claim_amount
 
     parcel_returns = (
         db.session.query(ParcelReturnDetail)
@@ -7246,39 +7241,28 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         )
         .all()
     )
-    parcel_total = sum((
-        _money_decimal(parcel.amount_spent)
-        for parcel in parcel_returns
-        if parcel.status_id in _status_ids_for_record(parcel, {
-            "PENDING",
-            "IN_PROCESS",
-            "DOCUMENT_RECEIVED",
-            PARCEL_RETURN_CONFIRMED_CODE,
-            CASH_TRANSFER_CODE,
-            "CLOSING",
-            "SETTLED",
-        })
-    ), Decimal("0.00"))
-    parcel_pending_transfer = any(
-        parcel.status_id not in _status_ids_for_record(parcel, {
-            CASH_TRANSFER_CODE,
-            "CLOSING",
-            "SETTLED",
-        })
-        for parcel in parcel_returns
+    parcel_total = sum(
+        (_money_decimal(parcel.amount_spent) for parcel in parcel_returns),
+        Decimal("0.00"),
+    )
+    transferred_parcel_total = sum(
+        (
+            _money_decimal(parcel.amount_spent)
+            for parcel in parcel_returns
+            if parcel.transferred_at is not None
+        ),
+        Decimal("0.00"),
     )
 
     combined_total = claim_total + parcel_total
+    transferred_total = transferred_claim_total + transferred_parcel_total
     target_total = _money_decimal(fund_request.amount)
 
     if combined_total >= target_total and target_total > 0:
-        # A petty-cash parcel return is not complete until finance records the
-        # transfer. While it is only received, keep the fund request at the
-        # submission-complete stage, just like a petty-cash claim awaiting transfer.
         next_status = (
-            "CLAIMS_SUBMITTED"
-            if pending_claim_transfer or parcel_pending_transfer
-            else "SETTLED"
+            "SETTLED"
+            if transferred_total >= target_total
+            else "CLAIMS_SUBMITTED"
         )
         fund_request.status_id = _status_id_for_record(fund_request, next_status)
     else:

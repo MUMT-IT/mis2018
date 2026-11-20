@@ -157,6 +157,21 @@ class PendingAmountSummaryTests(unittest.TestCase):
             submit_source,
         )
 
+    def test_fund_request_settlement_uses_transferred_dates(self):
+        helper = next(
+            node
+            for node in self.views_tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_recalculate_fund_request_submission_status"
+        )
+        helper_source = ast.unparse(helper)
+
+        self.assertIn("if claim.transferred_at is not None", helper_source)
+        self.assertIn("if parcel.transferred_at is not None", helper_source)
+        self.assertIn("if transferred_total >= target_total", helper_source)
+        self.assertNotIn("pending_claim_transfer", helper_source)
+        self.assertNotIn("parcel_pending_transfer", helper_source)
+
 
 if __name__ == "__main__":
     unittest.main()
