@@ -48,36 +48,38 @@
                             </p>
                         </div>
                         <div class="card-content">
+                            <form method="post" action="{{ url_for('comhealth.add_service_groups', service_id=service.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="buttons">
+                                <button class="button is-success" type="submit" :disabled="selectedGroups.length === 0">
+                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                    <span>เพิ่มรายการที่เลือก (<% selectedGroups.length %>)</span>
+                                </button>
+                                <a class="button is-light" href="{{ url_for('comhealth.edit_service', service_id=service.id) }}">กลับ</a>
+                            </div>
                             <table class="table">
                                 <thead>
+                                <th><input type="checkbox" aria-label="เลือก Group ทั้งหมด" :checked="allSelected" @change="toggleAll($event)"></th>
                                 <th>Name</th>
                                 <th>Description</th>
                                 <th>Min Age</th>
                                 <th>Max Age</th>
                                 <th>Gender</th>
-                                <th></th>
                                 </thead>
                                 <tbody>
                                 {% for group in groups %}
                                     <tr>
+                                        <td><input type="checkbox" name="group_ids" value="{{ group.id }}" v-model="selectedGroups" aria-label="เลือก {{ group.name }}"></td>
                                         <td>{{ group.name }}</td>
                                         <td>{{ group.desc }}</td>
                                         <td>{{ group.age_min }}</td>
                                         <td>{{ group.age_max }}</td>
                                         <td>{{ group.gender }}</td>
-                                        <td>
-                                            <a class="button is-rounded is-success"
-                                               href="{{ url_for('comhealth.add_service_group', service_id=service.id, group_id=group.id) }}">
-                                                <span class="icon">
-                                                    <i class="fas fa-plus"></i>
-                                                </span>
-                                                <span>Add</span>
-                                            </a>
-                                        </td>
                                     </tr>
                                 {% endfor %}
                                 </tbody>
                             </table>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -90,6 +92,14 @@
     <script>
         var vm = new Vue({
             el: '#app',
+            delimiters: ['<%', '%>'],
+            data: { selectedGroups: [], groupIds: {{ groups|map(attribute='id')|list|tojson }}.map(String) },
+            computed: {
+                allSelected: function () { return this.groupIds.length > 0 && this.selectedGroups.length === this.groupIds.length; }
+            },
+            methods: {
+                toggleAll: function (event) { this.selectedGroups = event.target.checked ? this.groupIds.slice() : []; }
+            }
         })
     </script>
 {% endblock %}

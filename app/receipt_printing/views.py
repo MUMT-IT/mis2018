@@ -899,32 +899,91 @@ def show_gl():
 
 
 @receipt_printing.route('/cost_center/new', methods=['POST', 'GET'])
-def new_cost_center():
-    form = CostCenterForm()
+@receipt_printing.route('/cost_center/new/<cost_center_id>', methods=['POST', 'GET'])
+def new_cost_center(cost_center_id=None):
+    if cost_center_id:
+        cost = CostCenter.query.filter_by(id=cost_center_id).first()
+        form = CostCenterForm(obj=cost)
+    else:
+        form = CostCenterForm()
     if form.validate_on_submit():
-        cost_center_detail = CostCenter()
-        cost_center_detail.id = form.cost_center.data
-        db.session.add(cost_center_detail)
+        if cost_center_id:
+            cost_center = CostCenter.query.filter_by(id=cost_center_id).first()
+        else:
+            cost_center = CostCenter()
+        form.populate_obj(cost_center)
+        db.session.add(cost_center)
         db.session.commit()
-        flash(u'บันทึกเรียบร้อย.', 'success')
+        flash(u'บันทึกข้อมูลสำเร็จ', 'success')
         return redirect(url_for('receipt_printing.show_cost_center'))
-    # Check Error
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_cost_center.html', form=form, url_callback=request.referrer)
+    return render_template('receipt_printing/new_cost_center.html', form=form)
 
 
 @receipt_printing.route('/io_code/new', methods=['POST', 'GET'])
-def new_IOCode():
-    form = IOCodeForm()
+@receipt_printing.route('/io_code/<io_code>', methods=['POST', 'GET'])
+def new_IOCode(io_code=None):
+    if io_code:
+        io_code = IOCode.query.filter_by(id=io_code).first()
+        form = IOCodeForm(obj=io_code)
+        if io_code and request.method == 'GET':
+            form.is_active.data = 'Active' if io_code.is_active else 'Inactive'
+    else:
+        form = IOCodeForm()
     if form.validate_on_submit():
-        IOCode_detail = IOCode()
-        IOCode_detail.id = form.io.data
+        selected_cost_center_ids = set(request.form.getlist('cost_center'))
+        selected_cost_centers = CostCenter.query.filter(
+            CostCenter.id.in_(selected_cost_center_ids)
+        ).all() if selected_cost_center_ids else []
+        if {cost_center.id for cost_center in selected_cost_centers} != selected_cost_center_ids:
+            flash('พบ Cost center ที่ไม่ถูกต้อง กรุณาเลือกจากรายการอีกครั้ง', 'danger')
+            return render_template('receipt_printing/new_IOCode.html', form=form)
+        if io_code:
+            old_io_code = io_code
+            changing_io_code_id = form.id.data != old_io_code.id
+            if changing_io_code_id:
+                if IOCode.query.filter_by(id=form.id.data).first():
+                    flash('รหัส IO Code นี้มีอยู่แล้ว กรุณาระบุรหัสอื่น', 'danger')
+                    return render_template('receipt_printing/new_IOCode.html', form=form)
+                # Create the replacement first. Existing foreign keys (including
+                # cost_center_iocode_assoc) can then be moved while both rows exist.
+                IOCode_detail = IOCode()
+            else:
+                IOCode_detail = old_io_code
+        else:
+            old_io_code = None
+            changing_io_code_id = False
+            IOCode_detail = IOCode()
+        IOCode_detail.id = form.id.data
         IOCode_detail.mission = form.mission.data
         IOCode_detail.name = form.name.data
         IOCode_detail.org = form.org.data
+        IOCode_detail.is_active = form.is_active.data == 'Active'
         db.session.add(IOCode_detail)
+        if changing_io_code_id:
+            db.session.flush()
+            for table in db.metadata.tables.values():
+                for column in table.columns:
+                    if any(foreign_key.target_fullname == 'iocodes.id'
+                           for foreign_key in column.foreign_keys):
+                        db.session.execute(
+                            table.update().where(column == old_io_code.id).values(
+                                {column: IOCode_detail.id}
+                            )
+                        )
+            # The association rows were moved with SQL above; reload the new
+            # relationship before applying any cost-center additions/removals.
+            db.session.expire(IOCode_detail, ['cost_center'])
+            IOCode_detail.cost_center = selected_cost_centers
+            # The old relationship may have been loaded while binding the edit
+            # form. Expire it after the SQL move so delete() does not try to
+            # delete the already-moved association rows a second time.
+            db.session.expire(old_io_code, ['cost_center'])
+            db.session.delete(old_io_code)
+        else:
+            IOCode_detail.cost_center = selected_cost_centers
         db.session.commit()
         flash(u'บันทึกเรียบร้อย.', 'success')
         return redirect(url_for('receipt_printing.show_io_code'))
@@ -932,7 +991,7 @@ def new_IOCode():
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_IOCode.html', form=form, url_callback=request.referrer)
+    return render_template('receipt_printing/new_IOCode.html', form=form)
 
 
 @receipt_printing.route('/gl/new', methods=['POST', 'GET'])

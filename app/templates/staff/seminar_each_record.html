@@ -303,11 +303,13 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
+                    {% if not proposer_names|length > 1 %}
                     {% if not seminar_attend.seminar_approval %}
                     <a href="{{ url_for('staff.edit_seminar_attend', attend_id=seminar_attend.id) }}" class="button is-info">
                         <span class="icon"><i class="fas fa-edit"></i></span>
                         <span>แก้ไขข้อมูล</span>
                     </a>
+                    {% endif %}
                     {% endif %}
                     <a href="{{ url_for('staff.seminar_attends_each_person') }}" class="button is-light">
                         <span class="icon">

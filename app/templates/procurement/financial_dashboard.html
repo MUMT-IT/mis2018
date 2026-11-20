@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard ค่าใช้จ่ายและสถานะการเงิน{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .financial-dashboard { padding: 2.5rem 1rem 4rem; }
+        .financial-dashboard .menu-card {
+            display: block;
+            height: 100%;
+            padding: 1.5rem;
+            border: 1px solid #e5eaf2;
+            border-radius: 0.75rem;
+            color: inherit;
+            transition: box-shadow 150ms ease, transform 150ms ease;
+        }
+        .financial-dashboard .menu-card:hover {
+            box-shadow: 0 0.6rem 1.5rem rgba(18, 39, 84, 0.12);
+            transform: translateY(-2px);
+        }
+        .financial-dashboard .menu-card .icon { color: #1a3d7c; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "procurement/nav_for_main.html" %}
+    <main class="container financial-dashboard">
+        <div class="has-text-centered mb-6">
+            <p class="heading">Financial Dashboard</p>
+            <h1 class="title is-2">ค่าใช้จ่ายและสถานะการเงิน</h1>
+        </div>
+
+        <div class="columns is-variable is-5">
+            <section class="column">
+                <h2 class="title is-4"><span class="icon"><i class="fas fa-receipt"></i></span> ค่าใช้จ่าย</h2>
+                <div class="columns is-multiline">
+                    <div class="column is-12">
+                        <a class="box menu-card" href="{{ url_for('procurement.procurement_overtime_dashboard') }}">
+                            <span class="icon is-medium"><i class="fas fa-user-clock fa-lg"></i></span>
+                            <span class="title is-5 ml-2">ค่าตอบแทนปฏิบัติงานนอกเวลา</span>
+                        </a>
+                    </div>
+                    <div class="column is-12">
+                        <a class="box menu-card" href="{{ url_for('kpi_blueprint.show_electricity') }}">
+                            <span class="icon is-medium"><i class="fas fa-bolt fa-lg"></i></span>
+                            <span class="title is-5 ml-2">ค่าไฟฟ้า</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <section class="column">
+                <h2 class="title is-4"><span class="icon"><i class="fas fa-coins"></i></span> งบประมาณ</h2>
+                <div class="columns is-multiline">
+                    <div class="column is-12">
+                        <a class="box menu-card" href="{{ url_for('procurement.procurement_planning_landing') }}">
+                            <span class="icon is-medium"><i class="fas fa-chart-line fa-lg"></i></span>
+                            <span class="title is-5 ml-2">งบประมาณประจำปี</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+{% endblock %}

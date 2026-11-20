@@ -23,16 +23,19 @@
                 <div class="column">
                     <table class="table is-striped" id="iocodetable">
                         <thead>
+                            <th>Cost center</th>
                             <th>Internal Order/IO</th>
                             <th>Mission</th>
                             <th>Org</th>
                             <th>Name</th>
                             <th>Active</th>
                             <th></th>
+                            <th></th>
                         </thead>
                         <tbody>
                         {% for record in io_code %}
                             <tr>
+                                <td>{{ record.cost_center }}</td>
                                 <td>{{ record.id }}</td>
                                 <td>{{ record.mission.name }}</td>
                                 <td>{{ record.org.name }}</td>
@@ -54,6 +57,13 @@
                                         {% endif %}
                                     </a>
                                 </td>
+                                <td>
+                                    <a href="{{ url_for('receipt_printing.new_IOCode', io_code=record.id ) }}">
+                                      <span class="icon">
+                                          <i class="fas fa-pencil"></i>
+                                      </span>
+                                    </a>
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -62,7 +72,7 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <a href="{{ url_back }}"
+                    <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}"
                        class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>

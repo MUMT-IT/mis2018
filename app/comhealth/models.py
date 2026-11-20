@@ -477,6 +477,7 @@ class ComHealthService(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     date = db.Column('date', db.Date())
     location = db.Column('location', db.String(255))
+    prices_frozen_at = db.Column(db.DateTime(timezone=True), nullable=True)
     groups = db.relationship('ComHealthTestGroup', backref=db.backref('services'),
                              secondary=group_service_assoc_table)
     profiles = db.relationship('ComHealthTestProfile', backref=db.backref('services'),
@@ -484,6 +485,30 @@ class ComHealthService(db.Model):
 
     def __str__(self):
         return u'{} {}'.format(self.date, self.location)
+
+
+class ComHealthServiceTestPrice(db.Model):
+    __tablename__ = 'comhealth_service_test_prices'
+    __table_args__ = (db.UniqueConstraint('service_id', 'test_item_id'),)
+    id = db.Column(db.Integer, primary_key=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('comhealth_services.id'), nullable=False)
+    test_item_id = db.Column(db.Integer, db.ForeignKey('comhealth_test_items.id'), nullable=False)
+    unit_price = db.Column(db.Numeric(12, 2), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+    service = db.relationship('ComHealthService', backref=db.backref('frozen_test_prices', cascade='all, delete-orphan'))
+    test_item = db.relationship('ComHealthTestItem')
+
+
+class ComHealthServiceProfilePrice(db.Model):
+    __tablename__ = 'comhealth_service_profile_prices'
+    __table_args__ = (db.UniqueConstraint('service_id', 'profile_id'),)
+    id = db.Column(db.Integer, primary_key=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('comhealth_services.id'), nullable=False)
+    profile_id = db.Column(db.Integer, db.ForeignKey('comhealth_test_profiles.id'), nullable=False)
+    quote_price = db.Column(db.Numeric(12, 2), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+    service = db.relationship('ComHealthService', backref=db.backref('frozen_profile_prices', cascade='all, delete-orphan'))
+    profile = db.relationship('ComHealthTestProfile')
 
 
 class ComHealthReceiptID(db.Model):

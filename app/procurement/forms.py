@@ -127,6 +127,13 @@ class ProcurementPlanForm(FlaskForm):
         allow_blank=True,
         blank_text='ค้นหาบุคลากร',
     )
+    operator_staff = QuerySelectField(
+        u'ผู้ดำเนินการ',
+        query_factory=lambda: StaffAccount.get_active_accounts(),
+        get_label='fullname',
+        allow_blank=True,
+        blank_text='ยังไม่ระบุ',
+    )
     responsible_staff = QuerySelectField(
         u'เจ้าหน้าที่พัสดุที่รับผิดชอบ',
         query_factory=lambda: StaffAccount.get_active_accounts(),

@@ -7,7 +7,7 @@ from app.staff.models import Role
 
 
 # The roles need to be loaded for the admin index view.
-with (app.app_context()):
+with ((app.app_context())):
     # The app failed if the database table does not exist yet.
     try:
         executive_role = Role.query.filter_by(role_need='executive', action_need=None, resource_id=None).first()
@@ -18,6 +18,8 @@ with (app.app_context()):
         hr_pa_role = Role.query.filter_by(role_need='hr_pa', action_need=None, resource_id=None).first()
         hr_confidential_role = Role.query.filter_by(role_need='hr_confidential', action_need=None, resource_id=None).first()
         finance_role = Role.query.filter_by(role_need='finance', action_need=None, resource_id=None).first()
+        finance_academic_service_role = Role.query.filter_by(role_need='finance', action_need='academic_service',
+                                                             resource_id=None).first()
         procurement_role = Role.query.filter_by(role_need='procurement', action_need=None, resource_id=None).first()
         procurement_planning_role = Role.query.filter_by(
             role_need='procurement_planning', action_need=None, resource_id=None
@@ -52,6 +54,7 @@ with (app.app_context()):
         hr_pa_role = None
         hr_confidential_role = None
         finance_role = None
+        finance_academic_service_role = None
         procurement_role = None
         procurement_planning_role = None
         software_request_role = None
@@ -80,6 +83,8 @@ with (app.app_context()):
     software_request_permission = Permission() if not software_request_role else Permission(software_request_role.to_tuple())
     # ot_secretary_permission = Permission()
     finance_procurement_permission = finance_permission.union(procurement_permission)
+    finance_academic_service_permission = Permission() if not finance_academic_service_role else \
+        Permission(finance_academic_service_role.to_tuple())
     procurement_committee_permission = Permission() if not procurement_committee_role else \
         Permission(procurement_committee_role.to_tuple())
     finance_head_permission = Permission() if not head_finance_role else Permission(head_finance_role.to_tuple())
