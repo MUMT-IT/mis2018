@@ -1648,7 +1648,7 @@ def cancel(event_id=None):
     event_rooms = _event_rooms(event)
     msg = f'{event.creator.fullname} ได้ยกเลิกการจอง {_room_names(event_rooms)} สำหรับ {event.title} เวลา {event_time}.'
     if not current_app.debug:
-        if event.note:
+        if event.is_refreshment:
             coordinators = {coord.id: coord for booked_room in event_rooms for coord in booked_room.coordinators}
             for coord in coordinators.values():
                 try:
@@ -1791,6 +1791,11 @@ def edit_detail(event_id):
         msg = (f'{event.creator.fullname} ได้แก้ไขการจองห้อง {_room_names(selected_rooms)} สำหรับ {event.title} '
                    f'เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - '
                    f'{event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.')
+        if event.is_refreshment:
+            msg += (
+                f'\nขอรับอาหารจำนวน {event.refreshment} ชุด'
+                f'\nรายละเอียดอาหารคือ {event.refreshment_detail}'
+            )
         if event.note:
             msg += f'\nมีความต้องการเพิ่มเติมคือ {event.note}'
 
@@ -1818,17 +1823,24 @@ def edit_detail(event_id):
                 for new_event in new_events
             )
             participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_events[0].participants]
-            msg = (f'{new_events[0].creator.fullname} ได้จองห้อง {new_events[0].room.number} สำหรับ {new_events[0].title} '
-                   f'เวลา {new_event_times}.'
-                   f'มีความต้องการเพิ่มเติมคือ {new_events[0].note}'
-                   )
+            msg = (
+                f'{new_events[0].creator.fullname} ได้จองห้อง {new_events[0].room.number} สำหรับ {new_events[0].title} '
+                f'เวลา {new_event_times}.'
+            )
+            if new_events[0].is_refreshment:
+                msg += (
+                    f'\nขอรับอาหารจำนวน {new_events[0].refreshment} ชุด'
+                    f'\nรายละเอียดอาหารคือ {new_events[0].refreshment_detail}'
+                )
+            if new_events[0].note:
+                msg += f'\nมีความต้องการเพิ่มเติมคือ {new_events[0].note}'
             title = f'แจ้งนัดหมาย{new_events[0].category}'
             message = f'ท่านได้รับเชิญให้เข้าร่วม {new_events[0].title}'
             message += f' เวลา {new_event_times}'
             message += f' ณ ห้อง {new_events[0].room.number} {new_events[0].room.location}'
             message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
             if not current_app.debug:
-                if new_events[0].note:
+                if new_events[0].is_refreshment:
                     for coord in new_events[0].room.coordinators:
                             try:
                                 line_bot_api.push_message(to=coord.line_id, messages=TextSendMessage(text=msg))
@@ -1836,7 +1848,7 @@ def edit_detail(event_id):
                                 pass
                 send_mail(participant_emails, title, message, attachments=_build_room_event_attachment(new_events[0]))
             else:
-                print(msg, [coord.line_id for coord in new_events[0].room.coordinators], new_events[0].note)
+                print(msg, [coord.line_id for coord in new_events[0].room.coordinators], new_events[0].refreshment)
                 print(message, participant_emails)
 
 
@@ -2267,15 +2279,20 @@ def room_reserve(room_id):
             if event_times:
                 msg = (f'{new_event.creator.fullname} ได้จองห้อง {_room_names(selected_rooms)} สำหรับ {new_event.title} '
                        f'เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}, {event_times}.'
-                       f'มีความต้องการเพิ่มเติมคือ {new_event.note}'
                        )
             else:
                 msg = (f'{new_event.creator.fullname} ได้จองห้อง {_room_names(selected_rooms)} สำหรับ {new_event.title} '
                        f'เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
-                       f'มีความต้องการเพิ่มเติมคือ {new_event.note}'
                        )
+            if new_event.is_refreshment:
+                msg += (
+                    f'\nขอรับอาหารจำนวน {new_event.refreshment} ชุด'
+                    f'\nรายละเอียดอาหารคือ {new_event.refreshment_detail}'
+                )
+            if new_event.note:
+                msg += f'\nมีความต้องการเพิ่มเติมคือ {new_event.note}'
             if not current_app.debug:
-                if new_event.note:
+                if new_event.is_refreshment:
                     coordinators = {
                         coord.id: coord
                         for booked_room in selected_rooms
@@ -2287,7 +2304,7 @@ def room_reserve(room_id):
                         except LineBotApiError:
                             pass
             else:
-                print(msg, room.coordinators, new_event.note)
+                print(msg, room.coordinators, new_event.refreshment, new_event.note)
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
             return redirect(url_for('room.show_event_detail', event_id=new_event.id))
     else:
@@ -2350,8 +2367,8 @@ def room_event_list():
         ))
     )
     for event in query:
-        if event.note:
-            flash(f'ห้อง{event.room} เวลา{event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m %H:%M")} ต้องการ{event.note}', 'warning')
+        if event.is_refreshment:
+            flash(f'ห้อง{event.room} เวลา{event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m %H:%M")} ต้องการอาหารจำนวน {event.refreshment} ชุด เป็น{event.refreshment_detail}', 'warning')
     return render_template('scheduler/room_event_list.html')
 
 
