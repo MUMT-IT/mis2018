@@ -316,6 +316,37 @@
                             </div>
                         </div>
                         <div style="margin-top: 1.25rem;">
+                            <h3 class="title is-5 event-detail-section-title">ข้อมูลอาหาร</h3>
+                            {% if event.is_refreshment %}
+                                <div class="event-meta-grid">
+                                    <div class="event-meta-card">
+                                        <strong>จำนวนอาหาร</strong>
+                                        <p>{{ event.refreshment or '-' }} ชุด</p>
+                                    </div>
+                                    <div class="event-meta-card">
+                                        <strong>รายละเอียดอาหาร</strong>
+                                        <p>{{ event.refreshment_detail or '-' }}</p>
+                                    </div>
+                                    <div class="event-meta-card">
+                                        <strong>รหัสศูนย์ต้นทุน</strong>
+                                        <p>{{ event.cost_center.id if event.cost_center else '-' }}</p>
+                                    </div>
+                                    <div class="event-meta-card">
+                                        <strong>รหัสใบสั่งงานภายใน</strong>
+                                        <p>{{ event.iocode.id if event.iocode else '-' }}</p>
+                                    </div>
+                                    <div class="event-meta-card">
+                                        <strong>ผลผลิต / หมวดค่าใช้จ่าย</strong>
+                                        <p>{{ event.product_code.product_code if event.product_code else '-' }}</p>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="recurring-item">
+                                    <span class="is-size-6">ไม่มีการขออาหาร</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div style="margin-top: 1.25rem;">
                             <h3 class="title is-5 event-detail-section-title">รายการจองต่อเนื่อง</h3>
                             <div class="recurring-list-container">
                                 {% if repeat_events %}
@@ -392,39 +423,24 @@
                                 {% endif %}
                             </div>
                         </div>
-{#                        {% if event.note %}#}
-{#                            <div class="event-action-group">#}
-{#                                <div id="participant-form"></div>#}
-{#                                <p class="event-action-group-title">เอกสาร</p>#}
-{#                                <div class="event-actions" id="participant-list">#}
-{#                                    <a {% if event.has_code %}#}
-{#                                            href="{{ url_for('room.download_participant_list_word', event_id=event.id) }}"#}
-{#                                       {% else %}#}
-{#                                            @click.prevent="warnAlert('{{ url_for('room.edit_participant_list', event_id=event.id) }}')"#}
-{#                                       {% endif %}#}
-{#                                       class="button is-link is-outlined is-small is-rounded">#}
-{#                                        <span class="icon"><i class="fas fa-file-word"></i></span>#}
-{#                                        <span>ใบรายชื่อ (Word)</span>#}
-{#                                    </a>#}
-{#                                    <a {% if event.has_code %}#}
-{#                                            href="{{ url_for('room.download_participant_list_pdf', event_id=event.id) }}"#}
-{#                                       {% else %}#}
-{#                                            @click.prevent="warnAlert('{{ url_for('room.edit_participant_list', event_id=event.id) }}')"#}
-{#                                       {% endif %}#}
-{#                                       class="button is-primary is-outlined is-small is-rounded">#}
-{#                                        <span class="icon"><i class="fas fa-file-pdf"></i></span>#}
-{#                                        <span>ใบรายชื่อ (PDF)</span>#}
-{#                                    </a>#}
-{#                                    <a hx-swap="innerHTML"#}
-{#                                       hx-target="#participant-form"#}
-{#                                       hx-get="{{ url_for('room.edit_participant_list', event_id=event.id) }}"#}
-{#                                       class="button is-warning is-light is-small is-rounded">#}
-{#                                        <span class="icon"><i class="fas fa-pen"></i></span>#}
-{#                                        <span>อัปเดตข้อมูล</span>#}
-{#                                    </a>#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        {% endif %}#}
+                        {% if event.is_refreshment %}
+                            <div class="event-action-group">
+                                <div id="participant-form"></div>
+                                <p class="event-action-group-title">เอกสาร</p>
+                                <div class="event-actions" id="participant-list">
+                                    <a href="{{ url_for('room.download_participant_list_word', event_id=event.id) }}"
+                                       class="button is-link is-outlined is-rounded">
+                                        <span class="icon"><i class="fas fa-file-word"></i></span>
+                                        <span>ใบรายชื่อ (Word)</span>
+                                    </a>
+                                    <a href="{{ url_for('room.download_participant_list_pdf', event_id=event.id) }}"
+                                       class="button is-primary is-outlined is-rounded">
+                                        <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                                        <span>ใบรายชื่อ (PDF)</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="columns is-mobile is-variable is-2" style="margin-top: 1rem;">
                         <div class="column">

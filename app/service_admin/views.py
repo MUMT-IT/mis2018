@@ -954,7 +954,7 @@ def _build_service_admin_finance_overdue_reminder_content(snapshot):
     subject = 'แจ้งเตือนยอดค้างชำระของงานบริการตรวจวิเคราะห์'
     scheme = 'http' if current_app.debug else 'https'
     finance_invoice_url = url_for(
-        'service_admin.invoice_payment_index', menu='invoice', _external=True, _scheme=scheme
+        'service_admin.invoice_payment_index', menu='invoice', tab='overdue', _external=True, _scheme=scheme
     )
     email_message = (
         'เรียน เจ้าหน้าที่การเงิน\n\n'
