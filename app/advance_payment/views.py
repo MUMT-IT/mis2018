@@ -3604,6 +3604,9 @@ def _petty_cash_dashboard_amounts():
     ordinary_claim_ids = db.session.query(PettyCashClaimItem.claim_id).filter(
         PettyCashClaimItem.category_type != 6
     )
+    cash_return_claim_ids = db.session.query(PettyCashClaimItem.claim_id).filter(
+        PettyCashClaimItem.category_type == 6
+    )
     transferred_claim_ids = db.session.query(PettyCashClaimDetail.id).filter(
         PettyCashClaimDetail.id.in_(ordinary_claim_ids),
         PettyCashClaimDetail.transferred_at.isnot(None),
@@ -3675,16 +3678,23 @@ def _petty_cash_dashboard_amounts():
         sum_claims(settled_claim_closing_ids)
         + sum_parcel_returns(settled_parcel_closing_ids)
     )
+    settled_cash_return_claim_ids = db.session.query(PettyCashClaimDetail.id).filter(
+        PettyCashClaimDetail.id.in_(cash_return_claim_ids),
+        PettyCashClaimDetail.settled_at.isnot(None),
+    )
+    total_cash_return_amount = sum_claims(settled_cash_return_claim_ids)
 
     return {
         "initial_budget_amount": PETTY_CASH_DASHBOARD_INITIAL_BUDGET,
         "total_transferred_amount": total_transferred_amount,
         "total_closing_document_amount": total_closing_document_amount,
         "total_received_from_closing_amount": total_received_from_closing_amount,
+        "total_cash_return_amount": total_cash_return_amount,
         "remaining_budget_amount": (
             PETTY_CASH_DASHBOARD_INITIAL_BUDGET
             - total_transferred_amount
             + total_received_from_closing_amount
+            + total_cash_return_amount
         ),
     }
 
