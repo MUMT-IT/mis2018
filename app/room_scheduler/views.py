@@ -1840,7 +1840,7 @@ def edit_detail(event_id):
             message += f' ณ ห้อง {new_events[0].room.number} {new_events[0].room.location}'
             message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
             if not current_app.debug:
-                if new_events[0].is_refreshment:
+                if new_events[0].is_refreshment or new_events[0].note:
                     for coord in new_events[0].room.coordinators:
                             try:
                                 line_bot_api.push_message(to=coord.line_id, messages=TextSendMessage(text=msg))
