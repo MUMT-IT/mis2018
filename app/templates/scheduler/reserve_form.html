@@ -491,7 +491,7 @@
                                     <div class="reserve-field-card">
                                         <label class="label">รายละเอียด</label>
                                         {{ form.refreshment_detail(class='input', placeholder='เช่น อาหารกลางวันหรืออาหารว่าง',
-                                                required=true) }}
+                                                required=form.is_refreshment.data) }}
                                     </div>
                                     <div class="reserve-grid is-full refreshment-code-grid">
                                         <div class="reserve-field-card">
@@ -817,10 +817,17 @@
             const refreshmentCheckbox = document.getElementById('is_refreshment');
             const refreshmentField = document.getElementById('refreshment_fields');
             const refreshment = document.querySelector('[name="refreshment"]');
+            const refreshmentDetail = document.querySelector('[name="refreshment_detail"]');
+            const refreshmentCodes = ['cost_center', 'iocode', 'product_code']
+                .map(name => document.querySelector(`[name="${name}"]`));
             const occupancy = document.querySelector('[name="occupancy"]');
 
             function updateRefreshment(occupancyChanged = false) {
                 refreshmentField.hidden = !refreshmentCheckbox.checked;
+                refreshmentDetail.required = refreshmentCheckbox.checked;
+                refreshmentCodes.forEach(field => {
+                    field.required = refreshmentCheckbox.checked;
+                });
 
                 if (refreshmentCheckbox.checked && Number(occupancy.value) > 0 &&
                     (occupancyChanged || !(Number(refreshment.value) > 0))) {
