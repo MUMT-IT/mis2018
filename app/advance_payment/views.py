@@ -1330,11 +1330,18 @@ def _can_access_petty_cash_setting(user, setting):
         return True
 
     user_org = _get_staff_org(user)
-    return bool(
-        user_org
-        and getattr(user_org, "id", None)
-        and getattr(user_org, "id", None) == getattr(setting, "org_id", None)
-    )
+    target_org_id = getattr(setting, "org_id", None)
+    visited_org_ids = set()
+    while user_org:
+        org_id = getattr(user_org, "id", None)
+        if org_id is None or org_id in visited_org_ids:
+            break
+        if org_id == target_org_id:
+            return True
+        visited_org_ids.add(org_id)
+        parent_id = getattr(user_org, "parent_id", None)
+        user_org = db.session.get(Org, parent_id) if parent_id else None
+    return False
 
 
 def _can_manage_petty_cash_claim(user, claim, setting):
@@ -1355,6 +1362,21 @@ def _can_manage_petty_cash_claim(user, claim, setting):
         and (
             getattr(claim, "user_id", None) == user_id
             or fund_request_creator_id == user_id
+        )
+    )
+
+
+def _can_view_petty_cash_claim(user, claim, setting):
+    """Allow the claim submitter to view a claim within their petty-cash scope."""
+    user_id = getattr(user, "id", None)
+    return bool(
+        user_id
+        and claim
+        and _can_access_petty_cash_setting(user, setting)
+        and (
+            getattr(claim, "user_id", None) == user_id
+            or getattr(getattr(claim, "fund_request", None), "requester_id", None) == user_id
+            or _is_petty_cash_custodian(user, setting)
         )
     )
 
@@ -2071,6 +2093,7 @@ def _resolve_petty_cash_setting_for_fund_request(user, fund_request=None):
         )
         if _can_access_petty_cash_setting(user, setting) or is_request_head:
             return setting
+        return None
     return _resolve_petty_cash_setting(user)
 
 
@@ -13797,7 +13820,8 @@ def petty_cash_claim_detail(claim_id):
         requester_id = getattr(getattr(claim_detail, "fund_request", None), "requester_id", None)
         is_requester = bool(current_user.id and current_user.id == requester_id)
         if not same_setting or not (
-            _can_access_petty_cash_setting(current_user, setting) or is_requester
+            _can_view_petty_cash_claim(current_user, claim_detail, setting)
+            or is_requester
         ):
             abort(403)
         can_manage_claim = _can_manage_petty_cash_claim(
