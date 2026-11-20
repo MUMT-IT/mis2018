@@ -824,6 +824,8 @@
 
             function updateRefreshment(occupancyChanged = false) {
                 refreshmentField.hidden = !refreshmentCheckbox.checked;
+                refreshment.disabled = !refreshmentCheckbox.checked;
+                refreshment.required = refreshmentCheckbox.checked;
                 refreshmentDetail.required = refreshmentCheckbox.checked;
                 refreshmentCodes.forEach(field => {
                     field.required = refreshmentCheckbox.checked;
