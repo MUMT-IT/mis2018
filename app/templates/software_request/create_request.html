@@ -4,15 +4,120 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        .software-request-page {
+            background: transparent;
+            min-height: calc(100vh - 4rem);
+            padding-top: 2.25rem;
+        }
+        .software-request-card {
+            background: rgba(255, 255, 255, .97);
+            border: 1px solid #e0e7f1;
+            border-radius: 22px;
+            box-shadow: 0 16px 38px rgba(26, 51, 89, .09);
+            padding: clamp(1.25rem, 3vw, 2.25rem);
+        }
+        .software-request-heading {
+            border-bottom: 1px solid #e9edf4;
+            margin-bottom: 1.4rem;
+            padding-bottom: 1.15rem;
+            text-align: center;
+        }
+        .software-request-heading .eyebrow {
+            color: #5a759d;
+            font-size: .74rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            margin-bottom: .45rem;
+            text-transform: uppercase;
+        }
+        .software-request-heading h1 {
+            color: #1c3b70;
+            font-size: clamp(1.45rem, 2.5vw, 1.9rem);
+            line-height: 1.4;
+            margin: 0 0 .4rem;
+        }
+        .software-request-heading p:last-child {
+            color: #71809a;
+            font-size: .92rem;
+            margin: 0;
+        }
+        .software-request-card .field { margin-bottom: 1.15rem; }
+        .software-request-context-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .software-request-context-grid .field { min-width: 0; }
+        .software-request-card .label { color: #334761; font-size: .92rem; }
+        .software-request-card .input,
+        .software-request-card .textarea,
+        .software-request-card .select select,
+        .software-request-card .select2-selection {
+            border-color: #d9e1ed;
+            border-radius: 10px;
+            box-shadow: none;
+        }
+        .software-request-card .input:focus,
+        .software-request-card .textarea:focus,
+        .software-request-card .select select:focus {
+            border-color: #7296c9;
+            box-shadow: 0 0 0 .15rem rgba(64, 113, 180, .12);
+        }
+        .software-request-card .select,
+        .software-request-card .select select,
+        .software-request-card .select2-container { width: 100%; }
+        .software-request-card .select:not(.is-multiple):not(.is-loading) { width: 100%; }
+        .software-request-card .select2-selection--single { min-height: 2.5rem; }
+        .software-request-card .file-cta {
+            background: #f4f7fc;
+            border-color: #d9e1ed;
+            border-radius: 10px 0 0 10px;
+            color: #35547f;
+        }
+        .software-request-card .file-name {
+            border-color: #d9e1ed;
+            border-radius: 0 10px 10px 0;
+        }
+        .software-request-actions {
+            border-top: 1px solid #edf1f6;
+            margin-top: 1.4rem;
+            padding-top: 1.25rem;
+        }
+        .software-request-actions .button {
+            border-radius: 10px;
+            font-weight: 700;
+            min-width: 8rem;
+        }
+        .software-request-progress {
+            align-items: center;
+            background: #f1f6ff;
+            border-radius: 10px;
+            color: #345b92;
+            display: flex;
+            gap: .6rem;
+            padding: .75rem 1rem;
+        }
+        @media screen and (max-width: 768px) {
+            .software-request-page { padding: 1rem .75rem 2rem; }
+            .software-request-card { border-radius: 16px; }
+            .software-request-context-grid { grid-template-columns: 1fr; gap: 0; }
+        }
+    </style>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-    <section class="section">
+    <section class="section software-request-page">
         <div class="container">
             {% include "messages.html" %}
             <div class="columns">
-                <div class="box column is-half is-offset-3">
-                    <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
+                <div class="column is-8 is-offset-2">
+                  <div class="software-request-card">
+                    <header class="software-request-heading">
+                        <p class="eyebrow">Software Service Desk</p>
+                        <h1>สร้างรายการคำขอพัฒนาระบบ</h1>
+                        <p>กรอกข้อมูลที่จำเป็นให้ครบก่อนส่งคำขอ</p>
+                    </header>
                     <form id="myForm" method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
@@ -20,7 +125,7 @@
                                 {{ form.type.label }}
                                 <span class="has-text-danger">*</span>
                             </label>
-                            <div class="select">
+                            <div class="select is-fullwidth">
                                 {{ form.type(required=True) }}
                             </div>
                         </div>
@@ -54,31 +159,33 @@
                                  {{ form.system(class='js-example-basic-single') }}
                              </div>
                         </div>
-                        <div class="field">
-                            <label class="label">
-                                {{ form.frequency.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="select">
-                                {{ form.frequency(required=true) }}
+                        <div class="software-request-context-grid">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.frequency.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select is-fullwidth">
+                                    {{ form.frequency(required=true) }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">
-                                {{ form.user_group.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="select">
-                                {{ form.user_group(required=true) }}
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.user_group.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select is-fullwidth">
+                                    {{ form.user_group(required=true) }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">
-                                {{ form.usage_date.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="control">
-                                {{ form.usage_date(class='input', type='text', required=true) }}
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.usage_date.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.usage_date(class='input', type='text', required=true) }}
+                                </div>
                             </div>
                         </div>
                         <div class="field">
@@ -109,7 +216,7 @@
                                         <i class="fas fa-upload"></i>
                                       </span>
                                       <span class="file-label">
-                                        Choose a file…
+                                        เลือกไฟล์…
                                       </span>
                                     </span>
                                     <span class="file-name" id="filename"></span>
@@ -117,13 +224,16 @@
                             </div>
                         </div>
                         <div class="field">
-                            <p class="subtitle has-text-info is-hidden" id="progressMessage">กำลังดำเนินการ โปรดรอสักครู่</p>
+                            <p class="software-request-progress is-hidden" id="progressMessage">
+                                <span class="icon"><i class="fas fa-spinner fa-pulse"></i></span>
+                                <span>กำลังส่งคำขอ โปรดรอสักครู่</span>
+                            </p>
                         </div>
-                        <div class="field is-grouped is-grouped-centered">
+                        <div class="field is-grouped is-grouped-centered software-request-actions">
                             <div class="control">
-                                <a id="cancelButton" href="{{ url_for('software_request.index') }}" class="button">Back</a>
-                                <button id="submitButton" class="button is-success">
-                                    <span>Submit</span>
+                                <a id="cancelButton" href="{{ url_for('software_request.index') }}" class="button is-light">กลับ</a>
+                                <button id="submitButton" class="button is-success" type="submit">
+                                    <span>ส่งคำขอ</span>
                                     <span id="spinnerIcon" class="icon is-hidden">
                                         <i class="fas fa-spinner fa-pulse"></i>
                                     </span>
@@ -131,6 +241,7 @@
                             </div>
                         </div>
                     </form>
+                  </div>
                 </div>
             </div>
         </div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}MUMT Internal Information System{% endblock %}
+{% block title %}คำขอพัฒนา Software | สำหรับหน่วย IT{% endblock %}
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
@@ -12,54 +12,127 @@
 {#            white-space: normal !important;#}
 {#        }#}
 {#    </style>#}
+    <style>
+        .software-admin { min-height: calc(100vh - 4rem); padding-top: 1.5rem; }
+        .software-admin-hero {
+            align-items: center; background: linear-gradient(120deg, #17396f, #2d5b9d);
+            border-radius: 24px; box-shadow: 0 16px 38px rgba(27, 59, 107, .16); color: #fff;
+            display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: space-between;
+            margin-bottom: 1.25rem; padding: clamp(1.4rem, 3vw, 2rem);
+        }
+        .software-admin-hero-copy { max-width: 48rem; }
+        .software-admin-eyebrow { color: #d8e5fb; font-size: .75rem; font-weight: 700; letter-spacing: .12em; margin-bottom: .45rem; }
+        .software-admin-hero h1 { color: #fff; font-size: clamp(1.4rem, 2.5vw, 1.9rem); line-height: 1.4; margin-bottom: .35rem; }
+        .software-admin-hero p:last-child { color: rgba(255,255,255,.82); margin: 0; }
+        .software-admin-hero-mark {
+            align-items: center; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22);
+            border-radius: 16px; color: #fff; display: flex; font-size: .9rem; font-weight: 700; gap: .65rem; padding: .8rem 1rem;
+        }
+        .software-admin-panel { background: #fff; border: 1px solid #e4eaf3; border-radius: 20px; box-shadow: 0 8px 24px rgba(27, 49, 82, .055); margin-bottom: 1.25rem; overflow: hidden; }
+        .software-admin-panel-header { align-items: center; border-bottom: 1px solid #edf1f6; display: flex; flex-wrap: wrap; gap: .7rem; justify-content: space-between; padding: 1rem 1.25rem; }
+        .software-admin-panel-title { align-items: center; color: #1e3e70; display: flex; font-size: 1.08rem; font-weight: 700; gap: .65rem; margin: 0; }
+        .software-admin-panel-title .icon { color: #4772ae; }
+        .software-admin-panel-hint { color: #71809a; font-size: .82rem; margin: 0; }
+        .software-admin-panel-body { padding: 1.1rem 1.25rem 1.25rem; }
+        .software-admin-notification-section { margin-bottom: 1.25rem; }
+        .software-admin-notification-header { align-items: center; display: flex; flex-wrap: wrap; gap: .7rem; justify-content: space-between; padding: .5rem 0 .85rem; }
+        .software-admin-notification-body { padding: 0; }
+        .software-admin-tabs { margin: 0; overflow-x: auto; }
+        .software-admin-tabs ul { border-bottom-color: #edf1f6; flex-wrap: nowrap; min-width: max-content; }
+        .software-admin-tabs li a { color: #5a6c87; white-space: nowrap; }
+        .software-admin-tabs li.is-active a { background: #f4f7fc; border-color: #dce6f3 #dce6f3 #fff; color: #1e3e70; font-weight: 700; }
+        .software-admin-tabs .tag { margin-left: .35rem; }
+        .software-admin-table-wrap { overflow-x: auto; padding: 1rem 1.25rem 1.25rem; }
+        .software-admin-table-wrap table { min-width: 1120px; }
+        .software-admin-table-wrap table thead th { background: #f5f7fb; border-color: #e8edf4; color: #52647f; font-size: .78rem; letter-spacing: .025em; white-space: nowrap; }
+        .software-admin-table-wrap table td { color: #3f506b; vertical-align: middle; }
+        .software-admin-table-wrap table tbody tr:hover { background: #f8faff; }
+        .software-admin-table-wrap .dataTables_wrapper .dataTables_filter input,
+        .software-admin-table-wrap .dataTables_wrapper .dataTables_length select,
+        .software-admin-calendar .input { border: 1px solid #d9e1ed; border-radius: 9px; }
+        .software-admin-table-wrap .dataTables_wrapper .dataTables_filter input,
+        .software-admin-table-wrap .dataTables_wrapper .dataTables_length select { padding: .35rem .55rem; }
+        .software-admin-table-wrap .dataTables_wrapper .dataTables_length select { min-height: 2.1rem; min-width: 4.25rem; padding-right: 1.5rem; }
+        .software-admin-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button.current { background: #eaf0fa !important; border: 1px solid #d2def0 !important; border-radius: 8px; color: #21477f !important; }
+        .software-admin-calendar { max-width: 18rem; }
+        .software-admin-calendar .label { color: #52647f; font-size: .82rem; }
+        #timeline_calendar { background: #fff; border: 1px solid #e8edf4; border-radius: 14px; padding: 1rem; }
+        #timeline_calendar .fc-toolbar h2 { color: #1e3e70; font-size: 1.15rem; font-weight: 700; }
+        #timeline_calendar .fc-button {
+            background: #315c98;
+            border-color: #315c98;
+            color: #fff !important;
+            opacity: 1;
+            text-shadow: none;
+        }
+        #timeline_calendar .fc-button:hover,
+        #timeline_calendar .fc-button:focus {
+            background: #244a80;
+            border-color: #244a80;
+            color: #fff !important;
+        }
+        #timeline_calendar .fc-button.fc-state-disabled {
+            background: #e7edf6;
+            border-color: #c8d5e7;
+            color: #405a7b !important;
+            cursor: not-allowed;
+            opacity: 1;
+        }
+        #timeline_calendar .fc-event { background: #315c98; border-color: #315c98; padding: .15rem .3rem; }
+        @media screen and (max-width: 768px) {
+            .software-admin { padding: 1rem .75rem 2rem; }
+            .software-admin-hero { align-items: flex-start; border-radius: 18px; }
+            .software-admin-hero-mark { width: 100%; }
+            .software-admin-panel-header, .software-admin-panel-body, .software-admin-table-wrap { padding-left: 1rem; padding-right: 1rem; }
+        }
+    </style>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-    <section class="section">
+    <section class="section software-admin">
         <div class="container">
-            <h1 class="title">รายการขอรับบริการพัฒนา Software (สำหรับหน่วย IT)</h1>
-            <div class="buttons is-left">
-{#                <a href="{{ url_for('software_request.line_remind_software_request_admins', dry_run='true') }}"#}
-{#                   class="button is-info is-small is-rounded">#}
-{#                    <span class="icon">#}
-{#                        <i class="fas fa-vial"></i>#}
-{#                    </span>#}
-{#                    <span class="is-size-5">ทดสอบ line reminder</span>#}
-{#                </a>#}
-{#                <a href="{{ url_for('software_request.line_remind_software_request_admins', send='true') }}"#}
-{#                   class="button is-warning is-small is-rounded">#}
-{#                    <span class="icon">#}
-{#                        <i class="fas fa-bullhorn"></i>#}
-{#                    </span>#}
-{#                    <span class="is-size-5">ส่ง line reminder ให้ผู้ดูแล</span>#}
-{#                </a>#}
-                <a href="{{ url_for('software_request.email_unfinished_summary', send='true') }}"
-                   class="button is-primary is-small is-rounded">
-                    <span class="icon">
-                        <i class="fas fa-envelope"></i>
-                    </span>
-                    <span class="is-size-6">ส่งสรุปเรื่องคงค้าง</span>
-                </a>
-                <a href="{{ url_for('software_request.email_pending_requester_tests', send='true') }}"
-                   class="button is-warning is-small is-rounded">
-                    <span class="icon">
-                        <i class="fas fa-paper-plane"></i>
-                    </span>
-                    <span class="is-size-6">ส่งแจ้งเตือนผู้แจ้งให้ทดสอบ</span>
-                </a>
-                <a href="{{ url_for('software_request.line_pending_requester_tests', send='true') }}"
-                   class="button is-success is-small is-rounded">
-                    <span class="icon">
-                        <i class="fab fa-line"></i>
-                    </span>
-                    <span class="is-size-6">ส่ง LINE แจ้งเตือนการทดสอบ</span>
-                </a>
-            </div>
-            <div class="columns">
-                <div class="column">
-                    <hr>
-                    <h1 class="title is-size-4">Request</h1>
-                    <div class="tabs is-boxed">
+            {% include 'messages.html' %}
+            <header class="software-admin-hero">
+                <div class="software-admin-hero-copy">
+                    <p class="software-admin-eyebrow">SOFTWARE SERVICE DESK · IT ADMIN</p>
+                    <h1>รายการขอรับบริการพัฒนา Software</h1>
+                    <p>ติดตามสถานะคำขอ จัดการงานที่ได้รับมอบหมาย และตรวจสอบกำหนดการ</p>
+                </div>
+                <div class="software-admin-hero-mark">
+                    <span class="icon"><i class="fas fa-laptop-code"></i></span>
+                    <span>พื้นที่จัดการสำหรับหน่วย IT</span>
+                </div>
+            </header>
+
+            <section class="software-admin-notification-section" aria-labelledby="notification-title">
+                <div class="software-admin-notification-header">
+                    <h2 id="notification-title" class="software-admin-panel-title"><span class="icon"><i class="fas fa-bell"></i></span><span>ส่งการแจ้งเตือน</span></h2>
+                    <p class="software-admin-panel-hint">เลือกช่องทางที่ต้องการส่งให้ผู้เกี่ยวข้อง</p>
+                </div>
+                <div class="software-admin-notification-body">
+                    <div class="buttons is-left">
+                        <a href="{{ url_for('software_request.email_unfinished_summary', send='true') }}" class="button is-primary is-small is-rounded">
+                            <span class="icon"><i class="fas fa-envelope"></i></span>
+                            <span class="is-size-6">ส่งสรุปเรื่องคงค้าง</span>
+                        </a>
+                        <a href="{{ url_for('software_request.email_pending_requester_tests', send='true') }}" class="button is-warning is-small is-rounded">
+                            <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                            <span class="is-size-6">ส่งแจ้งเตือนผู้แจ้งให้ทดสอบ</span>
+                        </a>
+                        <a href="{{ url_for('software_request.line_pending_requester_tests', send='true') }}" class="button is-success is-small is-rounded">
+                            <span class="icon"><i class="fab fa-line"></i></span>
+                            <span class="is-size-6">ส่ง LINE แจ้งเตือนการทดสอบ</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <section class="software-admin-panel" aria-labelledby="requests-title">
+                <div class="software-admin-panel-header">
+                    <h2 id="requests-title" class="software-admin-panel-title"><span class="icon"><i class="fas fa-list-ul"></i></span><span>คำขอรับบริการ</span></h2>
+                    <p class="software-admin-panel-hint">เลือกสถานะเพื่อกรองรายการ หรือค้นหาจากรายละเอียดคำขอ</p>
+                </div>
+                <div class="tabs is-boxed software-admin-tabs">
                         <ul>
                             <li {% if tab == 'pending' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('software_request.admin_index', tab='pending') }}">
@@ -129,9 +202,8 @@
                             </li>
                         </ul>
                     </div>
-                    <div class="columns">
-                        <div class="column">
-                            <table id="request" class="table is-fullwidth">
+                <div class="software-admin-table-wrap">
+                    <table id="request" class="table is-fullwidth is-hoverable">
                                 <thead>
                                 <tr>
                                     <th>โครงการ/ระบบ</th>
@@ -149,27 +221,26 @@
                                 </thead>
                                 <tbody>
                                 </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <hr>
-                    <h1 class="title is-size-4">Timeline</h1>
-                    <p>คลิกเพื่อข้ามไปวันที่ที่ต้องการตรวจสอบ</p>
-                        <div class="field">
-                            <div class="control has-icons-left">
-                                <input class="input" name="datePicker" id="datePicker">
-                                <span class="icon is-small is-left">
-                            <i class="far fa-calendar-alt"></i>
-                        </span>
-                            </div>
-                        </div>
-                    <div class="columns">
-                        <div class="column">
-                            <div id="timeline_calendar"></div>
-                        </div>
-                    </div>
+                    </table>
                 </div>
-            </div>
+            </section>
+
+            <section class="software-admin-panel" aria-labelledby="timeline-title">
+                <div class="software-admin-panel-header">
+                    <h2 id="timeline-title" class="software-admin-panel-title"><span class="icon"><i class="far fa-calendar-alt"></i></span><span>กำหนดการดำเนินงาน</span></h2>
+                    <p class="software-admin-panel-hint">คลิกเหตุการณ์เพื่อเปิดรายละเอียดและไปยังคำขอที่เกี่ยวข้อง</p>
+                </div>
+                <div class="software-admin-panel-body">
+                    <div class="field software-admin-calendar">
+                        <label class="label" for="datePicker">ข้ามไปยังวันที่</label>
+                        <div class="control has-icons-left">
+                            <input class="input" name="datePicker" id="datePicker" aria-label="เลือกวันที่ในปฏิทิน">
+                            <span class="icon is-small is-left"><i class="far fa-calendar-alt"></i></span>
+                        </div>
+                    </div>
+                    <div id="timeline_calendar"></div>
+                </div>
+            </section>
         </div>
     </section>
 {% endblock %}
