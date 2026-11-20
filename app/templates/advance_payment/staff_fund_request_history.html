@@ -412,7 +412,7 @@
                 <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                 <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                 <td class="text-center">
-                  {{ status_badge(parcel_return.status, none, 'border') }}
+                  {{ status_badge(parcel_return.display_status, none, 'border') }}
                 </td>
                 <td class="text-center"><div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">{% if parcel_return.display_ticket_id %}<a class="btn btn-outline-primary btn-sm px-2" href="{{ url_for('advance_payment.verification_view', ticket_id=parcel_return.display_ticket_id) }}" title="ดูรายละเอียดพัสดุและสัญญา"><i class="bi bi-search me-1"></i>ตรวจสอบหลักฐาน</a>{% else %}<span class="text-muted small">-</span>{% endif %}</div></td>
               </tr>

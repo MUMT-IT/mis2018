@@ -366,7 +366,7 @@
                      <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=record.fund_request_id) }}" class="btn btn-outline-primary btn-sm px-2">
                        ตรวจสอบการส่งเบิก
                      </a>
-                     {% if record.status == ('ยืนยันการตรวจสอบ' if record.type_label else 'ได้รับเอกสารแล้ว') %}
+                     {% if record.status == 'ยืนยันการตรวจสอบ' %}
                      <button type="button" class="btn btn-outline-primary btn-sm px-2" data-bs-toggle="modal" data-bs-target="#parcelTransferModal{{ record.id }}">
                        โอนเงินสดย่อยสำเร็จ
                      </button>

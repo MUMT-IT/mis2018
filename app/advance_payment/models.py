@@ -702,6 +702,12 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     @property
     def status(self):
         return status_name_for_record(self)
+
+    @property
+    def display_status(self):
+        """User-facing pending label for the unified parcel-return flow."""
+        status = self.status
+        return "รอตรวจสอบ(พัสดุกำลังดำเนินการ)" if self.type is None and status == "รอตรวจสอบ" else status
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)

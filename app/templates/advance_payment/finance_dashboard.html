@@ -211,7 +211,7 @@
                       <td class="text-center">{{ parcel.created_at|thai_date if parcel.created_at else '-' }}</td>
                       <td class="text-center">
                         {% if parcel.status|lower in ['รอตรวจสอบ'] %}
-                          {{ status_badge('รอตรวจสอบ') }}
+                          {{ status_badge(parcel.display_status) }}
                         {% elif parcel.status|lower in ['พัสดุกำลังดำเนินการ', 'กำลังตรวจสอบ'] %}
                           {{ status_badge('พัสดุกำลังดำเนินการ') }}
                         {% elif parcel.status|lower in ['ได้รับเอกสารแล้ว', 'ผ่านการตรวจสอบ'] %}

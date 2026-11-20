@@ -470,7 +470,7 @@
               <td style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent) }}</td>
               <td>
-                {{ status_badge(pr.status) }}
+                {{ status_badge(pr.display_status) }}
                 {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
                   <div class="small text-danger mt-1 text-start" style="white-space: pre-line;">{{ pr.rejection_comment|latest_rejection_comment }}</div>
                 {% endif %}
@@ -496,11 +496,11 @@
                         style="max-width: 150px;"
                         data-popup-trigger="true"
                         data-popup-title="ยืนยันการตรวจสอบเอกสารพัสดุ"
-                        data-popup-message="คุณต้องการเปลี่ยนสถานะรายการนี้เป็น '{% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}' ใช่หรือไม่?"
+                        data-popup-message="คุณต้องการเปลี่ยนสถานะรายการนี้เป็น 'ยืนยันการตรวจสอบ' ใช่หรือไม่?"
                         data-popup-confirm-text="ยืนยันการตรวจสอบ"
                         data-popup-confirm-class="btn-primary"
                         data-popup-target-form-id="parcelProofedForm{{ pr.id }}">
-                        {% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}
+                        ยืนยันการตรวจสอบ
                       </button>
                     </form>
                   {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status == 'พัสดุกำลังดำเนินการ' %}
@@ -606,11 +606,11 @@
   </section>
 {% endif %}
 {% set approved_returns = [] %}
-  {% for r in return_details if r.status not in ['รอตรวจสอบ', 'กำลังตรวจสอบ', 'ปฏิเสธ'] %}
+  {% for r in return_details if r.id in approved_return_ids %}
     {% set _ = approved_returns.append(r) %}
   {% endfor %}
 
-  {% if approved_returns or borrowing_ticket.parcel_returns %}
+  {% if approved_returns or approved_parcel_ids %}
   <div class="mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
       <h3 class="h4 fw-bold mb-0">ตารางรายการส่งใช้เงินยืม</h3>
@@ -672,7 +672,7 @@
             {% endfor %}
 
             {% if borrowing_ticket.parcel_returns %}
-              {% for pr in borrowing_ticket.parcel_returns|reverse if pr.status not in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+              {% for pr in borrowing_ticket.parcel_returns|reverse if pr.id in approved_parcel_ids %}
                 {% set _ = row_counter.append(row_counter[-1] + 1) %}
                 {% set _ = current_balance.append(current_balance[-1] - (pr.amount_spent or 0)) %}
                 <tr>

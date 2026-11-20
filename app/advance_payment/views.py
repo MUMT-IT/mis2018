@@ -1730,8 +1730,10 @@ def _closing_document_category_totals(
 
 
 def _parcel_return_uses_confirmation_status(parcel_return):
-    """Return whether this is a typed ว-119/ว-5763 parcel return."""
-    return getattr(parcel_return, "type", None) in PARCEL_RETURN_TYPE_LABELS
+    """Return whether this parcel return uses the unified confirmation flow."""
+    # All parcel-return types now share the same finance workflow.  ``type``
+    # remains useful only for the label/email name (ว-119, ว-5763, or legacy).
+    return True
 
 
 def _parcel_return_status_after_review(parcel_return):
@@ -1745,11 +1747,7 @@ def _parcel_return_status_after_review(parcel_return):
 
 def _parcel_return_status_before_cash_transfer(parcel_return):
     """Return the status required before recording a petty-cash transfer."""
-    return (
-        PARCEL_RETURN_CONFIRMED_CODE
-        if _parcel_return_uses_confirmation_status(parcel_return)
-        else "DOCUMENT_RECEIVED"
-    )
+    return PARCEL_RETURN_CONFIRMED_CODE
 
 
 def _parcel_return_ready_for_closing(parcel_return):
@@ -3424,22 +3422,18 @@ def _ticket_has_imported_reduction(ticket):
     return _money_decimal(ticket.opening_balance_amount) < _money_decimal(ticket.required_budget)
 
 
-def _legacy_verification_display_summary(
-    summary, ticket, *, settled_amount=None, documented_amount=None
-):
-    """Display accounting settlement separately from requisitions in progress."""
+def _legacy_verification_display_summary(summary, ticket):
+    """Combine imported history with confirmed and pending current returns."""
     display = dict(summary)
-    if settled_amount is None or documented_amount is None:
-        return display
     historical_repaid, historical_pending = _historical_ticket_amounts(ticket)
     display["budget"] = _money_decimal(ticket.required_budget)
     display["cumulative_total"] = (
         historical_repaid
-        + _money_decimal(settled_amount)
+        + _money_decimal(summary.get("cumulative_total"))
     )
     display["pending_amount"] = (
         historical_pending
-        + max(_money_decimal(documented_amount) - _money_decimal(settled_amount), Decimal("0.00"))
+        + _money_decimal(summary.get("pending_amount"))
     )
     display["unsubmitted_amount"] = max(
         display["budget"] - display["cumulative_total"] - display["pending_amount"],
@@ -3969,21 +3963,8 @@ def _ticket_group_ids(ticket_id):
     return group
 
 
-def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
-    """Allocate approved returns; report stages can require accounting settlement."""
-    if report_stage not in (None, "settled", "documented_or_settled"):
-        raise ValueError(f"Unknown report stage: {report_stage}")
-    ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
-    if not ticket_ids:
-        return {"cumulative_total": Decimal("0.00"), "budget": Decimal("0.00"), "remaining_amount": Decimal("0.00")}
-
-    tickets = db.session.query(BorrowingTicket).filter(BorrowingTicket.id.in_(ticket_ids)).all()
-    ticket_order = sorted(
-        tickets,
-        key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
-    )
-    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in ticket_order}
-    allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+def _approved_ticket_return_queries(ticket_ids):
+    """Use one approval rule for the verification table and debt totals."""
     excluded_return_statuses = {"PENDING", "IN_PROGRESS", "DRAFT", "REJECTED"}
 
     return_query = db.session.query(ReturnDetail).filter(
@@ -4014,6 +3995,25 @@ def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
             ),
         ),
     )
+    return return_query, parcel_query
+
+
+def _calculate_ticket_group_totals(ticket_ids, *, report_stage=None):
+    """Allocate approved returns; report stages can require accounting settlement."""
+    if report_stage not in (None, "settled", "documented_or_settled"):
+        raise ValueError(f"Unknown report stage: {report_stage}")
+    ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
+    if not ticket_ids:
+        return {"cumulative_total": Decimal("0.00"), "budget": Decimal("0.00"), "remaining_amount": Decimal("0.00")}
+
+    tickets = db.session.query(BorrowingTicket).filter(BorrowingTicket.id.in_(ticket_ids)).all()
+    ticket_order = sorted(
+        tickets,
+        key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
+    )
+    remaining = {ticket.id: _ticket_opening_budget(ticket) for ticket in ticket_order}
+    allocated = {ticket.id: Decimal("0.00") for ticket in ticket_order}
+    return_query, parcel_query = _approved_ticket_return_queries(ticket_ids)
     if report_stage == "settled":
         return_query = return_query.filter(ReturnDetail.settled_at.isnot(None))
         parcel_query = parcel_query.filter(ParcelReturnDetail.settled_at.isnot(None))
@@ -6937,6 +6937,9 @@ def verification_view(ticket_id):
         .order_by(ReturnDetail.id.desc())
         .all()
     )
+    approved_return_query, approved_parcel_query = _approved_ticket_return_queries(ticket_group_ids)
+    approved_return_ids = {row.id for row in approved_return_query.all()}
+    approved_parcel_ids = {row.id for row in approved_parcel_query.all()}
     approved_return_totals = _calculate_ticket_group_totals(ticket_group_ids)
     return_form_totals = _calculate_return_form_group_totals(
         ticket_group_ids,
@@ -7024,21 +7027,15 @@ def verification_view(ticket_id):
         StaffAccount, StaffAccount.personal_id == StaffPersonalInfo.id
     ).filter(StaffAccount.id == borrowing_ticket.borrower_id).scalar()
 
-    settled_totals = _calculate_ticket_group_totals(ticket_group_ids, report_stage="settled")
-    documented_totals = _calculate_ticket_group_totals(
-        ticket_group_ids, report_stage="documented_or_settled"
-    )
-    display_summary = _legacy_verification_display_summary(
-        summary, borrowing_ticket,
-        settled_amount=settled_totals.get("allocated_by_ticket", {}).get(ticket_id),
-        documented_amount=documented_totals.get("allocated_by_ticket", {}).get(ticket_id),
-    )
+    display_summary = _legacy_verification_display_summary(summary, borrowing_ticket)
 
     return render_template(
         "verification.html",
         borrowing_ticket=borrowing_ticket,
         return_details=return_details,
         parcel_returns=parcel_returns,
+        approved_return_ids=approved_return_ids,
+        approved_parcel_ids=approved_parcel_ids,
         summary=summary,
         display_summary=display_summary,
         group_summary=approved_return_totals,
@@ -9829,16 +9826,7 @@ def petty_cash_settings(_render_after_post=False):
         db.session.query(ParcelReturnDetail)
         .filter(
             ParcelReturnDetail.fund_request_id.isnot(None),
-            or_(
-                and_(
-                    ParcelReturnDetail.type.is_(None),
-                    ParcelReturnDetail.status_id == _status_id("parcel_return", code="DOCUMENT_RECEIVED"),
-                ),
-                and_(
-                    ParcelReturnDetail.type.in_(tuple(PARCEL_RETURN_TYPE_LABELS)),
-                    ParcelReturnDetail.status_id == _status_id("parcel_return", code=PARCEL_RETURN_CONFIRMED_CODE),
-                ),
-            ),
+            ParcelReturnDetail.status_id == _status_id("parcel_return", code=PARCEL_RETURN_CONFIRMED_CODE),
             ~ParcelReturnDetail.closing_links.any(is_active=True),
         )
         .order_by(ParcelReturnDetail.created_at.desc(), ParcelReturnDetail.id.desc())
@@ -10474,12 +10462,6 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             or_(
                 and_(
                     ParcelReturnDetail.fund_request_id.is_(None),
-                    ParcelReturnDetail.type.is_(None),
-                    ParcelReturnDetail.status_id == _status_id("parcel_return", code="DOCUMENT_RECEIVED"),
-                ),
-                and_(
-                    ParcelReturnDetail.fund_request_id.is_(None),
-                    ParcelReturnDetail.type.in_(tuple(PARCEL_RETURN_TYPE_LABELS)),
                     ParcelReturnDetail.status_id == _status_id("parcel_return", code=PARCEL_RETURN_CONFIRMED_CODE),
                 ),
                 and_(

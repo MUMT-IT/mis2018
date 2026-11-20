@@ -356,7 +356,7 @@
                             <td><div class="fw-bold text-dark">{{ pr.display_borrower_name or '-' }}</div><small class="text-muted">{{ pr.display_subject_name or '-' }}</small></td>
                             <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                             <td class="text-center small">{{ pr.created_at|thai_date if pr.created_at else '-' }}</td>
-                            <td class="text-center">{{ status_badge(pr.status) }}{% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif pr.id in result.historical_parcel_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}</td>
+                            <td class="text-center">{{ status_badge(pr.display_status) }}{% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif pr.id in result.historical_parcel_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}</td>
                             <td class="text-center">
                               <div class="d-flex gap-1 justify-content-center flex-wrap">
                               {% if pr.display_ticket_id %}
@@ -503,7 +503,7 @@
                   {% elif pr.status == "พัสดุกำลังดำเนินการ" %}
                     {{ status_badge("รอรับเอกสารจริง") }}
                   {% elif pr.status == "รอตรวจสอบ" %}
-                    {{ status_badge("รอตรวจสอบ") }}
+                    {{ status_badge(pr.display_status) }}
                   {% elif pr.closing_document_id or pr.status == "เอกสารตั้งฎีกา" %}
                     {{ status_badge("เอกสารตั้งฎีกา") }}
                   {% else %}

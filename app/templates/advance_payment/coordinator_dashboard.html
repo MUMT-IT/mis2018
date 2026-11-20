@@ -478,7 +478,7 @@
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                   <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                   <td class="text-center">
-                    {{ status_badge(parcel_return.status, none, 'border') }}
+                    {{ status_badge(parcel_return.display_status, none, 'border') }}
                   </td>
                   <td class="text-center pe-3">
                     <div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">
