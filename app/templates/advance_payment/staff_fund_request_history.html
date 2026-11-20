@@ -120,6 +120,7 @@
               <th class="text-center">ชื่อผู้ขอเบิก</th>
               <th class="text-center">ประเภทแบบฟอร์ม</th>
               <th class="text-end">จำนวนเงิน (บาท)</th>
+              <th class="text-end">ยอดรอตรวจสอบ (บาท)</th>
               <th class="text-center">สถานะ</th>
               <th class="text-center">อนุมัติ/ตรวจสอบหลักฐาน</th>
             </tr>
@@ -146,6 +147,8 @@
                 {% endif %}
               </td>
               <td class="text-end fw-bold text-dark">{{ "{:,.2f}".format(request.amount) }}</td>
+              {% set pending_total = fund_request_total_info.get(request.id, {}).get('pending_total', 0) %}
+              <td class="text-end text-dark">{{ "{:,.2f}".format(pending_total) if pending_total else '-' }}</td>
               <td class="text-center">
                 {% if request.form_type == 'petty_cash' %}
                   {% if request.status == 'รอการอนุมัติ' %}
@@ -310,7 +313,7 @@
             </tr>
             {% else %}
             <tr>
-              <td colspan="7" class="text-center py-5 text-muted">
+              <td colspan="8" class="text-center py-5 text-muted">
                 <i class="bi bi-folder-x fs-1 d-block mb-2 text-secondary"></i>
                 {% if approval_queue_mode %}
                   ไม่มีรายการที่รออนุมัติ

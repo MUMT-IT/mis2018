@@ -11665,6 +11665,11 @@ def staff_fund_request_history():
             fund_request.id in rejected_followup_fund_request_ids
         )
 
+    fund_request_total_info = {
+        fund_request.id: _calculate_fund_request_display_summary(fund_request.id)
+        for fund_request in fund_requests
+    }
+
     return render_template(
         "staff_fund_request_history.html",
         is_custodian=is_custodian,
@@ -11674,6 +11679,7 @@ def staff_fund_request_history():
         parcel_return_history=parcel_return_history,
         dept_summary=dept_summary,
         ledger_running_balance=ledger_running_balance,
+        fund_request_total_info=fund_request_total_info,
         can_import_legacy_fund_request=bool(
             carryover_setting
             and getattr(carryover_setting, "id", None)
@@ -11734,6 +11740,11 @@ def petty_cash_pending_approvals():
         fund_request.can_edit = False
         fund_request.has_rejected_followup = False
 
+    fund_request_total_info = {
+        fund_request.id: _calculate_fund_request_display_summary(fund_request.id)
+        for fund_request in fund_requests
+    }
+
     return render_template(
         "petty_cash_pending_approvals.html",
         approval_queue_mode=True,
@@ -11745,6 +11756,7 @@ def petty_cash_pending_approvals():
         parcel_return_history=[],
         dept_summary={},
         ledger_running_balance=Decimal("0.00"),
+        fund_request_total_info=fund_request_total_info,
         can_import_legacy_fund_request=False,
     )
 
