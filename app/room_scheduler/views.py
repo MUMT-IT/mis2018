@@ -2292,7 +2292,7 @@ def room_reserve(room_id):
             if new_event.note:
                 msg += f'\nมีความต้องการเพิ่มเติมคือ {new_event.note}'
             if not current_app.debug:
-                if new_event.is_refreshment:
+                if new_event.is_refreshment or new_event.note:
                     coordinators = {
                         coord.id: coord
                         for booked_room in selected_rooms
