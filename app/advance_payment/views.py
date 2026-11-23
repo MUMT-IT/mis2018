@@ -13607,16 +13607,12 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         )
     )
     verification_amount = (
-        getattr(claim_detail, "total_amount", None)
-        if claim_detail and getattr(claim_detail, "total_amount", None)
+        getattr(selected_fund_request, "amount", None)
+        if selected_fund_request and getattr(selected_fund_request, "amount", None)
         else (
-            getattr(selected_fund_request, "amount", None)
-            if selected_fund_request and getattr(selected_fund_request, "amount", None)
-            else (
-                getattr(verification_fund_request, "amount", None)
-                if verification_fund_request and getattr(verification_fund_request, "amount", None)
-                else 0
-            )
+            getattr(verification_fund_request, "amount", None)
+            if verification_fund_request and getattr(verification_fund_request, "amount", None)
+            else 0
         )
     )
     verification_status = (
