@@ -43,7 +43,8 @@ def _get_latest_room_system_check_statuses(room_ids):
             'checked_at': checked_at.strftime('%d/%m/%Y'),
             'days_since': days_since,
             'is_overdue': days_since > 30,
-            'status': submission.status
+            'status': submission.status,
+            'remark': submission.remark
         }
     return statuses
 
@@ -328,7 +329,7 @@ def maintenance_system_check():
                         ))
             db.session.commit()
             flash('บันทึกการตรวจเช็คอุปกรณ์เรียบร้อย', 'success')
-            return redirect(url_for('maintenance.maintenance_system_check', room_id=room.id))
+            return redirect(url_for('maintenance.maintenance_list_room'))
 
     latest_submissions = {}
     submission_rows = MaintenanceRoomSystemCheckSubmission.query.filter(
