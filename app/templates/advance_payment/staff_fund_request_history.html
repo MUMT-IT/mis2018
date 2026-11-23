@@ -154,7 +154,7 @@
                   <span class="badge {{ status_badge_class(request.status_code) }} fw-bold px-3 py-2">{{ request.status }}</span>
                   {% if request.has_rejected_followup %}<span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>{% endif %}
                 </div>
-                {% if false %}
+                {# Legacy per-form status rendering removed: the catalog-backed badge above is the single source of truth.
                   {% if request.status_code == 'PENDING' %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge {{ status_badge_class('PENDING') }} fw-bold px-3 py-2">รอการอนุมัติ</span>
@@ -298,7 +298,7 @@
                     <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
                     {% endif %}
                   </div>
-                {% endif %}
+                #}
                 {% if request.status_code == 'REJECTED' and request.rejection_comment %}
                   <div class="small text-danger mt-1" style="white-space: pre-line;">{{ request.rejection_comment }}</div>
                 {% endif %}
