@@ -7231,6 +7231,18 @@ def get_positions():
     select_html += '<div class="select">'
     select_html += '<select name="position" class="form-control">'
     selected_position_id = request.args.get('selected_position_id', type=int)
+    if not any(pos.id == selected_position_id for pos in positions):
+        selected_position_id = None
+        if request.args.get('prefer_current_user_org') == '1':
+            current_org_id = current_user.personal_info.org_id if current_user.personal_info else None
+            matching_org_positions = [
+                pos for pos in positions
+                if current_org_id is not None and pos.org_id == current_org_id
+            ]
+            if matching_org_positions:
+                selected_position_id = matching_org_positions[0].id
+    if selected_position_id is None:
+        selected_position_id = positions[0].id
     for pos in positions:
         selected = ' selected' if pos.id == selected_position_id else ''
         select_html += f'<option value="{pos.id}"{selected}>{pos.position}</option>'
