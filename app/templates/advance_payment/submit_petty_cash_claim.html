@@ -386,15 +386,22 @@
           </div>
           <div class="col-md-2">
             <label class="form-label small fw-semibold">ไฟล์เอกสารอ้างอิง</label>
-            <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
+            <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple aria-describedby="referenceFilesHelp">
+            <small id="referenceFilesHelp" class="form-text text-muted">ไฟล์ที่บันทึกแล้วจะแสดงด้านขวา ช่องเลือกไฟล์จะว่างเมื่อเปิดหน้าใหม่</small>
           </div>
           <div class="col-md-4 d-flex flex-column-reverse">
             <div class="reference-filenames-container"></div>
             {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
               <input type="hidden" class="saved-reference-proof" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
               <div class="input-group input-group-sm saved-reference-proof">
-                <span class="input-group-text text-success">ชื่อหนังสือ</span>
+                <span class="input-group-text text-success">ไฟล์เดิม</span>
                 <input type="text" class="form-control" name="existing_reference_filenames[]" value="{{ reference_file.filename }}" aria-label="ชื่อไฟล์เอกสารอ้างอิงเดิม">
+                <a class="btn btn-outline-primary" href="{{ reference_file.proof_reference|advance_payment_file_url }}" target="_blank" rel="noopener" aria-label="เปิดไฟล์เอกสารอ้างอิง {{ reference_file.filename }}">
+                  <i class="bi bi-box-arrow-up-right"></i> เปิดไฟล์
+                </a>
+                <button type="button" class="btn btn-outline-danger" onclick="removeSavedReferenceFile(this)" aria-label="ลบไฟล์เอกสารอ้างอิง {{ reference_file.filename }}">
+                  <i class="bi bi-trash"></i> ลบ
+                </button>
               </div>
             {% endfor %}
           </div>
@@ -1168,13 +1175,26 @@ document.addEventListener('DOMContentLoaded', function() {
             group.className = 'input-group input-group-sm saved-reference-proof';
             const label = document.createElement('span');
             label.className = 'input-group-text text-success';
-            label.textContent = 'ชื่อหนังสือ';
+            label.textContent = 'ไฟล์เดิม';
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
             nameInput.className = 'form-control';
             nameInput.name = 'existing_reference_filenames[]';
             nameInput.value = proof.filename;
-            group.append(label, nameInput);
+            const openLink = document.createElement('a');
+            openLink.className = 'btn btn-outline-primary';
+            openLink.href = proof.url;
+            openLink.target = '_blank';
+            openLink.rel = 'noopener';
+            openLink.setAttribute('aria-label', `เปิดไฟล์เอกสารอ้างอิง ${proof.filename}`);
+            openLink.innerHTML = '<i class="bi bi-box-arrow-up-right"></i> เปิดไฟล์';
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'btn btn-outline-danger';
+            removeButton.setAttribute('aria-label', `ลบไฟล์เอกสารอ้างอิง ${proof.filename}`);
+            removeButton.innerHTML = '<i class="bi bi-trash"></i> ลบ';
+            removeButton.addEventListener('click', () => removeSavedReferenceFile(removeButton));
+            group.append(label, nameInput, openLink, removeButton);
             parent.appendChild(group);
           });
           if (fileInput) fileInput.value = '';
@@ -1458,6 +1478,16 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function showClaimDraftDateError(visible) {
   document.getElementById('claimDraftDateError')?.classList.toggle('d-none', !visible);
+}
+
+function removeSavedReferenceFile(button) {
+  const group = button.closest('.input-group.saved-reference-proof');
+  if (!group) return;
+  const hiddenReference = group.previousElementSibling;
+  if (hiddenReference?.matches('input.saved-reference-proof[name="existing_reference_files[]"]')) {
+    hiddenReference.remove();
+  }
+  group.remove();
 }
 
 function updateFundRequestInfo(selectElem) {
