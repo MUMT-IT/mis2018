@@ -1,46 +1,327 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <style>
+        html {
+            background: #edf3fa !important;
+        }
+
+        body {
+            background: #edf3fa;
+        }
+
+        .complaint-home {
+            background: #edf3fa;
+            padding-top: 1.75rem;
+        }
+
+        .complaint-home .container {
+            max-width: 1200px;
+        }
+
+        .complaint-home-hero {
+            background:
+                radial-gradient(circle at 92% 10%, rgba(202, 168, 74, 0.12), transparent 30%),
+                linear-gradient(130deg, #1a3d7c, #10264c);
+            border: 1px solid rgba(16, 38, 76, 0.3);
+            border-radius: 24px;
+            box-shadow: 0 10px 28px rgba(18, 39, 84, 0.14);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            padding: 1.75rem 2rem;
+            position: relative;
+        }
+
+        .complaint-home-hero::before {
+            background: #caa84a;
+            content: "";
+            inset: 0 auto 0 0;
+            position: absolute;
+            width: 6px;
+        }
+
+        .complaint-home-eyebrow {
+            color: #ffe08a;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.13em;
+            margin-bottom: 0.45rem;
+        }
+
+        .complaint-home-hero .title {
+            color: #fff;
+            font-size: clamp(1.55rem, 3vw, 2.1rem);
+            line-height: 1.3;
+            margin-bottom: 0.55rem;
+        }
+
+        .complaint-home-hero__description {
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 1rem;
+            line-height: 1.65;
+            margin: 0;
+            max-width: 760px;
+        }
+
+        .complaint-home-hero__faculty {
+            align-items: center;
+            color: #e6eeff;
+            display: inline-flex;
+            font-size: 0.9rem;
+            font-weight: 700;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .complaint-home-layout {
+            align-items: flex-start;
+        }
+
+        .complaint-home-layout > .column.is-3 {
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(58, 101, 184, 0.16);
+            border-radius: 18px;
+            box-shadow: 0 6px 18px rgba(18, 39, 84, 0.04);
+            padding: 1.1rem 0.8rem;
+        }
+
+        .complaint-home-layout > .column.is-3 .menu-label {
+            color: #66738d;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            padding: 0 0.65rem;
+        }
+
+        .complaint-home-layout > .column.is-3 .menu-list a {
+            border-radius: 10px;
+            color: #344766;
+            line-height: 1.45;
+            padding: 0.7rem 0.75rem;
+            transition: background-color 0.16s ease, color 0.16s ease;
+        }
+
+        .complaint-home-layout > .column.is-3 .menu-list a:hover,
+        .complaint-home-layout > .column.is-3 .menu-list a.is-active {
+            background: #eef3ff;
+            color: #1a3d7c;
+        }
+
+        .complaint-home-content {
+            min-width: 0;
+        }
+
+        .complaint-home-section-heading {
+            margin-bottom: 0.85rem;
+        }
+
+        .complaint-home-section-heading .title {
+            color: #173b76;
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-bottom: 0.2rem;
+        }
+
+        .complaint-home-section-heading p {
+            color: #66738d;
+            font-size: 0.92rem;
+        }
+
+        .complaint-category-grid {
+            margin-top: 0;
+        }
+
+        .complaint-category-grid > .column {
+            padding-bottom: 0.75rem;
+            padding-top: 0.75rem;
+        }
+
+        .complaint-category-card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(58, 101, 184, 0.17);
+            border-radius: 18px;
+            box-shadow: 0 7px 20px rgba(18, 39, 84, 0.05);
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .complaint-category-card__header {
+            align-items: flex-start;
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-bottom: 1px solid rgba(16, 38, 76, 0.28);
+            border-top: 3px solid #caa84a;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            min-height: 5rem;
+            padding: 0.9rem 1rem 0.85rem;
+        }
+
+        .complaint-category-card__title {
+            color: #fff;
+            font-size: 1.02rem;
+            font-weight: 700;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        .complaint-category-card__topics {
+            padding: 0.4rem 0.75rem 0.75rem;
+        }
+
+        .complaint-topic-link {
+            align-items: center;
+            border-radius: 10px;
+            color: #344766;
+            display: flex;
+            gap: 0.65rem;
+            justify-content: space-between;
+            line-height: 1.45;
+            min-height: 2.8rem;
+            padding: 0.6rem 0.55rem;
+            transition: background-color 0.16s ease, color 0.16s ease;
+        }
+
+        .complaint-topic-link + .complaint-topic-link {
+            border-top: 1px solid rgba(58, 101, 184, 0.1);
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+        }
+
+        .complaint-topic-link:hover,
+        .complaint-topic-link:focus-visible {
+            background: #f3f6ff;
+            color: #1a3d7c;
+        }
+
+        .complaint-topic-link__text {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .complaint-topic-link__icon {
+            color: #caa84a;
+            flex: 0 0 auto;
+            font-size: 0.75rem;
+        }
+
+        .complaint-category-empty {
+            color: #66738d;
+            font-size: 0.9rem;
+            padding: 0.75rem 0.5rem;
+        }
+
+        @media screen and (max-width: 1023px) {
+            .complaint-home-layout > .column.is-3,
+            .complaint-home-layout > .complaint-home-content {
+                width: 100%;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .complaint-home {
+                padding: 1rem 0.85rem;
+            }
+
+            .complaint-home-hero {
+                border-radius: 18px;
+                margin-bottom: 1rem;
+                padding: 1.25rem 1.15rem 1.25rem 1.35rem;
+            }
+
+            .complaint-home-layout > .column.is-3 {
+                margin-bottom: 0.4rem;
+            }
+
+            .complaint-category-grid > .column {
+                padding-bottom: 0.45rem;
+                padding-top: 0.45rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .complaint-topic-link,
+            .complaint-home-layout > .column.is-3 .menu-list a {
+                transition: none;
+            }
+        }
+    </style>
+{% endblock %}
+
 {% block page_content %}
 {% include "complaint_tracker/nav.html" %}
-<section class="section">
+<section class="section complaint-home">
     <div class="container">
         {% include 'messages.html' %}
-        <div class="columns">
+
+        <header class="complaint-home-hero">
+            <p class="complaint-home-eyebrow">COMPLAINT TRACKER</p>
+            <h1 class="title">ระบบรับแจ้งปัญหาหรือข้อร้องเรียน</h1>
+            <p class="complaint-home-hero__description">
+                เลือกหัวข้อที่ตรงกับเรื่องที่ต้องการแจ้ง เพื่อส่งข้อมูลให้หน่วยงานที่เกี่ยวข้องรับเรื่องและติดตามดำเนินการ
+            </p>
+            <p class="complaint-home-hero__faculty">
+                <span class="icon" aria-hidden="true"><i class="fas fa-university"></i></span>
+                <span>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</span>
+            </p>
+        </header>
+
+        <div class="columns is-variable is-5 complaint-home-layout">
             {% include "complaint_tracker/menu.html" %}
-            <div class="column is-6">
-                {% include 'complaint_tracker/title.html' %}
-                <h1 class="subtitle has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
-                <nav class="panel is-info">
-                    <p class="panel-heading">อาคาร สถานที่ ครุภัณฑ์ และระบบเครือข่าย</p>
-                    <a class="panel-block" href="{{ url_for('comp_tracker.repair_request_landing') }}">
-                        <span class="panel-icon"><i class="fas fa-exclamation-circle"></i></span>
-                        <span class="is-size-5">
-                            แจ้งปัญหาการใช้งานห้องเรียน ห้องประชุม ครุภัณฑ์ชำรุด และสัญญาณอินเทอร์เน็ต
-                        </span>
-                    </a>
-                </nav>
-                {% for cat in categories|sort(attribute="no") %}
-                    <nav class="panel is-info">
-                        <p class="panel-heading">{{ cat }}</p>
-                        {% for topic in cat.topics %}
-                            <a class="panel-block" href="{{ url_for('comp_tracker.new_record',
-                                topic_id=topic.id) }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                </span>
-                                <span class="is-size-5">
-                                    {{ topic }}
-                                </span>
-                            </a>
-                        {% endfor %}
-                    </nav>
-                {% endfor %}
-            </div>
+
+            <main class="column is-9-desktop complaint-home-content">
+                <div class="complaint-home-section-heading">
+                    <h2 class="title">ประเภทเรื่องที่ต้องการแจ้ง</h2>
+                    <p>เลือกจากหมวดด้านล่างเพื่อเริ่มกรอกรายละเอียด</p>
+                </div>
+
+                <div class="columns is-multiline is-variable is-3 complaint-category-grid">
+                    <div class="column is-6-desktop is-12-tablet">
+                        <section class="complaint-category-card" aria-label="หมวดอาคาร สถานที่ ครุภัณฑ์ และระบบเครือข่าย">
+                            <header class="complaint-category-card__header">
+                                <h3 class="complaint-category-card__title">อาคาร สถานที่ ครุภัณฑ์ และระบบเครือข่าย</h3>
+                            </header>
+                            <div class="complaint-category-card__topics">
+                                <a class="complaint-topic-link" href="{{ url_for('comp_tracker.repair_request_landing') }}">
+                                    <span class="complaint-topic-link__text">
+                                        แจ้งปัญหาห้องเรียน ห้องประชุม ครุภัณฑ์ชำรุด หรือสัญญาณอินเทอร์เน็ต
+                                    </span>
+                                    <span class="complaint-topic-link__icon" aria-hidden="true">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </a>
+                            </div>
+                        </section>
+                    </div>
+                    {% for cat in categories|sort(attribute="no") %}
+                        <div class="column is-6-desktop is-12-tablet">
+                            <section class="complaint-category-card" aria-label="หมวด {{ cat }}">
+                                <header class="complaint-category-card__header">
+                                    <h3 class="complaint-category-card__title">{{ cat }}</h3>
+                                </header>
+                                <div class="complaint-category-card__topics">
+                                    {% for topic in cat.topics %}
+                                        <a class="complaint-topic-link" href="{{ url_for('comp_tracker.new_record', topic_id=topic.id) }}">
+                                            <span class="complaint-topic-link__text">{{ topic }}</span>
+                                            <span class="complaint-topic-link__icon" aria-hidden="true">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </span>
+                                        </a>
+                                    {% else %}
+                                        <p class="complaint-category-empty">ยังไม่มีหัวข้อในหมวดนี้</p>
+                                    {% endfor %}
+                                </div>
+                            </section>
+                        </div>
+                    {% else %}
+                        <div class="column is-12">
+                            <div class="notification is-light">ขณะนี้ยังไม่มีหมวดหมู่สำหรับแจ้งปัญหา</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </main>
         </div>
     </div>
 </section>

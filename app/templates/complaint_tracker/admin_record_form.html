@@ -9,6 +9,112 @@
           href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
     <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
     <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+    <style>
+        #record {
+            --record-accent: #2563eb;
+            --record-ink: #1f2937;
+            --record-muted: #64748b;
+            --record-border: #e2e8f0;
+            background: #f6f8fc;
+            min-height: 100vh;
+        }
+
+        #record > .container { max-width: 1180px; }
+        #record .column { min-width: 0; }
+        #record form { color: var(--record-ink); }
+        #record form > .columns:first-of-type {
+            margin: 1.5rem 0 .75rem;
+            padding: 1rem 1.25rem;
+            background: #fff;
+            border: 1px solid var(--record-border);
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(15, 23, 42, .04);
+        }
+        #record form > .columns:first-of-type .title {
+            margin: 0;
+            color: #172554;
+        }
+        #record form > .box {
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid var(--record-border);
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(15, 23, 42, .045);
+        }
+        #record form > h5.title {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            margin: 2rem 0 .85rem;
+            padding-left: .85rem;
+            border-left: 4px solid var(--record-accent);
+            color: #172554;
+        }
+        #record form .box h5.title { color: #1e3a8a; }
+        #record form .box hr { height: 1px; }
+        #record .label { color: #334155; font-weight: 600; }
+        #record .input, #record .textarea, #record .select select,
+        #record .select2-container--default .select2-selection--single,
+        #record .select2-container--default .select2-selection--multiple {
+            border-color: #cbd5e1;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+        #record .input:focus, #record .textarea:focus, #record .select select:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
+        }
+        #record input[readonly], #record textarea[readonly] {
+            color: #475569;
+            background: #f1f5f9 !important;
+            border-color: #e2e8f0;
+        }
+        #record .steps {
+            overflow-x: auto;
+            padding: 1.25rem 1rem 1rem;
+            background: #fff;
+            border: 1px solid var(--record-border);
+            border-radius: 14px;
+        }
+        #record .steps-content p { color: var(--record-muted); }
+        #record .steps-segment.is-active .steps-marker {
+            background: var(--record-accent);
+            box-shadow: 0 0 0 4px #dbeafe;
+        }
+        #record .tag { margin: .15rem .15rem .15rem 0; }
+        #record .buttons .button, #record .button { border-radius: 8px; }
+        #record .field.has-addons > .control:not(:last-child) { margin-right: 0; }
+        #record .field.has-addons > .control:first-child .button {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        #record .field.has-addons > .control + .control .button {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+        #record form > .buttons:last-child {
+            position: sticky;
+            bottom: .75rem;
+            z-index: 5;
+            width: fit-content;
+            margin: 1.5rem auto;
+            padding: .55rem .75rem;
+            background: rgba(255, 255, 255, .96);
+            border: 1px solid var(--record-border);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+        }
+        @media (max-width: 768px) {
+            #record.section { padding: 1rem .75rem; }
+            #record form > .columns:first-of-type { display: block; padding: 1rem; }
+            #record form > .columns:first-of-type > .column { padding: .35rem; }
+            #record form > .box { padding: 1rem; }
+            #record form > h5.title { margin-top: 1.5rem; }
+            #record .steps { white-space: nowrap; }
+            #record .steps-segment { min-width: 9rem; }
+            #record form > .buttons:last-child { max-width: 100%; flex-wrap: wrap; }
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "nav.html" %}

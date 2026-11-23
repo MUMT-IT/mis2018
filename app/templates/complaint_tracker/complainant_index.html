@@ -1,136 +1,343 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block title %}MUMT-MIS: รายการแจ้งปัญหา{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        html {
+            background: #edf3fa !important;
+        }
+
+        body {
+            background: #edf3fa;
+        }
+
+        .complainant-page {
+            background: #edf3fa;
+            min-height: calc(100vh - 3.25rem);
+            padding: 1.75rem 1rem 3rem;
+        }
+
+        .complainant-page .container {
+            max-width: 1280px;
+        }
+
+        .complainant-hero {
+            align-items: center;
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-radius: 20px;
+            box-shadow: 0 12px 28px rgba(23, 59, 118, 0.16);
+            color: #fff;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding: 1.5rem 1.75rem;
+        }
+
+        .complainant-hero__eyebrow {
+            color: #ffe08a;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.3rem;
+        }
+
+        .complainant-hero .title {
+            color: #fff;
+            font-size: clamp(1.4rem, 3vw, 1.9rem);
+            margin-bottom: 0.35rem;
+        }
+
+        .complainant-hero__description {
+            color: rgba(255, 255, 255, 0.82);
+            margin: 0;
+        }
+
+        .complainant-hero__actions {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            justify-content: flex-end;
+        }
+
+        .complainant-hero__actions .button {
+            flex: 0 0 auto;
+        }
+
+        .complainant-evaluation {
+            margin-bottom: 1rem;
+        }
+
+        .complainant-panel {
+            background: #fff;
+            border: 1px solid #e5eaf2;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(29, 51, 84, 0.05);
+            overflow: hidden;
+        }
+
+        .complainant-panel__heading {
+            align-items: center;
+            border-bottom: 1px solid #edf0f5;
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+        }
+
+        .complainant-panel__heading .title {
+            color: #243b61;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .complainant-table-wrap {
+            overflow-x: auto;
+            padding: 0 1rem 0.75rem;
+        }
+
+        #records {
+            min-width: 940px;
+        }
+
+        #records thead th {
+            background: #f7f9fc;
+            color: #56657d;
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        #records td {
+            color: #394960;
+            vertical-align: middle;
+        }
+
+        #records tbody tr:hover {
+            background: #f8faff;
+        }
+
+        .complainant-date {
+            color: #52647f;
+            min-width: 9.5rem;
+            white-space: nowrap;
+        }
+
+        .complainant-description {
+            line-height: 1.55;
+            max-width: 22rem;
+            min-width: 15rem;
+            white-space: normal;
+        }
+
+        .complainant-contact {
+            min-width: 12rem;
+        }
+
+        .complainant-contact p {
+            margin-bottom: 0.2rem;
+        }
+
+        .complainant-status {
+            white-space: nowrap;
+        }
+
+        .complainant-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            min-width: 8rem;
+        }
+
+        .complainant-empty {
+            color: #728097;
+            padding: 2.5rem 1rem !important;
+            text-align: center;
+        }
+
+        @media screen and (max-width: 768px) {
+            .complainant-page {
+                padding: 1rem 0.75rem 2rem;
+            }
+
+            .complainant-hero {
+                align-items: flex-start;
+                border-radius: 16px;
+                flex-direction: column;
+                padding: 1.25rem;
+            }
+
+            .complainant-hero__actions {
+                justify-content: flex-start;
+                width: 100%;
+            }
+
+            .complainant-panel__heading {
+                padding: 0.9rem 1rem;
+            }
+
+            .complainant-table-wrap {
+                padding: 0 0.5rem 0.5rem;
+            }
+        }
+    </style>
+{% endblock %}
 
 {% block page_content %}
 {% include "complaint_tracker/index_nav.html" %}
-<section class="section">
+<section class="section complainant-page">
     <div class="container">
         {% include 'messages.html' %}
-        <div class="columns is-centered">
-            <div class="column">
-                <h1 class="title has-text-centered">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
-                {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
-                    {{ user_evaluate('complaint_system_for_user') }}
+
+        <header class="complainant-hero">
+            <div>
+                <p class="complainant-hero__eyebrow">COMPLAINT TRACKER</p>
+                <h1 class="title">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+                <p class="complainant-hero__description">ติดตามสถานะและผลการดำเนินงานของรายการที่คุณแจ้ง</p>
+            </div>
+            <div class="complainant-hero__actions">
+                <a class="button is-light" href="{{ url_for('comp_tracker.index') }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
                 {% if is_admin %}
-                    <div class="buttons mt-4 is-centered">
-                        <a class="button is-light is-danger" href="{{ url_for('comp_tracker.admin_index', tab='new') }}">
-                            <span>ฝ่าย ADMIN</span>
-                        </a>
-                    </div>
+                    <a class="button is-warning is-light" href="{{ url_for('comp_tracker.admin_index', tab='new') }}">
+                        <span class="icon"><i class="fas fa-user-shield"></i></span>
+                        <span>ไปยังหน้าจัดการของ ADMIN</span>
+                    </a>
                 {% endif %}
-                <table id="records" class="table is-fullwidth">
+            </div>
+        </header>
+
+        <div class="complainant-evaluation">
+            {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+            {{ user_evaluate('complaint_system_for_user') }}
+        </div>
+
+        <section class="complainant-panel" aria-labelledby="complainant-list-title">
+            <div class="complainant-panel__heading">
+                <h2 id="complainant-list-title" class="title">รายการของฉัน</h2>
+            </div>
+            <div class="complainant-table-wrap">
+                <table id="records" class="table is-fullwidth is-hoverable">
                     <thead>
-                        <th>วันที่แจ้ง</th>
-                        <th>รายละเอียดปัญหา</th>
-                        <th>ข้อมูลติดต่อผู้ส่ง</th>
-                        <th>สถานะ</th>
-                        <th>ผลการดำเนินงาน</th>
-                        <th>รายละเอียด</th>
-                        <th>ยกเลิก</th>
+                        <tr>
+                            <th>วันที่แจ้ง</th>
+                            <th>รายละเอียดปัญหา</th>
+                            <th>ข้อมูลติดต่อ</th>
+                            <th>สถานะ</th>
+                            <th>ผลการดำเนินงาน</th>
+                            <th>รายละเอียด</th>
+                            <th>ยกเลิก</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% for record in records|sort(attribute='created_at', reverse = True) %}
+                        {% for record in records|sort(attribute='created_at', reverse=true) %}
                             <tr>
-                                <td style="width: 10em" data-order="{{ record.created_at }}">
+                                <td class="complainant-date" data-order="{{ record.created_at }}">
                                     {{ record.created_at|localdatetime }}
                                 </td>
-                                <td style="width: 15em">
-                                    {{ record.desc }}
-                                </td>
-                                <td>
+                                <td class="complainant-description">{{ record.desc }}</td>
+                                <td class="complainant-contact">
                                     {% if record.fl_name %}
-                                        <p>
-                                            <b>ชื่อ-นามสกุล :</b>
-                                            {{ record.fl_name }}
-                                        </p>
-                                        <p>
-                                            <b>เบอร์โทรศัพท์ :</b>
-                                            {{ record.telephone }}
-                                        </p>
+                                        <p><b>ชื่อ-นามสกุล:</b> {{ record.fl_name }}</p>
+                                        <p><b>เบอร์โทรศัพท์:</b> {{ record.telephone }}</p>
+                                    {% else %}
+                                        <span class="has-text-grey-light">—</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="complainant-status">
                                     {% if record.status %}
                                         <span class="tag {{ record.status.color }}">
                                             <span class="icon">{{ record.status.icon|safe }}</span>
                                             <span>{{ record.status }}</span>
                                         </span>
                                     {% else %}
-                                        <span class="tag is-danger">
-                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                        <span class="tag is-warning is-light">
+                                            <span class="icon"><i class="fas fa-clock"></i></span>
                                             <span>ยังไม่ดำเนินการ</span>
                                         </span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div id="view-performance-report"></div>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-rounded"
-                                               hx-swap="innerHTML"
-                                               hx-target="#view-performance-report"
-                                               hx-get="{{ url_for('comp_tracker.view_performance_report', record_id=record.id) }}">
-                                                <span class="icon">
-                                                    <i class="fas fa-search"></i>
-                                                </span>
-                                                <span>
-                                                    View
-                                                </span>
-                                            </a>
-                                        </div>
-                                    </div>
+                                    <a class="button is-small is-rounded is-link is-light"
+                                       hx-swap="innerHTML"
+                                       hx-target="#performance-report-modal-container"
+                                       hx-get="{{ url_for('comp_tracker.view_performance_report', record_id=record.id) }}">
+                                        <span class="icon"><i class="fas fa-chart-line"></i></span>
+                                        <span>ดูผล</span>
+                                    </a>
                                 </td>
                                 <td>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-light is-rounded is-info"
-                                               href="{{ url_for('comp_tracker.view_record_complaint', record_id=record.id) }}">
-                                                <span class="icon">
-                                                    <i class="fas fa-eye"></i>
-                                                </span>
-                                                <span>
-                                                    View
-                                                </span>
-                                            </a>
-                                        </div>
-                                    </div>
+                                    <a class="button is-small is-rounded is-info is-light"
+                                       href="{{ url_for('comp_tracker.view_record_complaint', record_id=record.id) }}">
+                                        <span class="icon"><i class="fas fa-eye"></i></span>
+                                        <span>รายละเอียด</span>
+                                    </a>
                                 </td>
                                 <td>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            {% if not record.status %}
-                                                <a class="button is-small is-light is-rounded is-danger"
-                                                   hx-post="{{ url_for('comp_tracker.cancel_complaint',
-                                                   record_id=record.id) }}"
-                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                   hx-confirm="ท่านต้องการยกเลิกรายการแจ้งปัญหานี้หรือไม่">
-                                                    <span class="icon">
-                                                        <i class="fas fa-trash"></i>
-                                                    </span>
-                                                    <span>
-                                                        ยกเลิก
-                                                    </span>
-                                                </a>
-                                            {% endif %}
-                                        </div>
-                                    </div>
+                                    {% if not record.status %}
+                                        <a class="button is-small is-rounded is-danger is-light"
+                                           hx-post="{{ url_for('comp_tracker.cancel_complaint', record_id=record.id) }}"
+                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                           hx-confirm="ท่านต้องการยกเลิกรายการแจ้งปัญหานี้หรือไม่">
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>ยกเลิก</span>
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td class="complainant-empty" colspan="7">
+                                    <span class="icon is-large has-text-grey-light"><i class="fas fa-inbox fa-2x"></i></span>
+                                    <p>ยังไม่มีรายการแจ้งปัญหา</p>
                                 </td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
+        <div id="performance-report-modal-container"></div>
     </div>
 </section>
 {% endblock %}
+
 {% block scripts %}
     {{ super() }}
     <script>
         $(document).ready(function () {
             $('#records').DataTable({
-                order: [[0, 'desc']]
+                order: [[0, 'desc']],
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีรายการ',
+                    zeroRecords: 'ไม่พบรายการที่ตรงกัน',
+                    paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+                }
             });
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function (event) {
+            if (event.detail.target && event.detail.target.id === 'performance-report-modal-container') {
+                const closeButton = document.getElementById('cancelButton');
+                const modal = document.getElementById('performance-report-modal');
+                if (!closeButton || !modal) return;
+
+                closeButton.addEventListener('click', function () {
+                    modal.classList.remove('is-active');
+                    modal.remove();
+                }, { once: true });
+
+                modal.querySelector('.modal-background').addEventListener('click', function () {
+                    modal.classList.remove('is-active');
+                    modal.remove();
+                }, { once: true });
+            }
         });
     </script>
 {% endblock %}

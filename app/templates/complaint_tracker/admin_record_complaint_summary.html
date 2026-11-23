@@ -1,16 +1,147 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
 
+{% block head %}
+    {{ super() }}
+    <style>
+        .complaint-summary {
+            --summary-ink: #1e293b;
+            --summary-muted: #64748b;
+            --summary-border: #e2e8f0;
+            color: var(--summary-ink);
+        }
+        .complaint-summary > .container { max-width: 1320px; }
+        .complaint-summary .summary-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: linear-gradient(120deg, #fff 55%, #eff6ff);
+            border: 1px solid var(--summary-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
+        }
+        .complaint-summary .summary-heading {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .complaint-summary .summary-heading-icon {
+            display: grid;
+            flex: 0 0 3.25rem;
+            width: 3.25rem;
+            height: 3.25rem;
+            place-items: center;
+            color: #2563eb;
+            background: #dbeafe;
+            border-radius: 12px;
+            font-size: 1.35rem;
+        }
+        .complaint-summary .summary-eyebrow {
+            margin-bottom: .25rem;
+            color: #2563eb;
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+        }
+        .complaint-summary .summary-heading .title { margin-bottom: .3rem; color: #172554; }
+        .complaint-summary .summary-description { margin: 0; color: var(--summary-muted); }
+        .complaint-summary .summary-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: .55rem;
+        }
+        .complaint-summary .summary-actions form { display: flex; margin: 0; }
+        .complaint-summary .summary-actions .button { min-height: 2.5rem; border-radius: 9px; }
+        .complaint-summary .summary-layout { align-items: flex-start; }
+        .complaint-summary .summary-sidebar { flex: 0 0 250px; }
+        .complaint-summary .summary-sidebar .menu {
+            padding: 1.25rem;
+            background: #fff;
+            border: 1px solid var(--summary-border);
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(15, 23, 42, .04);
+        }
+        .complaint-summary .summary-sidebar .menu-label { color: #64748b; letter-spacing: .08em; }
+        .complaint-summary .summary-sidebar .menu-list a {
+            margin: .15rem 0;
+            padding: .65rem .75rem;
+            color: #334155;
+            border-radius: 8px;
+        }
+        .complaint-summary .summary-sidebar .menu-list a:hover { background: #eff6ff; color: #1d4ed8; }
+        .complaint-summary .summary-sidebar .menu-list a.is-active { background: #2563eb; color: #fff; }
+        .complaint-summary .summary-chart-card {
+            margin-bottom: 1.25rem;
+            padding: 1.25rem;
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid var(--summary-border);
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(15, 23, 42, .04);
+        }
+        .complaint-summary .summary-chart-card .subtitle {
+            margin: 0 0 1rem;
+            padding-bottom: .8rem;
+            color: #1e3a8a;
+            border-bottom: 1px solid #e8eef7;
+        }
+        .complaint-summary .summary-chart-card hr { margin: 1.5rem 0; background: #e8eef7; }
+        .complaint-summary .summary-chart, .complaint-summary #tag_bar_chart {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .complaint-summary .summary-calendar-card { display: block; }
+        .complaint-summary .summary-calendar-card .subtitle { margin-bottom: 1.25rem; }
+        .complaint-summary .summary-calendar {
+            width: 100%;
+            min-width: 0;
+            margin: 0 auto 1.5rem;
+            overflow-x: auto;
+            text-align: center;
+        }
+        .complaint-summary .summary-calendar:last-child { margin-bottom: 0; }
+        .complaint-summary .summary-calendar svg { max-width: none; }
+        @media (max-width: 1023px) {
+            .complaint-summary .summary-header { align-items: flex-start; flex-direction: column; }
+            .complaint-summary .summary-actions { justify-content: flex-start; }
+            .complaint-summary .summary-sidebar { flex: 0 0 100%; }
+            .complaint-summary .summary-sidebar .menu { padding: 1rem; }
+            .complaint-summary .summary-sidebar .menu-list { display: flex; flex-wrap: wrap; gap: .25rem; }
+            .complaint-summary .summary-sidebar .menu-list li { display: contents; }
+            .complaint-summary .summary-sidebar .menu-list a { margin: 0; }
+        }
+        @media (max-width: 600px) {
+            .complaint-summary.section { padding: 1rem .75rem; }
+            .complaint-summary .summary-header, .complaint-summary .summary-chart-card { padding: 1rem; }
+            .complaint-summary .summary-heading { align-items: flex-start; }
+            .complaint-summary .summary-heading .title { font-size: 1.35rem; }
+            .complaint-summary .summary-actions { width: 100%; flex-direction: column; }
+            .complaint-summary .summary-actions form, .complaint-summary .summary-actions .button { width: 100%; }
+            .complaint-summary .summary-calendar-card { display: block; }
+        }
+    </style>
+{% endblock %}
+
 {% block page_content %}
-    <section class="section">
-        <div class="level">
-            <div class="level-left">
-                <h1 class="title">สถิติการแจ้งปัญหาหรือข้อร้องเรียน</h1>
-            </div>
-            <div class="level-right">
+    <section class="section complaint-summary">
+        <div class="container">
+            <header class="summary-header">
+                <div class="summary-heading">
+                    <span class="summary-heading-icon"><i class="fas fa-chart-line"></i></span>
+                    <div>
+                        <p class="summary-eyebrow">COMPLAINT TRACKER</p>
+                        <h1 class="title">สถิติการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+                        <p class="summary-description">ภาพรวมรายการแจ้งปัญหาและผลการดำเนินงาน</p>
+                    </div>
+                </div>
                 {% if can_send_summary %}
+                    <div class="summary-actions">
                     <a href="{{ url_for('comp_tracker.line_remind_no_status_today', dry_run='true') }}"
-                       class="button is-warning is-light is-rounded mr-2">
+                       class="button is-warning is-light">
                         <span class="icon">
                             <i class="fab fa-line"></i>
                         </span>
@@ -19,7 +150,7 @@
                     <form method="post" action="{{ url_for('comp_tracker.line_remind_no_status_today') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="send" value="true">
-                        <button type="submit" class="button is-warning is-rounded mr-2">
+                        <button type="submit" class="button is-warning">
                             <span class="icon">
                                 <i class="fab fa-line"></i>
                             </span>
@@ -29,43 +160,50 @@
                     <form method="post" action="{{ url_for('comp_tracker.email_unfinished_summary') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="send" value="true">
-                        <button type="submit" class="button is-rounded is-info">
+                        <button type="submit" class="button is-info">
                             <span class="icon">
                                 <i class="fas fa-envelope"></i>
                             </span>
                             <span>ส่งสรุปเรื่องคงค้างให้ผู้บริหาร</span>
                         </button>
                     </form>
+                    </div>
+                {% endif %}
+            </header>
+            <div class="columns is-variable is-5 summary-layout">
+                {% set topics = topics %}
+                {% include 'complaint_tracker/conclusion_menu.html' %}
+                {% if menu == 'tag' %}
+                    <div class="column summary-content">
+                        <div class="summary-chart-card">
+                            <h2 class="subtitle">แผนภูมิ Tag ที่พบปัญหามากที่สุด 10 อันดับ</h2>
+                            <div id="tag_bar_chart"></div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="column summary-content">
+                        <div class="summary-chart-card">
+                            {% if menu == 'all' %}
+                                <h2 class="subtitle">แผนภูมิสรุปการแจ้งปัญหาหรือข้อร้องเรียน</h2>
+                            {% else %}
+                                <h2 class="subtitle">แผนภูมิสรุปการ{{ topic }}</h2>
+                            {% endif %}
+                            <div id="pie_chart" class="summary-chart"></div>
+                            <hr>
+                            <div id="bar_chart" class="summary-chart"></div>
+                            <hr>
+                            <div id="unfinished_repair_approval_chart" class="summary-chart"></div>
+                        </div>
+                        <div class="summary-chart-card summary-calendar-card">
+                            <h2 class="subtitle">ปฏิทินรายการแจ้งปัญหาตามสถานะ</h2>
+                            <div id="calendar_new" class="summary-calendar"></div>
+                            <div id="calendar_pending" class="summary-calendar"></div>
+                            <div id="calendar_progress" class="summary-calendar"></div>
+                            <div id="calendar_success" class="summary-calendar"></div>
+                        </div>
+                    </div>
                 {% endif %}
             </div>
-        </div>
-        <div class="columns">
-            {% set topics = topics %}
-            {% include 'complaint_tracker/conclusion_menu.html' %}
-            {% if menu == 'tag' %}
-                <div class="container">
-                    <h1 class="subtitle" style="margin-top: .5em">แผนภูมิ tag 10 อันดับแรกที่มีการพบปัญหามากที่สุด</h1>
-                    <div id="tag_bar_chart"></div>
-                </div>
-            {% else %}
-                <div class="container">
-                    {% if menu == 'all' %}
-                        <h1 class="subtitle" style="margin-top: .5em">แผนภูมิสรุปการแจ้งปัญหาหรือข้อร้องเรียน</h1>
-                    {% else %}
-                        <h1 class="subtitle" style="margin-top: .5em">แผนภูมิสรุปการ{{ topic }}</h1>
-                    {% endif %}
-                    <div id="pie_chart"></div>
-                    <hr style="margin-bottom: 4em">
-                    <div id="bar_chart"></div>
-                    <hr style="margin-bottom: 4em">
-                    <div id="unfinished_repair_approval_chart"></div>
-                    <hr style="margin-bottom: 4em">
-                    <div id="calendar_new"></div>
-                    <div id="calendar_pending"></div>
-                    <div id="calendar_progress"></div>
-                    <div id="calendar_success"></div>
-                </div>
-            {% endif %}
         </div>
     </section>
 {% endblock %}
@@ -105,115 +243,51 @@
     {% else %}
         <script type="text/javascript">
             {% if menu == 'all' %}
-                var code = null;
+                var calendarCode = null;
             {% else %}
-                var code = '{{ code }}';
+                var calendarCode = '{{ code }}';
             {% endif %}
 
             google.charts.load("current", {packages:["calendar"]});
-            google.charts.setOnLoadCallback(drawChart);
+            google.charts.setOnLoadCallback(function () {
+                var calendars = [
+                    { id: 'calendar_new', title: 'ยังไม่ดำเนินการ', url: "{{ url_for('comp_tracker.get_new_record_complaint') }}" },
+                    { id: 'calendar_pending', title: 'รอดำเนินการ', url: "{{ url_for('comp_tracker.get_pending_record_complaint') }}" },
+                    { id: 'calendar_progress', title: 'อยู่ระหว่างดำเนินการ', url: "{{ url_for('comp_tracker.get_progress_record_complaint') }}" },
+                    { id: 'calendar_success', title: 'ดำเนินการแล้ว', url: "{{ url_for('comp_tracker.get_success_record_complaint') }}" }
+                ];
 
-            function drawChart() {
-                var jsonData = $.ajax({
-                    url: "{{ url_for('comp_tracker.get_new_record_complaint') }}?code=" + code,
-                    dataType: "json",
-                    async: false
-                }).responseText;
-                var data = new google.visualization.DataTable(jsonData);
+                calendars.forEach(function (item) {
+                    var jsonData = $.ajax({
+                        url: item.url + '?code=' + calendarCode,
+                        dataType: 'json',
+                        async: false
+                    }).responseText;
+                    item.data = new google.visualization.DataTable(jsonData);
+                    item.element = document.getElementById(item.id);
+                    item.chart = new google.visualization.Calendar(item.element);
+                });
 
-                var chart = new google.visualization.Calendar(document.getElementById('calendar_new'));
+                function drawCalendars() {
+                    calendars.forEach(function (item) {
+                        var width = Math.max(280, item.element.clientWidth);
+                        var cellSize = Math.max(6, Math.min(16, Math.floor((width - 150) / 66)));
+                        item.chart.draw(item.data, {
+                            title: item.title,
+                            width: width,
+                            height: 340,
+                            calendar: { cellSize: cellSize }
+                        });
+                    });
+                }
 
-                var options = {
-                    title: 'ยังไม่ดำเนินการ',
-                    height: 450, calendar: { cellSize: 20 }
-                };
-
-                chart.draw(data, options);
-            }
-        </script>
-        <script type="text/javascript">
-            {% if menu == 'all' %}
-                var code = null;
-            {% else %}
-                var code = '{{ code }}';
-            {% endif %}
-
-            google.charts.load("current", {packages:["calendar"]});
-            google.charts.setOnLoadCallback(drawChart);
-
-            function drawChart() {
-                var jsonData = $.ajax({
-                    url: "{{ url_for('comp_tracker.get_pending_record_complaint') }}?code=" + code,
-                    dataType: "json",
-                    async: false
-                }).responseText;
-                var data = new google.visualization.DataTable(jsonData);
-
-                var chart = new google.visualization.Calendar(document.getElementById('calendar_pending'));
-
-                var options = {
-                    title: 'รอดำเนินการ',
-                    height: 450, calendar: { cellSize: 20 }
-                };
-
-                chart.draw(data, options);
-            }
-        </script>
-        <script type="text/javascript">
-            {% if menu == 'all' %}
-                var code = null;
-            {% else %}
-                var code = '{{ code }}';
-            {% endif %}
-
-            google.charts.load("current", {packages:["calendar"]});
-            google.charts.setOnLoadCallback(drawChart);
-
-            function drawChart() {
-                var jsonData = $.ajax({
-                    url: "{{ url_for('comp_tracker.get_progress_record_complaint') }}?code=" + code,
-                    dataType: "json",
-                    async: false
-                }).responseText;
-                var data = new google.visualization.DataTable(jsonData);
-
-                var chart = new google.visualization.Calendar(document.getElementById('calendar_progress'));
-
-                var options = {
-                    title: 'อยู่ระหว่างดำเนินการ',
-                    height: 450, calendar: { cellSize: 20 }
-                };
-
-                chart.draw(data, options);
-            }
-        </script>
-        <script type="text/javascript">
-            {% if menu == 'all' %}
-                var code = null;
-            {% else %}
-                var code = '{{ code }}';
-            {% endif %}
-
-            google.charts.load("current", {packages:["calendar"]});
-            google.charts.setOnLoadCallback(drawChart);
-
-            function drawChart() {
-                var jsonData = $.ajax({
-                    url: "{{ url_for('comp_tracker.get_success_record_complaint') }}?code=" + code,
-                    dataType: "json",
-                    async: false
-                }).responseText;
-                var dataTable = new google.visualization.DataTable(jsonData);
-
-                var chart = new google.visualization.Calendar(document.getElementById('calendar_success'));
-
-                var options = {
-                    title: 'ดำเนินการแล้ว',
-                    height: 450, calendar: { cellSize: 20 }
-                };
-
-                chart.draw(dataTable, options);
-            }
+                drawCalendars();
+                var resizeTimer;
+                window.addEventListener('resize', function () {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(drawCalendars, 180);
+                });
+            });
         </script>
         <script type="text/javascript">
             {% if menu == 'all' %}

@@ -1,3 +1,75 @@
+<style>
+    #performance-report-modal .modal-card {
+        border-radius: 10px;
+        overflow: hidden;
+        width: min(760px, calc(100vw - 2rem));
+    }
+
+    #performance-report-modal .modal-card-head {
+        background: #f1f5fb;
+        border-bottom: 1px solid #dce5f0;
+        padding: 1rem 1.25rem;
+    }
+
+    #performance-report-modal .modal-card-title {
+        color: #173b76;
+        font-size: 1.15rem;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    #performance-report-modal .modal-card-body {
+        background: #fff;
+        padding: 1.25rem;
+    }
+
+    #performance-report-modal .performance-report-table-wrap {
+        border: 1px solid #dce5f0;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+
+    #performance-report-modal .performance-report-table {
+        margin: 0;
+        min-width: 560px;
+    }
+
+    #performance-report-modal .performance-report-table thead th {
+        background: #eaf0f8;
+        border-bottom: 2px solid #cbd7e7;
+        color: #29466f;
+        font-size: 0.88rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    #performance-report-modal .performance-report-table tbody td {
+        border-bottom: 1px solid #e3e9f1;
+        color: #34445c;
+        line-height: 1.55;
+        vertical-align: top;
+    }
+
+    #performance-report-modal .performance-report-table tbody tr:nth-child(even) {
+        background: #f6f8fb;
+    }
+
+    #performance-report-modal .performance-report-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    #performance-report-modal .performance-report-empty {
+        color: #728097;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    @media screen and (max-width: 600px) {
+        #performance-report-modal .modal-card-body {
+            padding: 0.75rem;
+        }
+    }
+</style>
 <div class="modal is-active" id="performance-report-modal">
     <div class="modal-background"></div>
         <div class="modal-card">
@@ -6,16 +78,17 @@
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <div class="field" style="margin-left: 1em; text-align: left">
-                     <table class="table is-striped is-fullwidth">
-                         <thead>
-                            {% if record.reports or record.coordinators %}
-                                <th>ชื่อผู้รายงาน</th>
-                                <th>รายละเอียด</th>
-                                <th>วัน-เวลาที่รายงาน</th>
-                            {% endif %}
-                         </thead>
-                         <tbody>
+                {% if record.reports or record.coordinators %}
+                    <div class="performance-report-table-wrap">
+                        <table class="table is-fullwidth performance-report-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อผู้รายงาน</th>
+                                    <th>รายละเอียด</th>
+                                    <th>วัน-เวลาที่รายงาน</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                             {% for report in record.reports %}
                                 <tr>
                                     <td>{{ report.reporter.admin.fullname }}</td>
@@ -32,9 +105,12 @@
                                     </tr>
                                 {% endif %}
                             {% endfor %}
-                         </tbody>
-                     </table>
-                </div>
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="performance-report-empty">ยังไม่มีรายงานผลการดำเนินงาน</div>
+                {% endif %}
             </section>
         </div>
 </div>

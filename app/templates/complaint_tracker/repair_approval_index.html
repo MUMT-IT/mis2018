@@ -4,29 +4,321 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <style>
+        html {
+            background: #edf3fa !important;
+        }
+
+        body {
+            background: #edf3fa;
+        }
+
+        .repair-approval-page {
+            background: #edf3fa;
+            min-height: calc(100vh - 3.25rem);
+            padding: 1.5rem 0.75rem 3rem;
+        }
+
+        .repair-approval-page .container {
+            max-width: 1600px;
+            width: 100%;
+        }
+
+        .repair-approval-header {
+            align-items: center;
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-radius: 18px;
+            box-shadow: 0 10px 26px rgba(23, 59, 118, 0.14);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .repair-approval-header__eyebrow {
+            color: #ffe08a;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.25rem;
+        }
+
+        .repair-approval-header .title {
+            color: #fff;
+            font-size: clamp(1.35rem, 2.8vw, 1.8rem);
+            margin: 0;
+        }
+
+        .repair-approval-card {
+            background: #fff;
+            border: 1px solid #e3e9f1;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(29, 51, 84, 0.05);
+            overflow: hidden;
+        }
+
+        #repair_approvals_wrapper {
+            padding: 0.65rem 0.8rem 0.8rem;
+        }
+
+        #repair_approvals_wrapper .dataTables_length,
+        #repair_approvals_wrapper .dataTables_filter {
+            margin: 0.25rem 0.4rem 0.8rem;
+        }
+
+        #repair_approvals_wrapper .dataTables_info,
+        #repair_approvals_wrapper .dataTables_paginate {
+            padding: 0.55rem 0.4rem 0.1rem;
+        }
+
+        .repair-approval-tabs {
+            margin: 0 !important;
+            overflow-x: auto;
+            padding: 1rem 1.1rem 0;
+        }
+
+        .repair-approval-tabs ul {
+            border-bottom-color: #e4eaf2;
+            flex-wrap: nowrap;
+            min-width: max-content;
+        }
+
+        .repair-approval-tabs li a {
+            border-bottom-width: 2px;
+            color: #52647f;
+            font-weight: 600;
+            gap: 0.35rem;
+            padding: 0.7rem 0.9rem;
+        }
+
+        .repair-approval-tabs li.is-active a {
+            background: #f2f6fc;
+            border-bottom-color: #245b9e;
+            border-color: #e4eaf2 #e4eaf2 #245b9e;
+            color: #173b76;
+        }
+
         #repair_approvals {
             width: 100%;
-            table-layout: auto;
+            table-layout: fixed;
+            font-size: 0.94rem;
         }
 
         #repair_approvals th,
         #repair_approvals td {
-            font-size: 14px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            word-break: break-word;
+            font-size: inherit;
+            overflow-wrap: anywhere;
+            padding: 0.55rem 0.45rem;
+            vertical-align: middle;
+            word-break: normal;
+        }
+
+        #repair_approvals thead th {
+            background: #eef3fa;
+            border-bottom: 2px solid #d6e0ed;
+            color: #344a69;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        #repair_approvals tbody td {
+            border-bottom: 1px solid #e8edf4;
+            color: #394960;
+            line-height: 1.45;
+        }
+
+        #repair_approvals tbody tr:nth-child(even) {
+            background: #f8fafd;
+        }
+
+        #repair_approvals tbody tr:hover {
+            background: #eef5ff;
+        }
+
+        #repair_approvals .tag {
+            height: auto;
+            line-height: 1.3;
+            padding: 0.3em 0.55em;
+            white-space: normal;
+        }
+
+        #repair_approvals .button {
+            height: auto;
+            font-size: 0.84rem;
+            line-height: 1.25;
+            max-width: 100%;
+            padding: 0.45rem 0.55rem;
+            white-space: normal;
+        }
+
+        #repair_approvals .button .icon {
+            flex: 0 0 auto;
+        }
+
+        #repair_approvals .repair-approval-actions {
+            white-space: nowrap;
+        }
+
+        #repair_approvals .repair-approval-action-buttons {
+            align-items: center;
+            display: flex;
+            gap: 0;
+            justify-content: center;
+            margin: 0;
+        }
+
+        #repair_approvals .repair-approval-action-buttons .control {
+            margin: 0 !important;
+        }
+
+        #repair_approvals .repair-approval-action-buttons .button {
+            align-items: center;
+            border-radius: 0;
+            box-shadow: none;
+            display: inline-flex;
+            height: 2.35rem;
+            justify-content: center;
+            padding: 0;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+            width: 2.35rem;
+        }
+
+        #repair_approvals .repair-approval-action-edit {
+            background: #fff7d6;
+            border: 1px solid #f4d66f;
+            border-radius: 10px 0 0 10px !important;
+            color: #8b6500;
+        }
+
+        #repair_approvals .repair-approval-action-edit:hover {
+            background: #ffedaa;
+            border-color: #e9c442;
+            box-shadow: 0 3px 8px rgba(139, 101, 0, 0.14);
+            transform: translateY(-1px);
+        }
+
+        #repair_approvals .repair-approval-action-delete {
+            background: #fff0f2;
+            border: 1px solid #f5b9c2;
+            border-left: 0;
+            border-radius: 0 10px 10px 0 !important;
+            color: #c3324b;
+        }
+
+        #repair_approvals .repair-approval-action-delete:hover {
+            background: #ffe0e5;
+            border-color: #ec9aa8;
+            box-shadow: 0 3px 8px rgba(195, 50, 75, 0.14);
+            transform: translateY(-1px);
+        }
+
+        #repair_approvals .repair-approval-action-buttons .icon {
+            margin: 0;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #repair_approvals .repair-approval-action-buttons .button {
+                transition: none;
+            }
+        }
+
+        .repair-approval-record-number {
+            color: #728097;
+            display: block;
+            font-size: 0.84em;
+            margin-top: 0.25rem;
+        }
+
+        .repair-approval-type-cell {
+            white-space: nowrap;
+        }
+
+        #repair_approvals .repair-approval-type-cell .tag {
+            white-space: nowrap;
+        }
+
+        .repair-approval-secondary-status {
+            border-top: 1px solid #e3e9f1;
+            margin-top: 0.4rem;
+            padding-top: 0.4rem;
+        }
+
+        .repair-approval-secondary-status__label {
+            color: #728097;
+            display: block;
+            font-size: 0.82rem;
+            margin-bottom: 0.2rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .repair-approval-page {
+                padding: 1rem 0.45rem 2rem;
+            }
+
+            .repair-approval-page .container {
+                padding: 0;
+            }
+
+            .repair-approval-header {
+                align-items: flex-start;
+                border-radius: 14px;
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .repair-approval-tabs {
+                padding: 0.6rem 0.6rem 0;
+            }
+
+            .repair-approval-tabs li a {
+                font-size: 0.8rem;
+                padding: 0.7rem 0.75rem;
+            }
+
+            #repair_approvals_wrapper {
+                padding: 0.5rem 0.6rem 0.65rem;
+            }
+
+            #repair_approvals_wrapper .dataTables_length,
+            #repair_approvals_wrapper .dataTables_filter {
+                margin: 0.2rem 0.2rem 0.65rem;
+            }
+
+            #repair_approvals_wrapper .dataTables_info,
+            #repair_approvals_wrapper .dataTables_paginate {
+                padding: 0.5rem 0.2rem 0.1rem;
+            }
+
+            #repair_approvals th,
+            #repair_approvals td {
+                font-size: 0.86rem;
+                padding: 0.4rem 0.3rem;
+            }
+
+            #repair_approvals .button {
+                font-size: 0.76rem;
+                padding: 0.35rem 0.4rem;
+            }
         }
     </style>
 {% endblock %}
 {% block page_content %}
 {% include "complaint_tracker/index_nav.html" %}
-<section class="section">
+<section class="section repair-approval-page">
     <div class="container">
         {% include 'messages.html' %}
-        <div class="columns is-centered">
-            <div class="column">
-                <h1 class="title has-text-centered">รายการคำขออนุมัติหลักการซ่อม</h1>
-                <div class="tabs is-boxed">
+        <header class="repair-approval-header">
+            <div>
+                <p class="repair-approval-header__eyebrow">COMPLAINT TRACKER</p>
+                <h1 class="title">รายการคำขออนุมัติหลักการซ่อม</h1>
+            </div>
+            <a class="button is-light is-rounded" href="{{ url_for('comp_tracker.index') }}">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>กลับหน้าหลัก</span>
+            </a>
+        </header>
+        <section class="repair-approval-card" aria-label="รายการคำขออนุมัติหลักการซ่อม">
+                <div class="tabs repair-approval-tabs">
                     <ul>
                         <li {% if tab == 'waiting_process' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('comp_tracker.repair_approval_index', tab='waiting_process', menu=menu) }}">
@@ -68,25 +360,27 @@
                 </div>
                 <table id="repair_approvals" class="table is-fullwidth">
                     <thead>
-                        <th style="width: 2em">วันที่ออก</th>
-                        <th>รายการ/ครุภัณฑ์</th>
-                        <th>ประเภท</th>
-                        <th>ประเภทการเบิกจ่าย/ปีงบประมาณ</th>
-                        <th style="width: 3em">วงเงิน</th>
-                        <th style="width: 6em">เหตุผล</th>
-                        <th>สถานะใบอนุมัติ</th>
-                        <th>สถานะการซ่อม</th>
-                        <th>ใบอนุมัติ/ใบเสนอราคา</th>
-                        <th></th>
+                        <tr>
+                            <th style="width: 10%">วันที่ / เลขที่</th>
+                            <th style="width: 14%">รายการ/ครุภัณฑ์</th>
+                            <th style="width: 15%">ประเภท</th>
+                            <th style="width: 9%">ประเภทเบิกจ่าย / ปีงบฯ</th>
+                            <th style="width: 7%">วงเงิน</th>
+                            <th style="width: 9%">เหตุผล</th>
+                            <th style="width: 15%">สถานะใบอนุมัติ / ซ่อม</th>
+                            <th style="width: 14%">ใบอนุมัติ / ใบเสนอราคา</th>
+                            <th style="width: 7%">จัดการ</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for repair_approval in repair_approvals %}
                             <tr>
-                                <td>
-                                    {{ repair_approval.created_at|localdatetime }}
+                                <td style="white-space: normal" data-order="{{ repair_approval.created_at }}">
+                                    <span>{{ repair_approval.created_at|localdatetime }}</span>
+                                    <span class="repair-approval-record-number">เลขที่ {{ repair_approval.record_id }}</span>
                                 </td>
                                 <td>{{ repair_approval.item }}</td>
-                                <td>
+                                <td class="repair-approval-type-cell">
                                     {% if repair_approval.principle_approval_type %}
                                         <span class="tag is-success is-rounded">
                                             {{  repair_approval.repair_type }} - {{ repair_approval.principle_approval_type }}
@@ -98,8 +392,8 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ repair_approval.purchase_type }} ({{ repair_approval.budget_year }})</td>
-                                <td>
-                                    {% if repair_approval.price %}
+                                <td style="text-align: right; white-space: nowrap">
+                                    {% if repair_approval.price is not none %}
                                         {{ "{:,.2f}".format(repair_approval.price) }}
                                     {% else %}
                                         {{ '' }}
@@ -107,17 +401,18 @@
                                 </td>
                                 <td>{{ repair_approval.reason }}</td>
                                 <td>
+                                    <span class="repair-approval-secondary-status__label">สถานะใบอนุมัติ</span>
                                     <span class="tag {{ repair_approval.status_color }}">
                                         <span class="icon">{{ repair_approval.status_icon|safe }}</span>
                                         <span>{{ repair_approval.status }}</span>
                                     </span>
                                     {% if repair_approval.cancelled_at %}
-                                        <br>ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                        <small class="is-block mt-1">ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}</small>
                                     {% elif repair_approval.reviewed_at %}
-                                        <br>ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                        <small class="is-block mt-1">ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}</small>
                                     {% endif %}
-                                </td>
-                                <td>
+                                    <div class="repair-approval-secondary-status">
+                                        <span class="repair-approval-secondary-status__label">สถานะการซ่อม</span>
                                     {% if repair_approval.record.status %}
                                         <span class="tag {{ repair_approval.record.status.color }}">
                                             <span class="icon">{{ repair_approval.record.status.icon|safe }}</span>
@@ -129,10 +424,11 @@
                                             <span>ยังไม่ดำเนินการ</span>
                                         </span>
                                     {% endif %}
+                                    </div>
                                 </td>
                                 <td>
-                                    <div class="field">
-                                        <div class="control mb-2">
+                                    <div>
+                                        <div class="mb-2">
                                             <a class="button is-small is-info is-outlined is-rounded"
                                                {% if repair_approval.has_data_complete %}
                                                     @click="printRepairApproval({{ repair_approval.id }})"
@@ -159,14 +455,15 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="repair-approval-actions">
                                     <div id="note-form"></div>
                                     {% if not repair_approval.cancelled_at and ((not repair_approval.record.status)
                                           or (repair_approval.record.status and repair_approval.record.status.code != 'completed')
                                           and (repair_approval.record.status and repair_approval.record.status.code != 'cancelled')) %}
-                                        <div class="field has-addons">
-                                            <div class="control mb-2">
-                                                <a class="button is-warning is-rounded is-small"
+                                        <div class="field has-addons repair-approval-action-buttons">
+                                            <div class="control">
+                                                <a class="button is-warning is-rounded is-small repair-approval-action-edit"
+                                                   title="แก้ไขรายการ" aria-label="แก้ไขรายการ"
                                                    href="{{ url_for('comp_tracker.edit_repair_approval',
                                                    repair_approval_id=repair_approval.id, temp='index', menu=menu,
                                                    tab=tab)}}"
@@ -175,7 +472,8 @@
                                                 </a>
                                             </div>
                                             <div class="control">
-                                                <a class="button is-danger is-rounded is-small"
+                                                <a class="button is-danger is-rounded is-small repair-approval-action-delete"
+                                                   title="ยกเลิกรายการ" aria-label="ยกเลิกรายการ"
                                                    hx-swap="innerHTML"
                                                    hx-target="#note-form"
                                                    hx-get="{{ url_for('comp_tracker.create_note',
@@ -191,8 +489,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
-        </div>
+        </section>
     </div>
 </section>
 {% endblock %}
@@ -242,7 +539,16 @@
             $.fn.dataTable.moment('%d/%m/%Y %X');
             $('#repair_approvals').DataTable({
                 order: [[0, 'desc']],
-                autoWidth: false
+                autoWidth: false,
+                language: {
+                    search: 'ค้นหา',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีรายการ',
+                    zeroRecords: 'ไม่พบรายการที่ตรงกัน',
+                    emptyTable: 'ไม่มีคำขออนุมัติในหมวดนี้',
+                    paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+                }
             });
         });
     </script>

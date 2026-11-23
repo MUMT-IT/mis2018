@@ -1,41 +1,96 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <style>
+        .procurement-number-page { min-height: calc(100vh - 3.25rem); background: #edf3fa; }
+        .procurement-number-page > .container { max-width: 780px; }
+        .equipment-form-hero {
+            margin-bottom: 1rem;
+            padding: 1.4rem 1.6rem;
+            color: #fff;
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-radius: 16px;
+            box-shadow: 0 10px 26px rgba(23, 59, 118, .13);
+        }
+        .equipment-form-hero__eyebrow {
+            margin-bottom: .3rem;
+            color: #ffe08a;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+        }
+        .equipment-form-hero .title { margin: 0; color: #fff; }
+        .equipment-number-card {
+            padding: clamp(1.25rem, 3vw, 2rem);
+            border: 1px solid #e1e8f0;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(29, 51, 84, .06);
+        }
+        .equipment-number-card .label { color: #334155; font-weight: 600; }
+        .equipment-number-entry { align-items: center; }
+        .equipment-number-part {
+            display: inline-flex;
+            min-height: 2.75rem;
+            align-items: center;
+            padding: 0 .5rem;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        .equipment-number-entry .control.is-expanded { min-width: 0; }
+        .equipment-number-entry .input {
+            min-height: 2.75rem;
+            border-color: #cbd5e1;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+        .equipment-number-actions {
+            justify-content: flex-end;
+            gap: .65rem;
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid #e8edf4;
+        }
+        .equipment-number-actions .button { min-width: 8rem; border-radius: 9px; }
+        @media (max-width: 520px) {
+            .procurement-number-page { padding: 1rem .75rem 2rem; }
+            .equipment-form-hero { padding: 1.15rem; }
+            .equipment-number-card { padding: 1rem; }
+            .equipment-number-part { padding: 0 .25rem; font-size: .88rem; }
+            .equipment-number-actions { flex-direction: column-reverse; }
+            .equipment-number-actions .button { width: 100%; }
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
-    <section class="section">
-        <div class="columns">
-            <div class="column is-one-third is-offset-4">
-                <h1 class="title has-text-centered">กรอกเลขครุภัณฑ์</h1>
-                <form method="post" class="box">
+    <section class="section procurement-number-page">
+        <div class="container">
+            {% include 'messages.html' %}
+            <header class="equipment-form-hero">
+                <p class="equipment-form-hero__eyebrow">COMPLAINT TRACKER</p>
+                <h1 class="title">กรอกเลขครุภัณฑ์</h1>
+            </header>
+            <form method="post" class="box equipment-number-card">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <label class="label">เลขครุภัณฑ์</label>
-                    <div class="field has-addons">
-                        <label class="label">xxxxxxx -</label>
-                        <div class="control">
-                            <input type="input" class="input" name="pro_number" placeholder="กรอกเลขครุภัณฑ์" style="width: 10em; margin-left: .3em; margin-right: .3em">
+                    <div class="field has-addons equipment-number-entry">
+                        <span class="equipment-number-part">xxxxxxx -</span>
+                        <div class="control is-expanded">
+                            <input type="text" class="input" name="pro_number" placeholder="กรอกเลขครุภัณฑ์" inputmode="numeric">
                         </div>
-                        <label class="label">- xxx</label>
+                        <span class="equipment-number-part">- xxx</span>
                     </div>
-                    <div class="buttons mt-4 is-centered">
-                        <div class="control">
-                            <button type="submit" value="submit" class="button is-success">
-                                submit
-                            </button>
-                            <a class="button" style="width: 6em"
+                    <div class="buttons equipment-number-actions">
+                        <a class="button is-light"
                                 {% if cat == 'admin' %}
                                     href="{{ url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id) }}"
                                 {% else %}
                                     href="{{ url_for('comp_tracker.new_record', topic_id=topic_id,
                                     has_procurement=has_procurement) }}"
                                 {% endif %}
-                            >
-                                back
-                            </a>
-                        </div>
+                        >ย้อนกลับ</a>
+                        <button type="submit" value="submit" class="button is-success">ดำเนินการต่อ</button>
                     </div>
-                </form>
-            </div>
+            </form>
         </div>
     </section>
 {% endblock %}
