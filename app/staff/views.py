@@ -7467,7 +7467,7 @@ def seminar_proposal():
 
 
 @staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
-@login_required
+@hr_permission.require()
 def seminar_add_attendee(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     if request.method == "POST":
@@ -7510,8 +7510,204 @@ def seminar_add_attendee(seminar_id):
     return render_template('staff/seminar_add_attendee.html', seminar=seminar)
 
 
-@staff.route('/seminar/seminar-attend/<int:attend_id>')
+@staff.route('/seminar/add-attend/add-attendee/<int:seminar_attend_id>/edit', methods=['GET', 'POST'])
 @login_required
+@hr_permission.require()
+def edit_seminar_attend_for_hr(seminar_attend_id):
+    seminar_attend = StaffSeminarAttend.query.get_or_404(seminar_attend_id)
+    seminar = seminar_attend.seminar
+    form_class = create_seminar_attend_form(seminar_attend.staff)
+    form = form_class(obj=seminar_attend)
+    leave_approver = StaffLeaveApprover.query.filter_by(
+        staff_account_id=seminar_attend.staff_account_id,
+        approver_account_id=seminar_attend.lower_level_approver_account_id,
+        is_active=True,
+    ).first() if seminar_attend.lower_level_approver_account_id else None
+    if leave_approver:
+        form.approver.data = leave_approver
+    document_approver = StaffSeminarDocumentApprover.query.filter_by(
+        seminar_attend_id=seminar_attend.id
+    ).first()
+    objective_value = next((obj.objective for obj in seminar_attend.objectives), '')
+    expense_fields = (
+        'registration_fee', 'accommodation_cost', 'fuel_cost', 'taxi_cost',
+        'train_ticket_cost', 'flight_ticket_cost'
+    )
+    has_expense = any(getattr(seminar_attend, field) for field in expense_fields) \
+        or bool(seminar_attend.budget)
+    if seminar_attend.taxi_cost:
+        transportation = 'taxi_cost'
+    elif seminar_attend.fuel_cost:
+        transportation = 'fuel_cost'
+    elif seminar_attend.train_ticket_cost:
+        transportation = 'train_ticket_cost'
+    elif seminar_attend.flight_ticket_cost:
+        transportation = 'flight_ticket_cost'
+    else:
+        transportation = 'no_cost'
+    form_initial = {
+        'start_datetime': seminar_attend.start_datetime.isoformat(),
+        'end_datetime': seminar_attend.end_datetime.isoformat(),
+        'payment': 'paid' if has_expense else 'unpaid',
+        'transportation': transportation,
+        'registration_fee': seminar_attend.registration_fee,
+        'accommodation_cost': seminar_attend.accommodation_cost,
+        'fuel_cost': seminar_attend.fuel_cost,
+        'taxi_cost': seminar_attend.taxi_cost,
+        'train_ticket_cost': seminar_attend.train_ticket_cost,
+        'flight_ticket_cost': seminar_attend.flight_ticket_cost,
+        'budget_type': seminar_attend.budget_type or '',
+        'is_online': seminar_attend.attend_online,
+        'deduct_transfer': seminar_attend.deduct_transfer,
+        'objective': objective_value,
+        'idp_items': [item.plan for item in seminar_attend.idp_items],
+        'staff_account_id': seminar_attend.staff_account_id,
+    }
+    if form.validate_on_submit():
+        change_labels = {
+            'role': 'บทบาท',
+            'start_datetime': 'วันเวลาเริ่มต้น',
+            'end_datetime': 'วันเวลาสิ้นสุด',
+            'registration_fee': 'ค่าลงทะเบียน',
+            'accommodation_cost': 'ค่าที่พัก',
+            'fuel_cost': 'ค่าน้ำมัน',
+            'taxi_cost': 'ค่า Taxi',
+            'train_ticket_cost': 'ค่ารถไฟ',
+            'flight_ticket_cost': 'ค่าตั๋วเครื่องบิน',
+            'budget': 'ค่าใช้จ่ายรวม',
+            'attend_online': 'ช่องทางการอบรม',
+            'deduct_transfer': 'วิธีตัดโอน',
+            'approver': 'ผู้อนุมัติ',
+            'approver_position': 'ตำแหน่งผู้อนุมัติ',
+        }
+        old_values = {
+            'role': seminar_attend.role,
+            'start_datetime': seminar_attend.start_datetime,
+            'end_datetime': seminar_attend.end_datetime,
+            **{field: getattr(seminar_attend, field) for field in expense_fields},
+            'budget': seminar_attend.budget,
+            'attend_online': seminar_attend.attend_online,
+            'deduct_transfer': seminar_attend.deduct_transfer,
+            'approver': seminar_attend.lower_level_approver.personal_info.fullname
+            if seminar_attend.lower_level_approver else None,
+            'approver_position': document_approver.position.position
+            if document_approver and document_approver.position else None,
+        }
+        locked_objectives = list(seminar_attend.objectives)
+        locked_idp_items = list(seminar_attend.idp_items)
+        form.populate_obj(seminar_attend)
+        seminar_attend.objectives = locked_objectives
+        seminar_attend.idp_items = locked_idp_items
+        seminar_attend.deduct_transfer = request.form.get('deduct_transfer') == 'yes'
+        seminar_attend.budget = sum(
+            float(getattr(seminar_attend, field) or 0)
+            for field in expense_fields
+        ) or None
+        if not seminar_attend.budget:
+            seminar_attend.deduct_transfer = False
+
+        seminar_attend.start_datetime = (
+            tz.localize(form.start_datetime.data)
+            if form.start_datetime.data.tzinfo is None else form.start_datetime.data
+        )
+        seminar_attend.end_datetime = (
+            tz.localize(form.end_datetime.data)
+            if form.end_datetime.data.tzinfo is None else form.end_datetime.data
+        )
+        seminar_attend.attend_online = request.form.get('is_online') == 'on'
+        seminar_attend.lower_level_approver_account_id = (
+            form.approver.data.approver_account_id if form.approver.data else None
+        )
+        selected_position_id = request.form.get('position', type=int)
+        if document_approver:
+            document_approver.position_id = selected_position_id
+        elif selected_position_id:
+            db.session.add(StaffSeminarDocumentApprover(
+                seminar_attend=seminar_attend,
+                position_id=selected_position_id,
+            ))
+        new_position = StaffHeadPosition.query.get(selected_position_id) if selected_position_id else None
+        new_values = {
+            'role': seminar_attend.role,
+            'start_datetime': seminar_attend.start_datetime,
+            'end_datetime': seminar_attend.end_datetime,
+            **{field: getattr(seminar_attend, field) for field in expense_fields},
+            'budget': seminar_attend.budget,
+            'attend_online': seminar_attend.attend_online,
+            'deduct_transfer': seminar_attend.deduct_transfer,
+            'approver': form.approver.data.account.personal_info.fullname
+            if form.approver.data and form.approver.data.account else None,
+            'approver_position': new_position.position if new_position else None,
+        }
+
+        def format_change_value(value):
+            if value is None or value == '':
+                return 'ไม่มีข้อมูล'
+            if isinstance(value, datetime):
+                return value.strftime('%d/%m/%Y %H:%M')
+            if isinstance(value, bool):
+                return 'ใช่' if value else 'ไม่ใช่'
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return '{:,.2f}'.format(value)
+            return str(value)
+
+        changes = []
+        for field, label in change_labels.items():
+            old_value = old_values[field]
+            new_value = new_values[field]
+            if isinstance(old_value, (int, float)) and not isinstance(old_value, bool):
+                old_value = float(old_value or 0)
+            if isinstance(new_value, (int, float)) and not isinstance(new_value, bool):
+                new_value = float(new_value or 0)
+            if old_value != new_value:
+                changes.append('• {}: {} → {}'.format(
+                    label, format_change_value(old_value), format_change_value(new_value)))
+        change_summary = '\n'.join(changes) if changes else 'ไม่มีรายการที่เปลี่ยนแปลง'
+        if changes:
+            req_msg = '{} ได้แก้ไขข้อมูลอบรม เรื่อง {} ของท่าน\n\nรายการที่แก้ไข:\n{}' \
+                      '\n\nสามารถดูรายละเอียดได้ที่ระบบ MIS คณะฯ\n\n\nคณะเทคนิคการแพทย์'.format(
+                current_user.personal_info.fullname, seminar_attend.seminar.topic, change_summary)
+            db.session.add(seminar_attend)
+            db.session.commit()
+            if seminar_attend.start_datetime:
+                get_seminar_yearly_budget(seminar_attend.staff_account_id, seminar_attend.start_datetime)
+            req_title = 'แจ้งการแก้ไขข้อมูล'
+            recipients = []
+            for account in (current_user, seminar_attend.staff):
+                email = (account.email or '').strip() if account else ''
+                if email and '@' not in email:
+                    email = email + '@mahidol.ac.th'
+                if email and email not in recipients:
+                    recipients.append(email)
+            if not current_app.debug:
+                if recipients:
+                    send_mail(recipients, req_title, req_msg)
+            else:
+                print(recipients, req_title, req_msg)
+            flash('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
+        else:
+            flash('ไม่มีการแก้ไขข้อมูล', 'warning')
+        return redirect(url_for('staff.show_seminar_info_each_person_for_hr', record_id=seminar_attend.id))
+
+    for error_field, errors in form.errors.items():
+        flash('{}: {}'.format(error_field, errors), 'danger')
+    fiscal_year = get_fiscal_date(seminar.start_datetime or seminar_attend.start_datetime)[1].year
+    return render_template(
+        'staff/HR/edit_seminar_attend_for_hr.html',
+        form=form,
+        seminar=seminar,
+        attend=seminar_attend,
+        is_edit=True,
+        is_hr_edit=True,
+        is_secretary=False,
+        fiscal_year=fiscal_year,
+        form_initial=form_initial,
+        edit_position_id=document_approver.position_id if document_approver else None,
+    )
+
+
+@staff.route('/seminar/seminar-attend/<int:attend_id>')
+@hr_permission.require()
 def delete_participant(attend_id):
     attend = StaffSeminarAttend.query.get(attend_id)
     seminar_id = attend.seminar_id

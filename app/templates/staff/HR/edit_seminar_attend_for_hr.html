@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">แก้ไขรายละเอียดผู้เข้าร่วมอบรม (HR)</h1>
+                </div>
+            </div>
+            <div class="box">
+                <div class="columns">
+                    <div class="column has-text-centered">
+                        <p class="title is-size-4">{{ seminar.topic_type }}: {{ seminar.topic }}</p>
+                        <p class="subtitle is-size-4">จัดขึ้นวันที่ {{ seminar.start_datetime|localdatetime }} -
+                            {{ seminar.end_datetime|localdatetime }}</p>
+                        <p class="subtitle is-size-4">สถานที่: {{ seminar.location }} {% if seminar.is_online %}(จัดผ่านช่องทาง Online){% endif %}</p>
+                        <p class="subtitle is-size-4">หน่วยงานที่จัด: {{ seminar.organize_by }}</p>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            {% include "messages.html" %}
+            <form method="post">
+                <div class="columns">
+                <div class="column is-8 is-offset-2">
+                        {{ form.hidden_tag() }}
+                        {% if is_secretary and not is_edit %}
+                        <div class="box">
+                            <div class="columns">
+                                <div class="column">
+                                    <p class="title is-size-5">สำหรับธุรการหน่วยงาน</p>
+                                    <span>ขณะนี้ท่านกำลังทำรายการขออนุมัติ สำหรับตนเอง</span>
+                                </div>
+                                <div class="column">
+
+                                        <div class="column is-flex is-flex-direction-column is-align-items-flex-end" style="gap: 10px;">
+                                        <a href="{{ url_for('staff.seminar_create_record_for_secretary', seminar_id=seminar.id) }}" class="button is-info is-light">
+                                            <span>ทำขออนุมัติแทนบุคลากร</span>
+                                            <span class="icon">
+                                                <i class="fa-solid fa-external-link"></i>
+                                            </span>
+                                        </a>
+                                        <a href="{{ url_for('staff.seminar_batch_history') }}" class="button is-small is-light">
+                                            <span>ดูประวัติการบันทึกของธุรการ</span>
+                                            <span class="icon">
+                                                <i class="fa-solid fa-external-link"></i>
+                                            </span>
+                                        </a>
+                                        </div>
+
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="box">
+                        {#<div class="field">
+                            <div class="field">
+                                <p class="title is-size-4">สถานะการถูกเชิญ</p>
+                            </div>
+                            <div class="block">
+                                <b-radio native-value="wanttogo" v-model="status" name="status">ไม่มีหนังสือเชิญ
+                                </b-radio>
+                                <b-radio native-value="invited" v-model="status" name="status">มีหนังสือเชิญ</b-radio>
+                            </div>
+                        </div>#}
+                        <b-field label="หน่วยงานที่เชิญ" v-if="status === 'invited'">
+                            <b-input type="text"
+                                     name="invited_organization"
+                                     icon-pack="far"
+                                     required>
+                            </b-input>
+                        </b-field>
+                        <b-field label="เลขที่หนังสือ" v-if="status === 'invited'">
+                            <b-input type="text"
+                                     name="invited_document_id"
+                                     icon-pack="far"
+                                     placeholder="เช่น อว.78"
+                                     required>
+                            </b-input>
+                        </b-field>
+                        <b-field label="ลงวันที่หนังสือ" v-if="status === 'invited'">
+                            <b-datepicker
+                                    required
+                                    v-model="documentDateTime"
+                                    icon-pack="fa"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datepicker>
+                        </b-field>
+                        {{ form.invited_document_date(type='hidden', **{'v-model': 'formattedDocumentDateTime'}) }}
+                        <div class="field">
+                            <div class="field">
+                                <p class="title is-size-4">{{ form.role.label }}</p>
+                                <div class="select">
+                                    {{ form.role() }}
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="field">
+                            <p class="title is-size-4">ช่องทางการอบรม</p>
+                        </div>
+                        <div class="field-body">
+                            <label class="checkbox">
+                                <input type="checkbox" name="is_online"
+                                        {% if form_initial.is_online %}
+                                       checked
+                                        {% endif %}>
+                                เข้าร่วมผ่านช่องทาง online
+                            </label>
+                        </div>
+                        <br>
+                        <span class="is-size-5"><strong>รายละเอียด</strong></span>
+                        <p><strong>วัตถุประสงค์:</strong> {{ form_initial.objective or 'ไม่มีข้อมูล' }}</p>
+                        {% if form_initial.idp_items %}
+                            <p><strong>รายการ IDP:</strong> {{ form_initial.idp_items|join(', ') }}</p>
+                        {% endif %}
+                        <br>
+                        <div class="field" v-if="status === 'wanttogo'">
+                            <p class="title is-size-4">{{ form.missions.label }}</p>
+                            <div class="control">
+                                {{ form.missions() }}
+                            </div>
+                        </div>
+                        <br>
+                        <div class="columns">
+                            <div class="column">
+                        <p class="title is-size-4">เวลาเริ่มต้น</p>
+                        <b-field>
+                            <b-datetimepicker
+                                    required
+                                    v-model="startDateTime"
+                                    range
+                                    icon-pack="fa"
+                                    :timepicker="timepicker"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datetimepicker>
+                        </b-field>
+                        {{ form.start_datetime(type='hidden', **{'v-model': 'formattedStartDateTime'}) }}
+                            </div>
+                        <br>
+                            <div class="column">
+                        <p class="title is-size-4">เวลาสิ้นสุด</p>
+                        <b-field>
+                            <b-datetimepicker
+                                    required
+                                    v-model="endDateTime"
+                                    range
+                                    icon-pack="fa"
+                                    :timepicker="timepicker"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datetimepicker>
+                        </b-field>
+                        {{ form.end_datetime(type='hidden', **{'v-model': 'formattedEndDateTime'}) }}
+                            </div>
+                        </div>
+                        {#<b-field label="แหล่งงบประมาณ/เงินทุน" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="budget_type"
+                                     v-model="budgetType"
+                                     :required="Number(totalBudget) > 0"
+                                     icon-pack="far"
+                                     icon="comment"
+                                     placeholder="เช่น เงินรายได้คณะ">
+                            </b-input>
+                        </b-field>#}
+                        <b-field label="ค่าลงทะเบียน (บาท)">
+                            <b-input type="text"
+                                     name="registration_fee"
+                                     v-model="registrationFee"
+                                     icon-pack="far"
+                                     icon="registered">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าที่พัก (บาท)">
+                            <b-input type="text"
+                                     name="accommodation_cost"
+                                     v-model="accommodationCost"
+                                     icon-pack="far"
+                                     icon="house">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าน้ำมัน (บาท)">
+                            <b-input type="text"
+                                     name="fuel_cost"
+                                     v-model="fuelCost"
+                                     icon-pack="far"
+                                     icon="gas-pump">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่า Taxi (บาท)">
+                            <b-input type="text"
+                                     name="taxi_cost"
+                                     v-model="taxiCost"
+                                     icon-pack="far"
+                                     icon="taxi">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่ารถไฟ (บาท)">
+                            <b-input type="text"
+                                     name="train_ticket_cost"
+                                     v-model="trainTicketCost"
+                                     icon-pack="far"
+                                     icon="train">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าตั๋วเครื่องบิน (บาท)">
+                            <b-input type="text"
+                                     name="flight_ticket_cost"
+                                     v-model="flightTicketCost"
+                                     icon-pack="far"
+                                     icon="plane">
+                            </b-input>
+                        </b-field>
+                        {#<b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="transaction_fee"
+                                     icon-pack="far"
+                                     icon="retweet">
+                            </b-input>
+                        </b-field>#}
+                        <b-field label="รวมทั้งสิ้น (บาท)">
+                            <b-input type="text"
+                                     name="budget"
+                                     :value="totalBudget"
+                                     required>
+                            </b-input>
+                        </b-field>
+                        <div class="field">
+                            <label class="checkbox">
+                                <input type="checkbox" name="deduct_transfer" value="yes" {% if form_initial.deduct_transfer %}checked{% endif %}>
+                                ใช้วิธีการตัดโอนเงินรายได้คณะฯ ประจำปีงบประมาณ {{ fiscal_year+543 }}
+                            </label>
+                        </div>
+                        <hr>
+                        <br>
+{#                        <div class="field">#}
+{#                            <div class="field">#}
+{#                                <p class="title is-size-4">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</p>#}
+{#                            </div>#}
+{#                            <div class="block">#}
+{#                                <b-radio native-value="want" v-model="wantdocument" name="wantdocument">ต้องการ#}
+{#                                </b-radio>#}
+{#                                <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ#}
+{#                                </b-radio>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <br>#}
+                        <div class="field" v-if="wantdocument === 'want'">
+                            <div class="field is-horizontal">
+                                <div class="field is-normal">
+                                    <p class="is-size-5"><strong>ผู้บังคับบัญชา (ชื่อจะปรากฎบนเอกสาร)</strong></p>
+                                </div>
+{#                                <div class="field-body">#}
+{#                                    <div class="control">#}
+{#                                        <div class="field">#}
+{#                                            <div class="select">#}
+{#                                                {{ form.approver() }}#}
+{#                                            </div>#}
+{#                                        </div>#}
+{#                                    </div>#}
+{#                                </div>#}
+                            </div>
+                            <div>
+                                <label>ผู้อนุมัติ</label>
+                                <div class="select">
+                                {{ form.approver(required=True,**{'hx-get': url_for('staff.get_positions', selected_position_id=edit_position_id),
+                                'hx-target': '#related-position', 'hx-swap': 'innerHTML', 'hx-trigger': 'change, load'}) }}
+                                </div>
+                            </div>
+                             <div class="field">
+                                    <div id="related-position"></div>
+                            </div>
+
+                        {#<b-field label="เบอร์โทรฯ ภายใน" v-if="wantdocument === 'want'">
+                                <b-input type="text"
+                                         name="contact_no"
+                                         icon-pack="far"
+                                         placeholder="เช่น 2845"
+                                         required>
+                                </b-input>
+                            </b-field>#}
+{#                        <div class="columns">#}
+{#                            <div class="column">#}
+{#                                <div class="notification is-warning is-light">#}
+{#                                        <span>#}
+{#                                            หมายเหตุ: รองคณบดีจะยังไม่ได้รับการแจ้งเตือนการขออนุมัติไปอบรม<br>#}
+{#                                            จนกว่าผู้บังคับบัญชาชั้นต้นจะอนุมัติเรียบร้อยแล้ว#}
+{#                                        </span>#}
+{#                                    <br>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
+                        </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column is-8 is-offset-2">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('staff.show_seminar_info_each_person_for_hr', record_id=attend.id) if is_hr_edit else url_for('staff.show_seminar_info_each_person', record_id=attend.id) if is_edit else url_for('staff.seminar_attend_info', seminar_id=seminar.id) }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input :disabled="!canSubmitForm" type="submit" value="{{ 'บันทึกการแก้ไข' if is_edit else 'บันทึก' }}" class="button is-success"/>
+                            </div>
+                        </div>
+                        <p v-if="submitHelpText" class="help is-warning has-text-centered" role="status" v-text="submitHelpText"></p>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        const formInitial = {{ form_initial|tojson|safe }};
+        let start_datetime = new Date(formInitial.start_datetime);
+        let end_datetime = new Date(formInitial.end_datetime);
+        let vm = new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    startDateTime: new Date(formInitial.start_datetime),
+                    endDateTime: new Date(formInitial.end_datetime),
+                    documentDateTime: null,
+                    status: "wanttogo",
+                    is_online: "no",
+                    wantdocument: "want",
+                    payment: formInitial.payment,
+                    transportation: formInitial.transportation,
+                    registrationFee: formInitial.registration_fee || '',
+                    accommodationCost: formInitial.accommodation_cost || '',
+                    fuelCost: formInitial.fuel_cost || '',
+                    taxiCost: formInitial.taxi_cost || '',
+                    trainTicketCost: formInitial.train_ticket_cost || '',
+                    flightTicketCost: formInitial.flight_ticket_cost || '',
+                    budgetType: formInitial.budget_type || '',
+                    hasApproverPosition: false,
+                    data: [],
+                    participants: [],
+                    timepicker: {
+                        incrementMinutes: 30
+                    }
+                }
+            },
+            computed: {
+                submitHelpText: function () {
+                    if (!this.hasApproverPosition) {
+                        return 'กรุณาเลือกผู้อนุมัติและรอโหลดตำแหน่ง หากไม่พบตำแหน่ง กรุณาติดต่อ HR';
+                    }
+                    return '';
+                },
+                canSubmitForm: function () {
+                    return this.hasApproverPosition;
+                },
+                formattedStartDateTime: function () {
+                    if (this.startDateTime) {
+                        return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+                    }
+                    return null
+                },
+                formattedEndDateTime: function () {
+                    if (this.endDateTime) {
+                        return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+                    }
+                    return null
+                },
+                formattedDocumentDateTime: function () {
+                    if (this.documentDateTime) {
+                        return new moment(this.documentDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+                    }
+                    return null
+                },
+                totalBudget: function () {
+                    const toAmount = value => {
+                        const amount = parseFloat(String(value || '').replace(/,/g, '').trim());
+                        return Number.isFinite(amount) ? amount : 0;
+                    };
+                    const total = toAmount(this.registrationFee)
+                        + toAmount(this.accommodationCost)
+                        + toAmount(this.fuelCost)
+                        + toAmount(this.taxiCost)
+                        + toAmount(this.trainTicketCost)
+                        + toAmount(this.flightTicketCost);
+                    return total.toFixed(2);
+                }
+            }
+        });
+        document.body.addEventListener('htmx:beforeRequest', event => {
+            if (event.detail.elt && event.detail.elt.id === 'approver') {
+                vm.hasApproverPosition = false;
+            }
+        });
+        document.body.addEventListener('htmx:afterSwap', event => {
+            const target = event.detail.target;
+            if (target && target.id === 'related-position') {
+                const hasPosition = Boolean(target.querySelector('select[name="position"]'));
+                if (!hasPosition) {
+                    target.textContent = '**กรุณาติดต่อ HR เพื่อเพิ่มตำแหน่งผู้อนุมัติ ก่อนการขออนุมัติ**';
+                }
+                vm.hasApproverPosition = hasPosition;
+            }
+        });
+        $(document).ready(() => {
+            htmx.trigger(htmx.find('#approver'), 'change')
+            if ($('.js-example-basic-multiple').length) {
+                $('.js-example-basic-multiple').select2({
+                    width: '100%'
+                })
+            }
+        })
+
+    </script>
+{% endblock %}
