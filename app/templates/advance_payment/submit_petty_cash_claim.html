@@ -378,11 +378,12 @@
         <div class="row g-3" id="referenceInfoFields">
           <div class="col-md-3">
             <label class="form-label small fw-semibold">เลขที่อนุมัติในหลักการ เช่น อว.78.04/1</label>
-            <input class="form-control form-control-sm reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
+            <input class="form-control form-control-sm reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}" aria-describedby="referenceValuesHelp">
           </div>
           <div class="col-md-3">
             <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ เช่น 19 ตุลาคม 2569</label>
-            <input type="text" class="form-control form-control-sm reference-info-input" name="reference_date" value="{{ claim_detail.reference_date|claim_reference_date_form if claim_detail and claim_detail.reference_date else '' }}">
+            <input type="text" class="form-control form-control-sm reference-info-input" name="reference_date" value="{{ claim_detail.reference_date|claim_reference_date_form if claim_detail and claim_detail.reference_date else '' }}" aria-describedby="referenceValuesHelp">
+            <small id="referenceValuesHelp" class="form-text text-muted">หากมีหลายฉบับ ให้กรอกเลขที่และวันที่ตามจำนวนไฟล์ โดยคั่นแต่ละรายการด้วยเครื่องหมายจุลภาค (,)</small>
           </div>
           <div class="col-md-2">
             <label class="form-label small fw-semibold">ไฟล์เอกสารอ้างอิง</label>
@@ -1229,6 +1230,10 @@ document.addEventListener('DOMContentLoaded', function() {
       delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
+        if (!validateReferenceMetadata(claimForm)) {
+          event.preventDefault();
+          return;
+        }
         if (!validateFundRequestTotal(overRequestConfirmed)) {
           event.preventDefault();
           return;
@@ -1372,21 +1377,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
 
-      const referenceNumber = claimForm.querySelector('[name="reference_number"]')?.value.trim() || '';
-      const referenceDate = claimForm.querySelector('[name="reference_date"]')?.value.trim() || '';
-      if ((referenceNumber && !referenceDate) || (!referenceNumber && referenceDate)) {
-        isValid = false;
-        claimForm.querySelector('[name="reference_number"]')?.classList.toggle('is-invalid', !referenceNumber);
-        claimForm.querySelector('[name="reference_date"]')?.classList.toggle('is-invalid', !referenceDate);
-      }
-
-      const referenceFileInput = claimForm.querySelector('[name="reference_files[]"]');
-      const existingReferenceFiles = claimForm.querySelectorAll('[name="existing_reference_files[]"]').length;
-      if (referenceFileInput && existingReferenceFiles + referenceFileInput.files.length > 2) {
-        isValid = false;
-        referenceFileInput.classList.add('is-invalid');
-      } else {
-        referenceFileInput?.classList.remove('is-invalid');
+      if (!validateReferenceMetadata(claimForm)) {
+        event.preventDefault();
+        return;
       }
 
       if (hasClaimData && !validateClaimAmountLimit()) isValid = false;
@@ -1478,6 +1471,51 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function showClaimDraftDateError(visible) {
   document.getElementById('claimDraftDateError')?.classList.toggle('d-none', !visible);
+}
+
+function splitReferenceValues(value) {
+  return (value || '').split(',').map(item => item.trim()).filter(Boolean);
+}
+
+function validateReferenceMetadata(form) {
+  const numberInput = form.querySelector('[name="reference_number"]');
+  const dateInput = form.querySelector('[name="reference_date"]');
+  const fileInput = form.querySelector('[name="reference_files[]"]');
+  const noReferenceInfo = form.querySelector('#hasReferenceInfo')?.checked;
+
+  [numberInput, dateInput, fileInput].forEach(input => input?.classList.remove('is-invalid'));
+  if (noReferenceInfo) return true;
+
+  const referenceNumbers = splitReferenceValues(numberInput?.value);
+  const referenceDates = splitReferenceValues(dateInput?.value);
+  const existingFileCount = form.querySelectorAll('[name="existing_reference_files[]"]').length;
+  const newFileCount = fileInput?.files?.length || 0;
+  const fileCount = existingFileCount + newFileCount;
+  let message = '';
+
+  if (fileCount > 2) {
+    fileInput?.classList.add('is-invalid');
+    message = `แนบไฟล์เอกสารอ้างอิงได้ไม่เกิน 2 ไฟล์ (ขณะนี้มี ${fileCount} ไฟล์)`;
+  } else if ((referenceNumbers.length > 0) !== (referenceDates.length > 0)) {
+    if (!referenceNumbers.length) numberInput?.classList.add('is-invalid');
+    if (!referenceDates.length) dateInput?.classList.add('is-invalid');
+    message = 'กรุณากรอกเลขที่ อว. และวันที่หนังสือให้ครบทั้งสองช่อง';
+  } else if (fileCount > 0 && (referenceNumbers.length !== fileCount || referenceDates.length !== fileCount)) {
+    numberInput?.classList.add('is-invalid');
+    dateInput?.classList.add('is-invalid');
+    message = `มีเอกสารอ้างอิง ${fileCount} ไฟล์ กรุณากรอกเลขที่ อว. ${fileCount} รายการ และวันที่ ${fileCount} รายการ โดยคั่นแต่ละรายการด้วยเครื่องหมายจุลภาค (,)`;
+  }
+
+  if (!message) return true;
+  window.openAppPopup({
+    title: 'กรุณาตรวจสอบข้อมูลเอกสารอ้างอิง',
+    message,
+    confirmText: 'ตกลง',
+    confirmClass: 'btn-primary',
+    alertOnly: true,
+    triggerElement: form.querySelector('.is-invalid'),
+  });
+  return false;
 }
 
 function removeSavedReferenceFile(button) {

@@ -12243,6 +12243,18 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             existing_reference_paths = []
             existing_reference_names = []
 
+        existing_reference_files = [
+            (path, existing_reference_names[index] if index < len(existing_reference_names) else "reference")
+            for index, path in enumerate(existing_reference_paths)
+            if path
+        ]
+        reference_file_count = len(existing_reference_files) + len(reference_files)
+        if reference_file_count > 2:
+            return _validation_redirect_response(
+                "แนบไฟล์เอกสารอ้างอิงได้ไม่เกิน 2 ไฟล์",
+                request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
+            )
+
         reference_date = None
         if reference_number or reference_date_raw:
             if not reference_number or not reference_date_raw:
@@ -12250,17 +12262,20 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     "กรุณากรอกเลขที่อนุมัติในหลักการและวันที่หนังสือให้ครบถ้วน หรือเว้นว่างทั้งสองช่อง",
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
                 )
-            reference_date = normalize_reference_date(reference_date_raw)
-
-        existing_reference_files = [
-            (path, existing_reference_names[index] if index < len(existing_reference_names) else "reference")
-            for index, path in enumerate(existing_reference_paths)
-            if path
-        ]
-        if len(existing_reference_files) + len(reference_files) > 2:
+        reference_numbers = [value.strip() for value in reference_number.split(",") if value.strip()]
+        reference_dates = [value.strip() for value in reference_date_raw.split(",") if value.strip()]
+        if reference_file_count and (
+            len(reference_numbers) != reference_file_count
+            or len(reference_dates) != reference_file_count
+        ):
             return _validation_redirect_response(
-                "แนบไฟล์เอกสารอ้างอิงได้ไม่เกิน 2 ไฟล์",
+                f"มีเอกสารอ้างอิง {reference_file_count} ไฟล์ กรุณากรอกเลขที่ อว. และวันที่อย่างละ {reference_file_count} รายการ โดยคั่นด้วยเครื่องหมายจุลภาค (,) กรณีมีหลายรายการ",
                 request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
+            )
+        if reference_numbers and reference_dates:
+            reference_number = ", ".join(reference_numbers)
+            reference_date = ", ".join(
+                normalize_reference_date(value) or value for value in reference_dates
             )
 
         parcel_amount_raw = (request.form.get("parcel_amount") or "").replace(",", "").strip()
