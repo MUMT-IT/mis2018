@@ -473,9 +473,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // Use the literal form attribute. A form control named `action`
         // can shadow the DOM form.action property with a RadioNodeList.
         const formAction = form.getAttribute("action") || window.location.href;
-        if (form.id === "claimForm" && form.pendingDraftSave) {
-          await form.pendingDraftSave;
-        }
         const formData = new FormData(form);
         // Preserve the original submit-button flow (for example
         // action=draft versus action=submit).

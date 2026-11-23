@@ -1088,10 +1088,6 @@ function togglePettyCashClaimForm() {
 {% endif %}
 
 <script>
-let autoSaveTimer = null;
-let claimAutoSaveQueue = Promise.resolve();
-let claimAutoSaveFailureReported = false;
-
 document.addEventListener('DOMContentLoaded', function() {
   calculateTotal();
   bindReceiptAgeWarnings(document);
@@ -1131,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     claimForm.addEventListener('app:ajax-success', function(event) {
       const result = event.detail;
-      if (!result?.draft_saved && !result?.auto_saved) return;
+      if (!result?.draft_saved) return;
       Object.entries(result.receipt_proofs || {}).forEach(([index, proofs]) => {
         const row = claimForm.querySelectorAll('#claimBody tr')[Number(index)];
         const fileInput = row?.querySelector(`input[name="proof_files_${index}[]"]`);
@@ -1209,7 +1205,6 @@ document.addEventListener('DOMContentLoaded', function() {
     syncReferenceInfoVisibility();
 
     claimForm.addEventListener('submit', function(event) {
-      clearTimeout(autoSaveTimer);
       const overRequestConfirmed = claimForm.dataset.popupConfirmed === 'true';
       delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
@@ -1408,9 +1403,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }, true);
 
-    // ผูก Event ติดตามการเปลี่ยนแปลงข้อมูลเพื่อทำ Auto Save Draft
-    claimForm.addEventListener('input', triggerAutoSave);
-    claimForm.addEventListener('change', triggerAutoSave);
   }
 
 });
@@ -1434,7 +1426,6 @@ document.addEventListener("DOMContentLoaded", function() {
         referenceFilenamesContainer.appendChild(group);
       });
 
-      triggerAutoSave();
     });
   }
 
@@ -1467,136 +1458,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function showClaimDraftDateError(visible) {
   document.getElementById('claimDraftDateError')?.classList.toggle('d-none', !visible);
-}
-
-function showClaimSaveError(error) {
-  if (error instanceof TypeError && !error.popupTitle) {
-    window.showAppPopupError('network');
-    return;
-  }
-  const message = error?.message || 'กรุณาลองใหม่อีกครั้ง';
-  if (typeof window.openAppPopup === 'function') {
-    window.openAppPopup({
-      title: error?.popupTitle || 'ไม่สามารถบันทึกข้อมูลได้',
-      message,
-      confirmText: 'ตกลง',
-      confirmClass: 'btn-danger',
-      alertOnly: true,
-    });
-  } else {
-    window.alert(message);
-  }
-}
-
-function triggerAutoSave(event) {
-  if ({{ 'true' if claim_edit_mode|default(false) else 'false' }}) return;
-  if (!{{ 'true' if cash_mng_finance_open else 'false' }}) return;
-  if (event?.target?.type === 'file') return;
-  clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => autoSavePettyCashDraft(), 1500);
-}
-
-function autoSavePettyCashDraft(includeFiles = false) {
-  const claimForm = document.getElementById('claimForm');
-  if (!claimForm || {{ 'true' if claim_edit_mode|default(false) else 'false' }}) return Promise.resolve();
-
-  const save = async () => {
-    const rows = Array.from(claimForm.querySelectorAll('#claimBody tr'));
-    const rowIsEmpty = row => !Array.from(row.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"]'))
-      .some(input => input.value.trim()) && !(includeFiles && row.querySelector('input[type="file"]')?.files.length);
-    while (rows.length && rowIsEmpty(rows[rows.length - 1])) rows.pop();
-
-    const items = rows.map(row => ({
-      receipt_date: window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || ''),
-      category_type: row.querySelector('select[name="category_type[]"]')?.value || '1',
-      description: row.querySelector('input[name="description[]"]')?.value || '',
-      amount: (row.querySelector('.claim-amount')?.value || '').replace(/,/g, '') || '0',
-    }));
-    if (items.some(item => !item.receipt_date)) {
-      showClaimDraftDateError(true);
-      return;
-    }
-    showClaimDraftDateError(false);
-
-    const announcements = [];
-    claimForm.querySelectorAll('.document-input-row').forEach(row => {
-      const title = row.querySelector('.announcement-input')?.value.trim() || '';
-      const docId = row.querySelector('.announcement-id-input')?.value.trim() || '';
-      if (title || docId) announcements.push({ id: docId, title });
-    });
-    const payload = {
-      fund_request_id: claimForm.querySelector('#fund_request_id')?.value || '',
-      items,
-      cash_return: {
-        receipt_date: window.appDateToISO(claimForm.querySelector('[name="cash_return_date"]')?.value || ''),
-        amount: (claimForm.querySelector('[name="cash_return_amount"]')?.value || '').replace(/,/g, ''),
-      },
-      announcements,
-      reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
-      reference_date: claimForm.querySelector('[name="reference_date"]')?.value.trim() || '',
-      note: claimForm.querySelector('[name="note"]')?.value.trim() || '',
-    };
-    const uploads = rows.map((row, index) => {
-      const input = row.querySelector(`input[name="proof_files_${index}[]"]`);
-      return { input, files: includeFiles ? Array.from(input?.files || []) : [] };
-    });
-    const hasFiles = uploads.some(upload => upload.files.length);
-    const body = hasFiles ? new FormData() : JSON.stringify(payload);
-    if (hasFiles) {
-      body.append('payload', JSON.stringify(payload));
-      uploads.forEach((upload, index) => upload.files.forEach(file => body.append(`proof_files_${index}[]`, file)));
-    }
-
-    const endpoint = "{{ url_for('advance_payment.coordinator_petty_cash_claim_autosave_draft') }}";
-    const tokenResponse = await fetch(endpoint, { credentials: 'same-origin' });
-    const tokenResult = await window.readAppAjaxResponse(tokenResponse, 'validation');
-    if (!tokenResult.ok) throw window.appErrorFromFailure(tokenResult);
-    const tokenData = tokenResult.payload;
-    if (!tokenData.csrf_token) {
-      throw window.appErrorFromFailure(window.appUnreadableFailure(tokenResponse, 'validation'));
-    }
-    claimForm.querySelector('[name="csrf_token"]').value = tokenData.csrf_token;
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: hasFiles ? { 'X-CSRFToken': tokenData.csrf_token } : { 'Content-Type': 'application/json', 'X-CSRFToken': tokenData.csrf_token },
-      credentials: 'same-origin',
-      body,
-    });
-    const saveResult = await window.readAppAjaxResponse(response, 'save', {
-      preserveBadRequestMessage: true,
-    });
-    if (!saveResult.ok) throw window.appErrorFromFailure(saveResult);
-    const result = saveResult.payload;
-    if (result.success !== true) throw window.appErrorFromFailure(window.appSaveUnknownFailure());
-    claimAutoSaveFailureReported = false;
-    if (hasFiles) {
-      const receipt_proofs = {};
-      result.proof_files?.forEach((proofs, index) => {
-        if (proofs.length) receipt_proofs[index] = proofs;
-      });
-      claimForm.dispatchEvent(new CustomEvent('app:ajax-success', {
-        detail: { auto_saved: true, receipt_proofs },
-      }));
-    }
-  };
-  const queued = claimAutoSaveQueue.then(save, save).catch(error => {
-    console.error('AutoSave Error:', error);
-    const needsNotice = error instanceof TypeError || [
-      'ไม่สามารถยืนยันผลการบันทึกได้',
-      'กรุณาเข้าสู่ระบบใหม่',
-      'ไม่มีสิทธิ์ทำรายการ',
-      'ไม่สามารถทำรายการได้',
-      'ปิดรับการทำรายการชั่วคราว',
-    ].includes(error.popupTitle);
-    if (includeFiles || (needsNotice && !claimAutoSaveFailureReported)) {
-      showClaimSaveError(error);
-      claimAutoSaveFailureReported = true;
-    }
-  });
-  claimAutoSaveQueue = queued;
-  claimForm.pendingDraftSave = queued;
-  return queued;
 }
 
 function updateFundRequestInfo(selectElem) {
@@ -1940,8 +1801,6 @@ function addRow() {
   updateIndices();
   const draftSaveStatus = document.getElementById('claimDraftSaveStatus');
   if (draftSaveStatus) draftSaveStatus.textContent = '';
-  clearTimeout(autoSaveTimer);
-  autoSavePettyCashDraft(true);
 }
 
 function removeRow(btn) {
@@ -1950,7 +1809,6 @@ function removeRow(btn) {
   const draftSaveStatus = document.getElementById('claimDraftSaveStatus');
   if (draftSaveStatus) draftSaveStatus.textContent = '';
   calculateTotal();
-  triggerAutoSave();
 }
 
 function updateIndices() {
@@ -1995,7 +1853,6 @@ function addDocumentRow() {
   `;
   container.appendChild(row);
   updateAddDocumentButton(container);
-  triggerAutoSave();
 }
 
 function updateAddDocumentButton(container) {
@@ -2019,7 +1876,6 @@ function removeDocumentRow(btn) {
     if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.add('d-none');
   }
   updateAddDocumentButton(container);
-  triggerAutoSave();
 }
 
 async function showSuggestions(inputElem, resetSelection = true) {
@@ -2090,7 +1946,6 @@ function selectAnnouncement(itemElem, docId, docTitle, filePath) {
 
   suggestionsBox.classList.add('d-none');
   suggestionsBox.innerHTML = '';
-  triggerAutoSave();
 }
 
 function escapeHtml(str) {
