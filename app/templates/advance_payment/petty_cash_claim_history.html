@@ -204,13 +204,13 @@
       <label for="statusFilter" class="form-label fw-bold text-secondary small">กรองตามสถานะ</label>
       <select id="statusFilter" class="form-select style-select" onchange="filterHistoryTable()">
         <option value="all">แสดงสถานะทั้งหมด</option>
-        <option value="รอตรวจสอบ">รอการตรวจสอบ</option>
-        <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
-        <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ</option>
-        <option value="โอนเงินสดย่อยสำเร็จ">โอนเงินสดย่อยสำเร็จ</option>
+        <option value="PENDING">{{ advance_payment_status_name('petty_cash_claim', 'PENDING') }}</option>
+        <option value="IN_PROCESS">{{ advance_payment_status_name('petty_cash_claim', 'IN_PROCESS') }}</option>
+        <option value="APPROVED">{{ advance_payment_status_name('petty_cash_claim', 'APPROVED') }}</option>
+        <option value="CASH_TRANSFER_COMPLETED">{{ advance_payment_status_name('petty_cash_claim', 'CASH_TRANSFER_COMPLETED') }}</option>
         <option value="เอกสารตั้งฎีกา">เอกสารตั้งฎีกา</option>
-        <option value="เสร็จสิ้นกระบวนการ">เสร็จสิ้นกระบวนการ</option>
-        <option value="ปฏิเสธ">ปฏิเสธ</option>
+        <option value="SETTLED">{{ advance_payment_status_name('petty_cash_claim', 'SETTLED') }}</option>
+        <option value="REJECTED">{{ advance_payment_status_name('petty_cash_claim', 'REJECTED') }}</option>
       </select>
     </div>
 
@@ -280,7 +280,7 @@
                 data-org="{{ record.org_name or '' }}"
                 data-account-name="{{ record.account_name or '' }}"
                 data-account-number="{{ record.account_number or '' }}"
-                data-status="{{ record.status or '' }}"
+                data-status="{{ 'CLOSING' if record.closing_document_name not in [none, '', '-'] else (record.status_code or '') }}"
                 data-type="{{ record.record_type or 'petty_cash' }}"
                 data-submitdate="{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else '-' }}"
                 data-เอกสารตั้งฎีกาdate="{{ record.เอกสารตั้งฎีกา_at.strftime('%Y-%m-%d') if record.เอกสารตั้งฎีกา_at else '-' }}"
@@ -332,7 +332,7 @@
 
               <!-- 6. แสดง Badge ตามสถานะ -->
               <td class="text-center">
-                {{ status_badge(record.status) }}
+                {{ status_badge(record.status, none, '', record.status_code) }}
               </td>
 
               <!-- 7. หมายเลขฎีกา -->
@@ -366,7 +366,7 @@
                      <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=record.fund_request_id) }}" class="btn btn-outline-primary btn-sm px-2">
                        ตรวจสอบการส่งเบิก
                      </a>
-                     {% if record.status == 'ยืนยันการตรวจสอบ' %}
+                     {% if record.status_code == 'APPROVED' %}
                      <button type="button" class="btn btn-outline-primary btn-sm px-2" data-bs-toggle="modal" data-bs-target="#parcelTransferModal{{ record.id }}">
                        โอนเงินสดย่อยสำเร็จ
                      </button>

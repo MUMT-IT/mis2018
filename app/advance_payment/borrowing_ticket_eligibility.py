@@ -11,6 +11,7 @@ ACTIVE_STATUS_LABELS = {
 }
 
 IGNORED_STATUS_LABELS = {"เคลียร์ยอดแล้ว"}
+ACTIVE_STATUS_CODES = {"PENDING", "IN_PROGRESS", "APPROVED", "PARTIAL_RETURN", "CLOSING_REJECTED"}
 TEMPORARY_EMPLOYMENT_TITLE = "ลูกจ้างชั่วคราว"
 TEMPORARY_EMPLOYEE_MESSAGE = (
     "ไม่สามารถทำการสร้างรายการสัญญาเงินยืมได้ เนื่องจากเป็นลูกจ้างชั่วคราว"
@@ -62,7 +63,18 @@ def calculate_borrowing_ticket_eligibility(
             continue  # ข้าม Record ที่ไม่ใช่ของผู้ยืมคนนี้
 
         status = (_get_record_value(record, "status") or "").strip()
+        status_code = (_get_record_value(record, "status_code") or "").strip().upper()
         normalized_status = status.casefold()
+
+        if status_code == "CLOSED":
+            continue
+        if status_code in ACTIVE_STATUS_CODES:
+            blocking_label = status or status_code
+            if blocking_label not in seen_statuses:
+                blocking_statuses.append(blocking_label)
+                seen_statuses.add(blocking_label)
+            blocking_records.append(record)
+            continue
 
         if normalized_status in {label.casefold() for label in IGNORED_STATUS_LABELS}:
             continue

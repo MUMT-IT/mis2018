@@ -68,7 +68,7 @@
         <p class="text-muted small mb-1"><strong>เลขที่บัญชี</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.account_number or 'ไม่มีข้อมูลในระบบ' }}</p>
       </div>
-      {% if borrowing_ticket.status|lower == "ปฏิเสธ" %}
+      {% if borrowing_ticket.status_code == "REJECTED" %}
       <div class="col-12 col-md-8">
         <p class="text-muted small mb-1"><strong>เหตุผลในการปฏิเสธ</strong></p>
         <p class="mb-0 text-danger fw-semibold" style="white-space: pre-line;">{{ borrowing_ticket.rejection_comment|latest_rejection_comment }}</p>
@@ -80,7 +80,7 @@
       </div>
       {% endif %}
     </div>
-    {% if borrowing_ticket.status|lower != "ปฏิเสธ" %}
+    {% if borrowing_ticket.status_code != "REJECTED" %}
       <div class="row g-3 text-start mb-3">
         <div class="col-12 col-md-4">
           <p class="text-muted small mb-1"><strong>เลขที่อนุมัติยืมเงิน</strong></p>
@@ -110,38 +110,24 @@
     </div>
 
       <div class="col-12 col-lg-2">
-        {% set current_status = (borrowing_ticket.status or '')|trim %}
-        {% set status_step = {
-          'กำลังส่งคำขอ': 'กำลังส่งคำขอ',
-          'กำลังดำเนินการ': 'กำลังดำเนินการ',
-          'รอตรวจสอบ': 'อนุมัติจ่ายเงิน',
-          'อนุมัติจ่ายเงิน': 'อนุมัติจ่ายเงิน',
-          'ผ่านการตรวจสอบ': 'อนุมัติจ่ายเงิน',
-          'เลยกำหนด': 'อนุมัติจ่ายเงิน',
-          'มียอดคงค้าง': 'มียอดคงค้าง',
-          'เคลียร์ยอดแล้ว': 'เคลียร์ยอดแล้ว',
-          'เอกสารตั้งฎีกา': 'เคลียร์ยอดแล้ว',
-          'ฎีกาถูกตีกลับจากกองคลัง': 'ฎีกาถูกตีกลับจากกองคลัง',
-          'ปฏิเสธ': 'ปฏิเสธ'
-        } %}
-        {% set current_step = status_step.get(current_status, current_status) %}
-        {% set status_class = status_badge_class(current_status) %}
-        {% set steps = ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว'] %}
-        {% if current_step == 'ฎีกาถูกตีกลับจากกองคลัง' %}
-          {% set steps = steps + ['ฎีกาถูกตีกลับจากกองคลัง'] %}
+        {% set current_step_code = borrowing_ticket.status_code %}
+        {% set status_class = status_badge_class(current_step_code) %}
+        {% set steps = ['PENDING', 'IN_PROGRESS', 'APPROVED', 'PARTIAL_RETURN', 'CLOSED'] %}
+        {% if current_step_code == 'CLOSING_REJECTED' %}
+          {% set steps = steps + ['CLOSING_REJECTED'] %}
         {% endif %}
-        {% if current_step == 'ปฏิเสธ' %}
-          {% set steps = steps + ['ปฏิเสธ'] %}
+        {% if current_step_code == 'REJECTED' %}
+          {% set steps = steps + ['REJECTED'] %}
         {% endif %}
 
         <div class="status-flow">
           {% for step in steps %}
             <div class="status-flow-item">
-              <span class="status-flow-dot {% if step == current_step %}is-current{% endif %}"></span>
-              {% if step == current_step %}
-                <span class="badge {{ status_class }} fs-6 px-3 py-2">{{ step }}</span>
+            <span class="status-flow-dot {% if step == current_step_code %}is-current{% endif %}"></span>
+              {% if step == current_step_code %}
+                <span class="badge {{ status_class }} fs-6 px-3 py-2">{{ advance_payment_status_name('borrowing_ticket', step) }}</span>
               {% else %}
-                <span class="badge bg-light text-secondary border fs-6 px-3 py-2">{{ step }}</span>
+                <span class="badge bg-light text-secondary border fs-6 px-3 py-2">{{ advance_payment_status_name('borrowing_ticket', step) }}</span>
               {% endif %}
             </div>
           {% endfor %}
@@ -186,10 +172,10 @@
             {% if targeted_due_date %}
               {{ targeted_due_date|thai_date }}
 
-              {% if borrowing_ticket.status|lower == 'เลยกำหนด' and borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and today > targeted_due_date %}
+              {% if borrowing_ticket.status_code not in ['CLOSING', 'CLOSED'] and today > targeted_due_date %}
                 {% set diff = (today - targeted_due_date).days %}
                 <span class="text-danger fw-bold">({{ diff }} วัน)</span>
-              {% elif borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and borrowing_ticket.status|lower != 'เคลียร์ยอดแล้ว' and today <= targeted_due_date %}
+              {% elif borrowing_ticket.status_code not in ['CLOSING', 'CLOSED'] and today <= targeted_due_date %}
                 {% set diff_remaining = (targeted_due_date - today).days %}
                 {% if diff_remaining <= 15 %}
                   <span class="text-warning fw-bold">(เหลือ {{ diff_remaining }} วัน)</span>
@@ -204,9 +190,9 @@
     {% endif %}
     {% if advance_payment_role == 'finance' %}
       <div class="my-4"></div>
-      {% if borrowing_ticket.status|lower in ["กำลังส่งคำขอ", "กำลังดำเนินการ"] %}
+      {% if borrowing_ticket.status_code in ["PENDING", "IN_PROGRESS"] %}
         <div class="d-flex justify-content-end gap-2">
-          {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
+          {% if borrowing_ticket.status_code == "PENDING" %}
             <button
               type="button"
               class="btn btn-info btn-sm fw-bold px-3 py-1.5"
@@ -218,7 +204,7 @@
               data-popup-confirm-class="btn-info">
                 เริ่มการตรวจสอบ
             </button>
-          {% elif borrowing_ticket.status|lower == "กำลังดำเนินการ" %}
+          {% elif borrowing_ticket.status_code == "IN_PROGRESS" %}
             <button
               type="button"
               class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
@@ -270,7 +256,7 @@
       {% endif %}
     {% endif %}
     <div class="my-4"></div>
-    {% if borrowing_ticket.status|lower not in ["กำลังส่งคำขอ", "กำลังดำเนินการ"] and advance_payment_role == 'finance' %}
+    {% if borrowing_ticket.status_code not in ["PENDING", "IN_PROGRESS"] and advance_payment_role == 'finance' %}
       <div class="d-flex justify-content-end w-100">
           <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2" data-ajax-validation="true">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -288,7 +274,7 @@
             <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
           </button>
         </div>
-      {% elif not borrowing_ticket.import_batch_id and advance_payment_role != 'finance' and borrowing_ticket.status|lower != 'ปฏิเสธ'  %}
+      {% elif not borrowing_ticket.import_batch_id and advance_payment_role != 'finance' and borrowing_ticket.status_code != 'REJECTED'  %}
         <div class="d-flex justify-content-end mt-3">
           <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-dark" style="border-radius:6px;" target="_blank">
             <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญาเงินยืม
@@ -393,18 +379,7 @@
               </td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }}</td>
               <td>
-                {% set r_status = return_detail.status %}
-                
-                {% if return_detail.status|lower == 'รอตรวจสอบ' %}{% set r_status = 'รอตรวจสอบ' %}
-                {% elif return_detail.status|lower == 'กำลังตรวจสอบ' %}{% set r_status = 'กำลังตรวจสอบ' %}
-                {% elif return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
-                {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
-                {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
-                {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_status = 'ได้รับเอกสารแล้ว' %}
-                {% elif return_detail.status|lower == 'ล้างลูกหนี้เงินยืม' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
-                {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
-                
-                <span class="badge {{ status_badge_class(return_detail.status) }}">{{ r_status }}</span>
+                <span class="badge {{ status_badge_class(return_detail.status_code) }}">{{ return_detail.status }}</span>
               </td>
               <td class="text-center">
                 {% if return_detail.closing_document_name %}
@@ -470,8 +445,8 @@
               <td style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent) }}</td>
               <td>
-                {{ status_badge(pr.display_status) }}
-                {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
+                {{ status_badge(pr.display_status, none, '', pr.status_code) }}
+                {% if pr.status_code == 'REJECTED' and pr.rejection_comment %}
                   <div class="small text-danger mt-1 text-start" style="white-space: pre-line;">{{ pr.rejection_comment|latest_rejection_comment }}</div>
                 {% endif %}
               </td>
@@ -487,7 +462,7 @@
               </td>
               <td class="text-center">
                 <div class="d-flex flex-wrap gap-2 justify-content-center">
-                  {% if advance_payment_role == 'finance' and pr.status == 'รอตรวจสอบ' %}
+                  {% if advance_payment_role == 'finance' and pr.status_code == 'PENDING' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -503,7 +478,7 @@
                         ยืนยันการตรวจสอบ
                       </button>
                     </form>
-                  {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                  {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status_code == 'IN_PROCESS' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -521,7 +496,7 @@
                   </form>
                   {% endif %}
 
-                  {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
+                  {% if advance_payment_role == 'finance' and pr.status_code == 'PENDING' %}
                     <button type="button" class="btn btn-sm btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#parcelRejectModal{{ pr.id }}" style="max-width: 150px;">
                       ปฏิเสธ
                     </button>
@@ -545,7 +520,7 @@
     {% endfor %}
     {% if borrowing_ticket.parcel_returns %}
       {% for pr in borrowing_ticket.parcel_returns %}
-        {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
+        {% if advance_payment_role == 'finance' and pr.status_code in ['PENDING', 'IN_PROCESS'] %}
           <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.reject_parcel_return', parcel_return_id=pr.id) }}">

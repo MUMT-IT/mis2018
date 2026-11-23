@@ -60,27 +60,25 @@
 
     </div>
     <div class="col-12 col-lg-2">
-      {% set current_fund_request_status = (fund_request_status or '')|trim %}
-      {% set fund_request_status_aliases = {} %}
-      {% set current_fund_request_step = fund_request_status_aliases.get(current_fund_request_status, current_fund_request_status) %}
+      {% set current_fund_request_step = fund_request_status_code %}
       {% set fund_request_status_class = status_badge_class(current_fund_request_step) %}
 
       <div class="status-flow">
         {% for step in fund_request_status_steps %}
           <div class="status-flow-item">
-            <span class="status-flow-dot {% if step == current_fund_request_step %}is-current{% endif %}"></span>
-            {% if step == current_fund_request_step %}
-              <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ step }}</span>
+            <span class="status-flow-dot {% if step.code == current_fund_request_step %}is-current{% endif %}"></span>
+            {% if step.code == current_fund_request_step %}
+              <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ step.name }}</span>
             {% else %}
-              <span class="badge bg-light text-secondary border fs-6 px-3 py-2">{{ step }}</span>
+              <span class="badge bg-light text-secondary border fs-6 px-3 py-2">{{ step.name }}</span>
             {% endif %}
           </div>
         {% endfor %}
 
-        {% if current_fund_request_step not in fund_request_status_steps and current_fund_request_step %}
+        {% if current_fund_request_step not in (fund_request_status_steps|map(attribute='code')|list) and current_fund_request_step %}
           <div class="status-flow-item">
             <span class="status-flow-dot is-current"></span>
-            <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ current_fund_request_step }}</span>
+            <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ fund_request_status }}</span>
           </div>
         {% endif %}
       </div>
@@ -810,8 +808,8 @@ function togglePettyCashClaimForm() {
 {% endif %}
 
 {% set history_target = history_fund_request if history_fund_request is defined else (selected_fund_request if selected_fund_request else (claim_detail.fund_request if claim_detail and claim_detail.fund_request else none)) %}
-{% set visible_claim_history = claim_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
-{% set visible_parcel_return_history = parcel_return_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
+{% set visible_claim_history = claim_history|rejectattr('status_code', 'equalto', 'DRAFT')|list %}
+{% set visible_parcel_return_history = parcel_return_history|rejectattr('status_code', 'equalto', 'DRAFT')|list %}
 
 {% set has_history = visible_claim_history or visible_parcel_return_history %}
 {% if history_target and has_history %}
@@ -848,17 +846,7 @@ function togglePettyCashClaimForm() {
             </td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(claim.total_amount or 0) }}</td>
             <td>
-              {% set c_status = claim.status %}
-
-              {% if claim.status|lower == 'รอตรวจสอบ' %}{% set c_status = 'รอตรวจสอบ' %}
-              {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_status = 'กำลังตรวจสอบ' %}
-              {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
-              {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
-              {% elif claim.status|lower == 'โอนคืนเงินสดย่อย' %}{% set c_status = 'โอนคืนเงินสดย่อย' %}
-              {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
-              {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
-
-              <span class="badge {{ status_badge_class(claim.status) }}">{{ c_status }}</span>
+              <span class="badge {{ status_badge_class(claim.status_code) }}">{{ claim.status }}</span>
             </td>
             <td class="text-center">
               {% if claim.closing_document_name %}
@@ -915,8 +903,8 @@ function togglePettyCashClaimForm() {
             <td style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
             <td>
-              {{ status_badge(pr.display_status) }}
-              {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
+              {{ status_badge(pr.display_status, none, '', pr.status_code) }}
+              {% if pr.status_code == 'REJECTED' and pr.rejection_comment %}
                 <div class="small text-danger mt-1 text-start" style="white-space: pre-line;">{{ pr.rejection_comment|latest_rejection_comment }}</div>
               {% endif %}
             </td>
@@ -931,9 +919,9 @@ function togglePettyCashClaimForm() {
               {% endif %}
             </td>
             <td class="text-center">
-              {% set parcel_transfer_ready = pr.status == 'ยืนยันการตรวจสอบ' %}
+              {% set parcel_transfer_ready = pr.status_code == 'APPROVED' %}
               <div class="d-flex flex-wrap gap-2 justify-content-center">
-                {% if advance_payment_role == 'finance' and pr.status == 'รอตรวจสอบ' %}
+                {% if advance_payment_role == 'finance' and pr.status_code == 'PENDING' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -949,7 +937,7 @@ function togglePettyCashClaimForm() {
                       ยืนยันการตรวจสอบ
                     </button>
                   </form>
-                {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status_code == 'IN_PROCESS' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -976,13 +964,13 @@ function togglePettyCashClaimForm() {
                   </button>
                 {% endif %}
 
-                {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
+                {% if advance_payment_role == 'finance' and pr.status_code == 'PENDING' %}
                   <button type="button" class="btn btn-sm btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#parcelRejectModal{{ pr.id }}" style="max-width: 150px;">
                     ปฏิเสธ
                   </button>
                 {% endif %}
 
-                {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                {% if session.get('advance_payment_system') == 'petty_cash' and pr.status_code in ['PENDING', 'REJECTED'] %}
                   <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#parcelEditModal{{ pr.id }}" style="max-width: 150px;">
                     แก้ไข
                   </button>
@@ -998,7 +986,7 @@ function togglePettyCashClaimForm() {
   {% endfor %}
   {% if visible_parcel_return_history %}
     {% for pr in visible_parcel_return_history %}
-      {% set parcel_transfer_ready = pr.status == 'ยืนยันการตรวจสอบ' %}
+      {% set parcel_transfer_ready = pr.status_code == 'APPROVED' %}
       {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}
         <div class="modal fade text-start" id="parcelTransferModal{{ pr.id }}" tabindex="-1" aria-labelledby="parcelTransferModalLabel{{ pr.id }}" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered">
@@ -1038,7 +1026,7 @@ function togglePettyCashClaimForm() {
         </div>
       {% endif %}
 
-      {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
+      {% if advance_payment_role == 'finance' and pr.status_code in ['PENDING', 'IN_PROCESS'] %}
         <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.reject_parcel_return', parcel_return_id=pr.id) }}">
@@ -1061,7 +1049,7 @@ function togglePettyCashClaimForm() {
         </div>
       {% endif %}
 
-      {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+      {% if session.get('advance_payment_system') == 'petty_cash' and pr.status_code in ['PENDING', 'REJECTED'] %}
         <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.staff_parcel_return_edit', parcel_return_id=pr.id) }}" data-ajax-validation="true">

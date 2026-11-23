@@ -715,13 +715,15 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     requests = [fr for fr in fund_requests if through_selected_month(fr.request_date)]
     request_ids = {fr.id for fr in requests}
     eligible_claims = [claim for claim in claims if through_selected_month(claim.created_at)]
-    submitted_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ผ่านการตรวจสอบ"}
-    rejected_statuses = {"ปฏิเสธ", "ถูกปฏิเสธ"}
-    non_accounted_claim_statuses = rejected_statuses | {"ฉบับร่าง", "ยกเลิก"}
+    legacy_status_codes = {"ฉบับร่าง":"DRAFT","รอตรวจสอบ":"PENDING","กำลังตรวจสอบ":"IN_PROCESS","ผ่านการตรวจสอบ":"APPROVED","พัสดุกำลังดำเนินการ":"IN_PROCESS","ได้รับเอกสารแล้ว":"DOCUMENT_RECEIVED","ปฏิเสธ":"REJECTED","ถูกปฏิเสธ":"REJECTED","ยกเลิก":"CLAIM_CANCELLED"}
+    def record_status_code(record):
+        return getattr(record, "status_code", None) or legacy_status_codes.get((getattr(record, "status", None) or "").strip())
+    submitted_status_codes = {"PENDING", "IN_PROCESS", "APPROVED"}
+    non_accounted_claim_codes = {"REJECTED", "DRAFT", "CLAIM_CANCELLED"}
     submitted_claims = [
         claim for claim in eligible_claims
         if claim.fund_request_id in request_ids
-        and (claim.status or "").strip() in submitted_statuses
+        and record_status_code(claim) in submitted_status_codes
     ]
     parcel_returns = (
         db.session.query(ParcelReturnDetail)
@@ -732,11 +734,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     parcel_returns = [parcel for parcel in parcel_returns if through_selected_month(parcel.sent_date)]
     submitted_parcel_returns = [
         parcel for parcel in parcel_returns
-        if (parcel.status or "").strip() in {
-            "รอตรวจสอบ",
-            "พัสดุกำลังดำเนินการ",
-            "ได้รับเอกสารแล้ว",
-        }
+        if record_status_code(parcel) in {"PENDING", "IN_PROCESS", "DOCUMENT_RECEIVED"}
     ]
     # Track the amount already represented by every non-rejected linked
     # document. This also handles partially submitted FundRequests: the
@@ -745,7 +743,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     for claim in eligible_claims:
         if claim.fund_request_id not in request_ids:
             continue
-        if (claim.status or "").strip() in non_accounted_claim_statuses:
+        if record_status_code(claim) in non_accounted_claim_codes:
             continue
         accounted_amount_by_request.setdefault(claim.fund_request_id, Decimal("0.00"))
         accounted_amount_by_request[claim.fund_request_id] += sum(
@@ -755,7 +753,7 @@ def summarize_petty_cash_month(month_start, fund_requests, claims):
     for parcel in parcel_returns:
         if parcel.fund_request_id not in request_ids:
             continue
-        if (parcel.status or "").strip() in rejected_statuses | {"ฉบับร่าง"}:
+        if record_status_code(parcel) in {"REJECTED", "DRAFT"}:
             continue
         accounted_amount_by_request.setdefault(parcel.fund_request_id, Decimal("0.00"))
         accounted_amount_by_request[parcel.fund_request_id] += Decimal(str(parcel.amount_spent or 0))

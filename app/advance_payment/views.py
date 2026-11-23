@@ -47,7 +47,7 @@ from .borrowing_ticket_eligibility import (
 from .categories import CATEGORY_CHOICES, parse_return_item_categories
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceImportBatch, FinanceReportLog, FinanceReportLogItem, CashAdvanceAccountManager, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association, PettyCashFiscalYearTopUpTransfer
-from .models import status_name_for_record
+from .models import status_code_for_record, status_name_for_record
 from .status_codes import DEFAULT_STATUS_CODES
 from .email_utils import (
     generate_finance_notification_email_content,
@@ -250,6 +250,12 @@ def _status_id(status_group, *, code=None):
 
 def _status_name(status_group, code):
     return _status_entry(status_group, code)[1]
+
+
+@bp.app_context_processor
+def advance_payment_status_template_helpers():
+    """Expose editable catalog labels without exposing them to workflow logic."""
+    return {"advance_payment_status_name": _status_name}
 
 
 _STATUS_GROUP_BY_MODEL = {
@@ -9092,6 +9098,7 @@ def return_records_history():
             "amount_spent": float(record.amount_spent or 0),
             "total_amount": float(record.amount_spent or 0),
             "status": status_name_for_record(record),
+            "status_code": status_code_for_record(record),
             "created_at": record.created_at,
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
@@ -9140,6 +9147,7 @@ def return_records_history():
             "total_amount": float(record.amount_spent or 0),
             "type_label": record.type_label,
             "status": status_name_for_record(record),
+            "status_code": status_code_for_record(record),
             "created_at": record.created_at if hasattr(record, 'created_at') else None,
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
@@ -9350,6 +9358,7 @@ def petty_cash_claim_history():
             "amount_spent": float(claim.total_amount),
             "total_amount": float(claim.total_amount),
             "status": status_name_for_record(claim),
+            "status_code": status_code_for_record(claim),
             "created_at": claim.created_at,
             "transferred_at": claim.transferred_at,
             "is_direct_legacy": is_direct_legacy,
@@ -9404,6 +9413,7 @@ def petty_cash_claim_history():
             "total_amount": float(record.amount_spent or 0),
             "type_label": record.type_label,
             "status": status_name_for_record(record),
+            "status_code": status_code_for_record(record),
             "created_at": record.created_at if hasattr(record, 'created_at') else None,
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
@@ -10436,6 +10446,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
                 )
             )),
             "status": status_name_for_record(record),
+            "status_code": status_code_for_record(record),
             "created_at": record.created_at,
         })
 
@@ -10491,6 +10502,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             "items_description": pr.items_description,
             "type_label": pr.type_label,
             "status": status_name_for_record(pr),
+            "status_code": status_code_for_record(pr),
             "created_at": pr.created_at,
         })
 
@@ -13629,6 +13641,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         circular_draft=circular_draft,
         fund_request_total_info=fund_request_total_info,
         fund_request_status=(status_name_for_record(verification_fund_request) if verification_fund_request else None),
+        fund_request_status_code=(status_code_for_record(verification_fund_request) if verification_fund_request else None),
         fund_request_waiting_message=fund_request_waiting_message,
         can_approve_fund_request=can_approve_fund_request,
         can_confirm_fund_request=can_confirm_fund_request,
@@ -13654,7 +13667,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_created_at=verification_created_at,
         verification_amount=verification_amount,
         verification_status=verification_status,
-        fund_request_status_steps=[_status_name("fund_request", code) for code in FUND_REQUEST_STATUS_STEPS],
+        fund_request_status_steps=[{"code": code, "name": _status_name("fund_request", code)} for code in FUND_REQUEST_STATUS_STEPS],
         circular_return_reference_document=_get_circular_return_reference_document(),
         cash_mng_finance_open=cash_mng_finance_open,
     )

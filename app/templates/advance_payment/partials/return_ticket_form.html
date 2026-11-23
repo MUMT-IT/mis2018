@@ -1123,7 +1123,7 @@
       bindReceiptAgeWarnings(document);
 
       {% for borrowing_ticket in actionable_tickets %}
-        {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'เคลียร์ยอดแล้ว', 'เอกสารตั้งฎีกา', 'ปฏิเสธ'] %}
+        {% if borrowing_ticket.status_code not in ['PENDING', 'IN_PROGRESS', 'CLOSED', 'CLOSING', 'REJECTED'] %}
           {% if not borrowing_ticket.draft_items %}
             addReceiptRow({{ borrowing_ticket.id }}, false);
           {% else %}

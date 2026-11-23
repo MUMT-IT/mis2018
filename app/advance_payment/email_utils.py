@@ -106,6 +106,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
     if object_type == "ticket":
         ticket_name = _ticket_name(target_object)
         status = getattr(target_object, "status", "")
+        status_code = getattr(target_object, "status_code", "")
         number = _ticket_number(target_object)
         start_date = thai_date(getattr(target_object, "borrowing_ticket_start_date", None))
         end_date = thai_date(getattr(target_object, "borrowing_ticket_end_date", None))
@@ -152,7 +153,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
-        elif status == "กำลังส่งคำขอ":
+        elif status_code == "PENDING":
             subject = "แจ้งสถานะสัญญาเงินยืมทดรองจ่าย [กำลังส่งคำขอ]"
             body = f"""คำขอสัญญาเงินยืมทดรองจ่าย เพื่อ {ticket_name} ถูกบันทึกคำขอเรียบร้อยแล้ว
 
@@ -165,7 +166,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
-        elif status == "อนุมัติจ่ายเงิน":
+        elif status_code == "APPROVED":
             subject = "แจ้งสถานะสัญญาเงินยืมทดรองจ่าย [อนุมัติจ่ายเงิน]"
             body = f"""คำขอสัญญาเงินยืมทดรองจ่าย เพื่อ {ticket_name} ได้รับการอนุมัติเรียบร้อยแล้ว
 
@@ -180,7 +181,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
-        elif status == "เคลียร์ยอดแล้ว":
+        elif status_code == "CLOSED":
             subject = f"แจ้งสถานะสัญญาเงินยืมทดรองจ่าย บย. {number} [เคลียร์ยอดแล้ว]"
             body = f"""สัญญาเงินยืมทดรองจ่าย เลขที่ บย.{number} ได้รับการเคลียร์ยอดครบแล้ว
 
@@ -191,7 +192,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
-        elif status == "ปฏิเสธ":
+        elif status_code == "REJECTED":
             subject = "แจ้งสถานะสัญญาเงินยืมทดรองจ่าย [ปฏิเสธคำขอ]"
             body = f"""คำขอสัญญาเงินยืมเพื่อ {ticket_name} ถูกปฏิเสธ
 
@@ -213,12 +214,13 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         number = _ticket_number(ticket) if ticket else "-"
         amount = _amount(getattr(target_object, "amount_spent", 0))
         status = getattr(target_object, "status", "")
+        status_code = getattr(target_object, "status_code", "")
         rejection_reason = latest_rejection_comment(
             getattr(target_object, "rejection_comment", None)
         ) or "-"
         status_label = {"รอตรวจสอบ": "รอการตรวจสอบ", "ผ่านการตรวจสอบ": "ผ่านการตรวจสอบ", "ปฏิเสธ": "ปฏิเสธหลักฐาน"}.get(status, status)
         subject = f"แจ้งสถานะเอกสารส่งใช้เงินยืมทดรองจ่ายบย. {number} [{status_label}]"
-        if status == "รอตรวจสอบ":
+        if status_code == "PENDING":
             body = f"""หลักฐานเอกสารส่งใช้เงินยืมบย.{number} ถูกบันทึกเรียบร้อยแล้ว
 
 รายละเอียดเอกสารส่งใช้เงินยืม:
@@ -229,7 +231,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
-        elif status == "ผ่านการตรวจสอบ":
+        elif status_code == "APPROVED":
             body = f"""เอกสารส่งใช้เงินยืมบย.{number} จำนวนเงิน {amount} บาท
 ได้รับการตรวจสอบหลักฐานว่าถูกต้องเรียบร้อยแล้ว
 
@@ -242,7 +244,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
-        elif status == "ปฏิเสธ":
+        elif status_code == "REJECTED":
             body = f"""เอกสารส่งใช้เงินยืมบย.{number} ถูกปฏิเสธ
 
 เนื่องจาก {rejection_reason}
@@ -261,6 +263,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
     elif object_type == "fund_request":
         ticket_number = getattr(target_object, "ticket_number", None) or "-"
         status = getattr(target_object, "status", "")
+        status_code = getattr(target_object, "status_code", "")
         action = ctx.get("action", "status")
         action_url = str(ctx.get("action_url") or "").strip()
         bank_account_name = ctx.get("bank_account_name") or "-"
@@ -335,7 +338,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
             approved_at = thai_datetime(
                 getattr(target_object, "approved_at", None)
             ) or "-"
-            approval_complete = status == "อนุมัติแล้ว"
+            approval_complete = status_code == "APPROVED"
             intro = (
                 f"ใบเบิกเงินสดย่อยเลขที่ {ticket_number} "
                 "ได้รับการอนุมัติเรียบร้อยแล้ว"
@@ -406,6 +409,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 
     elif object_type == "petty_claim":
         status = getattr(target_object, "status", "")
+        status_code = getattr(target_object, "status_code", "")
         fund_request = ctx.get("fund_request")
         ticket_number = getattr(fund_request, "ticket_number", None) or "-"
         items = [item for item in (getattr(target_object, "items", None) or []) if str(getattr(item, "category_type", "")).strip() != "6"]
@@ -416,16 +420,16 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         ) or "-"
         status_label = status
         subject = f"แจ้งสถานะรายการขออนุมัติเบิกค่าใช้จ่ายเงินสดย่อย เลขที่ {ticket_number} [{status_label}]"
-        if status == "รอตรวจสอบ":
+        if status_code == "PENDING":
             intro = f" รายการขออนุมัติเบิกค่าใช้จ่าย เงินสดย่อย ใบเบิกเลขที่ {ticket_number} อยู่ระหว่างรอการตรวจสอบ"
             tail = "\n\nกรุณารอการตรวจสอบจากฝ่ายการเงิน"
-        elif status == "ผ่านการตรวจสอบ":
+        elif status_code == "APPROVED":
             intro = f" รายการขออนุมัติเบิกค่าใช้จ่าย เงินสดย่อย ใบเบิกเลขที่ {ticket_number} ผ่านการตรวจสอบเรียบร้อยแล้ว"
             tail = "\n\n**กรุณาดำเนินการส่งหนังสือขออนุมัติเบิกจ่ายผ่านระบบ e-office ต่อไป"
-        elif status == "ปฏิเสธ":
+        elif status_code == "REJECTED":
             intro = f" รายการขออนุมัติเบิกค่าใช้จ่าย เงินสดย่อย ใบเบิกเลขที่ {ticket_number} ถูกปฏิเสธ\n\nเนื่องจาก {rejection_reason}"
             tail = "\n\nกรุณาดำเนินการแก้ไขข้อมูลและทำการบันทึกข้อมูลใหม่อีกครั้ง"
-        elif status == "โอนเงินสดย่อยสำเร็จ":
+        elif status_code == "CASH_TRANSFER_COMPLETED":
             intro = f"รายการขออนุมัติเบิกค่าใช้จ่าย เงินสดย่อย ใบเบิกเลขที่ {ticket_number} ได้รับการโอนเงินสดย่อยสำเร็จแล้ว\n\n- ผู้ยืม {requester_name}\n- จำนวนเงิน {claim_amount} บาท\n- วันที่โอนเงินสำเร็จ {transferred_at}"
             tail = ""
         else:
@@ -444,6 +448,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         fund_request = ctx.get("fund_request")
         reference = f"สัญญาเงินยืม บย.{_ticket_number(ticket)}" if ticket else f"ใบเบิกเงินสดย่อยเลขที่{getattr(fund_request, 'ticket_number', None) or '-'}"
         status = getattr(target_object, "status", "")
+        status_code = getattr(target_object, "status_code", "")
         item_name = {
             1: "รายการส่งว-119",
             5: "รายการส่งว-5763",
@@ -457,23 +462,23 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         status_label = "ถูกปฏิเสธ" if status in {"ปฏิเสธ", "ถูกปฏิเสธ"} else status
         subject = f"แจ้งสถานะ{item_name} [{status_label}]"
         tail = ""
-        if status == "รอตรวจสอบ":
+        if status_code == "PENDING":
             intro = f"{item_name} ของ{reference} อยู่ระหว่างรอการตรวจสอบ"
             tail = "\n\nกรุณารอการตรวจสอบจากฝ่ายการเงิน"
-        elif status == "พัสดุกำลังดำเนินการ":
+        elif status_code == "IN_PROCESS":
             intro = f"{item_name} ของ{reference}\nอยู่ระหว่างกระบวนการการทำงานของพัสดุ"
-        elif status == "ยืนยันการตรวจสอบ":
+        elif status_code == "APPROVED":
             intro = f"ฝ่ายการเงินได้รับเอกสาร{item_name} ของ{reference} เรียบร้อยแล้ว"
-        elif status == "ได้รับเอกสารแล้ว":
+        elif status_code == "DOCUMENT_RECEIVED":
             intro = f"ฝ่ายการเงินได้รับเอกสาร{item_name} ของ{reference} เรียบร้อยแล้ว"
-        elif status == "โอนเงินสดย่อยสำเร็จ":
+        elif status_code == "CASH_TRANSFER_COMPLETED":
             intro = f"{item_name} ของ{reference} ได้รับการดำเนินการโอนคืนเงินสดย่อยสำเร็จแล้ว"
-        elif status in {"ปฏิเสธ", "ถูกปฏิเสธ"}:
+        elif status_code == "REJECTED":
             intro = f"{item_name} ของ{reference} ถูกปฏิเสธ\n\nเนื่องจาก {rejection_reason}"
             tail = "\n\nกรุณาดำเนินการแก้ไขข้อมูลและทำการบันทึกข้อมูลใหม่อีกครั้ง"
         else:
             intro = f"ขอแจ้งอัปเดตสถานะ{item_name} ของ{reference}\n\n- สถานะปัจจุบัน {status}"
-        transfer_line = f"\n- วันที่โอนเงินสำเร็จ {transferred_at}" if status == "โอนเงินสดย่อยสำเร็จ" else ""
+        transfer_line = f"\n- วันที่โอนเงินสำเร็จ {transferred_at}" if status_code == "CASH_TRANSFER_COMPLETED" else ""
         body = f"""{intro}
 
 รายละเอียดรายการ:

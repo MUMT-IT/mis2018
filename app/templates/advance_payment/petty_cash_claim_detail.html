@@ -83,26 +83,26 @@
           <span class="text-muted small d-block">สถานะปัจจุบัน</span>
           {% set c_status = claim_detail.status %}
           
-          {% if claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'กำลังส่งคำขอ'] %}
+          {% if claim_detail.status_code in ['PENDING', 'DRAFT'] %}
             {% set c_status = 'รอตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'กำลังตรวจสอบ' %}
+          {% elif claim_detail.status_code == 'IN_PROCESS' %}
             {% set c_status = 'กำลังตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'ผ่านการตรวจสอบ' %}
+          {% elif claim_detail.status_code == 'APPROVED' %}
             {% set c_status = 'ผ่านการตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
+          {% elif claim_detail.status_code == 'CASH_TRANSFER_COMPLETED' %}
             {% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
-          {% elif claim_detail.status|lower == 'โอนคืนเงินสดย่อย' %}
+          {% elif claim_detail.status_code == 'CASH_RETURNED' %}
             {% set c_status = 'โอนคืนเงินสดย่อย' %}
-          {% elif claim_detail.status|lower == 'เอกสารตั้งฎีกา' %}
+          {% elif claim_detail.status_code == 'CLOSING' %}
             {% set c_status = 'เอกสารตั้งฎีกา' %}
-          {% elif claim_detail.status|lower in ['ปฏิเสธ'] %}
+          {% elif claim_detail.status_code == 'REJECTED' %}
             {% set c_status = 'ปฏิเสธ' %}
           {% endif %}
-          {% if claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+          {% if claim_detail.status_code == 'EDIT_CONFIRMATION_REQUIRED' %}
             {% set c_status = 'รอยืนยันการแก้ไข' %}
           {% endif %}
           
-          <span class="badge {{ status_badge_class(claim_detail.status) }} mt-1 px-2 py-1">{{ c_status }}</span>
+          <span class="badge {{ status_badge_class(claim_detail.status_code) }} mt-1 px-2 py-1">{{ claim_detail.status }}</span>
         </div>
 
         <!-- วันที่บันทึกข้อมูล -->
@@ -131,7 +131,7 @@
         {% if claim_detail.rejection_comment %}
         <div class="col-12 mt-3">
             <h6 class="fw-bold text-danger">ข้อเสนอแนะ/สาเหตุการปฏิเสธล่าสุด:</h6>
-            <p style="white-space: pre-line;" class="mb-2 p-3{% if claim_detail.status|lower == 'ปฏิเสธ' %} rounded border text-dark bg-danger-subtle border-danger-subtle{% else %} text-muted small{% endif %}">{{ claim_detail.rejection_comment|latest_rejection_comment }}</p>
+            <p style="white-space: pre-line;" class="mb-2 p-3{% if claim_detail.status_code == 'REJECTED' %} rounded border text-dark bg-danger-subtle border-danger-subtle{% else %} text-muted small{% endif %}">{{ claim_detail.rejection_comment|latest_rejection_comment }}</p>
         </div>
         {% endif %}
       </div>
@@ -146,7 +146,7 @@
     </div>
     {% endif %}
 
-    {% if advance_payment_role != 'finance' and can_manage_claim and claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+    {% if advance_payment_role != 'finance' and can_manage_claim and claim_detail.status_code == 'EDIT_CONFIRMATION_REQUIRED' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
       <form method="POST" action="{{ url_for('advance_payment.confirm_petty_claim_edit', claim_id=claim_detail.id) }}" class="m-0">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -160,7 +160,7 @@
     <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
 
         <!-- 1. สถานะ รอตรวจสอบ -> กดเปลี่ยนเป็น "กำลังตรวจสอบ" -->
-        {% if claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'กำลังส่งคำขอ'] %}
+        {% if claim_detail.status_code in ['PENDING', 'DRAFT'] %}
             <button type="button" class="btn btn-warning btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#confirmCheckingModal">
                 <i class="bi bi-search me-1"></i> เริ่มการตรวจสอบ
             </button>
@@ -186,7 +186,7 @@
         {% endif %}
 
         <!-- 2. สถานะ กำลังตรวจสอบ -> ยืนยันผ่านการตรวจสอบ หรือ ปฏิเสธ -->
-        {% if claim_detail.status|lower == 'กำลังตรวจสอบ' %}
+        {% if claim_detail.status_code == 'IN_PROCESS' %}
             <button type="button" class="btn btn-primary btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#confirmProofedModal">
                 <i class="bi bi-check-circle me-1"></i> ยืนยันการตรวจสอบ
             </button>
@@ -238,7 +238,7 @@
         {% endif %}
 
         <!-- 3. สถานะ ผ่านการตรวจสอบ -> โอนเงินสดย่อย (โอนเงินสดย่อยสำเร็จ / transferred) -->
-        {% if claim_detail.status|lower == 'ผ่านการตรวจสอบ' %}
+        {% if claim_detail.status_code == 'APPROVED' %}
             <button type="button" class="btn btn-success btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#transferModal">
                 <i class="bi bi-cash-stack me-1"></i> บันทึกโอนเงินสดย่อยสำเร็จ
             </button>

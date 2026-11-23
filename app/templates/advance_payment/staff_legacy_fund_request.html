@@ -77,9 +77,9 @@
             <td class="fw-bold">{{ fund_request.ticket_number or '-' }}</td>
             <td>{{ fund_request.request_date|thai_date if fund_request.request_date else '-' }}</td>
             <td class="text-end fw-bold">{{ '{:,.2f}'.format(fund_request.amount or 0) }}</td>
-            <td class="text-center">{{ status_badge(fund_request.status) }}</td>
+            <td class="text-center">{{ status_badge(fund_request.status, none, '', fund_request.status_code) }}</td>
             <td class="text-center">
-              {% if fund_request.status not in ['ยกเลิก', 'เคลียร์ยอดสำเร็จ'] %}
+              {% if fund_request.status_code not in ['CLAIM_CANCELLED', 'SETTLED'] %}
               <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=fund_request.id) }}" class="btn btn-sm btn-outline-primary">
                 ดูประวัติ/ส่งเบิกเงินสดย่อย
               </a>
