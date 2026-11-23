@@ -343,7 +343,7 @@ _LETTER_DOCUMENT_INFO_CSS = f"""
 
 def _letter_info_lines(subject, recipient, *, date=""):
     """Format letter fields with a blank line before the recipient."""
-    values = (("ที่", ""), ("วันที่", date), ("เรื่อง", subject), ("เรียน", recipient))
+    values = (("ที่", ""), ("วันที่", ""), ("เรื่อง", subject), ("เรียน", recipient))
     lines = [
         html.escape(label) + (LETTER_INFO_GAP + html.escape(str(value), quote=True) if value else "")
         for label, value in values
@@ -2956,7 +2956,7 @@ def build_reminder_letter(
     else:
         # An imported ticket's approved_at is the payment date, not the
         # contract date requested by the reference letter.
-        date_phrase = "ลงวันที่ ................................"
+        date_phrase = f"ลงวันที่ {PDF_BLANK}"
     return {
         "ticket_number": number,
         "borrower_name": borrower_name,
