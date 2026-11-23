@@ -1,16 +1,6 @@
 ﻿from dataclasses import dataclass
 from typing import Iterable
 
-ACTIVE_STATUS_LABELS = {
-    "อนุมัติจ่ายเงิน": "อนุมัติจ่ายเงิน",
-    "มียอดคงค้าง": "มียอดคงค้าง",
-    "เกินกำหนดส่งใช้": "เกินกำหนดส่งใช้",
-    "รอตรวจสอบ": "รอตรวจสอบ",
-    "กำลังส่งคำขอ": "กำลังส่งคำขอ",
-    "กำลังดำเนินการ": "กำลังดำเนินการ",
-}
-
-IGNORED_STATUS_LABELS = {"เคลียร์ยอดแล้ว"}
 ACTIVE_STATUS_CODES = {"PENDING", "IN_PROGRESS", "APPROVED", "PARTIAL_RETURN", "CLOSING_REJECTED"}
 TEMPORARY_EMPLOYMENT_TITLE = "ลูกจ้างชั่วคราว"
 TEMPORARY_EMPLOYEE_MESSAGE = (
@@ -64,33 +54,10 @@ def calculate_borrowing_ticket_eligibility(
 
         status = (_get_record_value(record, "status") or "").strip()
         status_code = (_get_record_value(record, "status_code") or "").strip().upper()
-        normalized_status = status.casefold()
-
         if status_code == "CLOSED":
             continue
         if status_code in ACTIVE_STATUS_CODES:
             blocking_label = status or status_code
-            if blocking_label not in seen_statuses:
-                blocking_statuses.append(blocking_label)
-                seen_statuses.add(blocking_label)
-            blocking_records.append(record)
-            continue
-
-        if normalized_status in {label.casefold() for label in IGNORED_STATUS_LABELS}:
-            continue
-
-        if normalized_status == "เคลียร์ยอดแล้ว":
-            continue
-
-        blocking_label = next(
-            (
-                label
-                for label in ACTIVE_STATUS_LABELS.values()
-                if label.casefold() == normalized_status
-            ),
-            None,
-        )
-        if blocking_label:
             if blocking_label not in seen_statuses:
                 blocking_statuses.append(blocking_label)
                 seen_statuses.add(blocking_label)
