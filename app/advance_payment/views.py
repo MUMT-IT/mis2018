@@ -302,7 +302,11 @@ PETTY_CASH_CLAIM_EDITABLE_CODES = {
     "REJECTED",
     "DRAFT",
     "EDIT_CONFIRMATION_REQUIRED",
+    "CASH_RETURNED",
 }
+edit_window_days = 10
+
+
 def _closed_fund_request_status(fund_request):
     return (
         "CLAIM_CANCELLED"
@@ -1534,7 +1538,21 @@ def _can_edit_petty_cash_claim(user, claim, setting):
     """Use one authorization/status rule for inline and full-form edits."""
     if not _can_manage_petty_cash_claim(user, claim, setting):
         return False
-    return claim.status_id in _status_ids("petty_cash_claim", PETTY_CASH_CLAIM_EDITABLE_CODES)
+    if claim.status_id not in _status_ids("petty_cash_claim", PETTY_CASH_CLAIM_EDITABLE_CODES):
+        return False
+    if claim.status_code == "CASH_RETURNED":
+        return _within_edit_window(claim.settled_at)
+    return True
+
+
+def _within_edit_window(started_at):
+    """Check the shared edit period in Bangkok time without discarding timezone data."""
+    if started_at is None:
+        return False
+    bangkok = ZoneInfo("Asia/Bangkok")
+    if started_at.tzinfo is None:
+        started_at = started_at.replace(tzinfo=bangkok)
+    return datetime.now(bangkok) <= started_at + timedelta(days=edit_window_days)
 
 
 def _get_fund_request_by_id(fund_request_id):
@@ -11177,6 +11195,11 @@ def record_fund_request_withdrawal(request_id):
             "ไม่สามารถบันทึกหรือแก้ไขวันที่เบิกเงินในสถานะนี้ได้"
         )
 
+    if is_editing_withdrawal_date and not _within_edit_window(fund_req.approved_at):
+        return _validation_error_response(
+            f"แก้ไขวันที่เบิกเงินได้ภายใน {edit_window_days} วันนับจากวันที่เซ็นอนุมัติเท่านั้น"
+        )
+
     request_date = _coerce_date(request.form.get("request_date"))
     if request_date is None:
         return _validation_error_response("กรุณาระบุวันที่เบิกเงินให้ถูกต้อง")
@@ -11717,7 +11740,6 @@ def update_petty_cash_claim_number(claim_id):
     if not claim:
         abort(404)
 
-    can_edit = False
     setting = _resolve_petty_cash_setting(staff)
     same_setting = bool(
         setting and setting.id and claim.petty_cash_setting_id == setting.id
@@ -11727,7 +11749,7 @@ def update_petty_cash_claim_number(claim_id):
     else:
         can_edit = same_setting and claim.user_id == staff.id
 
-    if not can_edit:
+    if not can_edit or claim.status_code == "CASH_RETURNED":
         abort(403)
 
     claim_number = request.form.get("claim_number", "").strip()
@@ -13130,6 +13152,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_fund_request
         and fund_request_status_id in _status_ids("fund_request", {"WITHDRAWN", "CLAIMS_SUBMITTED", "SETTLED"})
         and verification_fund_request.request_date is not None
+        and _within_edit_window(verification_fund_request.approved_at)
         and current_is_custodian
         and _fund_request_is_fully_approved(verification_fund_request)
     )
