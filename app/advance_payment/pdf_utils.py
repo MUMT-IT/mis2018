@@ -560,7 +560,8 @@ def _get_head_signature(
     return _pdf_text(head_name), _pdf_text(getattr(head_position_record, "position", None))
 
 
-def _get_leave_approver_signatures(ticket=None, *, staff_account_id=None, middle_level_only=False):
+def _get_leave_approver_signatures(ticket=None, *, staff_account_id=None, middle_level_only=False,
+                                   include_account_ids=False):
     """Return active approvers, optionally restricted to the middle level."""
     borrower_id = staff_account_id or getattr(ticket, "borrower_id", None)
     if not borrower_id:
@@ -588,10 +589,11 @@ def _get_leave_approver_signatures(ticket=None, *, staff_account_id=None, middle
             .filter_by(staff_account_id=approver_account.id)
             .first()
         )
-        return (
+        signature = (
             _pdf_text(signer_name),
             _pdf_text(getattr(position_record, "position", None)),
         )
+        return signature + (approver_account.id,) if include_account_ids else signature
 
     signatures = []
     approver_filters = (
@@ -913,7 +915,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     return buffer.getvalue()
 
 
-def _build_fnar02_context(ticket):
+def _build_fnar02_context(ticket, approver_signatures=None):
     """Collect the values shared by both Chromium-rendered FNAR02 pages."""
     borrower_name = getattr(ticket, "borrower_name", None) or PDF_BLANK
     borrower_user = (
@@ -983,7 +985,10 @@ def _build_fnar02_context(ticket):
         "borrower_position": borrower_position,
         "department_name": department_name,
         "header_department_name": header_department_name,
-        "leave_approver_signatures": _get_leave_approver_signatures(ticket),
+        "leave_approver_signatures": (
+            _get_leave_approver_signatures(ticket)
+            if approver_signatures is None else approver_signatures
+        ),
         "due_date_thai": get_thai_month_year(due_date) if due_date else PDF_BLANK,
         "start_date_str": get_thai_month_year(start_date) if start_date else PDF_BLANK,
         "end_date_str": get_thai_month_year(end_date) if end_date else PDF_BLANK,
@@ -1823,11 +1828,11 @@ def _render_fnar02_with_reportlab(context):
     return output.getvalue()
 
 
-def generate_fnar02_pdf(ticket):
+def generate_fnar02_pdf(ticket, approver_signatures=None):
     """Generate both FNAR02 pages, with a ReportLab fallback."""
     from pypdf import PdfReader
 
-    fnar02_context = _build_fnar02_context(ticket)
+    fnar02_context = _build_fnar02_context(ticket, approver_signatures)
     def render_chromium():
         pdf = _render_fnar02_with_chromium(fnar02_context)
         page_count = len(PdfReader(BytesIO(pdf)).pages)
