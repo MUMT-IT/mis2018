@@ -276,9 +276,9 @@
         </div>
       {% elif not borrowing_ticket.import_batch_id and advance_payment_role != 'finance' and borrowing_ticket.status_code != 'REJECTED'  %}
         <div class="d-flex justify-content-end mt-3">
-          <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-dark" style="border-radius:6px;" target="_blank">
+          <button type="button" class="btn btn-outline-dark" style="border-radius:6px;" data-bs-toggle="modal" data-bs-target="#borrowingTicketPdfModal">
             <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญาเงินยืม
-          </a>
+          </button>
         </div>
       {% endif %}
       {% if can_edit_borrowing_ticket %}
@@ -306,6 +306,99 @@
       {% endif %}
     </div>
   </section>
+{% if not borrowing_ticket.import_batch_id and advance_payment_role != 'finance' and borrowing_ticket.status_code != 'REJECTED' %}
+<div class="modal fade" id="borrowingTicketPdfModal" tabindex="-1" aria-labelledby="borrowingTicketPdfModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" target="_blank">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="borrowingTicketPdfModalTitle">ผู้อนุมัติในเอกสารนำ</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+        </div>
+        <div class="modal-body">
+          <div id="borrowingTicketApproverRows">
+            {% for name, position, account_id in (pdf_approver_signatures or [('', '', none)]) %}
+            <div class="borrowing-ticket-approver-row d-flex align-items-center gap-2 mb-2">
+              <span class="approver-row-number flex-shrink-0">{{ loop.index }}.</span>
+              <select class="form-select borrowing-approver-select" name="approver_account_id" aria-label="ชื่อ-นามสกุลผู้อนุมัติ {{ loop.index }}" required>
+                <option value="">เลือกชื่อพนักงาน</option>
+                {% for staff in pdf_staff_options %}
+                <option value="{{ staff.id }}" {% if staff.id == account_id %}selected{% endif %}>{{ staff.fullname }}</option>
+                {% endfor %}
+              </select>
+              <button type="button" class="btn btn-sm btn-outline-danger remove-borrowing-approver flex-shrink-0">ลบ</button>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" id="addBorrowingApprover" class="btn btn-sm btn-outline-primary">เพิ่มผู้อนุมัติ</button>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="submit" class="btn btn-dark">ดาวน์โหลด PDF</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const rows = document.getElementById('borrowingTicketApproverRows');
+  const addButton = document.getElementById('addBorrowingApprover');
+  if (!rows || !addButton) return;
+  const modal = document.getElementById('borrowingTicketPdfModal');
+  const rowTemplate = rows.querySelector('.borrowing-ticket-approver-row').cloneNode(true);
+
+  function initializeSelect(entry) {
+    if (window.jQuery && jQuery.fn.select2) {
+      jQuery(entry.querySelector('select')).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'เลือกชื่อพนักงาน',
+        width: '100%',
+        dropdownParent: jQuery(modal)
+      });
+    }
+  }
+
+  function updateRows() {
+    const entries = rows.querySelectorAll('.borrowing-ticket-approver-row');
+    entries.forEach((entry, index) => {
+      entry.querySelector('.approver-row-number').textContent = index + 1;
+      entry.querySelector('select').setAttribute('aria-label', `ชื่อ-นามสกุลผู้อนุมัติ ${index + 1}`);
+    });
+    addButton.disabled = entries.length >= 2;
+  }
+
+  rows.addEventListener('click', function (event) {
+    const removeButton = event.target.closest('.remove-borrowing-approver');
+    if (!removeButton) return;
+    const entry = removeButton.closest('.borrowing-ticket-approver-row');
+    if (rows.querySelectorAll('.borrowing-ticket-approver-row').length === 1) {
+      const select = entry.querySelector('select');
+      select.value = '';
+      if (window.jQuery && jQuery.fn.select2) jQuery(select).trigger('change');
+      select.focus();
+    } else {
+      if (window.jQuery && jQuery.fn.select2) jQuery(entry.querySelector('select')).select2('destroy');
+      entry.remove();
+    }
+    updateRows();
+  });
+
+  addButton.addEventListener('click', function () {
+    if (rows.querySelectorAll('.borrowing-ticket-approver-row').length >= 2) return;
+    const entry = rowTemplate.cloneNode(true);
+    entry.querySelector('select').value = '';
+    rows.appendChild(entry);
+    initializeSelect(entry);
+    updateRows();
+    entry.querySelector('select').focus();
+  });
+  rows.querySelectorAll('.borrowing-ticket-approver-row').forEach(initializeSelect);
+  updateRows();
+});
+</script>
+{% endif %}
 {% if ticket_allocation_rows|length > 1 %}
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
   <p class="fw-bold mb-2">การจัดสรรยอดคืนรายสัญญา</p>

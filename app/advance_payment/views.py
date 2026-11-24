@@ -350,6 +350,7 @@ def _borrowing_passthrough_validation_message():
 
 from .pdf_utils import (
     generate_fnar02_pdf,
+    _get_leave_approver_signatures,
     build_reminder_letter,
     generate_overdue_reminders_pdf,
     generate_fund_request_pdf,
@@ -5543,9 +5544,33 @@ def coordinator_dashboard():
         circular_return_reference_document=_get_circular_return_reference_document(),
     )
 
-@bp.route("/coordinator/ticket/<int:ticket_id>/pdf", endpoint="coordinator_ticket_pdf")
-@bp.route("/borrower/ticket/<int:ticket_id>/pdf", endpoint="borrower_ticket_pdf")
-@bp.route("/coordinator/ticket/<int:ticket_id>/pdf", endpoint="export_ticket_pdf")
+def _fnar02_approver_choices(ticket):
+    """Provide active directory staff and any configured approver missing from it."""
+    configured = _get_leave_approver_signatures(ticket, include_account_ids=True)
+    staff_options = (
+        db.session.query(StaffAccount)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(
+            StaffPersonalInfo.retirement_date.is_(None),
+            StaffPersonalInfo.resignation_date.is_(None),
+            or_(StaffPersonalInfo.retired.is_(False), StaffPersonalInfo.retired.is_(None)),
+        )
+        .order_by(StaffPersonalInfo.th_firstname, StaffPersonalInfo.th_lastname)
+        .all()
+    )
+    available_ids = {staff.id for staff in staff_options}
+    for _, _, account_id in configured:
+        if account_id not in available_ids:
+            account = db.session.query(StaffAccount).get(account_id)
+            if account is not None:
+                staff_options.append(account)
+                available_ids.add(account_id)
+    return configured, staff_options
+
+
+@bp.route("/coordinator/ticket/<int:ticket_id>/pdf", methods=["GET", "POST"], endpoint="coordinator_ticket_pdf")
+@bp.route("/borrower/ticket/<int:ticket_id>/pdf", methods=["GET", "POST"], endpoint="borrower_ticket_pdf")
+@bp.route("/coordinator/ticket/<int:ticket_id>/pdf", methods=["GET", "POST"], endpoint="export_ticket_pdf")
 @module_system_required(ADVANCE_PAYMENT_SYSTEM)
 def export_ticket_pdf(ticket_id):
     ticket = db.session.query(BorrowingTicket).get(ticket_id)
@@ -5560,7 +5585,33 @@ def export_ticket_pdf(ticket_id):
     ):
         abort(403)
 
-    pdf_bytes = generate_fnar02_pdf(ticket)
+    approver_signatures = None
+    if request.method == "POST":
+        approver_ids = request.form.getlist("approver_account_id")
+        if (not 1 <= len(approver_ids) <= 2
+                or any(not account_id.isdigit() for account_id in approver_ids)
+                or len(set(approver_ids)) != len(approver_ids)):
+            abort(400, description="กรุณาระบุชื่อผู้อนุมัติอย่างน้อย 1 คน (สูงสุด 2 คน)")
+        configured, staff_options = _fnar02_approver_choices(ticket)
+        available_staff = {str(staff.id): staff for staff in staff_options}
+        if any(account_id not in available_staff for account_id in approver_ids):
+            abort(400, description="กรุณาเลือกผู้อนุมัติจากรายชื่อพนักงาน")
+        configured_positions = {
+            str(account_id): position for _, position, account_id in configured
+        }
+        approver_signatures = [
+            (
+                available_staff[account_id].fullname,
+                configured_positions.get(account_id) or (getattr(
+                    db.session.query(StaffHeadPosition)
+                    .filter_by(staff_account_id=int(account_id)).first(),
+                    "position", None,
+                ) or ""),
+            )
+            for account_id in approver_ids
+        ]
+
+    pdf_bytes = generate_fnar02_pdf(ticket, approver_signatures=approver_signatures)
 
     response = current_app.response_class(pdf_bytes, mimetype='application/pdf')
     response.headers['Content-Disposition'] = f'attachment; filename=FNAR02_Ticket_{ticket_id}.pdf'
@@ -7055,9 +7106,13 @@ def verification_view(ticket_id):
 
     display_summary = _legacy_verification_display_summary(summary, borrowing_ticket)
 
+    pdf_approver_signatures, pdf_staff_options = _fnar02_approver_choices(borrowing_ticket)
+
     return render_template(
         "verification.html",
         borrowing_ticket=borrowing_ticket,
+        pdf_approver_signatures=pdf_approver_signatures,
+        pdf_staff_options=pdf_staff_options,
         return_details=return_details,
         parcel_returns=parcel_returns,
         approved_return_ids=approved_return_ids,
