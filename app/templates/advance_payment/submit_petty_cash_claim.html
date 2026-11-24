@@ -639,19 +639,23 @@
             ว-5763
           </label>
         </div>
+        <small class="text-danger d-none circular-type-invalid-feedback w-100">กรุณาเลือกประเภท ว-119 หรือ ว-5763</small>
       </div>
         <div class="row g-3">
           <div class="col-md-4 mt-2">
             <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
              <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" value="{{ circular_draft.sent_date.strftime('%Y-%m-%d') if circular_draft else '' }}" placeholder="dd/mm/yyyy">
+             <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกวันที่ในใบเสร็จ</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
              <input type="text" name="circular_items_description" class="form-control circular-return-input" value="{{ circular_draft.items_description if circular_draft else '' }}" placeholder="รายละเอียดรายการ...">
+             <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกรายการ ว-119/ว-5763</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงิน</label>
              <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" value="{{ circular_draft.amount_spent if circular_draft else '' }}" placeholder="0.00">
+             <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกจำนวนเงิน ว-119/ว-5763</small>
           </div>
         </div>
         {% else %}
@@ -683,14 +687,17 @@
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
              <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" value="{{ parcel_draft.sent_date.strftime('%Y-%m-%d') if parcel_draft else '' }}" placeholder="dd/mm/yyyy" required>
+             <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกวันที่ทำการส่งไปฝ่ายพัสดุ</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
              <input name="items_description" class="form-control parcel-return-input" value="{{ parcel_draft.items_description if parcel_draft else '' }}" placeholder="รายละเอียดรายการ..." required>
+             <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกรายการที่ส่งไปฝ่ายพัสดุ</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงิน</label>
              <input type="text" name="parcel_amount" id="parcel_amount" class="form-control parcel-amount-input parcel-return-input" value="{{ parcel_draft.amount_spent if parcel_draft else '' }}" required placeholder="0.00">
+             <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกจำนวนเงินที่ส่งไปฝ่ายพัสดุ</small>
           </div>
         </div>
         {% else %}
@@ -730,15 +737,18 @@
             <label class="form-label fw-bold">วันที่ทำการโอน</label>
             <input type="text" name="cash_return_date" class="form-control cash-return-input app-date-picker" placeholder="dd/mm/yyyy"
                    value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}">
+            <small class="text-danger d-none cash-return-invalid-feedback">กรุณากรอกวันที่ทำการโอน</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
             <input type="text" name="cash_return_amount" id="cash_return_amount" class="form-control cash-return-amount-input cash-return-input"
                    value="{{ '%.2f'|format(cash_return_item.amount) if cash_return_item and cash_return_item.amount else '' }}" placeholder="0.00">
+            <small class="text-danger d-none cash-return-invalid-feedback">กรุณากรอกจำนวนเงินที่โอน</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">ไฟล์หลักฐานการโอน (PDF, JPG, PNG)</label>
             <input type="file" name="cash_return_proof_file" accept="image/*,.pdf" class="form-control cash-return-input">
+            <small class="text-danger d-none cash-return-invalid-feedback">กรุณาแนบไฟล์หลักฐานการโอน</small>
             {% if cash_return_item %}
               {% for proof_file in cash_return_item.proof_files %}
                 <div class="small text-muted mt-1 saved-cash-proof">
@@ -1210,11 +1220,43 @@ document.addEventListener('DOMContentLoaded', function() {
         if (draftSaveStatus) draftSaveStatus.textContent = 'บันทึกฉบับร่างแล้ว';
       }
     });
-    claimForm.addEventListener('input', function() {
+    claimForm.addEventListener('input', function(event) {
       if (draftSaveStatus) draftSaveStatus.textContent = '';
+      if (event.target.classList.contains('parcel-return-input') && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.parcel-invalid-feedback')?.classList.add('d-none');
+      }
+      if (event.target.classList.contains('circular-return-input') && event.target.type !== 'radio' && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.circular-invalid-feedback')?.classList.add('d-none');
+      }
+      if (event.target.classList.contains('cash-return-input') && event.target.type !== 'file' && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.cash-return-invalid-feedback')?.classList.add('d-none');
+      }
     });
-    claimForm.addEventListener('change', function() {
+    claimForm.addEventListener('change', function(event) {
       if (draftSaveStatus) draftSaveStatus.textContent = '';
+      if (event.target.classList.contains('parcel-return-input') && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.parcel-invalid-feedback')?.classList.add('d-none');
+      }
+      if (event.target.classList.contains('circular-type-radio') && event.target.checked) {
+        claimForm.querySelectorAll('.circular-type-radio').forEach(input => input.classList.remove('is-invalid'));
+        claimForm.querySelector('.circular-type-invalid-feedback')?.classList.add('d-none');
+      } else if (event.target.classList.contains('circular-return-input') && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.circular-invalid-feedback')?.classList.add('d-none');
+      }
+      if (event.target.classList.contains('cash-return-input')) {
+        const hasValue = event.target.type === 'file'
+          ? event.target.files.length > 0
+          : Boolean(event.target.value.trim());
+        if (hasValue) {
+          event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+          event.target.parentElement.querySelector('.cash-return-invalid-feedback')?.classList.add('d-none');
+        }
+      }
     });
     const referenceToggle = claimForm.querySelector('#hasReferenceInfo');
     const referenceInfoFields = claimForm.querySelector('#referenceInfoFields');
@@ -1327,7 +1369,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
       parcelInputs.forEach(input => {
         input.required = hasParcelData;
-        input.classList.remove('is-invalid');
+        const isMissing = hasParcelData && !input.value.trim();
+        input.classList.toggle('is-invalid', isMissing);
+        input.classList.toggle('border-danger', isMissing);
+        input.classList.toggle('border-2', isMissing);
+        input.setAttribute('aria-invalid', isMissing ? 'true' : 'false');
+        input.parentElement.querySelector('.parcel-invalid-feedback')?.classList.toggle('d-none', !isMissing);
       });
       if (hasParcelData && !Array.from(parcelInputs).every(input => input.value.trim())) {
         isValid = false;
@@ -1335,7 +1382,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
       circularInputs.forEach(input => {
         if (input.type !== 'checkbox') input.required = hasCircularData;
-        input.classList.remove('is-invalid');
+        if (input.type === 'radio' || input.type === 'checkbox') return;
+        const isMissing = hasCircularData && !input.value.trim();
+        input.classList.toggle('is-invalid', isMissing);
+        input.classList.toggle('border-danger', isMissing);
+        input.classList.toggle('border-2', isMissing);
+        input.setAttribute('aria-invalid', isMissing ? 'true' : 'false');
+        input.parentElement.querySelector('.circular-invalid-feedback')?.classList.toggle('d-none', !isMissing);
       });
       const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
       const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'radio' && input.type !== 'checkbox')
@@ -1344,6 +1397,10 @@ document.addEventListener('DOMContentLoaded', function() {
         isValid = false;
         if (selectedCircularTypes.length !== 1) {
           circularTypeInputs.forEach(input => input.classList.add('is-invalid'));
+          claimForm.querySelector('.circular-type-invalid-feedback')?.classList.remove('d-none');
+        } else {
+          circularTypeInputs.forEach(input => input.classList.remove('is-invalid'));
+          claimForm.querySelector('.circular-type-invalid-feedback')?.classList.add('d-none');
         }
       }
 
@@ -1367,15 +1424,19 @@ document.addEventListener('DOMContentLoaded', function() {
         .some(input => input.value.trim());
       cashInputs.forEach(input => {
         input.required = hasCashReturnData && (input.type !== 'file' || !hasExistingCashProof);
-        input.classList.remove('is-invalid');
+        const isMissing = hasCashReturnData && (input.type === 'file'
+          ? input.files.length === 0 && !hasExistingCashProof
+          : !input.value.trim());
+        input.classList.toggle('is-invalid', isMissing);
+        input.classList.toggle('border-danger', isMissing);
+        input.classList.toggle('border-2', isMissing);
+        input.setAttribute('aria-invalid', isMissing ? 'true' : 'false');
+        input.parentElement.querySelector('.cash-return-invalid-feedback')?.classList.toggle('d-none', !isMissing);
       });
       if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file'
         ? input.files.length > 0 || hasExistingCashProof
         : input.value.trim())) {
         isValid = false;
-        cashInputs.forEach(input => {
-          if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
-        });
       }
 
       if (!validateReferenceMetadata(claimForm)) {
@@ -1698,7 +1759,7 @@ function validateFundRequestTotal(overRequestConfirmed = false) {
   if (projectedNonCategory6Total > requestAmount && !overRequestConfirmed) {
     window.openAppPopup({
       title: "ยอดเกินยอดขอเบิก",
-      message: `ยอดรวมรายการที่ไม่ใช่หมวด 6 จะเป็น ${projectedNonCategory6Total.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท กรุณาตรวจสอบข้อมูลการขอเบิกอีกครั้ง`,
+      message: `ยอดรวมรายการเป็น ${projectedNonCategory6Total.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท กรุณาตรวจสอบข้อมูลการขอเบิกอีกครั้ง`,
       confirmText: "ตกลง",
       confirmClass: "btn-warning",
       alertOnly: true,
