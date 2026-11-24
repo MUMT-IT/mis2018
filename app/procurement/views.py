@@ -570,16 +570,20 @@ def procurement_planning_landing():
         available_years.sort(reverse=True)
 
     plans = ProcurementPlan.query.filter_by(fiscal_year=selected_fiscal_year).all()
+    total_plans = len(plans)
     total_amount = sum((plan.amount or 0 for plan in plans), 0)
     completed_count = sum(plan.inspection_date is not None for plan in plans)
+    completed_percentage = (completed_count / total_plans * 100) if total_plans else 0
     unapproved_count = sum(plan.principle_approval_date is None for plan in plans)
+    unapproved_percentage = (unapproved_count / total_plans * 100) if total_plans else 0
     pending_tor_count = sum(plan.tor_completed_date is None for plan in plans)
+    pending_tor_percentage = (pending_tor_count / total_plans * 100) if total_plans else 0
     overdue_tor_count = sum(
         plan.tor_completed_date is None and plan.tor_due_date is not None and plan.tor_due_date < today
         for plan in plans
     )
     status_order = (
-        ('planned', u'วางแผนแล้ว'),
+        ('planned', u'จัดสรรงบประมาณแล้ว'),
         ('principle_approved', u'อนุมัติหลักการแล้ว'),
         ('tor_completed', u'จัดทำ TOR แล้ว'),
         ('quotation_submitted', u'ยื่นเสนอราคาแล้ว'),
@@ -594,6 +598,27 @@ def procurement_planning_landing():
         }
         for status, label in status_order
     ]
+    milestone_counts = [
+        total_plans,
+        total_plans,
+        sum(plan.principle_approval_date is not None for plan in plans),
+        sum(plan.tor_completed_date is not None for plan in plans),
+        sum(plan.quotation_submission_date is not None for plan in plans),
+        sum(plan.contract_signed_date is not None for plan in plans),
+        completed_count,
+    ]
+    progress_stages = [{'label': u'แผนทั้งหมด', 'count': total_plans}] + [
+        {'label': label, 'count': milestone_counts[index + 1]}
+        for index, (status, label) in enumerate(status_order)
+    ]
+    for stage in progress_stages:
+        stage['percentage'] = (stage['count'] / total_plans * 100) if total_plans else 0
+    progress_flows = [
+        {
+            'count': progress_stages[index + 1]['count'],
+        }
+        for index in range(len(status_order))
+    ]
     funding_summary = {}
     for plan in plans:
         label = plan.funding_source_label
@@ -606,13 +631,18 @@ def procurement_planning_landing():
         active_page='dashboard',
         fiscal_year=selected_fiscal_year,
         available_years=available_years,
-        total_plans=len(plans),
+        total_plans=total_plans,
         total_amount=total_amount,
         completed_count=completed_count,
+        completed_percentage=completed_percentage,
         unapproved_count=unapproved_count,
+        unapproved_percentage=unapproved_percentage,
         pending_tor_count=pending_tor_count,
+        pending_tor_percentage=pending_tor_percentage,
         overdue_tor_count=overdue_tor_count,
         status_summary=status_summary,
+        progress_stages=progress_stages,
+        progress_flows=progress_flows,
         funding_summary=sorted(funding_summary.values(), key=lambda item: item['amount'], reverse=True),
     )
 
