@@ -724,8 +724,16 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
 
     @property
     def display_status(self):
-        """Return the catalog-backed label without adding workflow wording."""
-        return self.status
+        """Add the parcel workflow context without duplicating catalog wording."""
+        status = self.status
+        parcel_context = "พัสดุกำลังดำเนินการ"
+        if (
+            self.type is None
+            and self.status_code == "PENDING"
+            and parcel_context not in status
+        ):
+            return f"{status}({parcel_context})"
+        return status
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
