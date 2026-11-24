@@ -383,12 +383,10 @@
           <div class="col-md-3">
             <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ เช่น 19 ตุลาคม 2569</label>
             <input type="text" class="form-control form-control-sm reference-info-input" name="reference_date" value="{{ claim_detail.reference_date|claim_reference_date_form if claim_detail and claim_detail.reference_date else '' }}" aria-describedby="referenceValuesHelp">
-            <small id="referenceValuesHelp" class="form-text text-muted">หากมีหลายฉบับ ให้กรอกเลขที่และวันที่ตามจำนวนไฟล์ โดยคั่นแต่ละรายการด้วยเครื่องหมายจุลภาค (,)</small>
           </div>
           <div class="col-md-2">
             <label class="form-label small fw-semibold">ไฟล์เอกสารอ้างอิง</label>
             <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple aria-describedby="referenceFilesHelp">
-            <small id="referenceFilesHelp" class="form-text text-muted">ไฟล์ที่บันทึกแล้วจะแสดงด้านขวา ช่องเลือกไฟล์จะว่างเมื่อเปิดหน้าใหม่</small>
           </div>
           <div class="col-md-4 d-flex flex-column-reverse">
             <div class="reference-filenames-container"></div>
@@ -406,6 +404,7 @@
               </div>
             {% endfor %}
           </div>
+          <small id="referenceValuesHelp" class="form-text text-muted">หากมีหลายฉบับ ให้กรอกเลขที่และวันที่ตามจำนวนไฟล์ โดยคั่นแต่ละรายการด้วยเครื่องหมายจุลภาค (,)</small>
         </div>
         </section>
 
@@ -513,6 +512,7 @@
                   <td>
                     <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" 
                           value="{{ '%.2f'|format(item.amount) if item.amount else '' }}" placeholder="0.00" oninput="calculateTotal()" required>
+                    <small class="text-danger d-none claim-amount-limit-warning mt-1 d-block small"></small>
                   </td>
                   <td>
                     <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item_proof_files %}required{% endif %}>
@@ -553,6 +553,7 @@
                 </td>
                 <td>
                   <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" oninput="calculateTotal()" required>
+                  <small class="text-danger d-none claim-amount-limit-warning mt-1 d-block small"></small>
                 </td>
                 <td>
                   <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf" required>
@@ -1382,7 +1383,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
-      if (hasClaimData && !validateClaimAmountLimit()) isValid = false;
+      if (hasClaimData && !validateClaimAmountLimit()) {
+        event.preventDefault();
+        return;
+      }
       if (isValid && !claimForm.checkValidity()) isValid = false;
 
       if (!isValid) {
@@ -1503,7 +1507,7 @@ function validateReferenceMetadata(form) {
   } else if (fileCount > 0 && (referenceNumbers.length !== fileCount || referenceDates.length !== fileCount)) {
     numberInput?.classList.add('is-invalid');
     dateInput?.classList.add('is-invalid');
-    message = `มีเอกสารอ้างอิง ${fileCount} ไฟล์ กรุณากรอกเลขที่ อว. ${fileCount} รายการ และวันที่ ${fileCount} รายการ โดยคั่นแต่ละรายการด้วยเครื่องหมายจุลภาค (,)`;
+    message = `พบเอกสารอ้างอิง ${fileCount} ไฟล์ กรุณากรอกเลขที่ อว. ${fileCount} รายการ และวันที่ ${fileCount} รายการ โดยคั่นแต่ละรายการด้วยเครื่องหมายจุลภาค (,)`;
   }
 
   if (!message) return true;
@@ -1619,49 +1623,53 @@ function calculateTotal() {
 function updateSubmitAndReturnButtons() {
   const finalSubmitBtn = document.getElementById('claimSubmitFinalBtn');
   const financeSubmissionBlocked = {{ 'true' if (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) else 'false' }};
+  const amountLimitExceeded = Array.from(document.querySelectorAll('#claimBody .claim-amount'))
+    .some(input => isClaimAmountOverLimit(input));
 
   [finalSubmitBtn].forEach(btn => {
     if (!btn) {
       return;
     }
 
-    const shouldDisable = financeSubmissionBlocked;
+    const shouldDisable = financeSubmissionBlocked || amountLimitExceeded;
     btn.disabled = shouldDisable;
     btn.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
-    btn.title = financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ' : '';
+    btn.title = financeSubmissionBlocked
+      ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ'
+      : amountLimitExceeded
+        ? 'กรุณาแก้ไขรายการที่มียอดเกิน 20,000 บาทก่อนส่งข้อมูล'
+        : '';
   });
 }
 
 function validateClaimAmountLimit() {
-  const rows = document.querySelectorAll('#claimBody tr');
+  const amountInputs = Array.from(document.querySelectorAll('#claimBody .claim-amount'));
+  amountInputs.forEach(input => updateClaimAmountLimitWarning(input));
+  const firstInvalidInput = amountInputs.find(input => isClaimAmountOverLimit(input));
+  if (!firstInvalidInput) return true;
 
-  for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index];
-    const catSelect = row.querySelector('select[name="category_type[]"]');
-    const amountInput = row.querySelector('.claim-amount');
+  firstInvalidInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  firstInvalidInput.focus({ preventScroll: true });
+  return false;
+}
 
-    if (!catSelect || !amountInput) {
-      continue;
-    }
+function isClaimAmountOverLimit(input) {
+  const row = input?.closest('#claimBody tr');
+  const categoryType = (row?.querySelector('select[name="category_type[]"]')?.value || '').trim();
+  const amount = parseFloat((input?.value || '').replace(/,/g, '')) || 0;
+  return categoryType !== '6' && amount > 20000;
+}
 
-    const categoryType = (catSelect.value || '').trim();
-    const amount = parseFloat(amountInput.value.replace(/,/g, '')) || 0;
+function updateClaimAmountLimitWarning(input) {
+  const warning = input?.closest('td')?.querySelector('.claim-amount-limit-warning');
+  if (!input || !warning) return;
 
-    if (categoryType !== '6' && amount > 20000) {
-      window.openAppPopup({
-        title: "กรุณาตรวจสอบจำนวนเงิน",
-        message: `รายการที่ ${index + 1} มียอดเกิน 20,000 บาท กรุณาแก้ไขก่อนส่งเบิก`,
-        confirmText: "ตกลง",
-        confirmClass: "btn-primary",
-        alertOnly: true,
-      });
-      amountInput.focus();
-      amountInput.select();
-      return false;
-    }
-  }
-
-  return true;
+  const isOverLimit = isClaimAmountOverLimit(input);
+  input.classList.toggle('is-invalid', isOverLimit);
+  warning.textContent = isOverLimit
+    ? 'ยอดเงินสดย่อยต่อรายการต้องไม่เกิน 20,000 บาท'
+    : '';
+  warning.classList.toggle('d-none', !isOverLimit);
 }
 
 function validateFundRequestTotal(overRequestConfirmed = false) {
@@ -1785,12 +1793,15 @@ function bindAmountEvents(input) {
   if (input.value) {
     formatInputNumberWithComma(input);
   }
+  updateClaimAmountLimitWarning(input);
   input.addEventListener("input", function() {
     formatInputNumberWithComma(this);
+    updateClaimAmountLimitWarning(this);
     calculateTotal();
   });
   input.addEventListener("blur", function() {
     formatInputCurrency(this);
+    updateClaimAmountLimitWarning(this);
     calculateTotal();
   });
 }
@@ -1829,6 +1840,8 @@ function handleCategoryChange(selectEl) {
     }
   }
 
+  const amountInput = row.querySelector('.claim-amount');
+  if (amountInput) updateClaimAmountLimitWarning(amountInput);
   calculateTotal();
 }
 
@@ -1850,7 +1863,10 @@ function addRow() {
       </select>
     </td>
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>
-    <td><input type="text" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" required></td>
+    <td>
+      <input type="text" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" required>
+      <small class="text-danger d-none claim-amount-limit-warning mt-1 d-block small"></small>
+    </td>
     <td>
       <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf">
     </td>
