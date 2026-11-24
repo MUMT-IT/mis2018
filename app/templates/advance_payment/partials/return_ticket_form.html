@@ -251,19 +251,23 @@
                 ว-5763
               </label>
             </div>
+            <small class="text-danger d-none circular-type-invalid-feedback w-100">กรุณาเลือกประเภท ว-119 หรือ ว-5763</small>
           </div>
           <div class="row g-3">
             <div class="col-md-4 mt-2">
               <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
               <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" value="{{ circular_draft.sent_date.strftime('%Y-%m-%d') if circular_draft else '' }}" placeholder="dd/mm/yyyy">
+              <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกวันที่ในใบเสร็จ</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">รายการ</label>
               <input type="text" name="circular_items_description" class="form-control circular-return-input" value="{{ circular_draft.items_description if circular_draft else '' }}" placeholder="รายละเอียดรายการ...">
+              <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกรายการ ว-119/ว-5763</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงิน</label>
               <input type="text" name="circular_amount" id="circular_amount_{{ borrowing_ticket.id }}" data-ticket-id="{{ borrowing_ticket.id }}" class="form-control circular-amount-input circular-return-input" value="{{ circular_draft.amount_spent if circular_draft else '' }}" placeholder="0.00">
+              <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกจำนวนเงิน ว-119/ว-5763</small>
             </div>
           </div>
           </div>
@@ -286,14 +290,17 @@
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
               <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" value="{{ parcel_draft.sent_date.strftime('%Y-%m-%d') if parcel_draft else '' }}" placeholder="dd/mm/yyyy" required>
+              <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกวันที่ทำการส่งไปฝ่ายพัสดุ</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">รายการ</label>
               <input type="text" name="items_description" class="form-control parcel-return-input" value="{{ parcel_draft.items_description if parcel_draft else '' }}" placeholder="รายละเอียดรายการ..." required>
+              <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกรายการที่ส่งไปฝ่ายพัสดุ</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงิน</label>
               <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input parcel-return-input" value="{{ parcel_draft.amount_spent if parcel_draft else '' }}" required placeholder="0.00">
+              <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกจำนวนเงินที่ส่งไปฝ่ายพัสดุ</small>
             </div>
           </div>
           </div>
@@ -319,14 +326,17 @@
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการโอน</label>
               <input type="text" name="cash_return_date" class="form-control cash-return-input app-date-picker" value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}" placeholder="dd/mm/yyyy">
+              <small class="text-danger d-none cash-return-invalid-feedback">กรุณากรอกวันที่ทำการโอน</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
               <input type="text" name="cash_return_amount" id="cash_return_amount_{{ borrowing_ticket.id }}" class="form-control cash-return-amount-input cash-return-input" value="{{ cash_return_item.amount if cash_return_item and cash_return_item.amount else '' }}" placeholder="0.00">
+              <small class="text-danger d-none cash-return-invalid-feedback">กรุณากรอกจำนวนเงินที่โอน</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">ไฟล์หลักฐานการโอน (PDF, JPG, PNG)</label>
               <input type="file" name="cash_return_proof_file" accept=".pdf,.jpg,.jpeg,.png" class="form-control cash-return-input">
+              <small class="text-danger d-none cash-return-invalid-feedback">กรุณาแนบไฟล์หลักฐานการโอน</small>
               {% if cash_return_item %}
                 {% for proof_file in cash_return_item.proof_files %}
                   <div class="small text-muted mt-1">
@@ -371,7 +381,7 @@
         <div class="row g-3 mb-3 align-items-end">
           <div class="col-12 d-flex justify-content-end align-items-center gap-3">
             {% if not return_edit_detail|default(none) %}
-            <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
+            <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" id="draftReturnBtn_{{ borrowing_ticket.id }}" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
               <i class="bi bi-save me-1"></i> บันทึกร่าง (ฉบับร่าง)
             </button>
             {% endif %}
@@ -381,9 +391,6 @@
             </button>
           </div>
           {% if not return_edit_detail|default(none) %}
-          <div class="col-12 text-end text-danger small d-none" id="returnDraftDateError_{{ borrowing_ticket.id }}" role="alert">
-            กรุณาระบุวันที่ใบเสร็จก่อนบันทึกร่าง
-          </div>
           {% endif %}
         </div>
       </form>
@@ -421,7 +428,6 @@
 
     const returnPanelSelector = "{{ '.return-ticket-panel' if return_is_borrower_page else '.return-ticket-form-block' }}";
     const returnPanelIdPrefix = "{{ 'returnTicketPanel_' if return_is_borrower_page else 'return_block_ticket_' }}";
-    const returnAutosaveEndpointPrefix = "{{ return_autosave_endpoint_prefix }}";
 
     function switchReturnTicketForm(ticketId) {
       document.querySelectorAll(returnPanelSelector).forEach(panel => {
@@ -531,25 +537,68 @@
       calculateTotalSpent(ticketId);
     }
 
+    function setReturnFieldInvalid(input, isMissing, feedbackSelector) {
+      if (!input) return;
+      input.classList.toggle('is-invalid', isMissing);
+      input.classList.toggle('border-danger', isMissing);
+      input.classList.toggle('border-2', isMissing);
+      input.setAttribute('aria-invalid', isMissing ? 'true' : 'false');
+      input.parentElement.querySelector(feedbackSelector)?.classList.toggle('d-none', !isMissing);
+    }
+
+    function clearCompletedReturnField(input) {
+      if (!input) return;
+      const feedbackSelector = input.classList.contains('parcel-return-input')
+        ? '.parcel-invalid-feedback'
+        : input.classList.contains('circular-return-input')
+          ? '.circular-invalid-feedback'
+          : input.classList.contains('cash-return-input')
+            ? '.cash-return-invalid-feedback'
+            : null;
+      if (!feedbackSelector) return;
+      const hasValue = input.type === 'file' ? input.files.length > 0 : Boolean(input.value.trim());
+      if (!hasValue) return;
+      input.classList.remove('is-invalid', 'border-danger', 'border-2');
+      input.setAttribute('aria-invalid', 'false');
+      input.parentElement.querySelector(feedbackSelector)?.classList.add('d-none');
+    }
+
+    document.addEventListener('input', function(event) {
+      clearCompletedReturnField(event.target);
+    });
+
+    document.addEventListener('change', function(event) {
+      const input = event.target;
+      clearCompletedReturnField(input);
+      if (!input.classList?.contains('circular-type-radio') || !input.checked) return;
+      const form = input.closest('form');
+      form?.querySelectorAll('.circular-type-radio').forEach(radio => radio.classList.remove('is-invalid'));
+      form?.querySelector('.circular-type-invalid-feedback')?.classList.add('d-none');
+    });
+
     async function submitFormWithAction(ticketId, type) {
       const form = document.getElementById(`returnForm_${ticketId}`);
-      clearTimeout(autoSaveTimers.get(String(ticketId)));
       document.getElementById(`action_${ticketId}`).value = type;
       form.noValidate = type === 'draft';
 
       if (type === 'draft') {
-        const parcelFields = Array.from(form.querySelectorAll('.parcel-return-input'));
-        const circularFields = Array.from(form.querySelectorAll('.circular-return-input'));
-        const parcelStarted = parcelFields.some(input => input.value.trim());
-        const circularStarted = circularFields.some(input => input.type === 'radio' ? input.checked : input.value.trim());
-        const circularTypes = circularFields.filter(input => input.type === 'radio' && input.checked);
-        if ((parcelStarted && !parcelFields.every(input => input.value.trim())) ||
-            (circularStarted && (circularTypes.length !== 1 || circularFields.some(input => input.type !== 'radio' && !input.value.trim())))) {
+        const draftInputs = form.querySelectorAll(
+          'input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"], ' +
+          '.parcel-return-input, .circular-return-input, .cash-return-input'
+        );
+        const hasDraftData = Array.from(draftInputs).some(input =>
+          ['checkbox', 'radio'].includes(input.type)
+            ? input.checked
+            : input.type === 'file'
+              ? input.files.length > 0
+              : input.value.trim()
+        );
+        if (!hasDraftData) {
           window.openAppPopup({
-            title: 'กรุณาตรวจสอบข้อมูล',
-            message: 'กรุณากรอกวันที่ รายการ จำนวนเงิน และประเภท ว-119 / ว-5763 (ถ้าเลือก) ให้ครบก่อนบันทึกร่าง',
+            title: 'ยังไม่มีข้อมูลสำหรับบันทึกร่าง',
+            message: 'กรุณากรอกข้อมูลอย่างน้อยหนึ่งรายการก่อนบันทึกฉบับร่าง',
             confirmText: 'ตกลง',
-            confirmClass: 'btn-danger',
+            confirmClass: 'btn-primary',
             alertOnly: true,
           });
           return;
@@ -558,13 +607,6 @@
         form.querySelectorAll(".item-amount-input").forEach(input => {
           input.value = input.value.replace(/,/g, "");
         });
-        try {
-          await (autoSaveQueues.get(String(ticketId)) || Promise.resolve());
-          await refreshReturnCsrf(ticketId);
-        } catch (error) {
-          showReturnSaveError(error);
-          return;
-        }
         form.requestSubmit();
         return;
       }
@@ -596,7 +638,7 @@
 
       parcelInputs.forEach(input => {
         input.required = hasParcelData;
-        input.classList.remove('is-invalid');
+        setReturnFieldInvalid(input, hasParcelData && !input.value.trim(), '.parcel-invalid-feedback');
       });
       if (hasParcelData && !Array.from(parcelInputs).every(input => input.value.trim())) {
         isValid = false;
@@ -604,7 +646,9 @@
 
       circularInputs.forEach(input => {
         if (!['checkbox', 'radio'].includes(input.type)) input.required = hasCircularData;
-        input.classList.remove('is-invalid');
+        if (!['checkbox', 'radio'].includes(input.type)) {
+          setReturnFieldInvalid(input, hasCircularData && !input.value.trim(), '.circular-invalid-feedback');
+        }
       });
       const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
       const circularFieldsComplete = Array.from(circularInputs).filter(input => !['checkbox', 'radio'].includes(input.type))
@@ -613,6 +657,10 @@
         isValid = false;
         if (selectedCircularTypes.length !== 1) {
           circularTypeInputs.forEach(input => input.classList.add('is-invalid'));
+          form.querySelector('.circular-type-invalid-feedback')?.classList.remove('d-none');
+        } else {
+          circularTypeInputs.forEach(input => input.classList.remove('is-invalid'));
+          form.querySelector('.circular-type-invalid-feedback')?.classList.add('d-none');
         }
       }
 
@@ -647,13 +695,13 @@
         .some(input => input.value.trim());
       cashInputs.forEach(input => {
         input.required = hasCashReturnData && (input.type !== 'file' || !hasExistingCashProof);
-        input.classList.remove('is-invalid');
+        const isMissing = hasCashReturnData && (input.type === 'file'
+          ? input.files.length === 0 && !hasExistingCashProof
+          : !input.value.trim());
+        setReturnFieldInvalid(input, isMissing, '.cash-return-invalid-feedback');
       });
       if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file' ? input.files.length > 0 || hasExistingCashProof : input.value.trim())) {
         isValid = false;
-        cashInputs.forEach(input => {
-          if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
-        });
       }
 
       if (isValid && !form.checkValidity()) {
@@ -661,13 +709,6 @@
       }
 
       if (isValid) {
-        try {
-          await (autoSaveQueues.get(String(ticketId)) || Promise.resolve());
-          await refreshReturnCsrf(ticketId);
-        } catch (error) {
-          showReturnSaveError(error);
-          return;
-        }
         form.querySelectorAll(".item-amount-input, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input").forEach(input => {
           input.value = input.value.replace(/,/g, "");
         });
@@ -692,7 +733,7 @@
       }
     }
 
-    function addReceiptRow(ticketId, persist = true) {
+    function addReceiptRow(ticketId) {
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
       if (!tbody) return;
 
@@ -721,10 +762,6 @@
       bindReceiptAgeWarnings(tr);
       bindAmountInputEvents(tr.querySelector(".item-amount-input"), ticketId);
       calculateTotalSpent(ticketId);
-      if (persist && !document.getElementById(`returnForm_${ticketId}`)?.querySelector('[name="edit_return_id"]')) {
-        clearTimeout(autoSaveTimers.get(String(ticketId)));
-        autoSaveDraft(ticketId, true);
-      }
     }
 
     function removeReceiptRow(button, ticketId) {
@@ -732,7 +769,6 @@
         button.closest('tr').remove();
         updateReceiptFileIndices(ticketId);
         calculateTotalSpent(ticketId);
-        triggerAutoSave(ticketId);
     }
 
     function updateReceiptFileIndices(ticketId) {
@@ -795,10 +831,13 @@
 
     function updateReturnButtonsState(ticketId, isOverBudget) {
       const submitBtn = document.getElementById(`submitReturnBtn_${ticketId}`);
-      if (!submitBtn) return;
-      submitBtn.disabled = isOverBudget;
-      submitBtn.setAttribute("aria-disabled", isOverBudget ? "true" : "false");
-      submitBtn.title = isOverBudget ? "ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้" : "";
+      const draftBtn = document.getElementById(`draftReturnBtn_${ticketId}`);
+      [submitBtn, draftBtn].forEach(button => {
+        if (!button) return;
+        button.disabled = isOverBudget;
+        button.setAttribute("aria-disabled", isOverBudget ? "true" : "false");
+        button.title = isOverBudget ? "ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถบันทึกหรือส่งรายการนี้ได้" : "";
+      });
     }
 
     function addDocumentRow(ticketId, buttonElem) {
@@ -922,176 +961,6 @@
       }
     });
 
-    const autoSaveTimers = new Map();
-    const autoSaveQueues = new Map();
-    const reportedAutoSaveFailures = new Set();
-
-    function showReturnDraftDateError(ticketId, visible) {
-      document.getElementById(`returnDraftDateError_${ticketId}`)?.classList.toggle('d-none', !visible);
-    }
-
-    function showReturnSaveError(error) {
-      if (error instanceof TypeError && !error.popupTitle) {
-        window.showAppPopupError('network');
-        return;
-      }
-      const message = error?.message || 'กรุณาลองใหม่อีกครั้ง';
-      if (typeof window.openAppPopup === 'function') {
-        window.openAppPopup({
-          title: error?.popupTitle || 'ไม่สามารถบันทึกข้อมูลได้',
-          message,
-          confirmText: 'ตกลง',
-          confirmClass: 'btn-danger',
-          alertOnly: true,
-        });
-      } else {
-        window.alert(message);
-      }
-    }
-
-    async function refreshReturnCsrf(ticketId) {
-      const response = await fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
-        credentials: 'same-origin'
-      });
-      const result = await window.readAppAjaxResponse(response, 'validation');
-      if (!result.ok) throw window.appErrorFromFailure(result);
-      const data = result.payload;
-      if (!data.csrf_token) {
-        throw window.appErrorFromFailure(window.appUnreadableFailure(response, 'validation'));
-      }
-      document.getElementById(`returnForm_${ticketId}`).querySelector('[name="csrf_token"]').value = data.csrf_token;
-      return data.csrf_token;
-    }
-
-    function autoSaveDraft(ticketId, includeFiles = false) {
-      const form = document.getElementById(`returnForm_${ticketId}`);
-      const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (!tbody || !form || form.querySelector('[name="edit_return_id"]')) return Promise.resolve();
-
-      const key = String(ticketId);
-      const save = async () => {
-      const rows = Array.from(tbody.querySelectorAll('tr'));
-      const rowIsEmpty = row => !Array.from(row.querySelectorAll('input:not([type="hidden"]), textarea'))
-        .some(input => input.type === 'file' ? includeFiles && input.files.length : input.value.trim());
-      while (rows.length && rowIsEmpty(rows[rows.length - 1])) rows.pop();
-
-      const items = rows.map(row => ({
-        receipt_date: window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || ''),
-        store_name: row.querySelector('textarea[name="store_name[]"]')?.value || '',
-        description: row.querySelector('textarea[name="description[]"]')?.value || '',
-        amount: row.querySelector('.item-amount-input')?.value.replace(/,/g, '') || '0'
-      }));
-      if (items.some(item => !item.receipt_date)) {
-        showReturnDraftDateError(ticketId, true);
-        return;
-      }
-      showReturnDraftDateError(ticketId, false);
-
-      const cashDate = window.appDateToISO(form.querySelector('input[name="cash_return_date"]')?.value || '');
-      const cashAmount = form.querySelector('input[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
-
-      const announcements = [];
-      const docContainer = document.getElementById(`document-inputs-container-${ticketId}`);
-      docContainer?.querySelectorAll('.document-input-row').forEach(row => {
-        const title = row.querySelector('.announcement-input')?.value.trim() || '';
-        const docId = row.querySelector('.announcement-id-input')?.value.trim() || '';
-        if (title || docId) announcements.push({ id: docId, title: title });
-      });
-
-      const note = form.querySelector('[name="note"]')?.value.trim() || '';
-      const payload = { items, cash_return: { receipt_date: cashDate, amount: cashAmount }, announcements, note };
-      const uploads = rows.map((row, index) => {
-        const input = row.querySelector(`input[name="proof_files_${index}[]"]`);
-        return { row, input, files: includeFiles ? Array.from(input?.files || []) : [] };
-      });
-      const hasFiles = uploads.some(upload => upload.files.length);
-      const body = hasFiles ? new FormData() : JSON.stringify(payload);
-      if (hasFiles) {
-        body.append('payload', JSON.stringify(payload));
-        uploads.forEach((upload, index) => upload.files.forEach(file => body.append(`proof_files_${index}[]`, file)));
-      }
-      const csrfToken = await refreshReturnCsrf(ticketId);
-      const res = await fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
-        method: 'POST',
-        headers: hasFiles ? { 'X-CSRFToken': csrfToken } : { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-        credentials: 'same-origin',
-        body
-      });
-      const result = await window.readAppAjaxResponse(res, 'save', {
-        preserveBadRequestMessage: true,
-      });
-      if (!result.ok) throw window.appErrorFromFailure(result);
-      const data = result.payload;
-      if (data.success !== true) throw window.appErrorFromFailure(window.appSaveUnknownFailure());
-      reportedAutoSaveFailures.delete(key);
-      uploads.forEach((upload, index) => {
-        if (!upload.files.length || !upload.row.isConnected) return;
-        const savedProofs = data.proof_files?.[index] || [];
-        if (!savedProofs.length) return;
-        const parent = upload.input.parentElement;
-        parent.querySelectorAll('.receipt-proof-reference').forEach(reference => reference.remove());
-        savedProofs.forEach(proof => {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'small text-muted mt-1 receipt-proof-reference';
-          for (const [name, value] of [
-            [`existing_proof_files_${index}[]`, proof.proof_reference],
-            [`existing_proof_filenames_${index}[]`, proof.filename]
-          ]) {
-            const hidden = document.createElement('input');
-            hidden.type = 'hidden';
-            hidden.name = name;
-            hidden.value = value;
-            wrapper.appendChild(hidden);
-          }
-          wrapper.append('ไฟล์เดิม: ');
-          const link = document.createElement('a');
-          link.href = proof.url;
-          link.target = '_blank';
-          link.rel = 'noopener';
-          link.textContent = proof.filename;
-          wrapper.appendChild(link);
-          parent.appendChild(wrapper);
-        });
-        if (upload.files.every((file, fileIndex) => upload.input.files[fileIndex] === file)) upload.input.value = '';
-      });
-      updateReceiptFileIndices(ticketId);
-      };
-      const queued = (autoSaveQueues.get(key) || Promise.resolve()).then(save, save).catch(err => {
-        console.error('Auto-save error:', err);
-        const needsNotice = err instanceof TypeError || [
-          'ไม่สามารถยืนยันผลการบันทึกได้',
-          'กรุณาเข้าสู่ระบบใหม่',
-          'ไม่มีสิทธิ์ทำรายการ',
-          'ไม่สามารถทำรายการได้',
-          'ปิดรับการทำรายการชั่วคราว',
-        ].includes(err.popupTitle);
-        if (includeFiles || (needsNotice && !reportedAutoSaveFailures.has(key))) {
-          showReturnSaveError(err);
-          reportedAutoSaveFailures.add(key);
-        }
-      });
-      autoSaveQueues.set(key, queued);
-      return queued;
-    }
-
-    function triggerAutoSave(ticketId) {
-      if (document.getElementById(`returnForm_${ticketId}`)?.querySelector('[name="edit_return_id"]')) return;
-      const key = String(ticketId);
-      clearTimeout(autoSaveTimers.get(key));
-      autoSaveTimers.set(key, setTimeout(() => autoSaveDraft(ticketId), 1500));
-    }
-
-    function bindAutoSaveEvents(ticketId) {
-      const form = document.getElementById(`returnForm_${ticketId}`);
-      if (!form) return;
-      form.addEventListener('input', e => {
-        if (e.target.type !== 'file' && !e.target.matches('.parcel-return-input, .circular-return-input')) triggerAutoSave(ticketId);
-      });
-      form.addEventListener('change', e => {
-        if (e.target.type !== 'file' && !e.target.matches('.parcel-return-input, .circular-return-input')) triggerAutoSave(ticketId);
-      });
-    }
-
     document.addEventListener("DOMContentLoaded", function() {
       document.querySelectorAll(".parcel-amount-input, .circular-amount-input, .cash-return-amount-input").forEach(input => {
         if (input.value) formatInputNumberWithComma(input);
@@ -1123,13 +992,12 @@
       bindReceiptAgeWarnings(document);
 
       {% for borrowing_ticket in actionable_tickets %}
-        {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'เคลียร์ยอดแล้ว', 'เอกสารตั้งฎีกา', 'ปฏิเสธ'] %}
+        {% if borrowing_ticket.status_code not in ['PENDING', 'IN_PROGRESS', 'CLOSED', 'CLOSING', 'REJECTED'] %}
           {% if not borrowing_ticket.draft_items %}
-            addReceiptRow({{ borrowing_ticket.id }}, false);
+            addReceiptRow({{ borrowing_ticket.id }});
           {% else %}
             calculateTotalSpent({{ borrowing_ticket.id }});
           {% endif %}
-          bindAutoSaveEvents({{ borrowing_ticket.id }});
         {% endif %}
       {% endfor %}
 

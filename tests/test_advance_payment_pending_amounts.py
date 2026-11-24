@@ -1,6 +1,8 @@
 """Regression coverage for pending amounts on advance-payment summary cards."""
 import ast
+from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
 
 
@@ -103,6 +105,34 @@ class PendingAmountSummaryTests(unittest.TestCase):
             self.petty_cash_template,
         )
 
+    def test_verification_counts_approved_parcel_before_settlement(self):
+        helper = next(
+            node for node in self.views_tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_legacy_verification_display_summary"
+        )
+        module = ast.Module(body=[helper], type_ignores=[])
+        namespace = {
+            "Decimal": Decimal,
+            "_money_decimal": lambda value: Decimal(str(value or 0)).quantize(Decimal("0.01")),
+            "_historical_ticket_amounts": lambda ticket: (
+                ticket.historical_repaid_amount, ticket.historical_pending_amount
+            ),
+        }
+        exec(compile(module, "views.py", "exec"), namespace)
+        ticket = SimpleNamespace(
+            required_budget=Decimal("12000"),
+            historical_repaid_amount=Decimal("200"),
+            historical_pending_amount=Decimal("0"),
+        )
+        summary = {
+            "cumulative_total": Decimal("3050"),
+            "pending_amount": Decimal("0"),
+        }
+        display = namespace["_legacy_verification_display_summary"](summary, ticket)
+        self.assertEqual(display["cumulative_total"], Decimal("3250.00"))
+        self.assertEqual(display["unsubmitted_amount"], Decimal("8750.00"))
+
     def test_fund_request_note_and_rejection_visibility(self):
         self.assertIn(
             "{{ verification_fund_request.personal_note or '-' }}",
@@ -126,6 +156,21 @@ class PendingAmountSummaryTests(unittest.TestCase):
             "if is_cash_return_only:\n            claim_detail.approved_at = datetime.now()",
             submit_source,
         )
+
+    def test_fund_request_settlement_uses_transferred_dates(self):
+        helper = next(
+            node
+            for node in self.views_tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_recalculate_fund_request_submission_status"
+        )
+        helper_source = ast.unparse(helper)
+
+        self.assertIn("if claim.transferred_at is not None", helper_source)
+        self.assertIn("if parcel.transferred_at is not None", helper_source)
+        self.assertIn("if transferred_total >= target_total", helper_source)
+        self.assertNotIn("pending_claim_transfer", helper_source)
+        self.assertNotIn("parcel_pending_transfer", helper_source)
 
 
 if __name__ == "__main__":

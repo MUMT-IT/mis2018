@@ -79,7 +79,7 @@
                 <th scope="col" class="small fw-bold">เลขที่เอกสาร / บย.</th>
                 <th scope="col" class="small fw-bold">รายละเอียด / ผู้ประสานงาน / ผู้เบิก</th>
                 <th scope="col" class="small fw-bold text-end">ยอดเงิน</th>
-                <th scope="col" class="small fw-bold text-center">วันที่ส่งเอกสาร</th>
+                <th scope="col" class="small fw-bold text-center">วันที่บันทึกข้อมูล</th>
                 <th scope="col" class="small fw-bold text-center">จัดการ</th>
               </tr>
             </thead>
@@ -284,7 +284,7 @@
                 <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#closing-collapse-{{ searched_doc.id }}" aria-expanded="false" aria-controls="closing-collapse-{{ searched_doc.id }}">
                   <span class="me-3">ฎีกาเลขที่ {{ searched_doc.document_number }}</span>
                   <span class="text-muted small">{{ searched_doc.filing_date|thai_date }} | {{ "{:,.2f}".format(searched_doc.total_amount) }} บาท</span>
-                  {% if not searched_doc.is_active %}{{ status_badge('ยกเลิก', 'ถูกยกเลิก', 'ms-auto me-2') }}{% endif %}
+                  {% if not searched_doc.is_active %}{{ status_badge('ถูกยกเลิก', none, 'ms-auto me-2', 'CANCELLED') }}{% endif %}
                 </button>
               </h2>
               <div id="closing-collapse-{{ searched_doc.id }}" class="accordion-collapse collapse" aria-labelledby="closing-heading-{{ searched_doc.id }}" data-bs-parent="#searchedClosingDocuments">
@@ -324,7 +324,7 @@
                           <th scope="col" class="small fw-bold">เลขที่เอกสาร / บย.</th>
                           <th scope="col" class="small fw-bold">รายละเอียด / ผู้ประสานงาน / ผู้เบิก</th>
                           <th scope="col" class="small fw-bold text-end">ยอดเงิน</th>
-                          <th scope="col" class="small fw-bold text-center">วันที่ส่งเอกสาร</th>
+                          <th scope="col" class="small fw-bold text-center">วันที่บันทึกข้อมูล</th>
                           <th scope="col" class="small fw-bold text-center">สถานะ</th>
                           <th scope="col" class="small fw-bold text-center">ตรวจสอบ</th>
                         </tr>
@@ -332,13 +332,13 @@
                       <tbody>
                         {% for ret in result.returns %}
                           <tr class="table-info-subtle">
-                            <td class="ps-3"><input type="checkbox" name="selected_return_ids[]" value="{{ ret.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or ret.id in result.historical_return_ids or ret.status in ['ล้างลูกหนี้เงินยืม', 'เสร็จสิ้นกระบวนการ'] %}disabled{% endif %}></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_return_ids[]" value="{{ ret.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or ret.id in result.historical_return_ids or ret.status_code == 'SETTLED' %}disabled{% endif %}></td>
                             <td><span class="badge bg-info-subtle text-info-emphasis border px-2.5 py-1">ส่งใช้เงินยืม</span></td>
                             <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.number if ret.borrowing_ticket else '-' }}</div></td>
                             <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.borrower_name if ret.borrowing_ticket else '-' }}</div><small class="text-muted">{{ ret.borrowing_ticket.borrowing_ticket_purpose if ret.borrowing_ticket else '-' }}</small></td>
                             <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(ret.closing_amount) }}</td>
                             <td class="text-center small">{{ ret.created_at|thai_date if ret.created_at else '-' }}</td>
-                            <td class="text-center">{{ status_badge(ret.status) }}{% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif ret.id in result.historical_return_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}</td>
+                            <td class="text-center">{{ status_badge(ret.status, none, '', ret.status_code) }}{% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif ret.id in result.historical_return_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}</td>
                             <td class="text-center">
                               <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=ret.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-eye"></i>
@@ -348,7 +348,7 @@
                         {% endfor %}
                         {% for pr in result.parcel_returns %}
                           <tr class="table-warning-subtle">
-                            <td class="ps-3"><input type="checkbox" name="selected_parcel_return_ids[]" value="{{ pr.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or pr.id in result.historical_parcel_ids or pr.status in ['ล้างลูกหนี้เงินยืม', 'เสร็จสิ้นกระบวนการ'] %}disabled{% endif %}></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_parcel_return_ids[]" value="{{ pr.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or pr.id in result.historical_parcel_ids or pr.status_code == 'SETTLED' %}disabled{% endif %}></td>
                             <td>{{ parcel_return_type_badge(pr.type_label, 'px-2.5 py-1') }}</td>
                             <td>
                               <div class="fw-bold text-dark">{{ pr.display_ticket_number or '-' }}</div>
@@ -356,7 +356,7 @@
                             <td><div class="fw-bold text-dark">{{ pr.display_borrower_name or '-' }}</div><small class="text-muted">{{ pr.display_subject_name or '-' }}</small></td>
                             <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                             <td class="text-center small">{{ pr.created_at|thai_date if pr.created_at else '-' }}</td>
-                            <td class="text-center">{{ status_badge(pr.status) }}{% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif pr.id in result.historical_parcel_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}</td>
+                            <td class="text-center">{{ status_badge(pr.display_status, none, '', pr.status_code) }}{% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif pr.id in result.historical_parcel_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}</td>
                             <td class="text-center">
                               <div class="d-flex gap-1 justify-content-center flex-wrap">
                               {% if pr.display_ticket_id %}
@@ -378,7 +378,7 @@
                         {% endfor %}
                         {% for petty in result.petty_cash %}
                           <tr class="table-success-subtle">
-                            <td class="ps-3"><input type="checkbox" name="selected_claim_ids[]" value="{{ petty.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or petty.id in result.historical_claim_ids or petty.status in ['ล้างลูกหนี้เงินยืม', 'เสร็จสิ้นกระบวนการ'] %}disabled{% endif %}></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_claim_ids[]" value="{{ petty.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or petty.id in result.historical_claim_ids or petty.status_code == 'SETTLED' %}disabled{% endif %}></td>
                             <td><span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span></td>
                             <td>
                               <div class="fw-bold text-dark">{{ petty.claim_number or (petty.fund_request.ticket_number if petty.fund_request_id and petty.fund_request and petty.fund_request.ticket_number else '-') }}</div>
@@ -387,7 +387,7 @@
                             <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(petty.amount or 0) }}</td>
                             <td class="text-center small">{{ petty.created_at|thai_date if petty.created_at else '-' }}</td>
                             <td class="text-center">
-                              {{ status_badge(petty.status) }}
+                              {{ status_badge(petty.status, none, '', petty.status_code) }}
                               {% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif petty.id in result.historical_claim_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}
                             </td>
                             <td class="text-center">
@@ -436,7 +436,7 @@
               <th scope="col" class="small fw-bold">เลขที่เอกสาร / บย.</th>
               <th scope="col" class="small fw-bold">รายละเอียด / ผู้ประสานงาน / ผู้เบิก</th>
               <th scope="col" class="small fw-bold text-end">ยอดเงิน</th>
-              <th scope="col" class="small fw-bold text-center">วันที่ส่งเอกสาร</th>
+              <th scope="col" class="small fw-bold text-center">วันที่บันทึกข้อมูล</th>
               <th scope="col" class="small fw-bold text-center">สถานะ</th>
             </tr>
           </thead>
@@ -460,14 +460,14 @@
                 <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(ret.closing_amount) }}</td>
                 <td class="text-center small">{{ ret.created_at|thai_date if ret.created_at else '-' }}</td>
                 <td class="text-center">
-                  {% if ret.status == "ล้างลูกหนี้เงินยืม" %}
-                    {{ status_badge("ล้างลูกหนี้เงินยืม") }}
-                  {% elif ret.status == "ฎีกาถูกตีกลับจากกองคลัง" %}
-                    {{ status_badge("ฎีกาถูกตีกลับจากกองคลัง") }}
-                  {% elif ret.closing_document_id or ret.status == "เอกสารตั้งฎีกา" %}
-                    {{ status_badge("เอกสารตั้งฎีกา") }}
+                  {% if ret.status_code == "SETTLED" %}
+                    {{ status_badge(ret.status, none, '', ret.status_code) }}
+                  {% elif ret.status_code == "CLOSING_REJECTED" %}
+                    {{ status_badge(ret.status, none, '', ret.status_code) }}
+                  {% elif ret.closing_document_id or ret.status_code == "CLOSING" %}
+                    {{ status_badge(ret.status, none, '', ret.status_code) }}
                   {% else %}
-                    {{ status_badge("ผ่านการตรวจสอบ") }}
+                    {{ status_badge("ผ่านการตรวจสอบ", none, '', 'APPROVED') }}
                   {% endif %}
                 </td>
               </tr>
@@ -492,22 +492,22 @@
                 <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                 <td class="text-center small">{{ pr.created_at|thai_date if pr.created_at else '-' }}</td>
                 <td class="text-center">
-                  {% if pr.status == "ล้างลูกหนี้เงินยืม" %}
-                    {{ status_badge("ล้างลูกหนี้เงินยืม") }}
-                  {% elif pr.status == "โอนเงินสดย่อยสำเร็จ" %}
-                    {{ status_badge("โอนเงินสดย่อยสำเร็จ") }}
-                  {% elif pr.status == "ได้รับเอกสารแล้ว" %}
-                    {{ status_badge("ได้รับเอกสารแล้ว") }}
-                  {% elif pr.status == "ยืนยันการตรวจสอบ" %}
-                    {{ status_badge("ยืนยันการตรวจสอบ") }}
-                  {% elif pr.status == "พัสดุกำลังดำเนินการ" %}
-                    {{ status_badge("รอรับเอกสารจริง") }}
-                  {% elif pr.status == "รอตรวจสอบ" %}
-                    {{ status_badge("รอตรวจสอบ") }}
-                  {% elif pr.closing_document_id or pr.status == "เอกสารตั้งฎีกา" %}
-                    {{ status_badge("เอกสารตั้งฎีกา") }}
+                  {% if pr.status_code == "SETTLED" %}
+                    {{ status_badge(pr.status, none, '', pr.status_code) }}
+                  {% elif pr.status_code == "CASH_TRANSFER_COMPLETED" %}
+                    {{ status_badge(pr.status, none, '', pr.status_code) }}
+                  {% elif pr.status_code == "DOCUMENT_RECEIVED" %}
+                    {{ status_badge(pr.status, none, '', pr.status_code) }}
+                  {% elif pr.status_code == "APPROVED" %}
+                    {{ status_badge(pr.status, none, '', pr.status_code) }}
+                  {% elif pr.status_code == "IN_PROCESS" %}
+                    {{ status_badge("รอรับเอกสารจริง", none, '', 'WAITING_DOCUMENT') }}
+                  {% elif pr.status_code == "PENDING" %}
+                    {{ status_badge(pr.display_status, none, '', pr.status_code) }}
+                  {% elif pr.closing_document_id or pr.status_code == "CLOSING" %}
+                    {{ status_badge("เอกสารตั้งฎีกา", none, '', 'CLOSING') }}
                   {% else %}
-                    {{ status_badge("ได้รับเอกสารแล้ว") }}
+                    {{ status_badge("ได้รับเอกสารแล้ว", none, '', 'DOCUMENT_RECEIVED') }}
                   {% endif %}
                 </td>
               </tr>
@@ -533,14 +533,14 @@
                 <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(petty_searched_amt) }}</td>
                 <td class="text-center small">{{ petty.created_at|thai_date if petty.created_at else '-' }}</td>
                 <td class="text-center">
-                  {% if petty.status == "เสร็จสิ้นกระบวนการ" %}
-                    {{ status_badge("เสร็จสิ้นกระบวนการ") }}
-                  {% elif petty.status == "ล้างลูกหนี้เงินยืม" %}
-                    {{ status_badge("ล้างลูกหนี้เงินยืม") }}
-                  {% elif petty.closing_document_id or petty.status == "เอกสารตั้งฎีกา" %}
-                    {{ status_badge("เอกสารตั้งฎีกา") }}
+                  {% if petty.status_code == "SETTLED" %}
+                    {{ status_badge(petty.status, none, '', petty.status_code) }}
+                  {% elif petty.status_code == "SETTLED" %}
+                    {{ status_badge(petty.status, none, '', petty.status_code) }}
+                  {% elif petty.closing_document_id %}
+                    {{ status_badge("เอกสารตั้งฎีกา", none, '', 'CLOSING') }}
                   {% else %}
-                    {{ status_badge("โอนเงินสดย่อยสำเร็จ") }}
+                    {{ status_badge("โอนเงินสดย่อยสำเร็จ", none, '', 'CASH_TRANSFER_COMPLETED') }}
                   {% endif %}
                 </td>
               </tr>

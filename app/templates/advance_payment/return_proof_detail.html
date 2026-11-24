@@ -25,14 +25,13 @@
           <strong class="text-success">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }} บาท</strong>
         </div>
         <div class="col-6 col-sm-4 col-md-3">
-          <span class="text-muted small d-block">วันที่ส่งเอกสาร</span>
+          <span class="text-muted small d-block">วันที่บันทึกข้อมูล</span>
           <strong class="text-dark">{{ return_detail.created_at|thai_date }}</strong>
         </div>
         <div class="col-6 col-sm-4 col-md-3">
             <span class="text-muted small d-block">สถานะปัจจุบัน</span>
             {% set r_status = return_detail.status %}
-            {% if return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
-            <span class="badge {{ status_badge_class(return_detail.status) }} mt-1">{{ r_status }}</span>
+            <span class="badge {{ status_badge_class(return_detail.status_code) }} mt-1">{{ return_detail.status }}</span>
         </div>
         <div class="col-6 col-sm-4 col-md-3">
           <span class="text-muted small d-block">หมายเลขฎีกา</span>
@@ -49,7 +48,7 @@
         {% if return_detail.rejection_comment %}
         <div class="col-12 mt-3">
             <h6 class="fw-bold text-danger">ข้อเสนอแนะการปฏิเสธล่าสุด:</h6>
-            <p style="white-space: pre-line;" class="mb-2 p-2 {% if return_detail.status|lower in ['ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}rounded border text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small{% endif %}">{{ return_detail.rejection_comment|latest_rejection_comment }}</p>
+            <p style="white-space: pre-line;" class="mb-2 p-2 {% if return_detail.status_code in ['REJECTED', 'CLOSING_REJECTED'] %}rounded border text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small{% endif %}">{{ return_detail.rejection_comment|latest_rejection_comment }}</p>
         </div>
         {% endif %}
       </div>
@@ -69,7 +68,7 @@
         </a>
       </div>
     {% endif %}
-    {% if advance_payment_role != 'finance' and return_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+    {% if advance_payment_role != 'finance' and return_detail.status_code == 'EDIT_CONFIRMATION_REQUIRED' %}
       <div class="d-flex gap-2 justify-content-md-end mt-3">
         <form method="POST" action="{{ url_for('advance_payment.confirm_return_edit', return_id=return_detail.id) }}" class="m-0">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -79,7 +78,7 @@
     {% endif %}
     {% if advance_payment_role == 'finance' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3">
-        {% if return_detail.old_document_number and return_detail.status|lower == 'ผ่านการตรวจสอบ' %}
+        {% if return_detail.old_document_number and return_detail.status_code == 'APPROVED' %}
             <button
                 type="button"
                 class="btn btn-danger btn-sm fw-bold px-3 py-1.5"
@@ -97,7 +96,7 @@
                 ฎีกาถูกตีกลับจากกองคลัง
             </button>
         {% endif %}
-        {% if return_detail.status|lower == 'รอตรวจสอบ' %}
+        {% if return_detail.status_code == 'PENDING' %}
             <form id="returnCheckingForm{{ return_detail.id }}" method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" data-ajax-validation="true" class="d-none">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 {% if return_detail.has_over_limit_item %}<input type="hidden" name="high_amount_acknowledged" value="0">{% endif %}
@@ -115,7 +114,7 @@
                 เริ่มการตรวจสอบ
             </button>
         {% endif %}
-        {% if return_detail.status|lower == 'กำลังตรวจสอบ' %}
+        {% if return_detail.status_code == 'IN_PROGRESS' %}
             <button type="button" class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
                 data-bs-toggle="modal" data-bs-target="#approveReturnModal{{ return_detail.id }}">
                 ยืนยันการตรวจสอบ
@@ -260,10 +259,18 @@
 
                 <td>
                   {% if file.proof_reference %}
-                    <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ file.original_filename or file.filename }}">
                     {% set proof_filename = file.filename or file.proof_reference or '' %}
+                    {% set is_previewable_proof = proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf')) %}
+                    <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden{% if is_previewable_proof %} evidence-preview-trigger{% endif %}"
+                         style="width: 60px; height: 60px;"
+                         title="{{ file.original_filename or file.filename }}{% if is_previewable_proof %} — วางเมาส์เพื่อดูตัวอย่าง หรือคลิกเพื่อเปิดค้างไว้{% endif %}"
+                         {% if is_previewable_proof %}tabindex="0" role="button"
+                         aria-label="ดูตัวอย่าง {{ file.original_filename or file.filename or 'ไฟล์หลักฐาน' }}"
+                         data-preview-url="{{ file.proof_reference|advance_payment_file_url }}"
+                         data-preview-title="{{ file.original_filename or file.filename or 'ไฟล์หลักฐาน' }}"
+                         data-preview-type="{{ 'pdf' if proof_filename.lower().endswith('.pdf') else 'image' }}"{% endif %}>
                     {% if proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
-                        <img src="{{ file.proof_reference|advance_payment_file_url }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{ file.proof_reference|advance_payment_file_url }}" alt="ภาพย่อ {{ file.original_filename or file.filename or 'ไฟล์หลักฐาน' }}" class="w-100 h-100" style="object-fit: cover;">
                     {% else %}
                         <i class="bi bi-file-earmark fs-2 text-primary"></i>
                     {% endif %}
@@ -469,5 +476,6 @@ function bindModalReceiptAgeWarnings() {
   });
 }
 </script>
+{% include 'advance_payment/_evidence_hover_preview.html' %}
 {% endblock %}
 

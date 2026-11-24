@@ -1,0 +1,204 @@
+<style>
+  .evidence-preview-trigger {
+    cursor: zoom-in;
+    outline: none;
+  }
+
+  .evidence-preview-trigger:focus-visible {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+
+  .evidence-hover-preview {
+    position: fixed;
+    z-index: 1080;
+    display: none;
+    width: min(720px, calc(100vw - 24px));
+    height: min(760px, calc(100vh - 24px));
+    overflow: hidden;
+    pointer-events: none;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.25);
+  }
+
+  .evidence-hover-preview.is-visible {
+    display: block;
+  }
+
+  .evidence-hover-preview.is-pinned {
+    pointer-events: auto;
+  }
+
+  .evidence-preview-header {
+    display: flex;
+    min-height: 44px;
+    padding: 8px 10px;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .evidence-preview-title {
+    min-width: 0;
+    overflow: hidden;
+    flex: 1;
+    color: #212529;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .evidence-preview-close {
+    display: none;
+  }
+
+  .evidence-hover-preview.is-pinned .evidence-preview-close {
+    display: block;
+  }
+
+  .evidence-preview-body {
+    height: calc(100% - 44px);
+    padding: 8px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: #f8f9fa;
+  }
+
+  .evidence-preview-body img,
+  .evidence-preview-body iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 7px;
+    background: #f8f9fa;
+    object-fit: contain;
+  }
+
+  @media (hover: none) {
+    .evidence-preview-trigger {
+      cursor: default;
+    }
+  }
+</style>
+
+<div class="evidence-hover-preview" id="evidenceHoverPreview" role="dialog" aria-hidden="true" aria-label="ตัวอย่างไฟล์หลักฐาน">
+  <div class="evidence-preview-header">
+    <span class="evidence-preview-title"></span>
+    <button type="button" class="btn-close evidence-preview-close" aria-label="ปิดตัวอย่างไฟล์"></button>
+  </div>
+  <div class="evidence-preview-body"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const preview = document.getElementById('evidenceHoverPreview');
+  const triggers = document.querySelectorAll('.evidence-preview-trigger[data-preview-url]');
+  if (!preview || !triggers.length) return;
+
+  const previewBody = preview.querySelector('.evidence-preview-body');
+  const previewTitle = preview.querySelector('.evidence-preview-title');
+  const closeButton = preview.querySelector('.evidence-preview-close');
+  let activeTrigger = null;
+  let isPinned = false;
+
+  function positionPreview(trigger) {
+    const gap = 12;
+    const edge = 12;
+    const triggerRect = trigger.getBoundingClientRect();
+    const previewRect = preview.getBoundingClientRect();
+    const fitsRight = triggerRect.right + gap + previewRect.width <= window.innerWidth - edge;
+
+    let left = fitsRight
+      ? triggerRect.right + gap
+      : triggerRect.left - gap - previewRect.width;
+    let top = triggerRect.top + (triggerRect.height - previewRect.height) / 2;
+
+    left = Math.max(edge, Math.min(left, window.innerWidth - previewRect.width - edge));
+    top = Math.max(edge, Math.min(top, window.innerHeight - previewRect.height - edge));
+
+    preview.style.left = `${left}px`;
+    preview.style.top = `${top}px`;
+  }
+
+  function showPreview(trigger, pinPreview) {
+    const url = trigger.dataset.previewUrl;
+    if (!url) return;
+    if (isPinned && activeTrigger !== trigger && !pinPreview) return;
+
+    activeTrigger = trigger;
+    isPinned = Boolean(pinPreview);
+    previewBody.replaceChildren();
+    previewTitle.textContent = trigger.dataset.previewTitle || 'ไฟล์หลักฐาน';
+
+    if (trigger.dataset.previewType === 'pdf') {
+      const frame = document.createElement('iframe');
+      frame.src = `${url}#navpanes=0&view=FitH`;
+      frame.title = trigger.dataset.previewTitle || 'ตัวอย่างไฟล์ PDF';
+      previewBody.appendChild(frame);
+    } else {
+      const image = document.createElement('img');
+      image.src = url;
+      image.alt = trigger.dataset.previewTitle || 'ตัวอย่างไฟล์หลักฐาน';
+      previewBody.appendChild(image);
+    }
+
+    preview.classList.add('is-visible');
+    preview.classList.toggle('is-pinned', isPinned);
+    preview.setAttribute('aria-hidden', 'false');
+    positionPreview(trigger);
+  }
+
+  function hidePreview(trigger, forceClose) {
+    if (trigger && activeTrigger !== trigger) return;
+    if (isPinned && !forceClose) return;
+    activeTrigger = null;
+    isPinned = false;
+    preview.classList.remove('is-visible');
+    preview.classList.remove('is-pinned');
+    preview.setAttribute('aria-hidden', 'true');
+    previewBody.replaceChildren();
+  }
+
+  triggers.forEach(function (trigger) {
+    trigger.addEventListener('mouseenter', function () { showPreview(trigger); });
+    trigger.addEventListener('mouseleave', function () { hidePreview(trigger); });
+    trigger.addEventListener('focus', function () { showPreview(trigger); });
+    trigger.addEventListener('blur', function () { hidePreview(trigger); });
+    trigger.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (isPinned && activeTrigger === trigger) {
+        hidePreview(trigger, true);
+      } else {
+        showPreview(trigger, true);
+      }
+    });
+    trigger.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        trigger.click();
+      }
+    });
+  });
+
+  closeButton.addEventListener('click', function () { hidePreview(null, true); });
+  document.addEventListener('click', function (event) {
+    if (isPinned && !preview.contains(event.target)) {
+      hidePreview(null, true);
+    }
+  });
+
+  window.addEventListener('scroll', function () {
+    if (activeTrigger) positionPreview(activeTrigger);
+  }, true);
+  window.addEventListener('resize', function () {
+    if (activeTrigger) positionPreview(activeTrigger);
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') hidePreview(null, true);
+  });
+});
+</script>

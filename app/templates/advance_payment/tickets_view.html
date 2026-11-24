@@ -3,6 +3,19 @@
 {% block title %}รายการสัญญาเงินยืมทดรองจ่าย | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
+<style>
+  /* Keep modal previews compact while allowing the full result set to be reviewed. */
+  .modal-preview-table-scroll {
+    max-height: 20rem;
+    overflow-y: auto;
+  }
+
+  .modal-preview-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+</style>
 <!-- Header Section -->
 <header class="mb-4 pb-2 border-bottom">
   <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 pt-3">
@@ -37,7 +50,7 @@
 <!--          <div class="modal-body">-->
 <!--            <label for="overdueReminderTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>-->
 <!--            <input id="overdueReminderTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>-->
-<!--            <div class="table-responsive mt-4">-->
+<!--            <div class="table-responsive modal-preview-table-scroll mt-4">-->
 <!--              <table class="table table-sm table-hover align-middle mb-0">-->
 <!--                <thead class="table-light">-->
 <!--                  <tr>-->
@@ -212,13 +225,13 @@
       <label for="statusFilter" class="form-label fw-bold text-secondary small">กรองตามสถานะ</label>
       <select id="statusFilter" class="form-select style-select" onchange="filterTicketsTable()">
         <option value="all">แสดงสถานะทั้งหมด</option>
-        <option value="กำลังส่งคำขอ">กำลังส่งคำขอ</option>
-        <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-        <option value="อนุมัติจ่ายเงิน">อนุมัติจ่ายเงิน</option>
-        <option value="มียอดคงค้าง">มียอดคงค้าง</option>
-        <option value="เคลียร์ยอดแล้ว">เคลียร์ยอดแล้ว</option>
-        <option value="ฎีกาถูกตีกลับจากกองคลัง">ฎีกาถูกตีกลับจากกองคลัง</option>
-        <option value="ปฏิเสธ">ปฏิเสธ</option>
+        <option value="PENDING">{{ advance_payment_status_name('borrowing_ticket', 'PENDING') }}</option>
+        <option value="IN_PROGRESS">{{ advance_payment_status_name('borrowing_ticket', 'IN_PROGRESS') }}</option>
+        <option value="APPROVED">{{ advance_payment_status_name('borrowing_ticket', 'APPROVED') }}</option>
+        <option value="PARTIAL_RETURN">{{ advance_payment_status_name('borrowing_ticket', 'PARTIAL_RETURN') }}</option>
+        <option value="CLOSED">{{ advance_payment_status_name('borrowing_ticket', 'CLOSED') }}</option>
+        <option value="CLOSING_REJECTED">{{ advance_payment_status_name('borrowing_ticket', 'CLOSING_REJECTED') }}</option>
+        <option value="REJECTED">{{ advance_payment_status_name('borrowing_ticket', 'REJECTED') }}</option>
       </select>
     </div>
 
@@ -289,7 +302,7 @@
         <label for="receivablesTargetDate" class="form-label fw-bold">วันที่อ้างอิง (ณ วันที่)</label>
         <input id="receivablesTargetDate" name="target_date" type="date" class="form-control" value="{{ today_date.isoformat() }}" required>
         <p class="text-muted small mt-2 mb-0">ตัวอย่างด้านล่างแสดงยอดคงค้างปัจจุบัน รายงานลูกหนี้คำนวณ ณ วันที่เลือก ส่วนทะเบียนคุมการยืมเงินและทะเบียนคุมเงินทดรองจ่ายแสดงรายการทั้งเดือนของวันที่เลือก และเว้นยอดยกมาให้กรอกจากเดือนก่อน</p>
-        <div class="table-responsive mt-4">
+        <div class="table-responsive modal-preview-table-scroll mt-4">
           <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
@@ -327,9 +340,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button type="submit" class="btn btn-success">
-          <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงาน
+        <button type="submit" class="btn btn-outline-success">
+          <i class="bi bi-download me-1"></i> ดาวน์โหลดรายงานลูกหนี้เงินยืม
         </button>
         <button type="submit" class="btn btn-outline-success" formaction="{{ url_for('advance_payment.export_individual_debtors_report') }}">
           <i class="bi bi-download me-1"></i> ดาวน์โหลดทะเบียนคุมลูกหนี้รายตัว
@@ -368,20 +380,7 @@
       {% if tickets %}
         {% for borrowing_ticket in tickets %}
           {% set display_status = borrowing_ticket.status %}
-          {% if borrowing_ticket.status|lower == 'กำลังส่งคำขอ' %}
-            {% set display_status = 'กำลังส่งคำขอ' %}
-          {% elif borrowing_ticket.status|lower in ['อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ'] %}
-            {% set display_status = 'อนุมัติจ่ายเงิน' if borrowing_ticket.status|lower == 'อนุมัติจ่ายเงิน' else 'ผ่านการตรวจสอบ' %}
-          {% elif borrowing_ticket.status|lower == 'เคลียร์ยอดแล้ว' %}
-            {% set display_status = 'เคลียร์ยอดแล้ว' %}
-          {% elif borrowing_ticket.status|lower == 'มียอดคงค้าง' %}
-            {% set display_status = 'มียอดคงค้าง' %}
-          {% elif borrowing_ticket.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}
-            {% set display_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
-          {% elif borrowing_ticket.status|lower in ['ปฏิเสธ'] %}
-            {% set display_status = 'ปฏิเสธ' %}
-          {% endif %}
-          {% set badge_class = status_badge_class(display_status) %}
+          {% set badge_class = status_badge_class(borrowing_ticket.status_code) %}
 
           <tr class="ticket-row align-top"
               data-id="{{ borrowing_ticket.id or 0 }}"
@@ -393,7 +392,7 @@
               data-email="{{ borrowing_ticket.borrower_email if borrowing_ticket.borrower_email else '' }}"
               data-account-name="{{ borrowing_ticket.search_account_name or '' }}"
               data-account-number="{{ borrowing_ticket.search_account_number or '' }}"
-              data-status="{{ display_status }}" 
+              data-status="{{ borrowing_ticket.status_code }}"
               data-budget="{{ borrowing_ticket.required_budget or 0 }}" 
               data-duedate="{{ borrowing_ticket.due_date.strftime('%Y-%m-%d') if borrowing_ticket.due_date else '9999-12-31' }}">
             
@@ -434,11 +433,11 @@
 
             <!-- วันครบกำหนด -->
             <td class="text-center small text-secondary">
-            {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
+            {% if borrowing_ticket.status_code not in ['PENDING', 'IN_PROGRESS', 'REJECTED'] and borrowing_ticket.due_date %}
                 <div>{{ borrowing_ticket.due_date|thai_date }}</div>
                 
                 {# แสดงเตือนเฉพาะสัญญาที่ยังไม่ปิด/เคลียร์ยอด #}
-                {% if borrowing_ticket.status not in ['เอกสารตั้งฎีกา', 'เคลียร์ยอดแล้ว'] %}
+                {% if borrowing_ticket.status_code not in ['CLOSING', 'CLOSED'] %}
                 {% if borrowing_ticket.calculated_overdue_days is not none and borrowing_ticket.calculated_overdue_days > 0 %}
                     <small class="text-danger fw-bold d-block">(เกินมา {{ borrowing_ticket.calculated_overdue_days }} วัน)</small>
                 {% elif borrowing_ticket.calculated_days_remaining is not none and 0 <= borrowing_ticket.calculated_days_remaining <= 15 %}

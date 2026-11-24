@@ -41,10 +41,10 @@
         <label for="statusFilter" class="form-label fw-bold text-secondary small">กรองตามสถานะ</label>
         <select id="statusFilter" class="form-select style-select" onchange="filterTable()">
           <option value="all">แสดงสถานะทั้งหมด</option>
-          <option value="รอตรวจสอบ">รอการตรวจสอบ</option>
-          <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-          <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
-          <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ / รอการโอนคืน</option>
+          <option value="PENDING">รอการตรวจสอบ</option>
+          <option value="IN_PROGRESS">กำลังดำเนินการ / กำลังตรวจสอบ</option>
+          <option value="IN_PROCESS">กำลังตรวจสอบ</option>
+          <option value="APPROVED">ผ่านการตรวจสอบ / รอการโอนคืน</option>
         </select>
       </div>
 
@@ -114,15 +114,15 @@
 
               <!-- 1. สัญญาเงินยืมที่รอฝ่ายการเงินตรวจสอบหรือกำลังดำเนินการ -->
               {% for borrowing_ticket in borrowing_tickets %}
-                {% if borrowing_ticket.status|lower in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'รอตรวจสอบ'] %}
+                {% if borrowing_ticket.status_code in ['PENDING', 'IN_PROGRESS'] %}
                   {% set state.has_pending = true %}
                   <tr class="ticket-row" 
                       data-system="advance"
                       data-type="สัญญา"
                       data-number="{{ borrowing_ticket.number or '-' }}"
                       data-borrower="{{ borrowing_ticket.borrower_name }}"
-                      data-status="{{ borrowing_ticket.status|lower }}"
-                      data-raw-status="{{ borrowing_ticket.status|lower }}"
+                      data-status="{{ borrowing_ticket.status_code }}"
+                      data-raw-status="{{ borrowing_ticket.status_code }}"
                       data-amount="{{ borrowing_ticket.required_budget|float if borrowing_ticket.required_budget else 0 }}"
                       data-createdate="{{ borrowing_ticket.created_at.strftime('%Y-%m-%d') if borrowing_ticket.created_at else '' }}">
                     <td><strong>{{ borrowing_ticket.number if borrowing_ticket.number else "-" }}</strong></td>
@@ -135,11 +135,7 @@
                     <td class="fw-semibold text-end">{{ "{:,.2f}".format(borrowing_ticket.required_budget|float) if borrowing_ticket.required_budget else '0.00' }}</td>
                     <td class="text-center">{{ borrowing_ticket.created_at|thai_date if borrowing_ticket.created_at else '-' }}</td>
                     <td class="text-center">
-                      {% if borrowing_ticket.status|lower == 'กำลังดำเนินการ' %}
-                        {{ status_badge('กำลังดำเนินการ') }}
-                      {% else %}
-                        <span class="badge bg-warning text-dark">รออนุมัติสัญญา</span>
-                      {% endif %}
+                      {{ status_badge(borrowing_ticket.status, none, '', borrowing_ticket.status_code) }}
                     </td>
                     <td class="text-center">
                       <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
@@ -152,15 +148,15 @@
 
               <!-- 2. เอกสารส่งใช้เงินยืม (return status = waiting, checking, รอตรวจสอบ, กำลังตรวจสอบ) -->
               {% for return_item in return_details %}
-                {% if return_item.status|lower in ['รอตรวจสอบ', 'กำลังตรวจสอบ'] %}
+                {% if return_item.status_code in ['PENDING', 'IN_PROGRESS'] %}
                   {% set state.has_pending = true %}
                   <tr class="ticket-row" 
                       data-system="advance"
                       data-type="ส่งใช้เงินยืม"
                       data-number="{{ return_item.borrowing_ticket.number if return_item.borrowing_ticket else '-' }}"
                       data-borrower="{{ return_item.borrowing_ticket.borrower_name if return_item.borrowing_ticket else '-' }}"
-                      data-status="{{ return_item.status|lower }}"
-                      data-raw-status="{{ return_item.status|lower }}"
+                      data-status="{{ return_item.status_code }}"
+                      data-raw-status="{{ return_item.status_code }}"
                       data-amount="{{ return_item.amount_spent|float if return_item.amount_spent else 0 }}"
                       data-createdate="{{ return_item.created_at.strftime('%Y-%m-%d') if return_item.created_at else '' }}">
                     <td><strong>{{ return_item.borrowing_ticket.number if return_item.borrowing_ticket and return_item.borrowing_ticket.number else "-" }}</strong></td>
@@ -173,11 +169,7 @@
                     <td class="fw-semibold text-end">{{ "{:,.2f}".format(return_item.amount_spent|float) if return_item.amount_spent else '0.00' }}</td>
                     <td class="text-center">{{ return_item.created_at|thai_date if return_item.created_at else '-' }}</td>
                     <td class="text-center">
-                      {% if return_item.status|lower in ['รอตรวจสอบ'] %}
-                        {{ status_badge('รอตรวจสอบ', 'รอตรวจเอกสาร') }}
-                      {% else %}
-                        {{ status_badge('กำลังตรวจสอบ') }}
-                      {% endif %}
+                      {{ status_badge(return_item.status, none, '', return_item.status_code) }}
                     </td>
                     <td class="text-center">
                       <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_item.id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
@@ -191,15 +183,15 @@
               <!-- 3. เอกสารส่งคืนพัสดุ (parcel_returns) -->
               {% if parcel_returns %}
                 {% for parcel in parcel_returns %}
-                  {% if parcel.status|lower in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ', 'กำลังส่งคำขอ', 'กำลังตรวจสอบ'] %}
+                  {% if parcel.status_code in ['PENDING', 'IN_PROCESS', 'IN_PROGRESS'] %}
                     {% set state.has_pending = true %}
                       <tr class="ticket-row" 
                         data-system="parcel"
                         data-type="ส่งคืนพัสดุ"
                         data-number="{{ parcel.display_ticket_number if parcel.display_ticket_number is defined else '-' }}"
                         data-borrower="{{ parcel.display_borrower_name if parcel.display_borrower_name is defined else '-' }}"
-                        data-status="{{ parcel.status|lower }}"
-                        data-raw-status="{{ parcel.status|lower }}"
+                        data-status="{{ parcel.status_code }}"
+                        data-raw-status="{{ parcel.status_code }}"
                         data-amount="{{ parcel.amount_spent|float if parcel.amount_spent else 0 }}"
                         data-createdate="{{ parcel.created_at.strftime('%Y-%m-%d') if parcel.created_at else '' }}">
                       <td><strong>{{ parcel.display_ticket_number if parcel.display_ticket_number is defined else "-" }}</strong></td>
@@ -210,15 +202,7 @@
                       <td class="fw-semibold text-end">{{ "{:,.2f}".format(parcel.amount_spent|float) if parcel.amount_spent else '0.00' }}</td>
                       <td class="text-center">{{ parcel.created_at|thai_date if parcel.created_at else '-' }}</td>
                       <td class="text-center">
-                        {% if parcel.status|lower in ['รอตรวจสอบ'] %}
-                          {{ status_badge('รอตรวจสอบ') }}
-                        {% elif parcel.status|lower in ['พัสดุกำลังดำเนินการ', 'กำลังตรวจสอบ'] %}
-                          {{ status_badge('พัสดุกำลังดำเนินการ') }}
-                        {% elif parcel.status|lower in ['ได้รับเอกสารแล้ว', 'ผ่านการตรวจสอบ'] %}
-                          {{ status_badge('ได้รับเอกสารแล้ว') }}
-                        {% else %}
-                          {{ status_badge(parcel.status) }}
-                        {% endif %}
+                        {{ status_badge(parcel.display_status, none, '', parcel.status_code) }}
                       </td>
                       <td class="text-center">
                         <div class="d-flex flex-wrap gap-2 justify-content-center">
@@ -242,15 +226,15 @@
               <!-- 4. เอกสารส่งเบิกเงินสดย่อย (claim status = waiting, checking, proofed) -->
               {% if petty_cash_claims %}
                 {% for claim in petty_cash_claims %}
-                  {% if claim.status|lower in ['รอตรวจสอบ', 'กำลังตรวจสอบ'] %}
+                  {% if claim.status_code in ['PENDING', 'IN_PROCESS'] %}
                     {% set state.has_pending = true %}
                     <tr class="ticket-row" 
                         data-system="petty"
                         data-type="ส่งเบิกเงินสดย่อย"
                         data-number="{{ claim.fund_request.ticket_number or '-' if claim.fund_request else '-' }}"
                         data-borrower="{{ claim.custodian_name or '-' }}"
-                        data-status="{{ claim.status|lower }}"
-                        data-raw-status="{{ claim.status|lower }}"
+                        data-status="{{ claim.status_code }}"
+                        data-raw-status="{{ claim.status_code }}"
                         data-amount="{{ claim.total_amount|float if claim.total_amount else 0 }}"
                         data-createdate="{{ claim.created_at.strftime('%Y-%m-%d') if claim.created_at else '' }}">
                       <td><strong>{{ claim.claim_number if claim.claim_number else "-" }}</strong></td>
@@ -263,13 +247,7 @@
                       <td class="fw-semibold text-end">{{ "{:,.2f}".format(claim.total_amount|float) if claim.total_amount else '0.00' }}</td>
                       <td class="text-center">{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
                       <td class="text-center">
-                        {% if claim.status|lower in ['รอตรวจสอบ'] %}
-                          {{ status_badge('รอตรวจสอบ', 'รอตรวจเอกสาร') }}
-                        {% elif claim.status|lower in ['กำลังตรวจสอบ'] %}
-                          {{ status_badge('กำลังตรวจสอบ') }}
-                        {% elif claim.status|lower in ['ผ่านการตรวจสอบ'] %}
-                          {{ status_badge('ผ่านการตรวจสอบ', 'รอการโอนคืน') }}
-                        {% endif %}
+                        {{ status_badge(claim.status, none, '', claim.status_code) }}
                       </td>
                       <td class="text-center">
                         <div class="d-flex flex-wrap gap-2 justify-content-center">
@@ -340,30 +318,12 @@
     }
 
     function normalizeDashboardStatus(rawStatus) {
-      const status = (rawStatus || "").toLowerCase();
-
-      if (["รอตรวจสอบ"].includes(status)) {
-        return "รอตรวจสอบ";
-      }
-      if (["กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status)) {
-        return "กำลังตรวจสอบ";
-      }
-      if (["ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว", "ยืนยันการตรวจสอบ"].includes(status)) {
-        return "ผ่านการตรวจสอบ";
-      }
-      if (["กำลังส่งคำขอ"].includes(status)) {
-        return "รอตรวจสอบ";
-      }
-      if (["กำลังดำเนินการ"].includes(status)) {
-        return "กำลังดำเนินการ";
-      }
-
-      return status;
+      return (rawStatus || "").toUpperCase();
     }
 
     function isPendingReviewStatus(rawStatus) {
-      const status = (rawStatus || "").toLowerCase();
-      return ["กำลังส่งคำขอ", "กำลังดำเนินการ", "รอตรวจสอบ", "กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status);
+      const status = normalizeDashboardStatus(rawStatus);
+      return ["PENDING", "IN_PROGRESS", "IN_PROCESS"].includes(status);
     }
 
     function calculateSummaryCounts() {
@@ -379,7 +339,7 @@
               pendingReviewCount++;
           }
 
-          if (normalizeDashboardStatus(rawStatus) === 'ผ่านการตรวจสอบ') {
+          if (normalizeDashboardStatus(rawStatus) === 'APPROVED') {
               claimProofedCount++;
           }
       });
@@ -418,7 +378,7 @@
 
       rows.forEach(row => {
           const rawStatus = row.getAttribute("data-raw-status") || "";
-          if (normalizeDashboardStatus(rawStatus) === 'ผ่านการตรวจสอบ') {
+          if (normalizeDashboardStatus(rawStatus) === 'APPROVED') {
               row.style.display = "";
               visibleCount++;
           } else {

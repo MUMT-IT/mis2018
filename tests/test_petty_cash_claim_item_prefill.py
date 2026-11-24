@@ -57,6 +57,16 @@ class PettyCashClaimItemPrefillTests(unittest.TestCase):
         self.assertIn("claimForm.addEventListener('app:ajax-success'", self.template)
         self.assertIn("return submit_petty_cash_claim(\n                _render_after_post=True", submit_source)
 
+    def test_saved_reference_files_are_visible_after_reload(self):
+        self.assertIn(
+            "reference_file.proof_reference|advance_payment_file_url",
+            self.template,
+        )
+        self.assertIn("ไฟล์ที่บันทึกแล้วจะแสดงด้านขวา", self.template)
+        self.assertIn("openLink.href = proof.url", self.template)
+        self.assertIn("removeSavedReferenceFile(this)", self.template)
+        self.assertIn("function removeSavedReferenceFile(button)", self.template)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -51,13 +51,14 @@ class FullFormEditTests(unittest.TestCase):
         self.assertIn("existing_draft = edit_claim_detail", self.views)
         self.assertGreaterEqual(self.views.count('"รอยืนยันการแก้ไข"'), 3)
 
-    def test_edit_mode_does_not_offer_draft_autosave(self):
+    def test_forms_keep_manual_drafts_without_autosave(self):
         self.assertIn("if not return_edit_detail|default(none)", self.return_form)
         self.assertIn("if not claim_edit_mode|default(false)", self.claim_form)
-        self.assertIn(
-            "if ({{ 'true' if claim_edit_mode|default(false) else 'false' }}) return;",
-            self.claim_form,
-        )
+        self.assertIn("submitFormWithAction({{ borrowing_ticket.id }}, 'draft')", self.return_form)
+        self.assertIn('name="action" value="draft"', self.claim_form)
+        self.assertNotIn("autosave-draft", self.views)
+        self.assertNotIn("autoSaveDraft", self.return_form)
+        self.assertNotIn("autoSavePettyCashDraft", self.claim_form)
 
     def test_borrowing_ticket_edit_entry_is_on_verification_only(self):
         edit_link = "edit_ticket_id=borrowing_ticket.id"

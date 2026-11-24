@@ -139,16 +139,26 @@ class AdvancePaymentStatus(db.Model):
         return self.name
 
 
-def status_name_for_record(record):
-    """Return the catalog name, including after a status_id change in this session."""
+def status_value_for_record(record, attribute):
+    """Return a status-catalog value, including after an in-session status change."""
     if record.status_id is None:
         return None
     status_ref = record.status_ref
     if status_ref is not None and status_ref.id == record.status_id:
-        return status_ref.name
+        return getattr(status_ref, attribute)
     session = object_session(record) or db.session
     status_ref = _session_get(session, AdvancePaymentStatus, record.status_id)
-    return status_ref.name if status_ref else None
+    return getattr(status_ref, attribute) if status_ref else None
+
+
+def status_name_for_record(record):
+    """Return the user-facing status label from the catalog."""
+    return status_value_for_record(record, "name")
+
+
+def status_code_for_record(record):
+    """Return the stable workflow code; labels may be edited independently."""
+    return status_value_for_record(record, "code")
 
 
 class CashAdvanceImportBatch(db.Model):
@@ -220,6 +230,9 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     @property
     def status(self):
         return status_name_for_record(self)
+    @property
+    def status_code(self):
+        return status_code_for_record(self)
     borrowing_ticket_purpose = Column(String, nullable=False)
     required_budget = Column(Numeric(12, 2, asdecimal=True), nullable=False)
     opening_balance_amount = Column(Numeric(12, 2, asdecimal=True), nullable=True)
@@ -449,6 +462,9 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     @property
     def status(self):
         return status_name_for_record(self)
+    @property
+    def status_code(self):
+        return status_code_for_record(self)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
@@ -702,6 +718,22 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     @property
     def status(self):
         return status_name_for_record(self)
+    @property
+    def status_code(self):
+        return status_code_for_record(self)
+
+    @property
+    def display_status(self):
+        """Add the parcel workflow context without duplicating catalog wording."""
+        status = self.status
+        parcel_context = "พัสดุกำลังดำเนินการ"
+        if (
+            self.type is None
+            and self.status_code == "PENDING"
+            and parcel_context not in status
+        ):
+            return f"{status}({parcel_context})"
+        return status
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
@@ -1077,6 +1109,9 @@ class FundRequest(FinanceEditMixin, db.Model):
     @property
     def status(self):
         return status_name_for_record(self)
+    @property
+    def status_code(self):
+        return status_code_for_record(self)
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     is_legacy_import = Column(Boolean, nullable=False, default=False, server_default=text("false"), index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
@@ -1230,6 +1265,9 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     @property
     def status(self):
         return status_name_for_record(self)
+    @property
+    def status_code(self):
+        return status_code_for_record(self)
     petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=False)
     fund_request_id = Column(
         Integer,

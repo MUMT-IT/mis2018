@@ -1,44 +1,14 @@
 <!doctype html>
 <html lang="th">
   {# สถานะกลางของระบบ Advance Payment สำหรับใช้ร่วมกันทุกหน้า #}
-  {% macro status_badge_class(status) -%}
-    {% set status_colors = {
-      'ปฏิเสธ': 'danger',
-      'ยกเลิก': 'danger',
-      'ยกเลิกใบเบิก': 'danger',
-      'ใบเบิกถูกปฏิเสธ': 'danger',
-      'รอตรวจสอบ': 'warning',
-      'เอกสารตั้งฎีกา': 'info',
-      'รอยืนยันการแก้ไข': 'warning',
-      'กำลังตรวจสอบ': 'warning',
-      'ฉบับร่าง': 'secondary',
-      'รอการอนุมัติ': 'warning',
-      'ผ่านการตรวจสอบ': 'success',
-      'ล้างลูกหนี้เงินยืม': 'secondary',
-      'ฎีกาถูกตีกลับจากกองคลัง': 'danger',
-      'กำลังส่งคำขอ': 'warning',
-      'กำลังดำเนินการ': 'info',
-      'อนุมัติจ่ายเงิน': 'primary',
-      'มียอดคงค้าง': 'info',
-      'เคลียร์ยอดแล้ว': 'success',
-      'พัสดุกำลังดำเนินการ': 'info',
-      'ได้รับเอกสารแล้ว': 'success',
-      'ยืนยันการตรวจสอบ': 'success',
-      'ถูกปฏิเสธ': 'danger',
-      'อนุมัติแล้ว': 'primary',
-      'เบิกเงินแล้ว': 'success',
-      'ส่งเบิกครบแล้ว': 'info',
-      'เคลียร์ยอดสำเร็จ': 'success',
-      'โอนเงินสดย่อยสำเร็จ': 'success',
-      'โอนคืนเงินสดย่อย': 'success',
-      'เสร็จสิ้นกระบวนการ': 'secondary'
-    } %}
-    {% set color = status_colors.get((status or '')|trim, 'secondary') %}
+  {% macro status_badge_class(code) -%}
+    {% set code_colors = {'DRAFT':'secondary','PENDING':'warning','IN_PROGRESS':'info','IN_PROCESS':'info','APPROVED':'success','PARTIAL_RETURN':'info','EDIT_CONFIRMATION_REQUIRED':'warning','CLOSING_REJECTED':'danger','REJECTED':'danger','DOCUMENT_RECEIVED':'success','CLOSING':'info','WITHDRAWN':'success','CLAIMS_SUBMITTED':'info','CASH_RETURNED':'success','CASH_TRANSFER_COMPLETED':'success','SETTLED':'secondary','CLOSED':'success','CLAIM_CANCELLED':'danger','CANCELLED':'danger','WAITING_DOCUMENT':'warning'} %}
+    {% set color = code_colors.get((code or '')|upper, 'secondary') %}
     bg-{{ color }} {% if color in ['warning', 'info'] %}text-dark{% else %}text-white{% endif %}
   {%- endmacro %}
 
-  {% macro status_badge(status, label=None, extra_classes='') -%}
-    <span class="badge {{ status_badge_class(status) }} {{ extra_classes }}">{{ label if label is not none else (status or '-') }}</span>
+  {% macro status_badge(status, label=None, extra_classes='', code=None) -%}
+    <span class="badge {{ status_badge_class(code) }} {{ extra_classes }}">{{ label if label is not none else (status or '-') }}</span>
   {%- endmacro %}
 
   {% macro parcel_return_type_badge(type_label, extra_classes='') -%}
@@ -766,32 +736,78 @@
 
       /* Revolving-fund dashboard cards */
       .advance-fund-dashboard {
-        min-height: 370px;
+        min-height: 250px;
+        overflow-x: auto;
+        padding: 0.5rem 0 1rem;
       }
       .petty-fund-dashboard {
         min-height: 240px;
       }
-      .advance-fund-grid,
-      .petty-fund-grid {
-        display: grid;
-        gap: 48px 41px;
+      .advance-fund-equation {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         width: 100%;
+        min-width: 1180px;
+        max-width: 1450px;
         margin: 0 auto;
       }
-      .advance-fund-grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        grid-template-areas:
-          "initial lent requested cash remaining"
-          ". . closing . ."
-          ". . received . .";
-        max-width: 1320px;
+      .advance-fund-equation > .advance-fund-card {
+        flex: 1 1 0;
       }
-      .petty-fund-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        grid-template-areas:
-          "initial transferred closing remaining"
-          ". . received .";
-        max-width: 1100px;
+      .advance-fund-equation-operator {
+        flex: 0 0 auto;
+        color: #111111;
+        font-size: 1.65rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .advance-fund-equation-arrow {
+        font-size: 2rem;
+      }
+      .advance-fund-stage-group {
+        position: relative;
+        flex: 1.12 1 0;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 0 18px;
+      }
+      .advance-fund-stage-group::before,
+      .advance-fund-stage-group::after {
+        position: absolute;
+        top: -6px;
+        bottom: -6px;
+        width: 15px;
+        content: "";
+        border-top: 3px solid #111111;
+        border-bottom: 3px solid #111111;
+      }
+      .advance-fund-stage-group::before {
+        left: 0;
+        border-left: 3px solid #111111;
+      }
+      .advance-fund-stage-group::after {
+        right: 0;
+        border-right: 3px solid #111111;
+      }
+      .advance-fund-stage-group .advance-fund-card {
+        width: 100%;
+      }
+      .advance-fund-stage-operator {
+        align-self: center;
+        font-size: 1.3rem;
+      }
+      .advance-fund-remaining-row {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+        max-width: 1450px;
+        margin: 32px auto 0;
+      }
+      .advance-fund-remaining-row .advance-fund-card {
+        width: min(220px, 100%);
       }
       .advance-fund-card,
       .petty-fund-card {
@@ -821,46 +837,7 @@
         line-height: 1.15;
         white-space: nowrap;
       }
-      .advance-fund-card--initial,
-      .petty-fund-card--initial { grid-area: initial; }
-      .advance-fund-card--lent { grid-area: lent; }
-      .advance-fund-card--requested { grid-area: requested; }
-      .advance-fund-card--cash { grid-area: cash; }
-      .advance-fund-card--remaining,
-      .petty-fund-card--remaining { grid-area: remaining; }
-      .advance-fund-card--closing,
-      .petty-fund-card--closing { grid-area: closing; }
-      .advance-fund-card--received,
-      .petty-fund-card--received { grid-area: received; }
-      .petty-fund-card--transferred { grid-area: transferred; }
-
       @media (max-width: 991.98px) {
-        .advance-fund-grid,
-        .petty-fund-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 29px;
-        }
-        .advance-fund-grid {
-          grid-template-areas:
-            "initial remaining"
-            "lent cash"
-            "requested requested"
-            "closing closing"
-            "received received";
-        }
-        .petty-fund-grid {
-          grid-template-areas:
-            "initial remaining"
-            "transferred closing"
-            "received received";
-        }
-        .advance-fund-card--requested,
-        .advance-fund-card--closing,
-        .advance-fund-card--received,
-        .petty-fund-card--received {
-          width: calc(50% - 14.5px);
-          justify-self: center;
-        }
         .account-manager-table {
           min-width: 940px;
         }
@@ -881,35 +858,6 @@
         }
         .header-user-chip {
           padding-right: 0.45rem;
-        }
-        .advance-fund-grid,
-        .petty-fund-grid {
-          grid-template-columns: 1fr;
-          gap: 22px;
-        }
-        .advance-fund-grid {
-          grid-template-areas:
-            "initial"
-            "lent"
-            "requested"
-            "closing"
-            "received"
-            "cash"
-            "remaining";
-        }
-        .petty-fund-grid {
-          grid-template-areas:
-            "initial"
-            "transferred"
-            "closing"
-            "received"
-            "remaining";
-        }
-        .advance-fund-card--requested,
-        .advance-fund-card--closing,
-        .advance-fund-card--received,
-        .petty-fund-card--received {
-          width: 100%;
         }
         .advance-fund-card-amount,
         .petty-fund-card-amount {
@@ -948,20 +896,20 @@
             ระบบ Advance Payment
           {% endif %}
         </a>
-        <div class="header-actions d-flex align-items-center gap-2 ms-auto">
-          {% if request.endpoint == 'advance_payment.login' or session.get('advance_payment_system') not in ['petty_cash', 'advance_payment', 'finance'] %}
+        {% if request.endpoint == 'advance_payment.login' or session.get('advance_payment_system') not in ['petty_cash', 'advance_payment', 'finance'] %}
           <a href="{{ url_for('index') }}" class="header-mumt-button" aria-label="กลับระบบ MUMT MIS">
               <i class="bi bi-house-fill" aria-hidden="true"></i>
               <span class="header-mumt-label">หน้าหลัก</span>
           </a>
-          {% else %}
-              <a href="{{ url_for('advance_payment.logout') }}" class="header-home-button" aria-label="กลับหน้าเลือกระบบ">
-                <span class="header-action-icon">
-                  <i class="bi bi-house-door-fill" aria-hidden="true"></i>
-                </span>
-                <span class="header-home-label">หน้าหลัก</span>
-              </a>
-          {% endif %}
+        {% else %}
+          <a href="{{ url_for('advance_payment.logout') }}" class="header-home-button" aria-label="กลับหน้าเลือกระบบ">
+            <span class="header-action-icon">
+              <i class="bi bi-house-door-fill" aria-hidden="true"></i>
+            </span>
+            <span class="header-home-label">หน้าหลัก</span>
+          </a>
+        {% endif %}
+        <div class="header-actions d-flex align-items-center gap-2 ms-auto">
           <div class="header-user-chip" title="{{ current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else '' }}">
             <span class="header-user-avatar">
               <i class="bi bi-person-fill" aria-hidden="true"></i>

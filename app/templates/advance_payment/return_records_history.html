@@ -70,13 +70,13 @@
       <label for="statusFilter" class="form-label fw-bold text-secondary small">กรองตามสถานะ</label>
       <select id="statusFilter" class="form-select style-select" onchange="filterHistoryTable()">
         <option value="all">แสดงสถานะทั้งหมด</option>
-        <option value="รอตรวจสอบ">รอการตรวจสอบ</option>
-        <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
-        <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ</option>
-        <option value="เอกสารตั้งฎีกา">เอกสารตั้งฎีกา</option>
-        <option value="ฎีกาถูกตีกลับจากกองคลัง">ฎีกาถูกตีกลับจากกองคลัง</option>
-        <option value="ล้างลูกหนี้เงินยืม">ล้างลูกหนี้เงินยืม</option>
-        <option value="ปฏิเสธ">ปฏิเสธ</option>
+        <option value="PENDING">{{ advance_payment_status_name('return_detail', 'PENDING') }}</option>
+        <option value="IN_PROGRESS">{{ advance_payment_status_name('return_detail', 'IN_PROGRESS') }}</option>
+        <option value="APPROVED">{{ advance_payment_status_name('return_detail', 'APPROVED') }}</option>
+        <option value="CLOSING">{{ advance_payment_status_name('return_detail', 'CLOSING') }}</option>
+        <option value="CLOSING_REJECTED">{{ advance_payment_status_name('return_detail', 'CLOSING_REJECTED') }}</option>
+        <option value="SETTLED">{{ advance_payment_status_name('return_detail', 'SETTLED') }}</option>
+        <option value="REJECTED">{{ advance_payment_status_name('return_detail', 'REJECTED') }}</option>
       </select>
     </div>
 
@@ -84,8 +84,8 @@
     <div class="col-md-3">
       <label for="sortOrder" class="form-label fw-bold text-secondary small">จัดเรียงตามลำดับ</label>
       <select id="sortOrder" class="form-select style-select" onchange="sortHistoryTable()">
-        <option value="created_desc">วันที่สร้างรายการล่าสุด → เก่าสุด</option>
-        <option value="created_asc">วันที่สร้างรายการเก่าสุด → ล่าสุด</option>
+        <option value="created_desc">วันที่บันทึกข้อมูลล่าสุด → เก่าสุด</option>
+        <option value="created_asc">วันที่บันทึกข้อมูลเก่าสุด → ล่าสุด</option>
         <option value="เอกสารตั้งฎีกา_desc">วันที่ปิดยอดล่าสุด → เก่าสุด</option>
         <option value="amount_desc">จำนวนเงินมากสุด → น้อยสุด</option>
       </select>
@@ -131,7 +131,7 @@
               <th scope="col" class="small fw-bold text-secondary">ชื่อผู้ประสานงาน / ผู้เบิก</th>
               <th scope="col" class="small fw-bold text-secondary text-center">ประเภทรายการ</th>
               <th scope="col" class="small fw-bold text-secondary text-end">จำนวนเงิน</th>
-              <th scope="col" class="small fw-bold text-secondary text-center">วันที่สร้างรายการ</th>
+              <th scope="col" class="small fw-bold text-secondary text-center">วันที่บันทึกข้อมูล</th>
               <th scope="col" class="small fw-bold text-secondary text-center">สถานะ</th>
               <th scope="col" class="small fw-bold text-secondary text-center">หมายเลขฎีกา</th>
               <th scope="col" class="small fw-bold text-secondary text-center pe-3">การจัดการ</th>
@@ -146,7 +146,7 @@
                 data-org="{{ record.org_name or '' }}"
                 data-account-name="{{ record.account_name or '' }}"
                 data-account-number="{{ record.account_number or '' }}"
-                data-status="{{ record.status or '' }}"
+                data-status="{{ record.status_code or '' }}"
                 data-type="{{ record.record_type or 'return' }}"
                 data-submitdate="{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else '-' }}"
                 data-เอกสารตั้งฎีกาdate="{{ record.เอกสารตั้งฎีกา_at.strftime('%Y-%m-%d') if record.เอกสารตั้งฎีกา_at else '-' }}"
@@ -188,14 +188,14 @@
                 {{ "{:,.2f}".format(record.total_amount or record.amount_spent or 0) }}
               </td>
 
-              <!-- 5. วันที่สร้างรายการ -->
+              <!-- 5. วันที่บันทึกข้อมูล -->
               <td class="text-center small text-secondary">
                 {{ record.created_at|thai_date if record.created_at else '-' }}
               </td>
 
               <!-- 6. แสดง Badge ตามสถานะ -->
               <td class="text-center">
-                {{ status_badge(record.status) }}
+                {{ status_badge(record.status, none, '', record.status_code) }}
               </td>
 
               <!-- 7. หมายเลขฎีกา -->

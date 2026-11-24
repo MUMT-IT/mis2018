@@ -26,11 +26,11 @@
         <div class="card border rounded-4 shadow-sm bg-white p-3 h-100">
           <div class="text-muted small fw-bold text-uppercase">กำหนดส่งเงินยืม</div>
           <div class="mt-2">
-            {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status', 'equalto', 'เอกสารตั้งฎีกา') | rejectattr('status', 'equalto', 'เคลียร์ยอดแล้ว') | rejectattr('status', 'equalto', 'ปฏิเสธ') | rejectattr('status', 'equalto', 'กำลังส่งคำขอ') | rejectattr('status', 'equalto', 'กำลังดำเนินการ') | list %}
+            {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status_code', 'equalto', 'CLOSING') | rejectattr('status_code', 'equalto', 'CLOSED') | rejectattr('status_code', 'equalto', 'REJECTED') | rejectattr('status_code', 'equalto', 'PENDING') | rejectattr('status_code', 'equalto', 'IN_PROGRESS') | list %}
             {% if borrowing_ticket_history %}
               {% if active_tickets %}
                 {% set target_ticket = (active_tickets | sort(attribute='due_date')) | first %}
-                {% if target_ticket.status|lower != 'กำลังส่งคำขอ' %}
+                {% if target_ticket.status_code != 'PENDING' %}
                   {% if target_ticket.summary_overdue_days is not none %}
                     <div class="fs-2 fw-bold text-danger">
                       {{ target_ticket.due_date | thai_date }}
@@ -387,7 +387,6 @@
         {% endif %}
         {% set return_ticket_script_state = namespace(rendered=false) %}
         {% set return_is_borrower_page = true %}
-        {% set return_autosave_endpoint_prefix = url_for('advance_payment.borrower_autosave_draft', ticket_id=0)|replace('/0/autosave-draft', '/') %}
         {% set return_panel_hidden = dashboard_scope == 'department' %}
         {% for borrowing_ticket in actionable_tickets %}
           {% set ns.has_actionable_tickets = true %}
@@ -446,32 +445,19 @@
               <tbody>
                 {% for borrowing_ticket in borrowing_ticket_history %}
                   {% set display_status = borrowing_ticket.status %}
-                  {% set ticket_status = borrowing_ticket.status %}
-                  {% if borrowing_ticket.status|lower == 'กำลังส่งคำขอ' %}
-                    {% set display_status = 'กำลังส่งคำขอ' %}
-                  {% elif borrowing_ticket.status|lower in ['อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ'] %}
-                    {% set display_status = 'อนุมัติจ่ายเงิน' if borrowing_ticket.status|lower == 'อนุมัติจ่ายเงิน' else 'ผ่านการตรวจสอบ' %}
-                  {% elif borrowing_ticket.status|lower == 'เคลียร์ยอดแล้ว' %}
-                    {% set display_status = 'เคลียร์ยอดแล้ว' %}
-                  {% elif borrowing_ticket.status|lower == 'มียอดคงค้าง' %}
-                    {% set display_status = 'มียอดคงค้าง' %}
-                  {% elif borrowing_ticket.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}
-                    {% set display_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
-                  {% elif borrowing_ticket.status|lower in ['ปฏิเสธ'] %}
-                    {% set display_status = 'ปฏิเสธ' %}
-                  {% endif %}
-                  {% set badge_class = status_badge_class(display_status) %}
+                  {% set ticket_status = borrowing_ticket.status_code %}
+                  {% set badge_class = status_badge_class(ticket_status) %}
                   <tr 
                     class="ticket-row" 
                     data-number="{{ borrowing_ticket.number }}"
                     data-project="{{ borrowing_ticket.borrowing_ticket_purpose }}" 
                     data-borrower="{{ borrowing_ticket.borrower_name or borrowing_ticket.borrower_email or '' }}"
                     data-email="{{ borrowing_ticket.email if borrowing_ticket.email else '' }}" 
-                    data-status="{{ display_status }}" 
+                    data-status="{{ ticket_status }}"
                     data-budget="{{ borrowing_ticket.required_budget or 0 }}" 
                     data-startdate="{{ borrowing_ticket.borrowing_ticket_start_date.strftime('%Y-%m-%d') if borrowing_ticket.borrowing_ticket_start_date else '' }}" 
                     data-duedate="{{ borrowing_ticket.due_date.strftime('%Y-%m-%d') if borrowing_ticket.due_date else '' }}" 
-                    data-remaining="{{ 0 if ticket_status == 'ปฏิเสธ' else (borrowing_ticket.remaining_amount if borrowing_ticket.remaining_amount is not none else borrowing_ticket.required_budget or 0) }}">
+                    data-remaining="{{ 0 if ticket_status == 'REJECTED' else (borrowing_ticket.remaining_amount if borrowing_ticket.remaining_amount is not none else borrowing_ticket.required_budget or 0) }}">
                     <td><strong>{{ borrowing_ticket.number if borrowing_ticket.number else "-" }}</strong></td>
                     <td>{{ borrowing_ticket.borrower_name or borrowing_ticket.borrower_email or '-' }}</td>
                     <td style="width: 20%;">{{ borrowing_ticket.borrowing_ticket_purpose }}</td>
@@ -485,11 +471,11 @@
                       </div>
                     </td>
                     <td>
-                      {% if ticket_status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
+                      {% if ticket_status not in ['PENDING', 'IN_PROGRESS', 'REJECTED'] and borrowing_ticket.due_date %}
                         <div>{{ borrowing_ticket.due_date|thai_date }}</div>
                         
                         {# แสดงเตือนเฉพาะสัญญาที่ยังไม่ปิด/เคลียร์ยอด #}
-                        {% if ticket_status not in ['เอกสารตั้งฎีกา', 'เคลียร์ยอดแล้ว'] %}
+                        {% if ticket_status not in ['CLOSING', 'CLOSED'] %}
                         {% if borrowing_ticket.summary_overdue_days is not none and borrowing_ticket.summary_overdue_days > 0 %}
                             <small class="text-danger fw-bold d-block">(เกินมา {{ borrowing_ticket.summary_overdue_days }} วัน)</small>
                         {% elif borrowing_ticket.summary_days_remaining is not none and 0 <= borrowing_ticket.summary_days_remaining <= 15 %}
@@ -502,7 +488,7 @@
                       {% endif %}
                     </td>
                     <td>
-                      {% if borrowing_ticket.status|lower == 'เอกสารตั้งฎีกา' %}
+                      {% if borrowing_ticket.status_code == 'CLOSING' %}
                         {{ borrowing_ticket.closed_date|thai_date }}
                       {% else %}
                         -
@@ -568,16 +554,13 @@
           <tbody>
               {% for return_detail in creator_return_details %}
                 {% set r_status = return_detail.status %}
-                {% if return_detail.status|lower in ['ได้รับเอกสารแล้ว', 'ล้างลูกหนี้เงินยืม'] %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
-                {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_status = 'ปฏิเสธใบเบิก' %}
-                {% endif %}
-                {% set r_badge = status_badge_class(return_detail.status) %}
+                {% set r_badge = status_badge_class(return_detail.status_code) %}
                 <tr class="ticket-row align-top"
                     data-number="{{ return_detail.borrowing_ticket.number or return_detail.ticket_id }}"
                     data-project="{{ return_detail.description or '' }}"
                     data-borrower="{{ return_detail.borrowing_ticket.borrower_name or '' }}"
                     data-email=""
-                    data-status="{{ r_status }}"
+                    data-status="{{ return_detail.status_code }}"
                     data-startdate=""
                     data-duedate="">
                   <td class="text-start ps-3">
@@ -602,13 +585,12 @@
                 </tr>
               {% endfor %}
               {% for parcel_return in parcel_return_history %}
-                {% set parcel_status = parcel_return.status|lower %}
                 <tr class="ticket-row align-top"
                     data-number="{{ parcel_return.display_ticket_number or '' }}"
                     data-project="ส่งคืนพัสดุ {{ parcel_return.items_description or '' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}"
                     data-borrower="{{ parcel_return.display_borrower_name or '' }}"
                     data-email=""
-                    data-status="{{ parcel_return.status or '' }}"
+                    data-status="{{ parcel_return.status_code or '' }}"
                     data-startdate=""
                     data-duedate="">
                   <td class="text-start ps-3">
@@ -621,7 +603,7 @@
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                   <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                   <td class="text-center">
-                    {{ status_badge(parcel_return.status, none, 'border') }}
+                    {{ status_badge(parcel_return.display_status, none, 'border', parcel_return.status_code) }}
                   </td>
                   <td class="text-center pe-3">
                     <div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">
@@ -659,19 +641,15 @@
             <label class="form-label small fw-bold text-muted">สถานะสัญญา</label>
             <select id="filterStatus" class="form-select bg-light" onchange="filterTable()">
               <option value="">ทั้งหมด</option>
-              <option value="กำลังส่งคำขอ">กำลังส่งคำขอ</option>
-              <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-              <option value="อนุมัติจ่ายเงิน">อนุมัติจ่ายเงิน</option>
-              <option value="มียอดคงค้าง">มียอดคงค้าง</option>
-              <option value="เคลียร์ยอดแล้ว">เคลียร์ยอดแล้ว</option>
-              <option value="ฎีกาถูกตีกลับจากกองคลัง">ฎีกาถูกตีกลับจากกองคลัง</option>
-              <option value="ปฏิเสธ">ปฏิเสธ</option>
-              <option value="รอตรวจสอบ">รอตรวจสอบ</option>
-              <option value="รอการตรวจสอบ">รอการตรวจสอบ</option>
-              <option value="พัสดุกำลังดำเนินการ">พัสดุกำลังดำเนินการ</option>
-              <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
-              <option value="ได้รับเอกสารแล้ว">ได้รับเอกสารแล้ว</option>
-              <option value="ยืนยันการตรวจสอบ">ยืนยันการตรวจสอบ</option>
+              <option value="PENDING">รอเริ่ม / รอตรวจสอบ</option>
+              <option value="IN_PROGRESS">กำลังดำเนินการ / กำลังตรวจสอบ</option>
+              <option value="APPROVED">อนุมัติ / ยืนยันแล้ว</option>
+              <option value="PARTIAL_RETURN">{{ advance_payment_status_name('borrowing_ticket', 'PARTIAL_RETURN') }}</option>
+              <option value="CLOSED">{{ advance_payment_status_name('borrowing_ticket', 'CLOSED') }}</option>
+              <option value="CLOSING_REJECTED">{{ advance_payment_status_name('borrowing_ticket', 'CLOSING_REJECTED') }}</option>
+              <option value="REJECTED">ปฏิเสธ</option>
+              <option value="IN_PROCESS">กำลังดำเนินการภายใน</option>
+              <option value="DOCUMENT_RECEIVED">{{ advance_payment_status_name('parcel_return', 'DOCUMENT_RECEIVED') }}</option>
             </select>
           </div>
 

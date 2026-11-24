@@ -60,27 +60,25 @@
 
     </div>
     <div class="col-12 col-lg-2">
-      {% set current_fund_request_status = (fund_request_status or '')|trim %}
-      {% set fund_request_status_aliases = {} %}
-      {% set current_fund_request_step = fund_request_status_aliases.get(current_fund_request_status, current_fund_request_status) %}
+      {% set current_fund_request_step = fund_request_status_code %}
       {% set fund_request_status_class = status_badge_class(current_fund_request_step) %}
 
       <div class="status-flow">
         {% for step in fund_request_status_steps %}
           <div class="status-flow-item">
-            <span class="status-flow-dot {% if step == current_fund_request_step %}is-current{% endif %}"></span>
-            {% if step == current_fund_request_step %}
-              <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ step }}</span>
+            <span class="status-flow-dot {% if step.code == current_fund_request_step %}is-current{% endif %}"></span>
+            {% if step.code == current_fund_request_step %}
+              <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ step.name }}</span>
             {% else %}
-              <span class="badge bg-light text-secondary border fs-6 px-3 py-2">{{ step }}</span>
+              <span class="badge bg-light text-secondary border fs-6 px-3 py-2">{{ step.name }}</span>
             {% endif %}
           </div>
         {% endfor %}
 
-        {% if current_fund_request_step not in fund_request_status_steps and current_fund_request_step %}
+        {% if current_fund_request_step not in (fund_request_status_steps|map(attribute='code')|list) and current_fund_request_step %}
           <div class="status-flow-item">
             <span class="status-flow-dot is-current"></span>
-            <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ current_fund_request_step }}</span>
+            <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ fund_request_status }}</span>
           </div>
         {% endif %}
       </div>
@@ -380,26 +378,33 @@
         <div class="row g-3" id="referenceInfoFields">
           <div class="col-md-3">
             <label class="form-label small fw-semibold">เลขที่อนุมัติในหลักการ เช่น อว.78.04/1</label>
-            <input class="form-control form-control-sm reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
+            <input class="form-control form-control-sm reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}" aria-describedby="referenceValuesHelp">
           </div>
           <div class="col-md-3">
             <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ เช่น 19 ตุลาคม 2569</label>
-            <input type="text" class="form-control form-control-sm reference-info-input" name="reference_date" value="{{ claim_detail.reference_date|claim_reference_date_form if claim_detail and claim_detail.reference_date else '' }}">
+            <input type="text" class="form-control form-control-sm reference-info-input" name="reference_date" value="{{ claim_detail.reference_date|claim_reference_date_form if claim_detail and claim_detail.reference_date else '' }}" aria-describedby="referenceValuesHelp">
           </div>
           <div class="col-md-2">
             <label class="form-label small fw-semibold">ไฟล์เอกสารอ้างอิง</label>
-            <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
+            <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple aria-describedby="referenceFilesHelp">
           </div>
           <div class="col-md-4 d-flex flex-column-reverse">
             <div class="reference-filenames-container"></div>
             {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
               <input type="hidden" class="saved-reference-proof" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
               <div class="input-group input-group-sm saved-reference-proof">
-                <span class="input-group-text text-success">ชื่อหนังสือ</span>
+                <span class="input-group-text text-success">ไฟล์เดิม</span>
                 <input type="text" class="form-control" name="existing_reference_filenames[]" value="{{ reference_file.filename }}" aria-label="ชื่อไฟล์เอกสารอ้างอิงเดิม">
+                <a class="btn btn-outline-primary" href="{{ reference_file.proof_reference|advance_payment_file_url }}" target="_blank" rel="noopener" aria-label="เปิดไฟล์เอกสารอ้างอิง {{ reference_file.filename }}">
+                  <i class="bi bi-box-arrow-up-right"></i> เปิดไฟล์
+                </a>
+                <button type="button" class="btn btn-outline-danger" onclick="removeSavedReferenceFile(this)" aria-label="ลบไฟล์เอกสารอ้างอิง {{ reference_file.filename }}">
+                  <i class="bi bi-trash"></i> ลบ
+                </button>
               </div>
             {% endfor %}
           </div>
+          <small id="referenceValuesHelp" class="form-text text-muted">หากมีหลายฉบับ ให้กรอกเลขที่และวันที่ตามจำนวนไฟล์ โดยคั่นแต่ละรายการด้วยเครื่องหมายจุลภาค (,)</small>
         </div>
         </section>
 
@@ -507,6 +512,7 @@
                   <td>
                     <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" 
                           value="{{ '%.2f'|format(item.amount) if item.amount else '' }}" placeholder="0.00" oninput="calculateTotal()" required>
+                    <small class="text-danger d-none claim-amount-limit-warning mt-1 d-block small"></small>
                   </td>
                   <td>
                     <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item_proof_files %}required{% endif %}>
@@ -547,6 +553,7 @@
                 </td>
                 <td>
                   <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" oninput="calculateTotal()" required>
+                  <small class="text-danger d-none claim-amount-limit-warning mt-1 d-block small"></small>
                 </td>
                 <td>
                   <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf" required>
@@ -632,19 +639,23 @@
             ว-5763
           </label>
         </div>
+        <small class="text-danger d-none circular-type-invalid-feedback w-100">กรุณาเลือกประเภท ว-119 หรือ ว-5763</small>
       </div>
         <div class="row g-3">
           <div class="col-md-4 mt-2">
             <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
              <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" value="{{ circular_draft.sent_date.strftime('%Y-%m-%d') if circular_draft else '' }}" placeholder="dd/mm/yyyy">
+             <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกวันที่ในใบเสร็จ</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
              <input type="text" name="circular_items_description" class="form-control circular-return-input" value="{{ circular_draft.items_description if circular_draft else '' }}" placeholder="รายละเอียดรายการ...">
+             <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกรายการ ว-119/ว-5763</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงิน</label>
              <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" value="{{ circular_draft.amount_spent if circular_draft else '' }}" placeholder="0.00">
+             <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกจำนวนเงิน ว-119/ว-5763</small>
           </div>
         </div>
         {% else %}
@@ -676,14 +687,17 @@
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
              <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" value="{{ parcel_draft.sent_date.strftime('%Y-%m-%d') if parcel_draft else '' }}" placeholder="dd/mm/yyyy" required>
+             <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกวันที่ทำการส่งไปฝ่ายพัสดุ</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
              <input name="items_description" class="form-control parcel-return-input" value="{{ parcel_draft.items_description if parcel_draft else '' }}" placeholder="รายละเอียดรายการ..." required>
+             <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกรายการที่ส่งไปฝ่ายพัสดุ</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงิน</label>
              <input type="text" name="parcel_amount" id="parcel_amount" class="form-control parcel-amount-input parcel-return-input" value="{{ parcel_draft.amount_spent if parcel_draft else '' }}" required placeholder="0.00">
+             <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกจำนวนเงินที่ส่งไปฝ่ายพัสดุ</small>
           </div>
         </div>
         {% else %}
@@ -723,15 +737,18 @@
             <label class="form-label fw-bold">วันที่ทำการโอน</label>
             <input type="text" name="cash_return_date" class="form-control cash-return-input app-date-picker" placeholder="dd/mm/yyyy"
                    value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}">
+            <small class="text-danger d-none cash-return-invalid-feedback">กรุณากรอกวันที่ทำการโอน</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
             <input type="text" name="cash_return_amount" id="cash_return_amount" class="form-control cash-return-amount-input cash-return-input"
                    value="{{ '%.2f'|format(cash_return_item.amount) if cash_return_item and cash_return_item.amount else '' }}" placeholder="0.00">
+            <small class="text-danger d-none cash-return-invalid-feedback">กรุณากรอกจำนวนเงินที่โอน</small>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">ไฟล์หลักฐานการโอน (PDF, JPG, PNG)</label>
             <input type="file" name="cash_return_proof_file" accept="image/*,.pdf" class="form-control cash-return-input">
+            <small class="text-danger d-none cash-return-invalid-feedback">กรุณาแนบไฟล์หลักฐานการโอน</small>
             {% if cash_return_item %}
               {% for proof_file in cash_return_item.proof_files %}
                 <div class="small text-muted mt-1 saved-cash-proof">
@@ -772,7 +789,7 @@
           <div class="text-end fw-bold fs-4 lh-1">==============</div>
           <span class="visually-hidden" id="totalAmountLabel">ยอดรวมส่งเบิกทั้งสิ้น</span>
           <span class="visually-hidden" id="totalAmountUnit">บาท</span>
-          <span class="visually-hidden" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
+          <span class="visually-hidden" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-existing-non-category6-claim-total="{{ fund_request_total_info.non_category6_claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
         </div>
       </div>
 
@@ -810,8 +827,8 @@ function togglePettyCashClaimForm() {
 {% endif %}
 
 {% set history_target = history_fund_request if history_fund_request is defined else (selected_fund_request if selected_fund_request else (claim_detail.fund_request if claim_detail and claim_detail.fund_request else none)) %}
-{% set visible_claim_history = claim_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
-{% set visible_parcel_return_history = parcel_return_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
+{% set visible_claim_history = claim_history|rejectattr('status_code', 'equalto', 'DRAFT')|list %}
+{% set visible_parcel_return_history = parcel_return_history|rejectattr('status_code', 'equalto', 'DRAFT')|list %}
 
 {% set has_history = visible_claim_history or visible_parcel_return_history %}
 {% if history_target and has_history %}
@@ -848,17 +865,7 @@ function togglePettyCashClaimForm() {
             </td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(claim.total_amount or 0) }}</td>
             <td>
-              {% set c_status = claim.status %}
-
-              {% if claim.status|lower == 'รอตรวจสอบ' %}{% set c_status = 'รอตรวจสอบ' %}
-              {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_status = 'กำลังตรวจสอบ' %}
-              {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
-              {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
-              {% elif claim.status|lower == 'โอนคืนเงินสดย่อย' %}{% set c_status = 'โอนคืนเงินสดย่อย' %}
-              {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
-              {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
-
-              <span class="badge {{ status_badge_class(claim.status) }}">{{ c_status }}</span>
+              <span class="badge {{ status_badge_class(claim.status_code) }}">{{ claim.status }}</span>
             </td>
             <td class="text-center">
               {% if claim.closing_document_name %}
@@ -915,8 +922,8 @@ function togglePettyCashClaimForm() {
             <td style="width: 20%;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
             <td>
-              {{ status_badge(pr.status) }}
-              {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
+              {{ status_badge(pr.display_status, none, '', pr.status_code) }}
+              {% if pr.status_code == 'REJECTED' and pr.rejection_comment %}
                 <div class="small text-danger mt-1 text-start" style="white-space: pre-line;">{{ pr.rejection_comment|latest_rejection_comment }}</div>
               {% endif %}
             </td>
@@ -931,9 +938,9 @@ function togglePettyCashClaimForm() {
               {% endif %}
             </td>
             <td class="text-center">
-              {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
+              {% set parcel_transfer_ready = pr.status_code == 'APPROVED' %}
               <div class="d-flex flex-wrap gap-2 justify-content-center">
-                {% if advance_payment_role == 'finance' and pr.status == 'รอตรวจสอบ' %}
+                {% if advance_payment_role == 'finance' and pr.status_code == 'PENDING' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -942,14 +949,14 @@ function togglePettyCashClaimForm() {
                       style="max-width: 150px;"
                       data-popup-trigger="true"
                       data-popup-title="ยืนยันการตรวจสอบเอกสารพัสดุ"
-                      data-popup-message="คุณต้องการเปลี่ยนสถานะรายการนี้เป็น '{% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}' ใช่หรือไม่?"
+                      data-popup-message="คุณต้องการเปลี่ยนสถานะรายการนี้เป็น 'ยืนยันการตรวจสอบ' ใช่หรือไม่?"
                       data-popup-confirm-text="ยืนยันการตรวจสอบ"
                       data-popup-confirm-class="btn-primary"
                       data-popup-target-form-id="parcelProofedForm{{ pr.id }}">
-                      {% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}
+                      ยืนยันการตรวจสอบ
                     </button>
                   </form>
-                {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status_code == 'IN_PROCESS' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -976,13 +983,13 @@ function togglePettyCashClaimForm() {
                   </button>
                 {% endif %}
 
-                {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
+                {% if advance_payment_role == 'finance' and pr.status_code == 'PENDING' %}
                   <button type="button" class="btn btn-sm btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#parcelRejectModal{{ pr.id }}" style="max-width: 150px;">
                     ปฏิเสธ
                   </button>
                 {% endif %}
 
-                {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                {% if session.get('advance_payment_system') == 'petty_cash' and pr.status_code in ['PENDING', 'REJECTED'] %}
                   <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#parcelEditModal{{ pr.id }}" style="max-width: 150px;">
                     แก้ไข
                   </button>
@@ -998,7 +1005,7 @@ function togglePettyCashClaimForm() {
   {% endfor %}
   {% if visible_parcel_return_history %}
     {% for pr in visible_parcel_return_history %}
-      {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
+      {% set parcel_transfer_ready = pr.status_code == 'APPROVED' %}
       {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}
         <div class="modal fade text-start" id="parcelTransferModal{{ pr.id }}" tabindex="-1" aria-labelledby="parcelTransferModalLabel{{ pr.id }}" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered">
@@ -1038,7 +1045,7 @@ function togglePettyCashClaimForm() {
         </div>
       {% endif %}
 
-      {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
+      {% if advance_payment_role == 'finance' and pr.status_code in ['PENDING', 'IN_PROCESS'] %}
         <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.reject_parcel_return', parcel_return_id=pr.id) }}">
@@ -1061,7 +1068,7 @@ function togglePettyCashClaimForm() {
         </div>
       {% endif %}
 
-      {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+      {% if session.get('advance_payment_system') == 'petty_cash' and pr.status_code in ['PENDING', 'REJECTED'] %}
         <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.staff_parcel_return_edit', parcel_return_id=pr.id) }}" data-ajax-validation="true">
@@ -1100,10 +1107,6 @@ function togglePettyCashClaimForm() {
 {% endif %}
 
 <script>
-let autoSaveTimer = null;
-let claimAutoSaveQueue = Promise.resolve();
-let claimAutoSaveFailureReported = false;
-
 document.addEventListener('DOMContentLoaded', function() {
   calculateTotal();
   bindReceiptAgeWarnings(document);
@@ -1143,7 +1146,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     claimForm.addEventListener('app:ajax-success', function(event) {
       const result = event.detail;
-      if (!result?.draft_saved && !result?.auto_saved) return;
+      if (!result?.draft_saved) return;
       Object.entries(result.receipt_proofs || {}).forEach(([index, proofs]) => {
         const row = claimForm.querySelectorAll('#claimBody tr')[Number(index)];
         const fileInput = row?.querySelector(`input[name="proof_files_${index}[]"]`);
@@ -1184,13 +1187,26 @@ document.addEventListener('DOMContentLoaded', function() {
             group.className = 'input-group input-group-sm saved-reference-proof';
             const label = document.createElement('span');
             label.className = 'input-group-text text-success';
-            label.textContent = 'ชื่อหนังสือ';
+            label.textContent = 'ไฟล์เดิม';
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
             nameInput.className = 'form-control';
             nameInput.name = 'existing_reference_filenames[]';
             nameInput.value = proof.filename;
-            group.append(label, nameInput);
+            const openLink = document.createElement('a');
+            openLink.className = 'btn btn-outline-primary';
+            openLink.href = proof.url;
+            openLink.target = '_blank';
+            openLink.rel = 'noopener';
+            openLink.setAttribute('aria-label', `เปิดไฟล์เอกสารอ้างอิง ${proof.filename}`);
+            openLink.innerHTML = '<i class="bi bi-box-arrow-up-right"></i> เปิดไฟล์';
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'btn btn-outline-danger';
+            removeButton.setAttribute('aria-label', `ลบไฟล์เอกสารอ้างอิง ${proof.filename}`);
+            removeButton.innerHTML = '<i class="bi bi-trash"></i> ลบ';
+            removeButton.addEventListener('click', () => removeSavedReferenceFile(removeButton));
+            group.append(label, nameInput, openLink, removeButton);
             parent.appendChild(group);
           });
           if (fileInput) fileInput.value = '';
@@ -1204,11 +1220,43 @@ document.addEventListener('DOMContentLoaded', function() {
         if (draftSaveStatus) draftSaveStatus.textContent = 'บันทึกฉบับร่างแล้ว';
       }
     });
-    claimForm.addEventListener('input', function() {
+    claimForm.addEventListener('input', function(event) {
       if (draftSaveStatus) draftSaveStatus.textContent = '';
+      if (event.target.classList.contains('parcel-return-input') && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.parcel-invalid-feedback')?.classList.add('d-none');
+      }
+      if (event.target.classList.contains('circular-return-input') && event.target.type !== 'radio' && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.circular-invalid-feedback')?.classList.add('d-none');
+      }
+      if (event.target.classList.contains('cash-return-input') && event.target.type !== 'file' && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.cash-return-invalid-feedback')?.classList.add('d-none');
+      }
     });
-    claimForm.addEventListener('change', function() {
+    claimForm.addEventListener('change', function(event) {
       if (draftSaveStatus) draftSaveStatus.textContent = '';
+      if (event.target.classList.contains('parcel-return-input') && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.parcel-invalid-feedback')?.classList.add('d-none');
+      }
+      if (event.target.classList.contains('circular-type-radio') && event.target.checked) {
+        claimForm.querySelectorAll('.circular-type-radio').forEach(input => input.classList.remove('is-invalid'));
+        claimForm.querySelector('.circular-type-invalid-feedback')?.classList.add('d-none');
+      } else if (event.target.classList.contains('circular-return-input') && event.target.value.trim()) {
+        event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+        event.target.parentElement.querySelector('.circular-invalid-feedback')?.classList.add('d-none');
+      }
+      if (event.target.classList.contains('cash-return-input')) {
+        const hasValue = event.target.type === 'file'
+          ? event.target.files.length > 0
+          : Boolean(event.target.value.trim());
+        if (hasValue) {
+          event.target.classList.remove('is-invalid', 'border-danger', 'border-2');
+          event.target.parentElement.querySelector('.cash-return-invalid-feedback')?.classList.add('d-none');
+        }
+      }
     });
     const referenceToggle = claimForm.querySelector('#hasReferenceInfo');
     const referenceInfoFields = claimForm.querySelector('#referenceInfoFields');
@@ -1221,11 +1269,19 @@ document.addEventListener('DOMContentLoaded', function() {
     syncReferenceInfoVisibility();
 
     claimForm.addEventListener('submit', function(event) {
-      clearTimeout(autoSaveTimer);
       const overRequestConfirmed = claimForm.dataset.popupConfirmed === 'true';
       delete claimForm.dataset.popupConfirmed;
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
+        if (!validateReferenceMetadata(claimForm)) {
+          event.preventDefault();
+          return;
+        }
+        if (!validateFundRequestTotal(overRequestConfirmed)) {
+          event.preventDefault();
+          return;
+        }
+
         const claimRows = Array.from(claimForm.querySelectorAll('#claimBody tr'));
         const rowHasData = row => Array.from(row.querySelectorAll(
           'input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]'
@@ -1313,7 +1369,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
       parcelInputs.forEach(input => {
         input.required = hasParcelData;
-        input.classList.remove('is-invalid');
+        const isMissing = hasParcelData && !input.value.trim();
+        input.classList.toggle('is-invalid', isMissing);
+        input.classList.toggle('border-danger', isMissing);
+        input.classList.toggle('border-2', isMissing);
+        input.setAttribute('aria-invalid', isMissing ? 'true' : 'false');
+        input.parentElement.querySelector('.parcel-invalid-feedback')?.classList.toggle('d-none', !isMissing);
       });
       if (hasParcelData && !Array.from(parcelInputs).every(input => input.value.trim())) {
         isValid = false;
@@ -1321,7 +1382,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
       circularInputs.forEach(input => {
         if (input.type !== 'checkbox') input.required = hasCircularData;
-        input.classList.remove('is-invalid');
+        if (input.type === 'radio' || input.type === 'checkbox') return;
+        const isMissing = hasCircularData && !input.value.trim();
+        input.classList.toggle('is-invalid', isMissing);
+        input.classList.toggle('border-danger', isMissing);
+        input.classList.toggle('border-2', isMissing);
+        input.setAttribute('aria-invalid', isMissing ? 'true' : 'false');
+        input.parentElement.querySelector('.circular-invalid-feedback')?.classList.toggle('d-none', !isMissing);
       });
       const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
       const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'radio' && input.type !== 'checkbox')
@@ -1330,6 +1397,10 @@ document.addEventListener('DOMContentLoaded', function() {
         isValid = false;
         if (selectedCircularTypes.length !== 1) {
           circularTypeInputs.forEach(input => input.classList.add('is-invalid'));
+          claimForm.querySelector('.circular-type-invalid-feedback')?.classList.remove('d-none');
+        } else {
+          circularTypeInputs.forEach(input => input.classList.remove('is-invalid'));
+          claimForm.querySelector('.circular-type-invalid-feedback')?.classList.add('d-none');
         }
       }
 
@@ -1353,35 +1424,30 @@ document.addEventListener('DOMContentLoaded', function() {
         .some(input => input.value.trim());
       cashInputs.forEach(input => {
         input.required = hasCashReturnData && (input.type !== 'file' || !hasExistingCashProof);
-        input.classList.remove('is-invalid');
+        const isMissing = hasCashReturnData && (input.type === 'file'
+          ? input.files.length === 0 && !hasExistingCashProof
+          : !input.value.trim());
+        input.classList.toggle('is-invalid', isMissing);
+        input.classList.toggle('border-danger', isMissing);
+        input.classList.toggle('border-2', isMissing);
+        input.setAttribute('aria-invalid', isMissing ? 'true' : 'false');
+        input.parentElement.querySelector('.cash-return-invalid-feedback')?.classList.toggle('d-none', !isMissing);
       });
       if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file'
         ? input.files.length > 0 || hasExistingCashProof
         : input.value.trim())) {
         isValid = false;
-        cashInputs.forEach(input => {
-          if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
-        });
       }
 
-      const referenceNumber = claimForm.querySelector('[name="reference_number"]')?.value.trim() || '';
-      const referenceDate = claimForm.querySelector('[name="reference_date"]')?.value.trim() || '';
-      if ((referenceNumber && !referenceDate) || (!referenceNumber && referenceDate)) {
-        isValid = false;
-        claimForm.querySelector('[name="reference_number"]')?.classList.toggle('is-invalid', !referenceNumber);
-        claimForm.querySelector('[name="reference_date"]')?.classList.toggle('is-invalid', !referenceDate);
+      if (!validateReferenceMetadata(claimForm)) {
+        event.preventDefault();
+        return;
       }
 
-      const referenceFileInput = claimForm.querySelector('[name="reference_files[]"]');
-      const existingReferenceFiles = claimForm.querySelectorAll('[name="existing_reference_files[]"]').length;
-      if (referenceFileInput && existingReferenceFiles + referenceFileInput.files.length > 2) {
-        isValid = false;
-        referenceFileInput.classList.add('is-invalid');
-      } else {
-        referenceFileInput?.classList.remove('is-invalid');
+      if (hasClaimData && !validateClaimAmountLimit()) {
+        event.preventDefault();
+        return;
       }
-
-      if (hasClaimData && !validateClaimAmountLimit()) isValid = false;
       if (isValid && !claimForm.checkValidity()) isValid = false;
 
       if (!isValid) {
@@ -1415,9 +1481,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }, true);
 
-    // ผูก Event ติดตามการเปลี่ยนแปลงข้อมูลเพื่อทำ Auto Save Draft
-    claimForm.addEventListener('input', triggerAutoSave);
-    claimForm.addEventListener('change', triggerAutoSave);
   }
 
 });
@@ -1441,7 +1504,6 @@ document.addEventListener("DOMContentLoaded", function() {
         referenceFilenamesContainer.appendChild(group);
       });
 
-      triggerAutoSave();
     });
   }
 
@@ -1476,134 +1538,59 @@ function showClaimDraftDateError(visible) {
   document.getElementById('claimDraftDateError')?.classList.toggle('d-none', !visible);
 }
 
-function showClaimSaveError(error) {
-  if (error instanceof TypeError && !error.popupTitle) {
-    window.showAppPopupError('network');
-    return;
-  }
-  const message = error?.message || 'กรุณาลองใหม่อีกครั้ง';
-  if (typeof window.openAppPopup === 'function') {
-    window.openAppPopup({
-      title: error?.popupTitle || 'ไม่สามารถบันทึกข้อมูลได้',
-      message,
-      confirmText: 'ตกลง',
-      confirmClass: 'btn-danger',
-      alertOnly: true,
-    });
-  } else {
-    window.alert(message);
-  }
+function splitReferenceValues(value) {
+  return (value || '').split(',').map(item => item.trim()).filter(Boolean);
 }
 
-function triggerAutoSave(event) {
-  if ({{ 'true' if claim_edit_mode|default(false) else 'false' }}) return;
-  if (!{{ 'true' if cash_mng_finance_open else 'false' }}) return;
-  if (event?.target?.type === 'file') return;
-  clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => autoSavePettyCashDraft(), 1500);
-}
+function validateReferenceMetadata(form) {
+  const numberInput = form.querySelector('[name="reference_number"]');
+  const dateInput = form.querySelector('[name="reference_date"]');
+  const fileInput = form.querySelector('[name="reference_files[]"]');
+  const noReferenceInfo = form.querySelector('#hasReferenceInfo')?.checked;
 
-function autoSavePettyCashDraft(includeFiles = false) {
-  const claimForm = document.getElementById('claimForm');
-  if (!claimForm || {{ 'true' if claim_edit_mode|default(false) else 'false' }}) return Promise.resolve();
+  [numberInput, dateInput, fileInput].forEach(input => input?.classList.remove('is-invalid'));
+  if (noReferenceInfo) return true;
 
-  const save = async () => {
-    const rows = Array.from(claimForm.querySelectorAll('#claimBody tr'));
-    const rowIsEmpty = row => !Array.from(row.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"]'))
-      .some(input => input.value.trim()) && !(includeFiles && row.querySelector('input[type="file"]')?.files.length);
-    while (rows.length && rowIsEmpty(rows[rows.length - 1])) rows.pop();
+  const referenceNumbers = splitReferenceValues(numberInput?.value);
+  const referenceDates = splitReferenceValues(dateInput?.value);
+  const existingFileCount = form.querySelectorAll('[name="existing_reference_files[]"]').length;
+  const newFileCount = fileInput?.files?.length || 0;
+  const fileCount = existingFileCount + newFileCount;
+  let message = '';
 
-    const items = rows.map(row => ({
-      receipt_date: window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || ''),
-      category_type: row.querySelector('select[name="category_type[]"]')?.value || '1',
-      description: row.querySelector('input[name="description[]"]')?.value || '',
-      amount: (row.querySelector('.claim-amount')?.value || '').replace(/,/g, '') || '0',
-    }));
-    if (items.some(item => !item.receipt_date)) {
-      showClaimDraftDateError(true);
-      return;
-    }
-    showClaimDraftDateError(false);
+  if (fileCount > 2) {
+    fileInput?.classList.add('is-invalid');
+    message = `แนบไฟล์เอกสารอ้างอิงได้ไม่เกิน 2 ไฟล์ (ขณะนี้มี ${fileCount} ไฟล์)`;
+  } else if ((referenceNumbers.length > 0) !== (referenceDates.length > 0)) {
+    if (!referenceNumbers.length) numberInput?.classList.add('is-invalid');
+    if (!referenceDates.length) dateInput?.classList.add('is-invalid');
+    message = 'กรุณากรอกเลขที่ อว. และวันที่หนังสือให้ครบทั้งสองช่อง';
+  } else if (fileCount > 0 && (referenceNumbers.length !== fileCount || referenceDates.length !== fileCount)) {
+    numberInput?.classList.add('is-invalid');
+    dateInput?.classList.add('is-invalid');
+    message = `พบเอกสารอ้างอิง ${fileCount} ไฟล์ กรุณากรอกเลขที่ อว. ${fileCount} รายการ และวันที่ ${fileCount} รายการ โดยคั่นแต่ละรายการด้วยเครื่องหมายจุลภาค (,)`;
+  }
 
-    const announcements = [];
-    claimForm.querySelectorAll('.document-input-row').forEach(row => {
-      const title = row.querySelector('.announcement-input')?.value.trim() || '';
-      const docId = row.querySelector('.announcement-id-input')?.value.trim() || '';
-      if (title || docId) announcements.push({ id: docId, title });
-    });
-    const payload = {
-      fund_request_id: claimForm.querySelector('#fund_request_id')?.value || '',
-      items,
-      cash_return: {
-        receipt_date: window.appDateToISO(claimForm.querySelector('[name="cash_return_date"]')?.value || ''),
-        amount: (claimForm.querySelector('[name="cash_return_amount"]')?.value || '').replace(/,/g, ''),
-      },
-      announcements,
-      reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
-      reference_date: claimForm.querySelector('[name="reference_date"]')?.value.trim() || '',
-      note: claimForm.querySelector('[name="note"]')?.value.trim() || '',
-    };
-    const uploads = rows.map((row, index) => {
-      const input = row.querySelector(`input[name="proof_files_${index}[]"]`);
-      return { input, files: includeFiles ? Array.from(input?.files || []) : [] };
-    });
-    const hasFiles = uploads.some(upload => upload.files.length);
-    const body = hasFiles ? new FormData() : JSON.stringify(payload);
-    if (hasFiles) {
-      body.append('payload', JSON.stringify(payload));
-      uploads.forEach((upload, index) => upload.files.forEach(file => body.append(`proof_files_${index}[]`, file)));
-    }
-
-    const endpoint = "{{ url_for('advance_payment.coordinator_petty_cash_claim_autosave_draft') }}";
-    const tokenResponse = await fetch(endpoint, { credentials: 'same-origin' });
-    const tokenResult = await window.readAppAjaxResponse(tokenResponse, 'validation');
-    if (!tokenResult.ok) throw window.appErrorFromFailure(tokenResult);
-    const tokenData = tokenResult.payload;
-    if (!tokenData.csrf_token) {
-      throw window.appErrorFromFailure(window.appUnreadableFailure(tokenResponse, 'validation'));
-    }
-    claimForm.querySelector('[name="csrf_token"]').value = tokenData.csrf_token;
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: hasFiles ? { 'X-CSRFToken': tokenData.csrf_token } : { 'Content-Type': 'application/json', 'X-CSRFToken': tokenData.csrf_token },
-      credentials: 'same-origin',
-      body,
-    });
-    const saveResult = await window.readAppAjaxResponse(response, 'save', {
-      preserveBadRequestMessage: true,
-    });
-    if (!saveResult.ok) throw window.appErrorFromFailure(saveResult);
-    const result = saveResult.payload;
-    if (result.success !== true) throw window.appErrorFromFailure(window.appSaveUnknownFailure());
-    claimAutoSaveFailureReported = false;
-    if (hasFiles) {
-      const receipt_proofs = {};
-      result.proof_files?.forEach((proofs, index) => {
-        if (proofs.length) receipt_proofs[index] = proofs;
-      });
-      claimForm.dispatchEvent(new CustomEvent('app:ajax-success', {
-        detail: { auto_saved: true, receipt_proofs },
-      }));
-    }
-  };
-  const queued = claimAutoSaveQueue.then(save, save).catch(error => {
-    console.error('AutoSave Error:', error);
-    const needsNotice = error instanceof TypeError || [
-      'ไม่สามารถยืนยันผลการบันทึกได้',
-      'กรุณาเข้าสู่ระบบใหม่',
-      'ไม่มีสิทธิ์ทำรายการ',
-      'ไม่สามารถทำรายการได้',
-      'ปิดรับการทำรายการชั่วคราว',
-    ].includes(error.popupTitle);
-    if (includeFiles || (needsNotice && !claimAutoSaveFailureReported)) {
-      showClaimSaveError(error);
-      claimAutoSaveFailureReported = true;
-    }
+  if (!message) return true;
+  window.openAppPopup({
+    title: 'กรุณาตรวจสอบข้อมูลเอกสารอ้างอิง',
+    message,
+    confirmText: 'ตกลง',
+    confirmClass: 'btn-primary',
+    alertOnly: true,
+    triggerElement: form.querySelector('.is-invalid'),
   });
-  claimAutoSaveQueue = queued;
-  claimForm.pendingDraftSave = queued;
-  return queued;
+  return false;
+}
+
+function removeSavedReferenceFile(button) {
+  const group = button.closest('.input-group.saved-reference-proof');
+  if (!group) return;
+  const hiddenReference = group.previousElementSibling;
+  if (hiddenReference?.matches('input.saved-reference-proof[name="existing_reference_files[]"]')) {
+    hiddenReference.remove();
+  }
+  group.remove();
 }
 
 function updateFundRequestInfo(selectElem) {
@@ -1697,49 +1684,53 @@ function calculateTotal() {
 function updateSubmitAndReturnButtons() {
   const finalSubmitBtn = document.getElementById('claimSubmitFinalBtn');
   const financeSubmissionBlocked = {{ 'true' if (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) else 'false' }};
+  const amountLimitExceeded = Array.from(document.querySelectorAll('#claimBody .claim-amount'))
+    .some(input => isClaimAmountOverLimit(input));
 
   [finalSubmitBtn].forEach(btn => {
     if (!btn) {
       return;
     }
 
-    const shouldDisable = financeSubmissionBlocked;
+    const shouldDisable = financeSubmissionBlocked || amountLimitExceeded;
     btn.disabled = shouldDisable;
     btn.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
-    btn.title = financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ' : '';
+    btn.title = financeSubmissionBlocked
+      ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ'
+      : amountLimitExceeded
+        ? 'กรุณาแก้ไขรายการที่มียอดเกิน 20,000 บาทก่อนส่งข้อมูล'
+        : '';
   });
 }
 
 function validateClaimAmountLimit() {
-  const rows = document.querySelectorAll('#claimBody tr');
+  const amountInputs = Array.from(document.querySelectorAll('#claimBody .claim-amount'));
+  amountInputs.forEach(input => updateClaimAmountLimitWarning(input));
+  const firstInvalidInput = amountInputs.find(input => isClaimAmountOverLimit(input));
+  if (!firstInvalidInput) return true;
 
-  for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index];
-    const catSelect = row.querySelector('select[name="category_type[]"]');
-    const amountInput = row.querySelector('.claim-amount');
+  firstInvalidInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  firstInvalidInput.focus({ preventScroll: true });
+  return false;
+}
 
-    if (!catSelect || !amountInput) {
-      continue;
-    }
+function isClaimAmountOverLimit(input) {
+  const row = input?.closest('#claimBody tr');
+  const categoryType = (row?.querySelector('select[name="category_type[]"]')?.value || '').trim();
+  const amount = parseFloat((input?.value || '').replace(/,/g, '')) || 0;
+  return categoryType !== '6' && amount > 20000;
+}
 
-    const categoryType = (catSelect.value || '').trim();
-    const amount = parseFloat(amountInput.value.replace(/,/g, '')) || 0;
+function updateClaimAmountLimitWarning(input) {
+  const warning = input?.closest('td')?.querySelector('.claim-amount-limit-warning');
+  if (!input || !warning) return;
 
-    if (categoryType !== '6' && amount > 20000) {
-      window.openAppPopup({
-        title: "กรุณาตรวจสอบจำนวนเงิน",
-        message: `รายการที่ ${index + 1} มียอดเกิน 20,000 บาท กรุณาแก้ไขก่อนส่งเบิก`,
-        confirmText: "ตกลง",
-        confirmClass: "btn-primary",
-        alertOnly: true,
-      });
-      amountInput.focus();
-      amountInput.select();
-      return false;
-    }
-  }
-
-  return true;
+  const isOverLimit = isClaimAmountOverLimit(input);
+  input.classList.toggle('is-invalid', isOverLimit);
+  warning.textContent = isOverLimit
+    ? 'ยอดเงินสดย่อยต่อรายการต้องไม่เกิน 20,000 บาท'
+    : '';
+  warning.classList.toggle('d-none', !isOverLimit);
 }
 
 function validateFundRequestTotal(overRequestConfirmed = false) {
@@ -1749,24 +1740,29 @@ function validateFundRequestTotal(overRequestConfirmed = false) {
     return true;
   }
 
-  let currentClaimTotal = 0;
-  document.querySelectorAll('#claimBody .claim-amount').forEach(input => {
-    currentClaimTotal += parseFloat((input.value || '0').replace(/,/g, '')) || 0;
+  let currentNonCategory6Total = 0;
+  document.querySelectorAll('#claimBody tr').forEach(row => {
+    const amountInput = row.querySelector('.claim-amount');
+    const categoryType = (row.querySelector('select[name="category_type[]"]')?.value || '').trim();
+    const amount = parseFloat((amountInput?.value || '0').replace(/,/g, '')) || 0;
+
+    if (categoryType !== '6') {
+      currentNonCategory6Total += amount;
+    }
   });
-  const existingClaimTotal = parseFloat(display.dataset.existingClaimTotal || '0') || 0;
+  const existingNonCategory6ClaimTotal = parseFloat(display.dataset.existingNonCategory6ClaimTotal || '0') || 0;
   const parcelTotal = parseFloat(display.dataset.parcelTotal || '0') || 0;
   const currentParcelAmount = parseFloat(document.querySelector('.parcel-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
   const currentCircularAmount = parseFloat(document.querySelector('.circular-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
-  const currentCashReturnAmount = parseFloat(document.querySelector('.cash-return-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
-  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount + currentCashReturnAmount;
+  const projectedNonCategory6Total = currentNonCategory6Total + existingNonCategory6ClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount;
 
-  if (projectedTotal > requestAmount && !overRequestConfirmed) {
+  if (projectedNonCategory6Total > requestAmount && !overRequestConfirmed) {
     window.openAppPopup({
       title: "ยอดเกินยอดขอเบิก",
-      message: `ยอดรวมจะเป็น ${projectedTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ต้องการส่งข้อมูลต่อหรือไม่`,
-      confirmText: "ยืนยันส่งข้อมูล",
+      message: `ยอดรวมรายการเป็น ${projectedNonCategory6Total.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท กรุณาตรวจสอบข้อมูลการขอเบิกอีกครั้ง`,
+      confirmText: "ตกลง",
       confirmClass: "btn-warning",
-      targetFormId: "claimForm",
+      alertOnly: true,
     });
     return false;
   }
@@ -1858,12 +1854,15 @@ function bindAmountEvents(input) {
   if (input.value) {
     formatInputNumberWithComma(input);
   }
+  updateClaimAmountLimitWarning(input);
   input.addEventListener("input", function() {
     formatInputNumberWithComma(this);
+    updateClaimAmountLimitWarning(this);
     calculateTotal();
   });
   input.addEventListener("blur", function() {
     formatInputCurrency(this);
+    updateClaimAmountLimitWarning(this);
     calculateTotal();
   });
 }
@@ -1902,6 +1901,8 @@ function handleCategoryChange(selectEl) {
     }
   }
 
+  const amountInput = row.querySelector('.claim-amount');
+  if (amountInput) updateClaimAmountLimitWarning(amountInput);
   calculateTotal();
 }
 
@@ -1923,7 +1924,10 @@ function addRow() {
       </select>
     </td>
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>
-    <td><input type="text" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" required></td>
+    <td>
+      <input type="text" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" required>
+      <small class="text-danger d-none claim-amount-limit-warning mt-1 d-block small"></small>
+    </td>
     <td>
       <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf">
     </td>
@@ -1942,8 +1946,6 @@ function addRow() {
   updateIndices();
   const draftSaveStatus = document.getElementById('claimDraftSaveStatus');
   if (draftSaveStatus) draftSaveStatus.textContent = '';
-  clearTimeout(autoSaveTimer);
-  autoSavePettyCashDraft(true);
 }
 
 function removeRow(btn) {
@@ -1952,7 +1954,6 @@ function removeRow(btn) {
   const draftSaveStatus = document.getElementById('claimDraftSaveStatus');
   if (draftSaveStatus) draftSaveStatus.textContent = '';
   calculateTotal();
-  triggerAutoSave();
 }
 
 function updateIndices() {
@@ -1997,7 +1998,6 @@ function addDocumentRow() {
   `;
   container.appendChild(row);
   updateAddDocumentButton(container);
-  triggerAutoSave();
 }
 
 function updateAddDocumentButton(container) {
@@ -2021,7 +2021,6 @@ function removeDocumentRow(btn) {
     if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.add('d-none');
   }
   updateAddDocumentButton(container);
-  triggerAutoSave();
 }
 
 async function showSuggestions(inputElem, resetSelection = true) {
@@ -2092,7 +2091,6 @@ function selectAnnouncement(itemElem, docId, docTitle, filePath) {
 
   suggestionsBox.classList.add('d-none');
   suggestionsBox.innerHTML = '';
-  triggerAutoSave();
 }
 
 function escapeHtml(str) {
