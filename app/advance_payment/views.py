@@ -6806,7 +6806,10 @@ def tickets_view():
         and ticket.status_id not in _status_ids("borrowing_ticket", ticket_summary_excluded_statuses)
         and remaining_by_ticket.get(ticket.id, Decimal("0.00")) > 0
     ]
-    shadow_sum_debt = sum(remaining_by_ticket.values(), Decimal("0.00"))
+    shadow_sum_debt = sum(
+        (_money_decimal(ticket.required_budget) for ticket in unsettled_tickets),
+        Decimal("0.00"),
+    )
 
     for ticket in all_tickets:
         borrower_user = getattr(ticket, "borrower_user", None)
@@ -6846,7 +6849,7 @@ def tickets_view():
             and today_date > t.due_date
         ]
     elif filter_type == "pending_debt":
-        tickets = [t for t in unsettled_tickets if remaining_by_ticket[t.id] > 0]
+        tickets = unsettled_tickets
     else:
         tickets = all_tickets
 
