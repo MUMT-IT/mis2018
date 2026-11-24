@@ -259,6 +259,18 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.edit_seminar_attend_for_hr', seminar_attend_id=attend.id) }}" class="button is-info">
+                        <span class="icon">
+                            <i class="fas fa-pencil"></i>
+                        </span>
+                            <span>แก้ไขข้อมูล</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
                     <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=attend.seminar.id) }}" class="button is-light">
                         <span class="icon">
                             <i class="fas fa-arrow-left"></i>

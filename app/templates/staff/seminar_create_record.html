@@ -344,7 +344,7 @@
                             <div>
                                 <label>ผู้อนุมัติ</label>
                                 <div class="select">
-                                {{ form.approver(required=True,**{'hx-get': url_for('staff.get_positions', selected_position_id=edit_position_id),
+                                {{ form.approver(required=True,**{'hx-get': url_for('staff.get_positions', selected_position_id=edit_position_id, prefer_current_user_org=1),
                                 'hx-target': '#related-position', 'hx-swap': 'innerHTML', 'hx-trigger': 'change, load'}) }}
                                 </div>
                             </div>
