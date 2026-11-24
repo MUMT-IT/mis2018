@@ -381,7 +381,7 @@
         <div class="row g-3 mb-3 align-items-end">
           <div class="col-12 d-flex justify-content-end align-items-center gap-3">
             {% if not return_edit_detail|default(none) %}
-            <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
+            <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" id="draftReturnBtn_{{ borrowing_ticket.id }}" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
               <i class="bi bi-save me-1"></i> บันทึกร่าง (ฉบับร่าง)
             </button>
             {% endif %}
@@ -582,33 +582,23 @@
       form.noValidate = type === 'draft';
 
       if (type === 'draft') {
-        const parcelFields = Array.from(form.querySelectorAll('.parcel-return-input'));
-        const circularFields = Array.from(form.querySelectorAll('.circular-return-input'));
-        const parcelStarted = parcelFields.some(input => input.value.trim());
-        const circularStarted = circularFields.some(input => input.type === 'radio' ? input.checked : input.value.trim());
-        const circularTypes = circularFields.filter(input => input.type === 'radio' && input.checked);
-        parcelFields.forEach(input => setReturnFieldInvalid(
-          input,
-          parcelStarted && !input.value.trim(),
-          '.parcel-invalid-feedback'
-        ));
-        circularFields.filter(input => input.type !== 'radio').forEach(input => setReturnFieldInvalid(
-          input,
-          circularStarted && !input.value.trim(),
-          '.circular-invalid-feedback'
-        ));
-        const circularTypeMissing = circularStarted && circularTypes.length !== 1;
-        circularFields.filter(input => input.type === 'radio').forEach(input => {
-          input.classList.toggle('is-invalid', circularTypeMissing);
-        });
-        form.querySelector('.circular-type-invalid-feedback')?.classList.toggle('d-none', !circularTypeMissing);
-        if ((parcelStarted && !parcelFields.every(input => input.value.trim())) ||
-            (circularStarted && (circularTypes.length !== 1 || circularFields.some(input => input.type !== 'radio' && !input.value.trim())))) {
+        const draftInputs = form.querySelectorAll(
+          'input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"], ' +
+          '.parcel-return-input, .circular-return-input, .cash-return-input'
+        );
+        const hasDraftData = Array.from(draftInputs).some(input =>
+          ['checkbox', 'radio'].includes(input.type)
+            ? input.checked
+            : input.type === 'file'
+              ? input.files.length > 0
+              : input.value.trim()
+        );
+        if (!hasDraftData) {
           window.openAppPopup({
-            title: 'กรุณาตรวจสอบข้อมูล',
-            message: 'กรุณากรอกวันที่ รายการ จำนวนเงิน และประเภท ว-119 / ว-5763 (ถ้าเลือก) ให้ครบก่อนบันทึกร่าง',
+            title: 'ยังไม่มีข้อมูลสำหรับบันทึกร่าง',
+            message: 'กรุณากรอกข้อมูลอย่างน้อยหนึ่งรายการก่อนบันทึกฉบับร่าง',
             confirmText: 'ตกลง',
-            confirmClass: 'btn-danger',
+            confirmClass: 'btn-primary',
             alertOnly: true,
           });
           return;
@@ -841,10 +831,13 @@
 
     function updateReturnButtonsState(ticketId, isOverBudget) {
       const submitBtn = document.getElementById(`submitReturnBtn_${ticketId}`);
-      if (!submitBtn) return;
-      submitBtn.disabled = isOverBudget;
-      submitBtn.setAttribute("aria-disabled", isOverBudget ? "true" : "false");
-      submitBtn.title = isOverBudget ? "ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้" : "";
+      const draftBtn = document.getElementById(`draftReturnBtn_${ticketId}`);
+      [submitBtn, draftBtn].forEach(button => {
+        if (!button) return;
+        button.disabled = isOverBudget;
+        button.setAttribute("aria-disabled", isOverBudget ? "true" : "false");
+        button.title = isOverBudget ? "ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถบันทึกหรือส่งรายการนี้ได้" : "";
+      });
     }
 
     function addDocumentRow(ticketId, buttonElem) {
