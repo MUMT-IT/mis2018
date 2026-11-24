@@ -251,19 +251,23 @@
                 ว-5763
               </label>
             </div>
+            <small class="text-danger d-none circular-type-invalid-feedback w-100">กรุณาเลือกประเภท ว-119 หรือ ว-5763</small>
           </div>
           <div class="row g-3">
             <div class="col-md-4 mt-2">
               <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
               <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" value="{{ circular_draft.sent_date.strftime('%Y-%m-%d') if circular_draft else '' }}" placeholder="dd/mm/yyyy">
+              <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกวันที่ในใบเสร็จ</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">รายการ</label>
               <input type="text" name="circular_items_description" class="form-control circular-return-input" value="{{ circular_draft.items_description if circular_draft else '' }}" placeholder="รายละเอียดรายการ...">
+              <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกรายการ ว-119/ว-5763</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงิน</label>
               <input type="text" name="circular_amount" id="circular_amount_{{ borrowing_ticket.id }}" data-ticket-id="{{ borrowing_ticket.id }}" class="form-control circular-amount-input circular-return-input" value="{{ circular_draft.amount_spent if circular_draft else '' }}" placeholder="0.00">
+              <small class="text-danger d-none circular-invalid-feedback">กรุณากรอกจำนวนเงิน ว-119/ว-5763</small>
             </div>
           </div>
           </div>
@@ -286,14 +290,17 @@
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
               <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" value="{{ parcel_draft.sent_date.strftime('%Y-%m-%d') if parcel_draft else '' }}" placeholder="dd/mm/yyyy" required>
+              <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกวันที่ทำการส่งไปฝ่ายพัสดุ</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">รายการ</label>
               <input type="text" name="items_description" class="form-control parcel-return-input" value="{{ parcel_draft.items_description if parcel_draft else '' }}" placeholder="รายละเอียดรายการ..." required>
+              <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกรายการที่ส่งไปฝ่ายพัสดุ</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงิน</label>
               <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input parcel-return-input" value="{{ parcel_draft.amount_spent if parcel_draft else '' }}" required placeholder="0.00">
+              <small class="text-danger d-none parcel-invalid-feedback">กรุณากรอกจำนวนเงินที่ส่งไปฝ่ายพัสดุ</small>
             </div>
           </div>
           </div>
@@ -319,14 +326,17 @@
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการโอน</label>
               <input type="text" name="cash_return_date" class="form-control cash-return-input app-date-picker" value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}" placeholder="dd/mm/yyyy">
+              <small class="text-danger d-none cash-return-invalid-feedback">กรุณากรอกวันที่ทำการโอน</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
               <input type="text" name="cash_return_amount" id="cash_return_amount_{{ borrowing_ticket.id }}" class="form-control cash-return-amount-input cash-return-input" value="{{ cash_return_item.amount if cash_return_item and cash_return_item.amount else '' }}" placeholder="0.00">
+              <small class="text-danger d-none cash-return-invalid-feedback">กรุณากรอกจำนวนเงินที่โอน</small>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">ไฟล์หลักฐานการโอน (PDF, JPG, PNG)</label>
               <input type="file" name="cash_return_proof_file" accept=".pdf,.jpg,.jpeg,.png" class="form-control cash-return-input">
+              <small class="text-danger d-none cash-return-invalid-feedback">กรุณาแนบไฟล์หลักฐานการโอน</small>
               {% if cash_return_item %}
                 {% for proof_file in cash_return_item.proof_files %}
                   <div class="small text-muted mt-1">
@@ -527,6 +537,45 @@
       calculateTotalSpent(ticketId);
     }
 
+    function setReturnFieldInvalid(input, isMissing, feedbackSelector) {
+      if (!input) return;
+      input.classList.toggle('is-invalid', isMissing);
+      input.classList.toggle('border-danger', isMissing);
+      input.classList.toggle('border-2', isMissing);
+      input.setAttribute('aria-invalid', isMissing ? 'true' : 'false');
+      input.parentElement.querySelector(feedbackSelector)?.classList.toggle('d-none', !isMissing);
+    }
+
+    function clearCompletedReturnField(input) {
+      if (!input) return;
+      const feedbackSelector = input.classList.contains('parcel-return-input')
+        ? '.parcel-invalid-feedback'
+        : input.classList.contains('circular-return-input')
+          ? '.circular-invalid-feedback'
+          : input.classList.contains('cash-return-input')
+            ? '.cash-return-invalid-feedback'
+            : null;
+      if (!feedbackSelector) return;
+      const hasValue = input.type === 'file' ? input.files.length > 0 : Boolean(input.value.trim());
+      if (!hasValue) return;
+      input.classList.remove('is-invalid', 'border-danger', 'border-2');
+      input.setAttribute('aria-invalid', 'false');
+      input.parentElement.querySelector(feedbackSelector)?.classList.add('d-none');
+    }
+
+    document.addEventListener('input', function(event) {
+      clearCompletedReturnField(event.target);
+    });
+
+    document.addEventListener('change', function(event) {
+      const input = event.target;
+      clearCompletedReturnField(input);
+      if (!input.classList?.contains('circular-type-radio') || !input.checked) return;
+      const form = input.closest('form');
+      form?.querySelectorAll('.circular-type-radio').forEach(radio => radio.classList.remove('is-invalid'));
+      form?.querySelector('.circular-type-invalid-feedback')?.classList.add('d-none');
+    });
+
     async function submitFormWithAction(ticketId, type) {
       const form = document.getElementById(`returnForm_${ticketId}`);
       document.getElementById(`action_${ticketId}`).value = type;
@@ -538,6 +587,21 @@
         const parcelStarted = parcelFields.some(input => input.value.trim());
         const circularStarted = circularFields.some(input => input.type === 'radio' ? input.checked : input.value.trim());
         const circularTypes = circularFields.filter(input => input.type === 'radio' && input.checked);
+        parcelFields.forEach(input => setReturnFieldInvalid(
+          input,
+          parcelStarted && !input.value.trim(),
+          '.parcel-invalid-feedback'
+        ));
+        circularFields.filter(input => input.type !== 'radio').forEach(input => setReturnFieldInvalid(
+          input,
+          circularStarted && !input.value.trim(),
+          '.circular-invalid-feedback'
+        ));
+        const circularTypeMissing = circularStarted && circularTypes.length !== 1;
+        circularFields.filter(input => input.type === 'radio').forEach(input => {
+          input.classList.toggle('is-invalid', circularTypeMissing);
+        });
+        form.querySelector('.circular-type-invalid-feedback')?.classList.toggle('d-none', !circularTypeMissing);
         if ((parcelStarted && !parcelFields.every(input => input.value.trim())) ||
             (circularStarted && (circularTypes.length !== 1 || circularFields.some(input => input.type !== 'radio' && !input.value.trim())))) {
           window.openAppPopup({
@@ -584,7 +648,7 @@
 
       parcelInputs.forEach(input => {
         input.required = hasParcelData;
-        input.classList.remove('is-invalid');
+        setReturnFieldInvalid(input, hasParcelData && !input.value.trim(), '.parcel-invalid-feedback');
       });
       if (hasParcelData && !Array.from(parcelInputs).every(input => input.value.trim())) {
         isValid = false;
@@ -592,7 +656,9 @@
 
       circularInputs.forEach(input => {
         if (!['checkbox', 'radio'].includes(input.type)) input.required = hasCircularData;
-        input.classList.remove('is-invalid');
+        if (!['checkbox', 'radio'].includes(input.type)) {
+          setReturnFieldInvalid(input, hasCircularData && !input.value.trim(), '.circular-invalid-feedback');
+        }
       });
       const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
       const circularFieldsComplete = Array.from(circularInputs).filter(input => !['checkbox', 'radio'].includes(input.type))
@@ -601,6 +667,10 @@
         isValid = false;
         if (selectedCircularTypes.length !== 1) {
           circularTypeInputs.forEach(input => input.classList.add('is-invalid'));
+          form.querySelector('.circular-type-invalid-feedback')?.classList.remove('d-none');
+        } else {
+          circularTypeInputs.forEach(input => input.classList.remove('is-invalid'));
+          form.querySelector('.circular-type-invalid-feedback')?.classList.add('d-none');
         }
       }
 
@@ -635,13 +705,13 @@
         .some(input => input.value.trim());
       cashInputs.forEach(input => {
         input.required = hasCashReturnData && (input.type !== 'file' || !hasExistingCashProof);
-        input.classList.remove('is-invalid');
+        const isMissing = hasCashReturnData && (input.type === 'file'
+          ? input.files.length === 0 && !hasExistingCashProof
+          : !input.value.trim());
+        setReturnFieldInvalid(input, isMissing, '.cash-return-invalid-feedback');
       });
       if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file' ? input.files.length > 0 || hasExistingCashProof : input.value.trim())) {
         isValid = false;
-        cashInputs.forEach(input => {
-          if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
-        });
       }
 
       if (isValid && !form.checkValidity()) {
