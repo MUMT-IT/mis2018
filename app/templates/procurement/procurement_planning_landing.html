@@ -48,6 +48,64 @@
             margin-bottom: 1rem;
         }
 
+        .procurement-progress-chart {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .procurement-progress-chart svg {
+            display: block;
+            width: 100%;
+            min-width: 900px;
+            height: auto;
+        }
+
+        .procurement-progress-grid {
+            stroke: #e7edf5;
+            stroke-width: 1;
+        }
+
+        .procurement-progress-axis-label {
+            fill: #718096;
+            font-size: 12px;
+        }
+
+        .procurement-progress-bar {
+            fill: #7ea7e8;
+        }
+
+        .procurement-progress-bar-start {
+            fill: #122754;
+        }
+
+        .procurement-progress-bar-complete {
+            fill: #23a88c;
+        }
+
+        .procurement-progress-flow-line {
+            fill: none;
+            stroke: #3273dc;
+            stroke-width: 3;
+        }
+
+        .procurement-progress-point {
+            fill: #fff;
+            stroke: #3273dc;
+            stroke-width: 3;
+        }
+
+        .procurement-progress-value {
+            fill: #122754;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .procurement-progress-label {
+            fill: #344563;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
         @media screen and (max-width: 768px) {
             .procurement-planning-shell {
                 padding-left: 1rem;
@@ -95,9 +153,40 @@
                     <div class="columns is-multiline">
                         <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">จำนวนแผนทั้งหมด</p><p class="title is-3">{{ total_plans }}</p><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year) }}">ดูแผนทั้งหมด</a></div></div>
                         <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">วงเงินรวม</p><p class="title is-4">{{ "{:,.2f}".format(total_amount) }}</p><p class="is-size-7 has-text-grey">บาท</p></div></div>
-                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ยังไม่ได้อนุมัติหลักการ</p><p class="title is-3 has-text-warning">{{ unapproved_count }}</p><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year, approval_status='pending') }}">ดูรายการรออนุมัติ</a></div></div>
-                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ตรวจรับแล้ว</p><p class="title is-3 has-text-success">{{ completed_count }}</p><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year, status='completed') }}">ดูรายการที่เสร็จสิ้น</a></div></div>
-                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ยังไม่จัดทำ TOR แล้วเสร็จ</p><p class="title is-3 {% if overdue_tor_count %}has-text-danger{% else %}has-text-warning{% endif %}">{{ pending_tor_count }}</p><p class="is-size-7 {% if overdue_tor_count %}has-text-danger{% else %}has-text-grey{% endif %}">เกินกำหนด {{ overdue_tor_count }} รายการ</p></div></div>
+                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ยังไม่ได้อนุมัติหลักการ</p><p class="title is-3 has-text-warning">{{ unapproved_count }}</p><p class="is-size-7 has-text-grey">{{ "{:.1f}".format(unapproved_percentage) }}% ของแผนทั้งหมด</p><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year, approval_status='pending') }}">ดูรายการรออนุมัติ</a></div></div>
+                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ตรวจรับแล้ว</p><p class="title is-3 has-text-success">{{ completed_count }}</p><p class="is-size-7 has-text-grey">{{ "{:.1f}".format(completed_percentage) }}% ของแผนทั้งหมด</p><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year, status='completed') }}">ดูรายการที่เสร็จสิ้น</a></div></div>
+                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ยังไม่จัดทำ TOR แล้วเสร็จ</p><p class="title is-3 {% if overdue_tor_count %}has-text-danger{% else %}has-text-warning{% endif %}">{{ pending_tor_count }}</p><p class="is-size-7 has-text-grey">{{ "{:.1f}".format(pending_tor_percentage) }}% ของแผนทั้งหมด</p><p class="is-size-7 {% if overdue_tor_count %}has-text-danger{% else %}has-text-grey{% endif %}">เกินกำหนด {{ overdue_tor_count }} รายการ</p></div></div>
+                    </div>
+
+                    <div class="box mt-5">
+                        <h3 class="title is-5">จำนวนแผนในแต่ละขั้นตอน</h3>
+                        <div class="procurement-progress-chart">
+                            <svg viewBox="0 0 1200 390" role="img" aria-label="กราฟแสดงจำนวนและการไหลของแผนผ่านแต่ละขั้นตอน ปีงบประมาณ {{ fiscal_year }}">
+                                {% set stage_xs = [100, 267, 434, 601, 768, 935, 1102] %}
+                                {% for tick in [0, 25, 50, 75, 100] %}
+                                    {% set tick_y = 280 - tick * 1.9 %}
+                                    <line class="procurement-progress-grid" x1="55" y1="{{ tick_y }}" x2="1150" y2="{{ tick_y }}" />
+                                    <text class="procurement-progress-axis-label" x="45" y="{{ tick_y + 4 }}" text-anchor="end">{{ tick }}%</text>
+                                {% endfor %}
+                                {% for flow in progress_flows %}
+                                    {% set source = progress_stages[loop.index0] %}
+                                    {% set target = progress_stages[loop.index0 + 1] %}
+                                    {% set source_y = 280 - source.percentage * 1.9 %}
+                                    {% set target_y = 280 - target.percentage * 1.9 %}
+                                    {% set flow_width = (flow.count / total_plans * 18) if total_plans else 1 %}
+                                    <path class="procurement-progress-flow-line" d="M {{ stage_xs[loop.index0] + 12 }} {{ source_y }} C {{ stage_xs[loop.index0] + 65 }} {{ source_y }}, {{ stage_xs[loop.index0 + 1] - 65 }} {{ target_y }}, {{ stage_xs[loop.index0 + 1] - 12 }} {{ target_y }}" stroke-width="{{ flow_width if flow_width > 0 else 1 }}" />
+                                {% endfor %}
+                                {% for stage in progress_stages %}
+                                    {% set bar_height = stage.percentage * 1.9 %}
+                                    {% set bar_y = 280 - bar_height %}
+                                    <rect class="procurement-progress-bar {% if loop.first %}procurement-progress-bar-start{% elif loop.last %}procurement-progress-bar-complete{% endif %}" x="{{ stage_xs[loop.index0] - 12 }}" y="{{ bar_y }}" width="24" height="{{ bar_height if bar_height > 0 else 2 }}" rx="4" />
+                                    <circle class="procurement-progress-point" cx="{{ stage_xs[loop.index0] }}" cy="{{ bar_y }}" r="5" />
+                                    <text class="procurement-progress-value" x="{{ stage_xs[loop.index0] }}" y="{{ bar_y - 13 }}" text-anchor="middle">{{ stage.count }} แผน</text>
+                                    <text class="procurement-progress-label" x="{{ stage_xs[loop.index0] }}" y="315" text-anchor="middle">{{ stage.label }}</text>
+                                    <text class="procurement-progress-axis-label" x="{{ stage_xs[loop.index0] }}" y="337" text-anchor="middle">{{ "{:.1f}".format(stage.percentage) }}%</text>
+                                {% endfor %}
+                            </svg>
+                        </div>
                     </div>
 
                     <div class="columns is-variable is-5 mt-2">
