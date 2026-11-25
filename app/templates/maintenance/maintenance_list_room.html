@@ -66,6 +66,10 @@
         .maintenance-status-note { font-size: .77rem; line-height: 1.1; }
         .maintenance-status-days { font-size: .7rem; line-height: 1.1; opacity: .82; }
         .maintenance-status-days.is-overdue { color: #b96900; font-weight: 800; opacity: 1; }
+        .maintenance-status-remark { color: #506078; font-size: .75rem; margin: .35rem auto 0; max-width: 220px; }
+        .maintenance-status-remark summary { color: #3269b2; cursor: pointer; display: inline-flex; font-size: .95rem; list-style: none; }
+        .maintenance-status-remark summary::-webkit-details-marker { display: none; }
+        .maintenance-status-remark-text { line-height: 1.4; margin-top: .3rem; overflow-wrap: anywhere; white-space: pre-line; }
         .maintenance-setup-btn { align-items: center; background: linear-gradient(180deg,#f1f7ff,#e5efff); border: 1px solid rgba(47,101,192,.18); border-radius: 14px; color: #255ea8; display: inline-flex; font-weight: 800; gap: .35rem; padding: .55rem .75rem; text-decoration: none; }
         .maintenance-setup-btn:hover { background: #daeaff; color: #173f78; }
         @media screen and (max-width: 768px) { .maintenance-head { flex-direction: column; } .maintenance-updated { text-align: left; white-space: normal; } .maintenance-summary { grid-template-columns: 1fr; } }
@@ -81,6 +85,7 @@
             <span class="maintenance-status-note">{% if status.status == 'unavailable' %}ไม่พร้อมใช้งาน{% elif status.is_overdue %}ผ่านไปแล้ว {{ status.days_since }} วัน{% elif status.status == 'minor_issue' %}พบปัญหาเล็กน้อย{% else %}ปกติ{% endif %}</span>
             <span class="maintenance-status-days {% if status.is_overdue %}is-overdue{% endif %}">ตรวจมาแล้ว {{ status.days_since }} วัน</span>
         </a>
+        {% if status.remark %}<details class="maintenance-status-remark"><summary title="ดูหมายเหตุ" aria-label="ดูหมายเหตุ"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i></summary><div class="maintenance-status-remark-text">{{ status.remark }}</div></details>{% endif %}
     {% else %}
         <div class="maintenance-status is-neutral"><span class="maintenance-status-date">-</span><span class="maintenance-status-note">ยังไม่ตรวจ</span></div>
     {% endif %}
@@ -95,6 +100,18 @@
                 </div>
                 <div class="maintenance-updated">แสดงหน้า {{ pagination.page }} จาก {{ pagination.pages }} | ทั้งหมด {{ pagination.total }} ห้อง</div>
             </header>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="px-5 pt-4">
+                        {% for category, message in messages %}
+                            <div class="notification {% if category == 'success' %}is-success{% elif category == 'danger' %}is-danger{% else %}is-warning{% endif %}">
+                                <button class="delete" type="button" aria-label="ปิดข้อความ" onclick="this.parentElement.remove()"></button>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
             <div class="maintenance-summary">
                 <div class="maintenance-summary-card unavailable">
                     <span class="maintenance-summary-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>

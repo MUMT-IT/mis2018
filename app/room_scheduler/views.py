@@ -1364,6 +1364,17 @@ def generate_participant_list_word(event):
         set_run_font(cells[0].paragraphs[0].add_run(str(index)))
         set_run_font(cells[1].paragraphs[0].add_run(participant.fullname or ''))
 
+    if not participants:
+        for index in range(1, 4):
+            cells = participant_table.add_row().cells
+            cells[0].width = Cm(2.4)
+            cells[1].width = Cm(14.6)
+            for cell in cells:
+                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                cell.paragraphs[0].paragraph_format.line_spacing = Pt(26)
+            cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            set_run_font(cells[0].paragraphs[0].add_run(str(index)))
+
     document.add_paragraph().paragraph_format.space_after = Pt(4)
 
     cost_centers = event.cost_center.id if event.cost_center else '-'
@@ -1531,12 +1542,18 @@ def generate_participant_list_pdf(event):
         Spacer(1, 8.5 * mm),
     ]
 
+    participants = event.participants or []
     rows = [[Paragraph('ลำดับ', header_style), Paragraph('ชื่อ-สกุล', header_style)]]
-    for index, participant in enumerate(event.participants or [], start=1):
+    for index, participant in enumerate(participants, start=1):
         rows.append([
             Paragraph(str(index), body_center_style),
             Paragraph(escape(participant.fullname or ''), body_style),
         ])
+    if not participants:
+        rows.extend(
+            [Paragraph(str(index), body_center_style), Paragraph('&nbsp;', body_style)]
+            for index in range(1, 4)
+        )
     participant_table = Table(rows, colWidths=[24 * mm, 146 * mm], repeatRows=1)
     participant_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
@@ -1634,7 +1651,7 @@ def cancel(event_id=None):
     event_rooms = _event_rooms(event)
     msg = f'{event.creator.fullname} ได้ยกเลิกการจอง {_room_names(event_rooms)} สำหรับ {event.title} เวลา {event_time}.'
     if not current_app.debug:
-        if event.note:
+        if event.is_refreshment:
             coordinators = {coord.id: coord for booked_room in event_rooms for coord in booked_room.coordinators}
             for coord in coordinators.values():
                 try:
@@ -1708,6 +1725,12 @@ def edit_detail(event_id):
         event.end = event_end
         event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
+        if not form.is_refreshment.data:
+            event.refreshment = 0
+            event.refreshment_detail = None
+            event.cost_center_id = None
+            event.iocode_id = None
+            event.product_code_id = None
         _set_event_rooms(event, selected_rooms)
 
         if not form.is_repeat_booking.data:
@@ -1772,6 +1795,11 @@ def edit_detail(event_id):
         msg = (f'{event.creator.fullname} ได้แก้ไขการจองห้อง {_room_names(selected_rooms)} สำหรับ {event.title} '
                    f'เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - '
                    f'{event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.')
+        if event.is_refreshment:
+            msg += (
+                f'\nขอรับอาหารจำนวน {event.refreshment} ชุด'
+                f'\nรายละเอียดอาหารคือ {event.refreshment_detail}'
+            )
         if event.note:
             msg += f'\nมีความต้องการเพิ่มเติมคือ {event.note}'
 
@@ -1799,17 +1827,24 @@ def edit_detail(event_id):
                 for new_event in new_events
             )
             participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_events[0].participants]
-            msg = (f'{new_events[0].creator.fullname} ได้จองห้อง {new_events[0].room.number} สำหรับ {new_events[0].title} '
-                   f'เวลา {new_event_times}.'
-                   f'มีความต้องการเพิ่มเติมคือ {new_events[0].note}'
-                   )
+            msg = (
+                f'{new_events[0].creator.fullname} ได้จองห้อง {new_events[0].room.number} สำหรับ {new_events[0].title} '
+                f'เวลา {new_event_times}.'
+            )
+            if new_events[0].is_refreshment:
+                msg += (
+                    f'\nขอรับอาหารจำนวน {new_events[0].refreshment} ชุด'
+                    f'\nรายละเอียดอาหารคือ {new_events[0].refreshment_detail}'
+                )
+            if new_events[0].note:
+                msg += f'\nมีความต้องการเพิ่มเติมคือ {new_events[0].note}'
             title = f'แจ้งนัดหมาย{new_events[0].category}'
             message = f'ท่านได้รับเชิญให้เข้าร่วม {new_events[0].title}'
             message += f' เวลา {new_event_times}'
             message += f' ณ ห้อง {new_events[0].room.number} {new_events[0].room.location}'
             message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
             if not current_app.debug:
-                if new_events[0].note:
+                if new_events[0].is_refreshment or new_events[0].note:
                     for coord in new_events[0].room.coordinators:
                             try:
                                 line_bot_api.push_message(to=coord.line_id, messages=TextSendMessage(text=msg))
@@ -1817,7 +1852,7 @@ def edit_detail(event_id):
                                 pass
                 send_mail(participant_emails, title, message, attachments=_build_room_event_attachment(new_events[0]))
             else:
-                print(msg, [coord.line_id for coord in new_events[0].room.coordinators], new_events[0].note)
+                print(msg, [coord.line_id for coord in new_events[0].room.coordinators], new_events[0].refreshment)
                 print(message, participant_emails)
 
 
@@ -2169,6 +2204,12 @@ def room_reserve(room_id):
             new_event.end = enddatetime
             new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
+            if not form.is_refreshment.data:
+                new_event.refreshment = 0
+                new_event.refreshment_detail = None
+                new_event.cost_center_id = None
+                new_event.iocode_id = None
+                new_event.product_code_id = None
             _set_event_rooms(new_event, selected_rooms)
 
             if not form.is_repeat_booking.data:
@@ -2242,15 +2283,20 @@ def room_reserve(room_id):
             if event_times:
                 msg = (f'{new_event.creator.fullname} ได้จองห้อง {_room_names(selected_rooms)} สำหรับ {new_event.title} '
                        f'เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}, {event_times}.'
-                       f'มีความต้องการเพิ่มเติมคือ {new_event.note}'
                        )
             else:
                 msg = (f'{new_event.creator.fullname} ได้จองห้อง {_room_names(selected_rooms)} สำหรับ {new_event.title} '
                        f'เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
-                       f'มีความต้องการเพิ่มเติมคือ {new_event.note}'
                        )
+            if new_event.is_refreshment:
+                msg += (
+                    f'\nขอรับอาหารจำนวน {new_event.refreshment} ชุด'
+                    f'\nรายละเอียดอาหารคือ {new_event.refreshment_detail}'
+                )
+            if new_event.note:
+                msg += f'\nมีความต้องการเพิ่มเติมคือ {new_event.note}'
             if not current_app.debug:
-                if new_event.note:
+                if new_event.is_refreshment or new_event.note:
                     coordinators = {
                         coord.id: coord
                         for booked_room in selected_rooms
@@ -2262,7 +2308,7 @@ def room_reserve(room_id):
                         except LineBotApiError:
                             pass
             else:
-                print(msg, room.coordinators, new_event.note)
+                print(msg, room.coordinators, new_event.refreshment, new_event.note)
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
             return redirect(url_for('room.show_event_detail', event_id=new_event.id))
     else:
@@ -2325,8 +2371,8 @@ def room_event_list():
         ))
     )
     for event in query:
-        if event.note:
-            flash(f'ห้อง{event.room} เวลา{event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m %H:%M")} ต้องการ{event.note}', 'warning')
+        if event.is_refreshment:
+            flash(f'ห้อง{event.room} เวลา{event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m %H:%M")} ต้องการอาหารจำนวน {event.refreshment} ชุด เป็น{event.refreshment_detail}', 'warning')
     return render_template('scheduler/room_event_list.html')
 
 

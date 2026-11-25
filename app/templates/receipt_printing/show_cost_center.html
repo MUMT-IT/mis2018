@@ -2,13 +2,43 @@
 {% include "receipt_printing/nav.html" %}
 {% block head %}
     {{ super() }}
-
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
     <section class="section">
         {% include "messages.html" %}
         <div class="container">
             <h1 class="title has-text-centered">ข้อมูล Cost Center ทั้งหมด</h1>
+            <form method="get" action="{{ url_for('receipt_printing.show_cost_center') }}" class="box">
+                <div class="columns is-vcentered">
+                    <div class="column">
+                        <label class="label" for="mission-select">Mission</label>
+                        <select id="mission-select" name="missionid" class="filter-select">
+                            <option value="">ทุก Mission</option>
+                            {% for mission in missions %}
+                                <option value="{{ mission.id }}" {% if mission.id == mission_id %}selected{% endif %}>
+                                    {{ mission.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="column">
+                        <label class="label" for="department-select">สังกัด</label>
+                        <select id="department-select" name="deptid" class="filter-select">
+                            <option value="">ทุกสังกัด</option>
+                            {% for department in departments %}
+                                <option value="{{ department.id }}" {% if department.id == sel_dept %}selected{% endif %}>
+                                    {{ '— ' * department.depth }}{{ department.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="column is-narrow">
+                        <button type="submit" class="button is-info">กรอง</button>
+                        <a href="{{ url_for('receipt_printing.show_cost_center') }}" class="button is-light">ล้างตัวกรอง</a>
+                    </div>
+                </div>
+            </form>
             <div class="buttons is-centered has-addons">
                 <a href="{{ url_for('receipt_printing.new_cost_center') }}"
                    class="button is-rounded is-info">
@@ -63,9 +93,13 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
             $('#costcentertable').DataTable();
+            $('.filter-select').select2({
+                width: '100%'
+            });
         });
     </script>
 {% endblock %}
