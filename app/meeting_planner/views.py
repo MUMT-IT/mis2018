@@ -368,13 +368,15 @@ def respond(invitation_id):
                                                keep=keep)
             resp = '<i class="fas fa-times-circle has-text-danger"></i>'
             resp += (f'<div id="note-target-{invitation.id}" hx-swap-oob="true">'
-                     f'<form hx-patch="{add_note_to_response_url}">'
+                     f'<form class="meeting-rsvp-note-form" hx-patch="{add_note_to_response_url}">'
                      f'<div class="field"><div class="control">'
                      f'<input type="text" placeholder="โปรดระบุเหตุผล" value="{invitation.note}" '
-                     f'name="note" class="input is-small">'
-                     f'</div></div><div class="field">'
-                     f'<input class="tag is-info is-small" type="submit" value="Send">'
-                     f'<button class="tag is-small" style="margin-left: .3em;" hx=get={add_note_to_response_url}>Cancel</button>'
+                     f'name="note" class="input is-small meeting-rsvp-note-form__input">'
+                     f'</div></div><div class="meeting-rsvp-note-form__actions">'
+                     f'<button class="button is-info is-small" type="submit">Send</button>'
+                     f'<button class="button is-light is-small" type="button" '
+                     f'hx-get="{add_note_to_response_url}" hx-target="#note-target-{invitation.id}" '
+                     f'hx-swap="innerHTML">Cancel</button>'
                      f'</div></form></div>'
                      )
             '''
@@ -407,8 +409,14 @@ def add_note_to_response(invitation_id):
         db.session.commit()
         if keep == 'true':
             return f'<div id="note-target-{invitation_id}" hx-swap-oob="true"></div>'
+        elif keep == 'detail':
+            return '<div id="note-target" hx-swap-oob="true"></div>'
         else:
             return f'<div id="target-{invitation_id}" hx-swap-oob="true"></div>'
+    if keep == 'true':
+        return f'<div id="note-target-{invitation_id}" hx-swap-oob="true"></div>'
+    elif keep == 'detail':
+        return '<div id="note-target" hx-swap-oob="true"></div>'
     return f'<div id="target-{invitation_id}" hx-swap-oob="true"></div>'
 
 
@@ -857,24 +865,25 @@ def respond_invitation_detail(meeting_id=None):
                 <div id="note-target" hx-swap-oob="true"></div>
                 '''
             elif invite.response == 'ไม่เข้าร่วม':
-                add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invite.id)
+                add_note_to_response_url = url_for('meeting_planner.add_note_to_response',
+                                                   invitation_id=invite.id, keep='detail')
                 resp = '''
                 <div id="respond-target" hx-swap-oob="true">
                     <span class="icon"><i class="fas fa-times-circle has-text-danger"></i></span>
                 </div>
                 '''
                 resp += f'<div id="note-target" hx-swap-oob="true">' \
-                        f'<form hx-patch="{add_note_to_response_url}">' \
+                        f'<form class="meeting-rsvp-note-form" hx-patch="{add_note_to_response_url}">' \
                         f'<div class="field">' \
                         f'<div class="control">' \
                         f'<input type="text" placeholder="โปรดระบุเหตุผล" value="{invite.note}"' \
-                        f' name="note" class="input is-small">' \
+                        f' name="note" class="input is-small meeting-rsvp-note-form__input">' \
                         f'</div>' \
                         f'</div>' \
-                        f'<div class="field">' \
-                        f'<input class="tag is-info" type="submit" value="Send">' \
+                        f'<div class="meeting-rsvp-note-form__actions">' \
+                        f'<button class="button is-info is-small" type="submit">Send</button>' \
                         f'<button hx-target="#note-target" hx-get="{add_note_to_response_url}" hx-swap="innerHTML"' \
-                        f'class="tag" style="margin-left: .3em;">Cancel</button></div>' \
+                        f'type="button" class="button is-light is-small">Cancel</button></div>' \
                         f'</form></div>'
             else:
                 invite.note = ''
