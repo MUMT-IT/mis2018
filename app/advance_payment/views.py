@@ -3500,6 +3500,9 @@ def _advance_payment_dashboard_amounts():
         (balance for _, balance in active_ticket_balances),
         Decimal("0.00"),
     )
+    # Column G of the imported report is already repaid through requisitions.
+    # It has passed all three displayed stages, so its net effect is counted once.
+    total_historical_repaid_amount = total_lent - opening_debit
 
     zero_amounts = {
         "initial_budget_amount": ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET,
@@ -3509,7 +3512,8 @@ def _advance_payment_dashboard_amounts():
         "total_received_amount": Decimal("0.00"),
         "total_cash_return_amount": Decimal("0.00"),
         "remaining_budget_amount": (
-            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET - opening_debit
+            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET
+            - total_lent
         ),
     }
     if not active_ticket_ids:
@@ -3607,26 +3611,32 @@ def _advance_payment_dashboard_amounts():
         ReturnDetail.settled_at.isnot(None),
     )
 
-    total_received_amount = received_return_amount + received_parcel_amount
+    total_received_amount = (
+        total_historical_repaid_amount + received_return_amount + received_parcel_amount
+    )
     total_cash_return_amount = sum_return_items(
         settled_cash_return_ids,
         True,
+    )
+    total_reimbursement_request_amount = (
+        total_historical_repaid_amount + requested_return_amount + requested_parcel_amount
+    )
+    total_closing_document_amount = (
+        total_historical_repaid_amount + closing_return_amount + closing_parcel_amount
     )
 
     return {
         "initial_budget_amount": ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET,
         "total_lent_amount": total_lent,
-        "total_reimbursement_request_amount": (
-            requested_return_amount + requested_parcel_amount
-        ),
-        "total_closing_document_amount": (
-            closing_return_amount + closing_parcel_amount
-        ),
+        "total_reimbursement_request_amount": total_reimbursement_request_amount,
+        "total_closing_document_amount": total_closing_document_amount,
         "total_received_amount": total_received_amount,
         "total_cash_return_amount": total_cash_return_amount,
         "remaining_budget_amount": (
             ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET
-            - opening_debit
+            - total_lent
+            + total_reimbursement_request_amount
+            - total_closing_document_amount
             + total_received_amount
             + total_cash_return_amount
         ),

@@ -22,7 +22,7 @@
       <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_lent_amount|float) }} บาท</div>
     </article>
 
-    <div class="advance-fund-equation-operator advance-fund-equation-arrow" aria-hidden="true">⇒</div>
+    <div class="advance-fund-equation-operator" aria-hidden="true">+</div>
 
     <div class="advance-fund-stage-group">
       <article class="advance-fund-card">
@@ -54,7 +54,8 @@
 
   </div>
 
-  <div class="advance-fund-remaining-row">
+  <div class="advance-fund-remaining-row" style="align-items: center; gap: 10px;">
+    <div class="advance-fund-equation-operator" aria-hidden="true">=</div>
     <article class="advance-fund-card">
       <div class="advance-fund-card-label">ยอดงบประมาณคงเหลือ</div>
       <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.remaining_budget_amount|float) }} บาท</div>
