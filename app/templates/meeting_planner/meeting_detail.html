@@ -1,239 +1,316 @@
 {% extends "base.html" %}
+{% block title %}รายละเอียดการประชุม | Meeting Planner{% endblock %}
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <style>
-        tbody[id^="tasks-"] tr:not(:last-child) td {
-            border-bottom: 1px solid #ddd !important;
+        .meeting-detail-page { padding-top: 1.5rem; }
+        .meeting-detail-page .container { max-width: 1200px; }
+        .meeting-detail-hero {
+            background: radial-gradient(circle at 92% 12%, rgba(240, 196, 25, .2), transparent 28%), linear-gradient(130deg, #1a3d7c, #10264c);
+            border: 1px solid rgba(16, 38, 76, .25); border-radius: 22px;
+            box-shadow: 0 10px 26px rgba(18, 39, 84, .13); margin-bottom: 1.15rem;
+            padding: 1.4rem 1.7rem; position: relative;
+        }
+        .meeting-detail-hero::before {
+            background: #caa84a; border-radius: 22px 0 0 22px; content: "";
+            inset: 0 auto 0 0; position: absolute; width: 6px;
+        }
+        .meeting-detail-hero__eyebrow {
+            color: #ffe08a; font-size: .72rem; font-weight: 800;
+            letter-spacing: .13em; margin-bottom: .35rem;
+        }
+        .meeting-detail-hero .title {
+            color: #fff; font-size: clamp(1.45rem, 3vw, 2rem);
+            line-height: 1.4; margin-bottom: .4rem; overflow-wrap: anywhere;
+        }
+        .meeting-detail-hero__description {
+            color: rgba(255, 255, 255, .84); line-height: 1.65;
+            margin: 0; white-space: pre-line;
+        }
+        .meeting-detail-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+        .meeting-detail-actions .button { border-radius: 10px; font-weight: 700; }
+        .meeting-detail-actions .button.is-light { background: #fff; color: #173b76; }
+        .meeting-detail-actions .button.is-warning { background: #f0c419; border-color: #f0c419; color: #10264c; }
+
+        .meeting-detail-panel {
+            background: rgba(255, 255, 255, .96); border: 1px solid rgba(58, 101, 184, .2);
+            border-radius: 19px; box-shadow: 0 7px 20px rgba(18, 39, 84, .05);
+            margin-bottom: 1.1rem; overflow: hidden;
+        }
+        .meeting-detail-panel__heading {
+            align-items: center; background: linear-gradient(135deg, #fff, #f3f6ff);
+            border-bottom: 1px solid rgba(58, 101, 184, .15); display: flex;
+            gap: .8rem; padding: .95rem 1.2rem;
+        }
+        .meeting-detail-panel__icon {
+            align-items: center; background: linear-gradient(135deg, #eef3ff, #fff6d8);
+            border: 1px solid rgba(58, 101, 184, .13); border-radius: 13px;
+            color: #1a3d7c; display: inline-flex; flex: 0 0 auto;
+            height: 2.6rem; justify-content: center; width: 2.6rem;
+        }
+        .meeting-detail-panel__title { color: #173b76; font-size: 1.02rem; font-weight: 800; line-height: 1.4; margin: 0; }
+        .meeting-detail-panel__hint { color: #66738d; font-size: .86rem; line-height: 1.5; margin: .12rem 0 0; }
+        .meeting-detail-panel__body { padding: 1.05rem 1.2rem 1.2rem; }
+        .meeting-panel-count { margin-left: auto; }
+
+        .meeting-overview-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .meeting-overview-item { background: #fbfcff; border: 1px solid rgba(58, 101, 184, .14); border-radius: 13px; min-width: 0; padding: .85rem .95rem; }
+        .meeting-overview-item dt { color: #66738d; font-size: .82rem; font-weight: 700; margin-bottom: .28rem; }
+        .meeting-overview-item dd { color: #243958; line-height: 1.55; margin: 0; overflow-wrap: anywhere; }
+        .meeting-overview-item a { color: #1a3d7c; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+
+        .meeting-table-wrap { overflow-x: auto; }
+        .meeting-participant-table, .meeting-agenda-table, .meeting-task-table { margin-bottom: 0 !important; min-width: 760px; }
+        .meeting-participant-table thead th, .meeting-agenda-table thead th, .meeting-task-table thead th {
+            background: #f3f6ff; color: #173b76; font-size: .86rem; font-weight: 800; white-space: nowrap;
+        }
+        .meeting-participant-table td, .meeting-agenda-table td, .meeting-task-table td { vertical-align: middle; }
+        .meeting-participant-table td:first-child { color: #243958; font-weight: 700; min-width: 170px; }
+        .meeting-status-tag { border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+        .meeting-table-button { border-radius: 9px; font-weight: 700; white-space: nowrap; }
+
+        .meeting-agenda-group { border: 1px solid rgba(58, 101, 184, .17); border-radius: 15px; margin-bottom: .8rem; overflow: hidden; }
+        .meeting-agenda-group:last-child { margin-bottom: 0; }
+        .meeting-agenda-group__heading {
+            align-items: center; background: #f7f9ff; border-bottom: 1px solid rgba(58, 101, 184, .14);
+            color: #173b76; display: flex; font-weight: 800; justify-content: space-between; padding: .7rem .9rem;
+        }
+        .meeting-agenda-group__heading .tag { background: #eef3ff; color: #1a3d7c; font-weight: 700; }
+        .meeting-agenda-group__body { padding: .65rem; }
+        .meeting-agenda-table { min-width: 900px; }
+        .meeting-agenda-table tbody > tr > td { vertical-align: top; }
+        .meeting-agenda-table tbody > tr > td:first-child { padding-top: 1rem !important; vertical-align: top !important; }
+        .meeting-topic-number { color: #173b76; font-size: 1rem; font-weight: 800; padding-top: 1rem !important; text-align: center; vertical-align: top !important; width: 5.5rem; }
+        .meeting-topic-content { min-width: 440px; }
+        .meeting-topic-title { color: #243958; font-size: .98rem; font-weight: 800; line-height: 1.55; margin-bottom: .75rem; white-space: pre-line; }
+        .meeting-topic-notes { display: grid; gap: .6rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: .85rem; }
+        .meeting-topic-note { background: #f7f9ff; border: 1px solid rgba(58, 101, 184, .12); border-radius: 10px; color: #4b5d79; min-width: 0; overflow-wrap: anywhere; padding: .6rem .7rem; white-space: pre-line; }
+        .meeting-topic-note__label { color: #66738d; display: block; font-size: .78rem; font-weight: 800; margin-bottom: .22rem; }
+        .meeting-task-heading { align-items: center; color: #173b76; display: flex; font-size: .9rem; font-weight: 800; justify-content: space-between; margin: .85rem 0 .4rem; }
+        .meeting-task-table { min-width: 570px; }
+        .meeting-task-table input, .meeting-task-table textarea { max-width: 100%; }
+        .meeting-agenda-actions .button { border-radius: 9px; }
+        .meeting-agenda-actions .button.meeting-topic-edit-button .icon,
+        .meeting-agenda-actions .button.meeting-topic-edit-button i {
+            color: #a87900 !important;
+            opacity: 1 !important;
+        }
+        .meeting-agenda-table .label { margin: .4rem 0; }
+        .meeting-agenda-table textarea { min-height: 5rem; resize: vertical; }
+        .meeting-agenda-table tbody[id^="tasks-"] tr:not(:last-child) td { border-bottom: 1px solid rgba(58, 101, 184, .14) !important; }
+        .meeting-agenda-empty { color: #66738d; margin: 0; padding: .75rem; }
+
+        .meeting-agenda-form .select, .meeting-agenda-form .select select { width: 100%; }
+        .meeting-agenda-form__number { max-width: 220px; }
+        .meeting-agenda-form .input, .meeting-agenda-form .textarea, .meeting-agenda-form .select select {
+            border-color: rgba(58, 101, 184, .24); border-radius: 10px; box-shadow: none;
+        }
+        .meeting-agenda-form .input:focus, .meeting-agenda-form .textarea:focus, .meeting-agenda-form .select select:focus {
+            border-color: #1a3d7c; box-shadow: 0 0 0 3px rgba(26, 61, 124, .1);
+        }
+        .meeting-agenda-form__actions { display: flex; justify-content: flex-end; }
+        .meeting-agenda-form__actions .button { background: linear-gradient(135deg, #1a3d7c, #10264c); border-color: #10264c; border-radius: 10px; font-weight: 700; }
+
+        @media screen and (max-width: 768px) {
+            .meeting-detail-page { padding: 1rem .85rem; }
+            .meeting-detail-hero { border-radius: 18px; padding: 1.15rem 1rem 1.15rem 1.25rem; }
+            .meeting-detail-actions .button { flex: 1 1 auto; }
+            .meeting-detail-panel { border-radius: 16px; }
+            .meeting-detail-panel__heading { padding: .85rem .9rem; }
+            .meeting-detail-panel__body { padding: .85rem; }
+            .meeting-overview-grid, .meeting-topic-notes { grid-template-columns: 1fr; }
+            .meeting-agenda-group__body { padding: .4rem; }
         }
     </style>
 {% endblock %}
+
 {% block page_content %}
 {% include "meeting_planner/nav.html" %}
-<section class="section">
-<div class="container">
-    {% include "messages.html" %}
-    <h1 class="title has-text-centered">รายละเอียดการประชุม</h1>
-    <h1 class="subtitle has-text-centered">
-        {{ meeting.title }}
-    </h1>
-    <div class="columns">
-        <div class="column">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-title">
-                        รายละเอียดการประชุม
-                    </div>
-                </div>
-                <div class="card-content">
-                    <p>
-                        <label class="label">วันและเวลา</label>
-                        {{ meeting.start|localdatetime }} - {{ meeting.end|localdatetime }}
-                    </p>
-                    <p>
-                        <label class="label">ห้อง</label>
-                        {{ meeting.rooms }}
-                    </p>
-                    <p>
-                        <label class="label">ลิงค์ประชุมออนไลน์</label>
-                        {{ meeting.meeting_url or 'ไม่มี' }}
-                    </p>
-                </div>
-            </div>
-            <br>
-            <div class="card">
-                <div class="card-header">
-                    <p class="card-header-title">รายชื่อผู้เข้าประชุม</p>
-                </div>
-                <div class="card-content">
-                    <table class="table">
-                        <thead>
-                        <th>ชื่อ</th>
-                        <th>ตอบรับเมื่อ</th>
-                        <th>การตอบรับ</th>
-                        <th>สาเหตุ</th>
-                        <th>ส่งข้อความเตือน</th>
-                        <th>เวลาเข้าประชุม</th>
-                        </thead>
-                        <tbody>
-                        {% for invite in meeting.invitations %}
-                            <tr>
-                            <td>{{ invite.staff.fullname }}</td>
-                            <td>{{ invite.responded_at|localdatetime or '' }}</td>
-                            <td>{{ invite.response or '' }}</td>
-                            <td>{{ invite.note or '' }}</td>
-                            <td>
-                                {% if not invite.response %}
-                                <a hx-swap="none" hx-get="{{ url_for('meeting_planner.notify_participant', invitation_id=invite.id) }}">
-                                    <span class="icon">
-                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
-                                    </span>
-                                </a>
-                                {% endif %}
-                            </td>
-                            <td id="checkin-{{ invite.id }}">
-                                <a class="button is-light"
-                                        hx-target="#checkin-{{ invite.id }}"
-                                        hx-patch="{{ url_for('meeting_planner.checkin_member', invite_id=invite.id) }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-user-clock"></i>
-                                    </span>
-                                </a>
-                            </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        <br>
-            <div class="card">
-                <div class="card-header">
-                    <p class="card-header-title">หัวข้อการประชุม</p>
-                </div>
-                <div class="card-content">
-                    <table class="table is-fullwidth">
-                        <thead>
-                        <th>วาระ</th>
-                        <th>หัวข้อ</th>
-                        </thead>
-                        <tbody>
-                        {% for group in ['แจ้งเพื่อทราบ', 'เพื่อพิจารณา', 'เรื่องสืบเนื่อง', 'อื่นๆ'] %}
-                        <tr>
-                            <td>{{ group }}</td>
-                            <td>
-                                <table class="table is-fullwidth">
-                                    <thead>
-                                    <th>ลำดับ</th>
-                                    <th></th>
-                                    <th></th>
-                                    </thead>
-                                    <tbody hx-target="closest tr" hx-swap="outerHTML">
-                                        {% for topic in meeting.agendas|sort(attribute="number") %}
-                                            {% if topic.group == group %}
-                                                <tr>
-                                                    <td style="width: 10%">{{ topic.number }}</td>
-                                                    <td>
-                                                        {{ topic.detail }}
-                                                        <hr>
-                                                        <label class="label">รายละเอียด</label>
-                                                        <p class="notification">
-                                                            {{ topic.note or '' }}
-                                                        </p>
-                                                        <hr>
-                                                        <label class="label">มติที่ประชุม</label>
-                                                        <p class="notification">
-                                                            {{ topic.consensus }}
-                                                        </p>
-                                                        <label class="label">ผลการดำเนินการ</label>
-                                                        <table class="table is-fullwidth">
-                                                            <thead>
-                                                                <th style="width: 10%">ลำดับ</th>
-                                                                <th>รายละเอียด</th>
-                                                                <th></th>
-                                                            </thead>
-                                                            <tbody id="tasks-{{ topic.id }}" hx-target="closest tr" hx-swap="outerHTML">
-                                                                {% for task in topic.tasks|sort(attribute="no") %}
-                                                                    {% include "meeting_planner/task_row.html" %}
-                                                                {% endfor %}
-                                                            </tbody>
-                                                        </table>
-                                                        <a class="button is-small is-info is-rounded is-outlined"
-                                                           hx-get="{{ url_for('meeting_planner.add_task_form',
-                                                           topic_id=topic.id) }}"
-                                                           hx-target="#tasks-{{ topic.id }}"
-                                                           hx-swap="beforeend">
-                                                            <span class="icon"><i class="fas fa-plus"></i></span>
-                                                            <span>เพิ่ม</span>
-                                                        </a>
-                                                    </td>
-                                                    <td style="width: 10%">
-                                                        <div class="field has-addons">
-                                                            <div class="control">
-                                                                <a class="button is-light is-outlined"
-                                                                   hx-get="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
-                                                                    <span class="icon">
-                                                                       <i class="fas fa-pencil has-text-dark"></i>
-                                                                    </span>
-                                                                </a>
-                                                            </div>
-                                                            <div class="control">
-                                                                <a class="button is-light is-outlined"
-                                                                   hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่"
-                                                                   hx-delete="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
-                                                                    <span class="icon">
-                                                                        <i class="fas fa-trash-alt has-text-danger"></i>
-                                                                    </span>
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        <br>
-            <div class="card">
-                <div class="card-header">
-                    <p class="card-header-title">เพิ่มหัวข้อการประชุม</p>
-                </div>
-                <div class="card-content">
-                    <form method="post">
-                        {{ form.hidden_tag() }}
-                        <div class="field">
-                            <label class="label">{{ form.group.label }}</label>
-                            <div class="select">
-                                {{ form.group() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.number.label }}</label>
-                            <div class="control">
-                                {{ form.number(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.detail.label }}</label>
-                            <div class="control">
-                                {{ form.detail(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="control">
-                                <input type="submit" value="Save" class="button is-success">
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <br>
-            <div class="buttons is-centered">
+<section class="section meeting-detail-page">
+    <div class="container">
+        {% include "messages.html" %}
+
+        <header class="meeting-detail-hero">
+            <p class="meeting-detail-hero__eyebrow">MEETING PLANNER · รายละเอียดการประชุม</p>
+            <h1 class="title">{{ meeting.title }}</h1>
+            {% if meeting.detail %}<p class="meeting-detail-hero__description">{{ meeting.detail }}</p>{% endif %}
+            <div class="meeting-detail-actions">
                 <a href="{{ url_for('meeting_planner.list_meetings') }}" class="button is-light">
-                    Back
+                    <span class="icon"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span><span>กลับไปยังรายการประชุม</span>
                 </a>
                 {% if meeting.active_meeting %}
                     <a class="button is-warning" href="{{ url_for('meeting_planner.create_meeting', meeting_id=meeting.id) }}">
-                        Edit
+                        <span class="icon"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></span><span>แก้ไขการประชุม</span>
                     </a>
                     <a class="button is-danger" href="{{ url_for('meeting_planner.cancel_meeting', meeting_id=meeting.id) }}">
-                        Cancel
+                        <span class="icon"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i></span><span>ยกเลิกการประชุม</span>
                     </a>
                 {% endif %}
             </div>
-        </div>
+        </header>
+
+        <section class="meeting-detail-panel" aria-labelledby="meeting-overview-heading">
+            <div class="meeting-detail-panel__heading">
+                <span class="meeting-detail-panel__icon" aria-hidden="true"><i class="fa-solid fa-circle-info"></i></span>
+                <div><h2 id="meeting-overview-heading" class="meeting-detail-panel__title">ข้อมูลการประชุม</h2><p class="meeting-detail-panel__hint">วันเวลา สถานที่ และลิงก์ที่ใช้ในการประชุม</p></div>
+            </div>
+            <div class="meeting-detail-panel__body">
+                <dl class="meeting-overview-grid">
+                    <div class="meeting-overview-item"><dt><i class="fa-regular fa-clock" aria-hidden="true"></i> วันและเวลา</dt><dd>{{ meeting.start|localdatetime }}<br>ถึง {{ meeting.end|localdatetime }}</dd></div>
+                    <div class="meeting-overview-item"><dt><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ห้องประชุม</dt><dd>{{ meeting.rooms }}</dd></div>
+                    <div class="meeting-overview-item">
+                        <dt><i class="fa-solid fa-video" aria-hidden="true"></i> ลิงก์ประชุมออนไลน์</dt>
+                        <dd>{% if meeting.meeting_url and (meeting.meeting_url.startswith('https://') or meeting.meeting_url.startswith('http://')) %}<a href="{{ meeting.meeting_url }}" target="_blank" rel="noopener noreferrer">เปิดลิงก์ประชุม</a>{% else %}{{ meeting.meeting_url or 'ไม่มี' }}{% endif %}</dd>
+                    </div>
+                    <div class="meeting-overview-item">
+                        <dt><i class="fa-solid fa-file-lines" aria-hidden="true"></i> เอกสารประกอบ</dt>
+                        <dd>{% if meeting.doc_url and (meeting.doc_url.startswith('https://') or meeting.doc_url.startswith('http://')) %}<a href="{{ meeting.doc_url }}" target="_blank" rel="noopener noreferrer">เปิดเอกสารประกอบ</a>{% else %}{{ meeting.doc_url or 'ไม่มี' }}{% endif %}</dd>
+                    </div>
+                </dl>
+            </div>
+        </section>
+
+        <section class="meeting-detail-panel" aria-labelledby="meeting-participants-heading">
+            <div class="meeting-detail-panel__heading">
+                <span class="meeting-detail-panel__icon" aria-hidden="true"><i class="fa-solid fa-users"></i></span>
+                <div><h2 id="meeting-participants-heading" class="meeting-detail-panel__title">ผู้เข้าร่วมประชุม</h2><p class="meeting-detail-panel__hint">ติดตามการตอบรับ ส่งข้อความเตือน และบันทึกเวลาเข้าร่วม</p></div>
+                <span class="tag is-rounded meeting-status-tag meeting-panel-count">{{ meeting.invitations|length }} คน</span>
+            </div>
+            <div class="meeting-detail-panel__body">
+                {% if meeting.invitations %}
+                    <div class="table-container meeting-table-wrap">
+                        <table class="table is-fullwidth is-hoverable meeting-participant-table">
+                            <thead><tr><th scope="col">ชื่อ</th><th scope="col">ตอบรับเมื่อ</th><th scope="col">การตอบรับ</th><th scope="col">หมายเหตุ</th><th scope="col">แจ้งเตือน</th><th scope="col">เวลาเข้าร่วม</th></tr></thead>
+                            <tbody>
+                                {% for invite in meeting.invitations %}
+                                    <tr>
+                                        <td>{{ invite.staff.fullname }}</td>
+                                        <td>{{ invite.responded_at|localdatetime or '—' }}</td>
+                                        <td>
+                                            {% if invite.response == 'เข้าร่วม' %}<span class="tag is-success is-light meeting-status-tag">เข้าร่วม</span>
+                                            {% elif invite.response == 'ไม่เข้าร่วม' %}<span class="tag is-danger is-light meeting-status-tag">ไม่เข้าร่วม</span>
+                                            {% elif invite.response == 'ไม่แน่ใจ' %}<span class="tag is-warning is-light meeting-status-tag">ไม่แน่ใจ</span>
+                                            {% else %}<span class="tag is-light meeting-status-tag">ยังไม่ตอบรับ</span>{% endif %}
+                                        </td>
+                                        <td>{{ invite.note or '—' }}</td>
+                                        <td>
+                                            {% if not invite.response %}
+                                                <button type="button" class="button is-small is-light meeting-table-button" title="ส่งข้อความเตือน {{ invite.staff.fullname }}" aria-label="ส่งข้อความเตือน {{ invite.staff.fullname }}" hx-swap="none" hx-get="{{ url_for('meeting_planner.notify_participant', invitation_id=invite.id) }}">
+                                                    <span class="icon"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></span><span>ส่งเตือน</span>
+                                                </button>
+                                            {% else %}<span class="has-text-grey">—</span>{% endif %}
+                                        </td>
+                                        <td id="checkin-{{ invite.id }}">
+                                            {% if invite.joined_at %}
+                                                <div class="field is-grouped is-grouped-multiline is-align-items-center">
+                                                    <div class="control"><button type="button" class="button is-small is-success is-light meeting-table-button" title="ยกเลิกการบันทึกเวลาเข้าร่วม" aria-label="ยกเลิกการบันทึกเวลาเข้าร่วมของ {{ invite.staff.fullname }}" hx-delete="{{ url_for('meeting_planner.checkin_member', invite_id=invite.id) }}" hx-target="#checkin-{{ invite.id }}"><span class="icon"><i class="fa-solid fa-user-check" aria-hidden="true"></i></span><span>เข้าร่วมแล้ว</span></button></div>
+                                                    <div class="control"><span class="tag is-success is-light">{{ invite.joined_at|localdatetime }}</span></div>
+                                                </div>
+                                            {% else %}
+                                                <button type="button" class="button is-small is-light meeting-table-button" title="บันทึกเวลาเข้าร่วม" aria-label="บันทึกเวลาเข้าร่วมของ {{ invite.staff.fullname }}" hx-target="#checkin-{{ invite.id }}" hx-patch="{{ url_for('meeting_planner.checkin_member', invite_id=invite.id) }}"><span class="icon"><i class="fa-solid fa-user-clock" aria-hidden="true"></i></span><span>บันทึกเวลา</span></button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}<p class="meeting-agenda-empty">ยังไม่มีรายชื่อผู้เข้าร่วมประชุม</p>{% endif %}
+            </div>
+        </section>
+
+        <section class="meeting-detail-panel" aria-labelledby="meeting-agendas-heading">
+            <div class="meeting-detail-panel__heading">
+                <span class="meeting-detail-panel__icon" aria-hidden="true"><i class="fa-solid fa-list-ol"></i></span>
+                <div><h2 id="meeting-agendas-heading" class="meeting-detail-panel__title">วาระและผลดำเนินการ</h2><p class="meeting-detail-panel__hint">รายละเอียดหัวข้อ มติ และงานติดตามของแต่ละวาระ</p></div>
+            </div>
+            <div class="meeting-detail-panel__body">
+                {% for group in ['แจ้งเพื่อทราบ', 'เพื่อพิจารณา', 'เรื่องสืบเนื่อง', 'อื่นๆ'] %}
+                    {% set group_topics = meeting.agendas|selectattr('group', 'equalto', group)|sort(attribute='number')|list %}
+                    <section class="meeting-agenda-group" aria-label="วาระ{{ group }}">
+                        <header class="meeting-agenda-group__heading"><span>{{ group }}</span><span class="tag is-rounded">{{ group_topics|length }} หัวข้อ</span></header>
+                        <div class="meeting-agenda-group__body">
+                            {% if group_topics %}
+                                <div class="table-container meeting-table-wrap">
+                                    <table class="table is-fullwidth meeting-agenda-table">
+                                        <thead><tr><th scope="col">ลำดับ</th><th scope="col">หัวข้อและผลดำเนินการ</th><th scope="col">จัดการ</th></tr></thead>
+                                        <tbody hx-target="closest tr" hx-swap="outerHTML">
+                                            {% for topic in group_topics %}
+                                                <tr>
+                                                    <td class="meeting-topic-number">{{ topic.number }}</td>
+                                                    <td class="meeting-topic-content">
+                                                        <div class="meeting-topic-title">{{ topic.detail }}</div>
+                                                        <div class="meeting-topic-notes">
+                                                            <div class="meeting-topic-note"><span class="meeting-topic-note__label">รายละเอียด</span>{{ topic.note or 'ยังไม่มีรายละเอียด' }}</div>
+                                                            <div class="meeting-topic-note"><span class="meeting-topic-note__label">มติที่ประชุม</span>{{ topic.consensus or 'ยังไม่มีมติ' }}</div>
+                                                        </div>
+                                                        <div class="meeting-task-heading">
+                                                            <span>ผลการดำเนินการ</span>
+                                                            <button type="button" class="button is-small is-info is-light meeting-table-button" hx-get="{{ url_for('meeting_planner.add_task_form', topic_id=topic.id) }}" hx-target="#tasks-{{ topic.id }}" hx-swap="beforeend"><span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span><span>เพิ่มงาน</span></button>
+                                                        </div>
+                                                        <div class="table-container meeting-table-wrap">
+                                                            <table class="table is-fullwidth meeting-task-table">
+                                                                <thead><tr><th scope="col">ลำดับ</th><th scope="col">รายละเอียดและผู้รับผิดชอบ</th><th scope="col">จัดการ</th></tr></thead>
+                                                                <tbody id="tasks-{{ topic.id }}" hx-target="closest tr" hx-swap="outerHTML">
+                                                                    {% for task in topic.tasks|sort(attribute='no') %}{% include "meeting_planner/task_row.html" %}{% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="field has-addons meeting-agenda-actions">
+                                                            <div class="control"><button type="button" class="button is-small is-light is-outlined meeting-topic-edit-button" title="แก้ไขหัวข้อ" aria-label="แก้ไขหัวข้อ {{ topic.number }}" hx-get="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}"><span class="icon"><i class="fa-solid fa-pen" aria-hidden="true"></i></span></button></div>
+                                                            <div class="control"><button type="button" class="button is-small is-light is-outlined" title="ลบหัวข้อ" aria-label="ลบหัวข้อ {{ topic.number }}" hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่" hx-delete="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}"><span class="icon"><i class="fa-solid fa-trash has-text-danger" aria-hidden="true"></i></span></button></div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}<p class="meeting-agenda-empty">ยังไม่มีหัวข้อในวาระนี้</p>{% endif %}
+                        </div>
+                    </section>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="meeting-detail-panel" aria-labelledby="add-agenda-heading">
+            <div class="meeting-detail-panel__heading">
+                <span class="meeting-detail-panel__icon" aria-hidden="true"><i class="fa-solid fa-circle-plus"></i></span>
+                <div><h2 id="add-agenda-heading" class="meeting-detail-panel__title">เพิ่มหัวข้อการประชุม</h2><p class="meeting-detail-panel__hint">เพิ่มวาระใหม่เข้าสู่กำหนดการ</p></div>
+            </div>
+            <div class="meeting-detail-panel__body">
+                <form method="post" class="meeting-agenda-form">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        {{ form.group.label(class='label') }}
+                        <div class="control">
+                            <div class="select is-fullwidth">{{ form.group() }}</div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        {{ form.number.label(class='label') }}
+                        <div class="control meeting-agenda-form__number">
+                            {{ form.number(class='input') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        {{ form.detail.label(class='label') }}
+                        <div class="control">
+                            {{ form.detail(class='textarea', rows='3') }}
+                        </div>
+                    </div>
+                    <div class="meeting-agenda-form__actions"><button type="submit" class="button is-primary"><span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span><span>เพิ่มวาระ</span></button></div>
+                </form>
+            </div>
+        </section>
     </div>
-</div>
 </section>
 {% endblock %}
+
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -244,7 +321,7 @@
                 alert('ส่งข้อความเตือนเรียบร้อย')
             })
             document.body.addEventListener('htmx:configRequest', function(evt) {
-                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
             });
         })
     </script>
