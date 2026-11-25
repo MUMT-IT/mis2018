@@ -324,7 +324,7 @@ def cancel_meeting(meeting_id):
         for event in meeting.meeting_events:
             event.cancelled_at = arrow.now('Asia/Bangkok').datetime
             event.cancelled_by = current_user.id
-            db.session.add_all(event)
+            db.session.add(event)
     meeting.cancelled_at = arrow.now('Asia/Bangkok').datetime
     meeting.cancelled_by = current_user.id
     db.session.add(meeting)
@@ -332,7 +332,7 @@ def cancel_meeting(meeting_id):
     if meeting.notify_participants:
         message = f'''
         ขอแจ้งยกเลิกการนัดหมายประชุม{meeting.title}
-        ในวันที่ {meeting.start.data.strftime('%d/%m/%Y %H:%M')} - {meeting.end.data.strftime('%d/%m/%Y %H:%M')}
+        ในวันที่ {meeting.start.strftime('%d/%m/%Y %H:%M')} - {meeting.end.strftime('%d/%m/%Y %H:%M')}
         {meeting.rooms} 
 
         ขออภัยในความไม่สะดวก
