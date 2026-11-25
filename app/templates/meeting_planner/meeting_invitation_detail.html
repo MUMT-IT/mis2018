@@ -53,7 +53,7 @@
         .meeting-topic-notes { display: grid; gap: .6rem; grid-template-columns: repeat(2,minmax(0,1fr)); margin-bottom: .85rem; }
         .meeting-topic-note { background: #f7f9ff; border: 1px solid rgba(58,101,184,.12); border-radius: 10px; color: #4b5d79; min-width: 0; overflow-wrap: anywhere; padding: .6rem .7rem; white-space: pre-line; }
         .meeting-topic-note__label { color: #66738d; display: block; font-size: .78rem; font-weight: 800; margin-bottom: .22rem; }
-        .meeting-task-heading { color: #173b76; font-size: .9rem; font-weight: 800; margin: .85rem 0 .4rem; }
+        .meeting-detail-page .invitation-task-heading { color: #10264c; font-size: .92rem; font-weight: 800; margin: .95rem 0 .7rem; }
         .invitation-task-list { display: grid; gap: .55rem; }
         .invitation-task { background: #f8fafc; border-left: 3px solid #caa84a; border-radius: 8px; color: #45536b; line-height: 1.55; padding: .65rem .75rem; }
         .invitation-task__meta { color: #66738d; font-size: .82rem; margin-top: .3rem; }
@@ -244,7 +244,7 @@
                 <div class="invitation-response" aria-label="ตอบรับคำเชิญ">
                     <button type="button" class="button is-success is-light" hx-swap="none" hx-patch="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='เข้าร่วม') }}"><span class="icon"><i class="fa-solid fa-check" aria-hidden="true"></i></span><span>เข้าร่วม</span></button>
                     <button type="button" class="button is-danger is-light" hx-swap="none" hx-patch="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่เข้าร่วม') }}"><span class="icon"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span><span>ไม่เข้าร่วม</span></button>
-                    <button type="button" class="button is-warning is-light" hx-swap="none" hx-patch="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่แน่ใจ') }}"><span class="icon"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></span><span>ไม่แน่ใจ</span></button>
+                    <button type="button" class="button is-light" hx-swap="none" hx-patch="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่แน่ใจ') }}"><span class="icon"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></span><span>ไม่แน่ใจ</span></button>
                 </div>
             {% endif %}
         </section>
