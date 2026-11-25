@@ -4521,7 +4521,7 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
         PettyCashClaimDetail.id == PettyCashClaimItem.claim_id,
     ).filter(
         PettyCashClaimDetail.fund_request_id == fund_request_id,
-        PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
+        PettyCashClaimDetail.status_id.notin_(_status_ids("petty_cash_claim", {"DRAFT", "REJECTED"})),
     )
     if exclude_claim_id:
         claim_query = claim_query.filter(PettyCashClaimDetail.id != exclude_claim_id)
@@ -4549,7 +4549,7 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
         PettyCashClaimDetail.id == PettyCashClaimItem.claim_id,
     ).filter(
         PettyCashClaimDetail.fund_request_id == fund_request_id,
-        PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
+        PettyCashClaimDetail.status_id.notin_(_status_ids("petty_cash_claim", {"DRAFT", "REJECTED"})),
         PettyCashClaimItem.category_type != 6,
     )
     if exclude_claim_id:
@@ -7248,7 +7248,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         db.session.query(PettyCashClaimDetail)
         .filter(
             PettyCashClaimDetail.fund_request_id == fund_request_id,
-            PettyCashClaimDetail.status_id != _status_id("petty_cash_claim", code="DRAFT"),
+            PettyCashClaimDetail.status_id.notin_(_status_ids("petty_cash_claim", {"DRAFT", "REJECTED"})),
         )
         .all()
     )
@@ -12104,6 +12104,25 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         fund_request_query = _fund_request_setting_filter(fund_request_query, setting)
         if not can_work_org_requests:
             fund_request_query = fund_request_query.filter(FundRequest.requester_id == user_id)
+        if request.method == "GET":
+            # Existing rejected claims may have left their request marked as
+            # fully submitted. Restore its available balance before building
+            # the list of requests that can receive a replacement claim.
+            stale_request_ids = (
+                fund_request_query.join(
+                    PettyCashClaimDetail,
+                    PettyCashClaimDetail.fund_request_id == FundRequest.id,
+                )
+                .filter(
+                    FundRequest.status_id.in_(_status_ids("fund_request", {"CLAIMS_SUBMITTED", "SETTLED"})),
+                    PettyCashClaimDetail.status_id == _status_id("petty_cash_claim", code="REJECTED"),
+                )
+                .with_entities(FundRequest.id)
+                .distinct()
+                .all()
+            )
+            for (stale_request_id,) in stale_request_ids:
+                _recalculate_fund_request_submission_status(stale_request_id)
         approved_fund_requests = [
             fund_request for fund_request in fund_request_query.order_by(FundRequest.id.desc()).all()
             if fund_request.status_id == _status_id_for_record(fund_request, "WITHDRAWN")
@@ -13601,6 +13620,8 @@ def reject_petty_claim(claim_id):
     claim.approved_at = None
     claim.settled_at = None
     db.session.commit()
+    if claim.fund_request_id:
+        _recalculate_fund_request_submission_status(claim.fund_request_id)
     _send_notification_email(claim, object_type="petty_claim")
     flash("ปฏิเสธรายการเบิกเงินสดย่อยเรียบร้อยแล้ว", "info")
     return petty_cash_claim_detail(claim.id)
