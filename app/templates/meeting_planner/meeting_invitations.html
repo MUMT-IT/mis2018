@@ -124,6 +124,16 @@
             padding: 0.65rem 1rem;
         }
 
+        .invitation-tabs .invitation-tab-count {
+            background: #eef3ff;
+            color: #1a3d7c;
+            font-size: 0.72rem;
+            font-weight: 800;
+            height: 1.45rem;
+            min-width: 1.45rem;
+            padding: 0 0.4rem;
+        }
+
         .invitation-tabs li a:hover {
             background: #f5f7fc;
             color: #173b76;
@@ -133,6 +143,11 @@
             background: #eef3ff;
             border-color: rgba(58, 101, 184, 0.2);
             color: #173b76;
+        }
+
+        .invitation-tabs li.is-active .invitation-tab-count {
+            background: #1a3d7c;
+            color: #fff;
         }
 
         .invitation-page .invitation-table-wrap {
@@ -371,12 +386,14 @@
                             <a href="{{ url_for('meeting_planner.list_invitations', cat='new') }}" {% if cat == 'new' %}aria-current="page"{% endif %}>
                                 <span class="icon is-small" aria-hidden="true"><i class="fa-solid fa-envelope"></i></span>
                                 <span>ใหม่</span>
+                                <span class="tag is-rounded invitation-tab-count">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>
                             </a>
                         </li>
                         <li {% if cat == 'pending' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('meeting_planner.list_invitations', cat='pending') }}" {% if cat == 'pending' %}aria-current="page"{% endif %}>
                                 <span class="icon is-small" aria-hidden="true"><i class="fa-solid fa-hourglass-start"></i></span>
                                 <span>ไม่แน่ใจ</span>
+                                <span class="tag is-rounded invitation-tab-count">{{ current_user.pending_invitations|upcoming_meeting_events|length }}</span>
                             </a>
                         </li>
                         <li {% if cat == 'all' %}class="is-active"{% endif %}>
