@@ -209,8 +209,7 @@ FINANCE_SYSTEM = "finance"
 ADVANCE_PAYMENT_READ_ONLY_MESSAGE = (
     "ไม่สามารถเพิ่ม แก้ไข หรือส่งข้อมูลได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ"
 )
-ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET = Decimal("8000000.00")
-PETTY_CASH_DASHBOARD_INITIAL_BUDGET = Decimal("4000000.00")
+REVOLVING_FUND_TOTAL_BUDGET = Decimal("12000000.00")
 AVAILABLE_SYSTEMS = (FINANCE_SYSTEM, PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM)
 PETTY_CASH_SETTING_SESSION_KEY = "advance_payment_petty_cash_setting_id"
 FUND_REQUEST_FORM_PETTY_CASH = "petty_cash"
@@ -403,7 +402,7 @@ def _get_fiscal_year_date_range(value):
 
 
 def _current_petty_cash_fiscal_year():
-    return convert_to_fiscal_year(datetime.now().date())
+    return convert_to_fiscal_year(datetime.now(ZoneInfo("Asia/Bangkok")).date())
 
 
 def _is_cash_mng_finance_open():
@@ -3417,6 +3416,16 @@ def _money_decimal(value):
     return Decimal(str(value or 0)).quantize(Decimal("0.01"))
 
 
+def _revolving_fund_initial_budgets():
+    """Divide the fund using this fiscal year's petty-cash allocations."""
+    petty_cash_budget = _money_decimal(
+        db.session.query(func.sum(PettyCashSetting.budget))
+        .filter(PettyCashSetting.fiscal_year == _current_petty_cash_fiscal_year())
+        .scalar()
+    )
+    return REVOLVING_FUND_TOTAL_BUDGET - petty_cash_budget, petty_cash_budget
+
+
 def _ticket_opening_budget(ticket):
     """The amount that can be returned through this system."""
     opening = ticket.opening_balance_amount
@@ -3479,6 +3488,7 @@ def _parse_money_input(value):
 
 def _advance_payment_dashboard_amounts():
     """Calculate the five finance revolving-fund dashboard amounts."""
+    initial_budget_amount, _ = _revolving_fund_initial_budgets()
     active_tickets = (
         _finance_revolving_borrowing_ticket_query()
         .all()
@@ -3505,14 +3515,14 @@ def _advance_payment_dashboard_amounts():
     total_historical_repaid_amount = total_lent - opening_debit
 
     zero_amounts = {
-        "initial_budget_amount": ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET,
+        "initial_budget_amount": initial_budget_amount,
         "total_lent_amount": total_lent,
         "total_reimbursement_request_amount": Decimal("0.00"),
         "total_closing_document_amount": Decimal("0.00"),
         "total_received_amount": Decimal("0.00"),
         "total_cash_return_amount": Decimal("0.00"),
         "remaining_budget_amount": (
-            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET
+            initial_budget_amount
             - total_lent
         ),
     }
@@ -3626,14 +3636,14 @@ def _advance_payment_dashboard_amounts():
     )
 
     return {
-        "initial_budget_amount": ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET,
+        "initial_budget_amount": initial_budget_amount,
         "total_lent_amount": total_lent,
         "total_reimbursement_request_amount": total_reimbursement_request_amount,
         "total_closing_document_amount": total_closing_document_amount,
         "total_received_amount": total_received_amount,
         "total_cash_return_amount": total_cash_return_amount,
         "remaining_budget_amount": (
-            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET
+            initial_budget_amount
             - total_lent
             + total_reimbursement_request_amount
             - total_closing_document_amount
@@ -3650,20 +3660,36 @@ def _advance_payment_dashboard_payload():
     }
 
 
-def _petty_cash_dashboard_amounts():
-    """Calculate the petty-cash revolving-fund dashboard amounts."""
+def _petty_cash_dashboard_source_ids():
+    """Identify the claim and parcel sources shared by all petty-cash stages.
+
+    Keep historical records in scope until the fiscal-year movement policy is
+    decided; only the opening allocation is limited to the current year.
+    """
     ordinary_claim_ids = db.session.query(PettyCashClaimItem.claim_id).filter(
         PettyCashClaimItem.category_type != 6
     )
     cash_return_claim_ids = db.session.query(PettyCashClaimItem.claim_id).filter(
         PettyCashClaimItem.category_type == 6
     )
+    petty_cash_parcel_ids = db.session.query(ParcelReturnDetail.id).filter(
+        ParcelReturnDetail.fund_request_id.isnot(None)
+    )
+    return ordinary_claim_ids, cash_return_claim_ids, petty_cash_parcel_ids
+
+
+def _petty_cash_dashboard_amounts():
+    """Calculate the petty-cash revolving-fund dashboard amounts."""
+    _, initial_budget_amount = _revolving_fund_initial_budgets()
+    ordinary_claim_ids, cash_return_claim_ids, petty_cash_parcel_ids = (
+        _petty_cash_dashboard_source_ids()
+    )
     transferred_claim_ids = db.session.query(PettyCashClaimDetail.id).filter(
         PettyCashClaimDetail.id.in_(ordinary_claim_ids),
         PettyCashClaimDetail.transferred_at.isnot(None),
     )
     transferred_parcel_return_ids = db.session.query(ParcelReturnDetail.id).filter(
-        ParcelReturnDetail.fund_request_id.isnot(None),
+        ParcelReturnDetail.id.in_(petty_cash_parcel_ids),
         ParcelReturnDetail.transferred_at.isnot(None),
     )
 
@@ -3736,15 +3762,16 @@ def _petty_cash_dashboard_amounts():
     total_cash_return_amount = sum_claims(settled_cash_return_claim_ids)
 
     return {
-        "initial_budget_amount": PETTY_CASH_DASHBOARD_INITIAL_BUDGET,
+        "initial_budget_amount": initial_budget_amount,
         "total_transferred_amount": total_transferred_amount,
         "total_closing_document_amount": total_closing_document_amount,
         "total_received_from_closing_amount": total_received_from_closing_amount,
         "total_cash_return_amount": total_cash_return_amount,
         "remaining_budget_amount": (
-            PETTY_CASH_DASHBOARD_INITIAL_BUDGET
+            initial_budget_amount
             - total_transferred_amount
-            + total_received_from_closing_amount
+            + total_closing_document_amount
+            - total_received_from_closing_amount
             + total_cash_return_amount
         ),
     }
