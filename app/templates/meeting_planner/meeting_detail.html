@@ -158,7 +158,7 @@
             </div>
             <div class="meeting-detail-panel__body">
                 <dl class="meeting-overview-grid">
-                    <div class="meeting-overview-item"><dt><i class="fa-regular fa-clock" aria-hidden="true"></i> วันและเวลา</dt><dd>{{ meeting.start|localdatetime }}<br>ถึง {{ meeting.end|localdatetime }}</dd></div>
+                    <div class="meeting-overview-item"><dt><i class="fa-regular fa-clock" aria-hidden="true"></i> วันและเวลา</dt><dd>{{ meeting.start|localdatetime }} – {{ meeting.end|localdatetime }}</dd></div>
                     <div class="meeting-overview-item"><dt><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ห้องประชุม</dt><dd>{{ meeting.rooms }}</dd></div>
                     <div class="meeting-overview-item">
                         <dt><i class="fa-solid fa-video" aria-hidden="true"></i> ลิงก์ประชุมออนไลน์</dt>
