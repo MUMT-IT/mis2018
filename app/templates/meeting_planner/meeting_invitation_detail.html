@@ -63,6 +63,61 @@
         .meeting-participant-card__icon { align-items: center; background: #eef3ff; border-radius: 10px; color: #1a3d7c; display: inline-flex; flex: 0 0 auto; height: 2.25rem; justify-content: center; width: 2.25rem; }
         .meeting-participant-card__name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
         .meeting-participant-card__response { margin-left: auto; }
+        .meeting-detail-page #note-target:empty { display: none; }
+        .meeting-detail-page #note-target:not(:empty) { margin-top: .85rem; }
+        .meeting-detail-page .meeting-rsvp-note-form {
+            background: linear-gradient(135deg, #fff, #f6f8ff);
+            border: 1px solid rgba(58,101,184,.18);
+            border-radius: 14px;
+            box-shadow: 0 5px 14px rgba(18,39,84,.045);
+            max-width: 38rem;
+            padding: .9rem;
+        }
+        .meeting-detail-page .meeting-rsvp-note-form .field { margin-bottom: 0; }
+        .meeting-detail-page .meeting-rsvp-note-form__input {
+            background: #fff;
+            border: 1px solid rgba(58,101,184,.25);
+            border-radius: 10px;
+            box-shadow: none;
+            min-height: 2.7rem;
+            padding: .55rem .8rem;
+            transition: border-color .15s ease, box-shadow .15s ease;
+            width: 100%;
+        }
+        .meeting-detail-page .meeting-rsvp-note-form__input::placeholder { color: #8793a8; }
+        .meeting-detail-page .meeting-rsvp-note-form__input:focus {
+            border-color: #1a3d7c;
+            box-shadow: 0 0 0 3px rgba(26,61,124,.1);
+        }
+        .meeting-detail-page .meeting-rsvp-note-form__actions {
+            display: flex;
+            gap: .5rem;
+            margin-top: .65rem;
+        }
+        .meeting-detail-page .meeting-rsvp-note-form__actions .button {
+            border-radius: 9px;
+            font-weight: 700;
+            min-height: 2.3rem;
+            min-width: 4.25rem;
+        }
+        .meeting-detail-page .meeting-rsvp-note-form__actions button[type="submit"] {
+            background: #1a3d7c;
+            border-color: #1a3d7c;
+            color: #fff;
+        }
+        .meeting-detail-page .meeting-rsvp-note-form__actions button[type="submit"]:hover {
+            background: #10264c;
+            border-color: #10264c;
+        }
+        .meeting-detail-page .meeting-rsvp-note-form__actions button[type="button"] {
+            background: #fff;
+            border: 1px solid rgba(58,101,184,.2);
+            color: #53647e;
+        }
+        .meeting-detail-page .meeting-rsvp-note-form__actions button[type="button"]:hover {
+            background: #eef3ff;
+            color: #173b76;
+        }
         .invitation-response { border-top: 1px solid #edf0f6; display: grid; gap: .6rem; grid-template-columns: repeat(3,minmax(0,1fr)); padding: .9rem 1.1rem; }
         .invitation-response .button { border-radius: 10px; font-weight: 700; }
         .invitation-response .button .icon { margin-right: .25rem; }
