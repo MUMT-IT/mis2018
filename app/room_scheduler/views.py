@@ -1219,11 +1219,26 @@ def _participant_document_download_name(event, extension):
     return f'ใบรายชื่อ{safe_title or event.id}.{extension}'
 
 
+def _participant_list_row_names(event):
+    participant_names = [participant.fullname or '' for participant in (event.participants or [])]
+    try:
+        attendee_count = max(int(event.occupancy or 0), 0)
+    except (TypeError, ValueError):
+        attendee_count = 0
+
+    if attendee_count > 0:
+        row_count = max(attendee_count, len(participant_names))
+        return participant_names + [''] * (row_count - len(participant_names))
+    if participant_names:
+        return participant_names
+    return [''] * 3
+
+
 def generate_participant_list_word(event):
     from io import BytesIO
 
     from docx import Document
-    from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+    from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE, WD_TABLE_ALIGNMENT
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
@@ -1320,6 +1335,28 @@ def generate_participant_list_word(event):
     normal_rfonts.set(qn('w:hAnsi'), font_name)
     normal_rfonts.set(qn('w:eastAsia'), font_name)
 
+    def set_paragraph_mark_font(paragraph, size=16):
+        paragraph.style = normal_style
+        paragraph_properties = paragraph._p.get_or_add_pPr()
+        paragraph_run_properties = paragraph_properties.find(qn('w:rPr'))
+        if paragraph_run_properties is None:
+            paragraph_run_properties = OxmlElement('w:rPr')
+            paragraph_properties.append(paragraph_run_properties)
+
+        run_fonts = paragraph_run_properties.find(qn('w:rFonts'))
+        if run_fonts is None:
+            run_fonts = OxmlElement('w:rFonts')
+            paragraph_run_properties.insert(0, run_fonts)
+        for font_attribute in ('ascii', 'hAnsi', 'eastAsia', 'cs'):
+            run_fonts.set(qn(f'w:{font_attribute}'), font_name)
+
+        for size_tag in ('w:sz', 'w:szCs'):
+            size_element = paragraph_run_properties.find(qn(size_tag))
+            if size_element is None:
+                size_element = OxmlElement(size_tag)
+                paragraph_run_properties.append(size_element)
+            size_element.set(qn('w:val'), str(size * 2))
+
     def add_centered_line(text, size=16, bold=False, space_after=0):
         paragraph = document.add_paragraph()
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1341,6 +1378,9 @@ def generate_participant_list_word(event):
     participant_table.autofit = False
     participant_table.columns[0].width = Cm(2.4)
     participant_table.columns[1].width = Cm(14.6)
+    participant_row_height = Pt(32)
+    participant_table.rows[0].height = participant_row_height
+    participant_table.rows[0].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
 
     header_cells = participant_table.rows[0].cells
     for cell, label in zip(header_cells, ('ลำดับ', 'ชื่อ-สกุล')):
@@ -1348,29 +1388,28 @@ def generate_participant_list_word(event):
         cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
         paragraph = cell.paragraphs[0]
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        paragraph.paragraph_format.line_spacing = Pt(20)
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = Pt(0)
         set_run_font(paragraph.add_run(label), size=16, bold=True)
 
-    participants = event.participants or []
-    for index, participant in enumerate(participants, start=1):
-        cells = participant_table.add_row().cells
+    participant_names = _participant_list_row_names(event)
+    for index, participant_name in enumerate(participant_names, start=1):
+        row = participant_table.add_row()
+        row.height = participant_row_height
+        row.height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
+        cells = row.cells
         cells[0].width = Cm(2.4)
         cells[1].width = Cm(14.6)
         for cell in cells:
             cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            cell.paragraphs[0].paragraph_format.line_spacing = Pt(20)
+            cell.paragraphs[0].paragraph_format.space_before = Pt(0)
+            cell.paragraphs[0].paragraph_format.space_after = Pt(0)
         cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_paragraph_mark_font(cells[1].paragraphs[0], size=16)
         set_run_font(cells[0].paragraphs[0].add_run(str(index)))
-        set_run_font(cells[1].paragraphs[0].add_run(participant.fullname or ''))
-
-    if not participants:
-        for index in range(1, 4):
-            cells = participant_table.add_row().cells
-            cells[0].width = Cm(2.4)
-            cells[1].width = Cm(14.6)
-            for cell in cells:
-                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-                cell.paragraphs[0].paragraph_format.line_spacing = Pt(26)
-            cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            set_run_font(cells[0].paragraphs[0].add_run(str(index)))
+        set_run_font(cells[1].paragraphs[0].add_run(participant_name), size=16)
 
     document.add_paragraph().paragraph_format.space_after = Pt(4)
 
@@ -1539,18 +1578,13 @@ def generate_participant_list_pdf(event):
         Spacer(1, 8.5 * mm),
     ]
 
-    participants = event.participants or []
+    participant_names = _participant_list_row_names(event)
     rows = [[Paragraph('ลำดับ', header_style), Paragraph('ชื่อ-สกุล', header_style)]]
-    for index, participant in enumerate(participants, start=1):
+    for index, participant_name in enumerate(participant_names, start=1):
         rows.append([
             Paragraph(str(index), body_center_style),
-            Paragraph(escape(participant.fullname or ''), body_style),
+            Paragraph(escape(participant_name) or '&nbsp;', body_style),
         ])
-    if not participants:
-        rows.extend(
-            [Paragraph(str(index), body_center_style), Paragraph('&nbsp;', body_style)]
-            for index in range(1, 4)
-        )
     participant_table = Table(rows, colWidths=[24 * mm, 146 * mm], repeatRows=1)
     participant_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
