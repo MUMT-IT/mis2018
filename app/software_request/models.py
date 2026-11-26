@@ -312,6 +312,9 @@ class SoftwareRequestDetail(db.Model):
             'urgency_status_color': self.urgency_status_color if self.urgency_status_color else None,
             'has_timeline': has_timeline,
             'created_by': self.created_by.fullname if self.created_by else None,
+            'responsible_staffs': [
+                staff.fullname for staff in self.staffs if staff.fullname
+            ],
             'org': self.created_by.personal_info.org.name if self.created_by else None,
             'created_date': self.created_date,
             'status': self.status,
