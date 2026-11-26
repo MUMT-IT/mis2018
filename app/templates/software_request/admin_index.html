@@ -14,6 +14,7 @@
 {#    </style>#}
     <style>
         .software-admin { min-height: calc(100vh - 4rem); padding-top: 1.5rem; }
+        .software-admin > .container { max-width: 1600px; width: calc(100% - 1rem); }
         .software-admin-hero {
             align-items: center; background: linear-gradient(120deg, #17396f, #2d5b9d);
             border-radius: 24px; box-shadow: 0 16px 38px rgba(27, 59, 107, .16); color: #fff;
@@ -42,11 +43,12 @@
         .software-admin-tabs li a { color: #5a6c87; white-space: nowrap; }
         .software-admin-tabs li.is-active a { background: #f4f7fc; border-color: #dce6f3 #dce6f3 #fff; color: #1e3e70; font-weight: 700; }
         .software-admin-tabs .tag { margin-left: .35rem; }
-        .software-admin-table-wrap { overflow-x: auto; padding: 1rem 1.25rem 1.25rem; }
-        .software-admin-table-wrap table { min-width: 1120px; }
-        .software-admin-table-wrap table thead th { background: #f5f7fb; border-color: #e8edf4; color: #52647f; font-size: .78rem; letter-spacing: .025em; white-space: nowrap; }
-        .software-admin-table-wrap table td { color: #3f506b; vertical-align: middle; }
+        .software-admin-table-wrap { overflow-x: visible; padding: 1rem 1.25rem 1.25rem; }
+        .software-admin-table-wrap table { font-size: .85rem; min-width: 0; table-layout: auto; width: 100%; }
+        .software-admin-table-wrap table thead th { background: #f5f7fb; border-color: #e8edf4; color: #52647f; font-size: .72rem; letter-spacing: .025em; white-space: normal; }
+        .software-admin-table-wrap table td { color: #3f506b; vertical-align: middle; overflow-wrap: anywhere; }
         .software-admin-table-wrap table tbody tr:hover { background: #f8faff; }
+        .software-admin-assignee-row + .software-admin-assignee-row { margin-top: .3rem; }
         .software-admin-table-wrap .dataTables_wrapper .dataTables_filter input,
         .software-admin-table-wrap .dataTables_wrapper .dataTables_length select,
         .software-admin-calendar .input { border: 1px solid #d9e1ed; border-radius: 9px; }
@@ -212,6 +214,7 @@
                                     <th>ความเร่งด่วน</th>
                                     <th>รายละเอียด</th>
                                     <th>ผู้ส่งคำขอ</th>
+                                    <th>ผู้รับผิดชอบ</th>
                                     <th>สังกัด</th>
                                     <th>วันที่ส่งคำขอ</th>
                                     <th>สถานะ</th>
@@ -295,7 +298,7 @@
                 ajax: {
                     url: {{ url_for('software_request.admin_index', tab=tab, api='true')|tojson|safe}},
                 },
-                order: [[7, 'desc']],
+                order: [[8, 'desc']],
                 columns: [
                     {data: 'title'},
                     {data: 'type'},
@@ -323,11 +326,25 @@
                             }
                         }
                     },
-                    {
-                        data: 'description',
-                        width: "230px"
-                    },
+                    {data: 'description'},
                     {data: 'created_by', orderable: false},
+                    {
+                        data: 'responsible_staffs',
+                        orderable: false,
+                        render: function (data) {
+                            if (data != null) {
+                                var tags = '';
+                                for (var i = 0; i < data.length; i++) {
+                                    tags += '<div class="software-admin-assignee-row"><span class="tag is-info is-light is-rounded">' +
+                                        data[i] +
+                                        '</span></div>';
+                                }
+                                return tags;
+                            } else {
+                                return '';
+                            }
+                        }
+                    },
                     {data: 'org', orderable: false},
                     {
                         data: 'created_date',
