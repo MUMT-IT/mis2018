@@ -1887,7 +1887,7 @@ def edit_detail(event_id):
 
 
         flash(u'อัพเดตรายการเรียบร้อย', 'success')
-        return redirect(url_for('room.index'))
+        return redirect(url_for('room.show_event_detail', event_id=event_id))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
