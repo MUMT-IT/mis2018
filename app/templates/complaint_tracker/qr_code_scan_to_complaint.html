@@ -2,21 +2,76 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <style>
+        .equipment-scan-page { min-height: calc(100vh - 3.25rem); background: #edf3fa; }
+        .equipment-scan-page > .container { max-width: 980px; }
+        .equipment-scan-hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1.4rem 1.6rem;
+            color: #fff;
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-radius: 16px;
+            box-shadow: 0 10px 26px rgba(23, 59, 118, .13);
+        }
+        .equipment-scan-hero__eyebrow {
+            margin-bottom: .3rem;
+            color: #ffe08a;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+        }
+        .equipment-scan-hero .title { margin-bottom: .35rem; color: #fff; }
+        .equipment-scan-description { margin: 0; color: rgba(255, 255, 255, .82); }
+        .equipment-scan-card {
+            padding: clamp(1rem, 3vw, 1.75rem);
+            border: 1px solid #e1e8f0;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(29, 51, 84, .06);
+        }
+        .equipment-scan-frame {
+            overflow: hidden;
+            min-height: 300px;
+            background: #0f172a;
+            border-radius: 12px;
+        }
+        .equipment-scan-frame qrcode-stream { display: block; width: 100%; }
+        .equipment-scan-frame video { display: block; width: 100%; max-height: 68vh; object-fit: cover; }
+        @media (max-width: 600px) {
+            .equipment-scan-page { padding: 1rem .75rem 2rem; }
+            .equipment-scan-hero { align-items: flex-start; flex-direction: column; padding: 1.15rem; }
+            .equipment-scan-card { padding: .75rem; }
+            .equipment-scan-frame { min-height: 240px; }
+            .equipment-scan-frame video { max-height: 60vh; }
+        }
+    </style>
 {% endblock %}
 
 {% block page_content %}
-    <section class="section">
+    <section class="section equipment-scan-page">
         <div class="container" id="app">
-            <div class="notification is-light is-link">
-                <h1 class="title has-text-centered has-text-link">Scan QR Code ครุภัณฑ์</h1>
-                <div class="has-text-centered">
-                <span class="icon is-large">
-                    <i class="fas fa-qrcode fa-4x"></i>
-                </span>
+            <header class="equipment-scan-hero">
+                <div>
+                    <p class="equipment-scan-hero__eyebrow">COMPLAINT TRACKER</p>
+                    <h1 class="title">สแกน QR Code ครุภัณฑ์</h1>
+                    <p class="equipment-scan-description">จัดตำแหน่ง QR Code ให้อยู่ในกรอบกล้องเพื่ออ่านเลขครุภัณฑ์</p>
                 </div>
-            </div>
-            <div class="columns">
-                <div class="column">
+                <a class="button is-light is-rounded"
+                    {% if cat == 'admin' %}
+                        href="{{ url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id) }}"
+                    {% else %}
+                        href="{{ url_for('comp_tracker.new_record', topic_id=topic_id, has_procurement=has_procurement) }}"
+                    {% endif %}
+                >
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </header>
+            <div class="box equipment-scan-card">
+                <div class="equipment-scan-frame">
                     <b-loading v-model="loading"></b-loading>
                     <qrcode-stream :key="_uid"
                                    :camera="camera"

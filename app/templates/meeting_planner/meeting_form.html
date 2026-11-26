@@ -1,199 +1,511 @@
 {% extends "base.html" %}
+{% block title %}Meeting Planner | ระบบนัดหมายการประชุม{% endblock %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        .meeting-form-page {
+            padding-top: 1.5rem;
+        }
+
+        .meeting-form-page .container {
+            max-width: 1040px;
+        }
+
+        .meeting-form-hero {
+            background:
+                radial-gradient(circle at 92% 12%, rgba(240, 196, 25, 0.2), transparent 28%),
+                linear-gradient(130deg, #1a3d7c, #10264c);
+            border: 1px solid rgba(16, 38, 76, 0.25);
+            border-radius: 22px;
+            box-shadow: 0 10px 26px rgba(18, 39, 84, 0.13);
+            margin-bottom: 1.25rem;
+            padding: 1.45rem 1.7rem;
+            position: relative;
+        }
+
+        .meeting-form-hero::before {
+            background: #caa84a;
+            border-radius: 22px 0 0 22px;
+            content: "";
+            inset: 0 auto 0 0;
+            position: absolute;
+            width: 6px;
+        }
+
+        .meeting-form-hero__eyebrow {
+            color: #ffe08a;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.13em;
+            margin-bottom: 0.35rem;
+        }
+
+        .meeting-form-hero .title {
+            color: #fff;
+            font-size: clamp(1.45rem, 3vw, 1.9rem);
+            line-height: 1.35;
+            margin-bottom: 0.35rem;
+        }
+
+        .meeting-form-hero__description {
+            color: rgba(255, 255, 255, 0.84);
+            line-height: 1.65;
+            margin: 0;
+        }
+
+        .meeting-form {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .meeting-form-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(58, 101, 184, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 7px 20px rgba(18, 39, 84, 0.05);
+            overflow: hidden;
+        }
+
+        .meeting-form-card__heading {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
+            border-bottom: 1px solid rgba(58, 101, 184, 0.15);
+            display: flex;
+            gap: 0.85rem;
+            padding: 1rem 1.25rem;
+        }
+
+        .meeting-form-card__heading-icon {
+            align-items: center;
+            background: linear-gradient(135deg, #eef3ff, #fff6d8);
+            border: 1px solid rgba(58, 101, 184, 0.13);
+            border-radius: 13px;
+            color: #1a3d7c;
+            display: inline-flex;
+            flex: 0 0 auto;
+            height: 2.65rem;
+            justify-content: center;
+            width: 2.65rem;
+        }
+
+        .meeting-form-card__title {
+            color: #173b76;
+            font-size: 1.02rem;
+            font-weight: 800;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .meeting-form-card__hint {
+            color: #66738d;
+            font-size: 0.86rem;
+            line-height: 1.5;
+            margin: 0.12rem 0 0;
+        }
+
+        .meeting-form-card__body {
+            padding: 1.25rem;
+        }
+
+        .meeting-form .label {
+            color: #243958;
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .meeting-form .input,
+        .meeting-form .textarea,
+        .meeting-form .select select,
+        .meeting-form .select2-container .select2-selection {
+            border-color: rgba(58, 101, 184, 0.24);
+            border-radius: 10px;
+            box-shadow: none;
+        }
+
+        .meeting-form .input:focus,
+        .meeting-form .textarea:focus,
+        .meeting-form .select select:focus,
+        .meeting-form .select2-container--focus .select2-selection {
+            border-color: #1a3d7c;
+            box-shadow: 0 0 0 3px rgba(26, 61, 124, 0.1);
+        }
+
+        .meeting-form .select2-container {
+            width: 100% !important;
+        }
+
+        .meeting-form .select2-container .select2-selection--single {
+            align-items: center;
+            display: flex;
+            min-height: 2.5rem;
+        }
+
+        .meeting-form .select2-container .select2-selection__rendered {
+            line-height: 1.4;
+        }
+
+        .meeting-form .select2-container .select2-selection__arrow {
+            height: 100%;
+        }
+
+        .meeting-form .help {
+            line-height: 1.5;
+        }
+
+        .meeting-form-card__body .columns:last-child {
+            margin-bottom: -0.75rem;
+        }
+
+        .meeting-repeater-list > div {
+            background: #fbfcff;
+            border: 1px solid rgba(58, 101, 184, 0.14);
+            border-radius: 14px;
+            margin-bottom: 0.85rem;
+            padding: 1rem;
+        }
+
+        .meeting-repeater-list > div:last-child {
+            margin-bottom: 0;
+        }
+
+        .meeting-repeater-actions {
+            border-top: 1px solid rgba(58, 101, 184, 0.13);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            padding: 0.9rem 1.25rem;
+        }
+
+        .meeting-repeater-actions .button {
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .meeting-form-actions {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+            justify-content: flex-end;
+            padding: 0.25rem 0 1.5rem;
+        }
+
+        .meeting-form-actions .button {
+            border-radius: 11px;
+            font-weight: 700;
+            min-height: 2.8rem;
+            padding-left: 1.1rem;
+            padding-right: 1.1rem;
+        }
+
+        .meeting-form-actions .button.is-primary {
+            background: linear-gradient(135deg, #1a3d7c, #10264c);
+            border-color: #10264c;
+        }
+
+        .meeting-form-actions .button.is-primary:hover,
+        .meeting-form-actions .button.is-primary:focus {
+            background: #10264c;
+        }
+
+        @media screen and (max-width: 768px) {
+            .meeting-form-page {
+                padding: 1rem 0.85rem;
+            }
+
+            .meeting-form-hero {
+                border-radius: 18px;
+                margin-bottom: 1rem;
+                padding: 1.2rem 1.05rem 1.2rem 1.3rem;
+            }
+
+            .meeting-form-card {
+                border-radius: 16px;
+            }
+
+            .meeting-form-card__heading {
+                padding: 0.9rem 1rem;
+            }
+
+            .meeting-form-card__body {
+                padding: 1rem;
+            }
+
+            .meeting-repeater-actions {
+                padding: 0.8rem 1rem;
+            }
+
+            .meeting-form-actions {
+                justify-content: stretch;
+            }
+
+            .meeting-form-actions .control,
+            .meeting-form-actions .button {
+                flex: 1 1 auto;
+            }
+
+            .meeting-form-actions .control .button {
+                width: 100%;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .meeting-form *,
+            .meeting-form *::before,
+            .meeting-form *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
 {% endblock %}
-{% include "meeting_planner/nav.html" %}
 
 {% block page_content %}
-    <section class="section">
+{% include "meeting_planner/nav.html" %}
+<section class="section meeting-form-page">
     <div class="container">
         {% include "messages.html" %}
-        <div class="columns">
-            <div class="box column is-half is-offset-3">
-                {% if meeting_id %}
-                    <h1 class="title has-text-centered">Edit Meeting</h1>
-                {% else %}
-                    <h1 class="title has-text-centered">New Meeting</h1>
-                {% endif %}
-                <form method="post">
-                    {{ form.hidden_tag() }}
+
+        <header class="meeting-form-hero">
+            <p class="meeting-form-hero__eyebrow">MEETING PLANNER</p>
+            {% if meeting_id %}
+                <h1 class="title">แก้ไขการประชุม</h1>
+                <p class="meeting-form-hero__description">ปรับรายละเอียด วันเวลา ห้องประชุม และผู้เข้าร่วมได้จากแบบฟอร์มนี้</p>
+            {% elif poll_id %}
+                <h1 class="title">สร้างการประชุมจากผลโพล</h1>
+                <p class="meeting-form-hero__description">ตรวจสอบข้อมูลการประชุมและรายชื่อผู้เข้าร่วมก่อนบันทึก</p>
+            {% else %}
+                <h1 class="title">สร้างการประชุมใหม่</h1>
+                <p class="meeting-form-hero__description">กรอกรายละเอียดการประชุม แล้วเพิ่มห้อง ผู้เข้าร่วม และวาระตามต้องการ</p>
+            {% endif %}
+        </header>
+
+        <form method="post" class="meeting-form">
+            {{ form.hidden_tag() }}
+
+            <section class="meeting-form-card" aria-labelledby="meeting-details-heading">
+                <div class="meeting-form-card__heading">
+                    <span class="meeting-form-card__heading-icon" aria-hidden="true">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </span>
+                    <div>
+                        <h2 id="meeting-details-heading" class="meeting-form-card__title">รายละเอียดการประชุม</h2>
+                        <p class="meeting-form-card__hint">ระบุชื่อ รายละเอียด วันเวลา และลิงก์ที่เกี่ยวข้อง</p>
+                    </div>
+                </div>
+                <div class="meeting-form-card__body">
                     <div class="field">
-                        <label class="label">{{ form.title.label }}</label>
+                        {{ form.title.label(class='label') }}
                         <div class="control">
                             {{ form.title(class='input') }}
                         </div>
                     </div>
+
                     <div class="field">
-                        <label class="label">{{ form.detail.label }}</label>
+                        {{ form.detail.label(class='label') }}
                         <div class="control">
-                            {{ form.detail(class='textarea', required=true) }}
+                            {{ form.detail(class='textarea', required=true, rows='3') }}
                         </div>
                     </div>
-                    <div class="field">
-                        <label class="label">{{ form.start.label }}</label>
-                        <div class="control">
-                            {{ form.start(class="input") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.end.label }}</label>
-                        <div class="control">
-                            {{ form.end(class="input") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.meeting_url.label }}</label>
-                        <div class="control">
-                            {{ form.meeting_url(class="textarea") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.doc_url.label }}</label>
-                        <div class="control">
-                            {{ form.doc_url(class="textarea") }}
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <h1 class="card-header-title">ห้องสำหรับประชุม</h1>
-                        </div>
-                        <div class="card-content">
-                            <div id="room_events">
-                                {% for event_form in form.meeting_events %}
-                                    <div id="{{ event_form.name }}">
-                                        <div class="field">
-                                            <label class="label">{{ event_form.room.label }}</label>
-                                            {{ event_form.room(class="js-example-basic-single") }}
-                                            <span id="{{ 'availability-' + event_form.room.name }}"></span>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">{{ event_form.request.label }}</label>
-                                            <div class="control">
-                                                {{ event_form.request(class="input") }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <footer class="card-footer">
-                            <a class="card-footer-item"
-                               hx-post="{{ url_for('meeting_planner.add_room_event') }}"
-                               hx-target="#room_events" hx-swap="beforeend">
-                                        <span class="icon">
-                                            <i class="fas fa-plus"></i>
-                                        </span>
-                                <span>จองเพิ่ม</span>
-                            </a>
-                            <a class="card-footer-item"
-                               hx-delete="{{ url_for('meeting_planner.remove_room_event') }}"
-                               hx-target="#room_events" hx-swap="innerHTML">
-                                        <span class="icon">
-                                          <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                <span class="has-text-danger">ยกเลิก</span>
-                            </a>
-                        </footer>
-                    </div>
-                    <br>
-                    <div class="card">
-                        <div class="card-header">
-                            <p class="card-header-title">รายชื่อผู้เข้าร่วม</p>
-                        </div>
-                        <div class="card-content">
-                            {% if poll_id %}
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.participant(class='js-example-basic-multiple', multiple='multiple') }}
-                                        <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <div class="field">
-                                    <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="participants" multiple="multiple">
-                                        {% if invitations %}
-                                            {% for invitation in invitations %}
-                                                <option value="{{ invitation.staff.personal_id }}" selected>
-                                                    {{ invitation.staff.fullname }}
-                                                </option>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </select>
-                                    <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>
-                                </div>
-                            {% endif %}
+
+                    <div class="columns is-variable is-4">
+                        <div class="column">
                             <div class="field">
-                                <label class="label">
-                                    {{ form.notify_participants() }}
-                                    แจ้งเตือนผู้เข้าร่วมประชุมทางอีเมล
-                                </label>
+                                {{ form.start.label(class='label') }}
+                                <div class="control">
+                                    {{ form.start(class='input') }}
+                                </div>
+                                <p class="help">เลือกวันและเวลาเริ่มประชุม</p>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="field">
+                                {{ form.end.label(class='label') }}
+                                <div class="control">
+                                    {{ form.end(class='input') }}
+                                </div>
+                                <p class="help">เลือกวันและเวลาสิ้นสุด</p>
                             </div>
                         </div>
                     </div>
-                    <br>
-                    <div class="card">
-                        <div class="card-header">
-                            <h1 class="card-header-title">หัวข้อการประชุม</h1>
-                        </div>
-                        <div class="card-content">
-                            <div id="agendas">
-                                {% for agenda_form in form.agendas %}
-                                    <div id="{{ agenda_form.id }}">
-                                        <div class="field">
-                                            <div class="label">{{ agenda_form.group.label }}</div>
-                                            <div class="select">
-                                                {{ agenda_form.group() }}
-                                            </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">{{ agenda_form.number.label }}</label>
-                                            <div class="control">
-                                                {{ agenda_form.number(class="input") }}
-                                            </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">{{ agenda_form.detail.label }}</label>
-                                            {{ agenda_form.detail(class="textarea") }}
-                                        </div>
-                                    </div>
-                                {% endfor %}
+
+                    <div class="columns is-variable is-4">
+                        <div class="column">
+                            <div class="field">
+                                {{ form.meeting_url.label(class='label') }}
+                                <div class="control">
+                                    {{ form.meeting_url(class='textarea', rows='2') }}
+                                </div>
                             </div>
                         </div>
-                        <footer class="card-footer">
-                            <a class="card-footer-item"
-                               hx-post="{{ url_for('meeting_planner.add_agenda') }}"
-                               hx-target="#agendas" hx-swap="beforeend">
-                                        <span class="icon">
-                                            <i class="fas fa-plus"></i>
-                                        </span>
-                                <span>เพิ่ม</span>
-                            </a>
-                            <a class="card-footer-item"
-                               hx-delete="{{ url_for('meeting_planner.remove_agenda') }}"
-                               hx-target="#agendas" hx-swap="innerHTML">
-                                        <span class="icon">
-                                          <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                <span class="has-text-danger">ลบ</span>
-                            </a>
-                        </footer>
-                    </div>
-                    <br>
-                <div class="field is-grouped is-grouped-centered">
-                    <div class="control">
-                        <a href="{{ url_for('meeting_planner.index') }}" class="button">Cancel</a>
-                    </div>
-                    <div class="control">
-                        <input type="submit" value="Submit" class="button is-success">
+                        <div class="column">
+                            <div class="field">
+                                {{ form.doc_url.label(class='label') }}
+                                <div class="control">
+                                    {{ form.doc_url(class='textarea', rows='2') }}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </form>
+            </section>
+
+            <section class="meeting-form-card" aria-labelledby="meeting-rooms-heading">
+                <div class="meeting-form-card__heading">
+                    <span class="meeting-form-card__heading-icon" aria-hidden="true">
+                        <i class="fa-solid fa-door-open"></i>
+                    </span>
+                    <div>
+                        <h2 id="meeting-rooms-heading" class="meeting-form-card__title">ห้องสำหรับประชุม</h2>
+                        <p class="meeting-form-card__hint">เลือกห้องและแจ้งรายละเอียดการใช้ห้องเพิ่มเติม</p>
+                    </div>
+                </div>
+                <div class="meeting-form-card__body meeting-repeater-list" id="room_events">
+                    {% for event_form in form.meeting_events %}
+                        <div id="{{ event_form.name }}">
+                            <div class="field">
+                                {{ event_form.room.label(class='label') }}
+                                <div class="control">
+                                    {{ event_form.room(class='js-example-basic-single') }}
+                                </div>
+                                <span class="help" id="{{ 'availability-' + event_form.room.name }}" aria-live="polite"></span>
+                            </div>
+                            <div class="field">
+                                {{ event_form.request.label(class='label') }}
+                                <div class="control">
+                                    {{ event_form.request(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="meeting-repeater-actions">
+                    <button type="button" class="button is-info is-light"
+                            hx-post="{{ url_for('meeting_planner.add_room_event') }}"
+                            hx-target="#room_events" hx-swap="beforeend">
+                        <span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+                        <span>เพิ่มห้องประชุม</span>
+                    </button>
+                    <button type="button" class="button is-light has-text-danger"
+                            hx-delete="{{ url_for('meeting_planner.remove_room_event') }}"
+                            hx-target="#room_events" hx-swap="innerHTML">
+                        <span class="icon"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span>
+                        <span>ลบห้องล่าสุด</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="meeting-form-card" aria-labelledby="meeting-participants-heading">
+                <div class="meeting-form-card__heading">
+                    <span class="meeting-form-card__heading-icon" aria-hidden="true">
+                        <i class="fa-solid fa-users"></i>
+                    </span>
+                    <div>
+                        <h2 id="meeting-participants-heading" class="meeting-form-card__title">ผู้เข้าร่วมประชุม</h2>
+                        <p class="meeting-form-card__hint">ค้นหาและเลือกรายชื่อผู้เข้าร่วม</p>
+                    </div>
+                </div>
+                <div class="meeting-form-card__body">
+                    <div class="field">
+                        <div class="control">
+                            {% if poll_id %}
+                                <label class="label" for="{{ form.participant.id }}">รายชื่อผู้เข้าร่วม</label>
+                                {{ form.participant(class='js-example-basic-multiple', multiple='multiple') }}
+                            {% else %}
+                                <label class="label" for="participants">รายชื่อผู้เข้าร่วม</label>
+                                <select id="participants" class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="participants" multiple="multiple">
+                                    {% if invitations %}
+                                        {% for invitation in invitations %}
+                                            <option value="{{ invitation.staff.personal_id }}" selected>
+                                                {{ invitation.staff.fullname }}
+                                            </option>
+                                        {% endfor %}
+                                    {% endif %}
+                                </select>
+                            {% endif %}
+                        </div>
+                        <p class="help is-info">พิมพ์ชื่อเพื่อค้นหาและเพิ่มผู้เข้าร่วมประชุม</p>
+                    </div>
+                    <div class="field">
+                        <label class="checkbox">
+                            {{ form.notify_participants() }}
+                            <span>แจ้งเตือนผู้เข้าร่วมประชุมทางอีเมล</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="meeting-form-card" aria-labelledby="meeting-agendas-heading">
+                <div class="meeting-form-card__heading">
+                    <span class="meeting-form-card__heading-icon" aria-hidden="true">
+                        <i class="fa-solid fa-list-ol"></i>
+                    </span>
+                    <div>
+                        <h2 id="meeting-agendas-heading" class="meeting-form-card__title">หัวข้อการประชุม</h2>
+                        <p class="meeting-form-card__hint">เพิ่มวาระและรายละเอียดเพื่อเตรียมการประชุม</p>
+                    </div>
+                </div>
+                <div class="meeting-form-card__body meeting-repeater-list" id="agendas">
+                    {% for agenda_form in form.agendas %}
+                        <div id="{{ agenda_form.id }}">
+                            <div class="field">
+                                {{ agenda_form.group.label(class='label') }}
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        {{ agenda_form.group() }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                {{ agenda_form.number.label(class='label') }}
+                                <div class="control">
+                                    {{ agenda_form.number(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                {{ agenda_form.detail.label(class='label') }}
+                                <div class="control">
+                                    {{ agenda_form.detail(class='textarea', rows='2') }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="meeting-repeater-actions">
+                    <button type="button" class="button is-info is-light"
+                            hx-post="{{ url_for('meeting_planner.add_agenda') }}"
+                            hx-target="#agendas" hx-swap="beforeend">
+                        <span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+                        <span>เพิ่มวาระ</span>
+                    </button>
+                    <button type="button" class="button is-light has-text-danger"
+                            hx-delete="{{ url_for('meeting_planner.remove_agenda') }}"
+                            hx-target="#agendas" hx-swap="innerHTML">
+                        <span class="icon"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span>
+                        <span>ลบวาระล่าสุด</span>
+                    </button>
+                </div>
+            </section>
+
+            <div class="meeting-form-actions">
+                <div class="control">
+                    <a href="{{ url_for('meeting_planner.index') }}" class="button is-light">
+                        <span class="icon"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                        <span>ยกเลิก</span>
+                    </a>
+                </div>
+                <div class="control">
+                    <button type="submit" class="button is-primary">
+                        <span class="icon"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i></span>
+                        <span>บันทึกการประชุม</span>
+                    </button>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
-    </section>
+</section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}

@@ -1,82 +1,221 @@
 {% extends "base.html" %}
 {% block title %}MUMT Internal Information System{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .software-home {
+            background: transparent;
+            min-height: calc(100vh - 4rem);
+        }
+
+        .software-hero {
+            align-items: center;
+            background: linear-gradient(120deg, #17396f, #2d5b9d);
+            border-radius: 24px;
+            box-shadow: 0 16px 38px rgba(27, 59, 107, .16);
+            color: #fff;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: clamp(1.5rem, 3vw, 2.25rem);
+        }
+
+        .software-hero-copy { max-width: 48rem; }
+        .software-hero .eyebrow {
+            color: #d8e5fb;
+            font-size: .76rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            margin-bottom: .55rem;
+            text-transform: uppercase;
+        }
+        .software-hero h1 {
+            color: #fff;
+            font-size: clamp(1.5rem, 2.6vw, 2rem);
+            line-height: 1.4;
+            margin-bottom: .5rem;
+        }
+        .software-hero p:last-child { color: rgba(255,255,255,.82); margin: 0; }
+        .software-hero .button {
+            border: 0;
+            border-radius: 13px;
+            box-shadow: 0 8px 18px rgba(5, 20, 46, .18);
+            font-weight: 700;
+            min-height: 2.9rem;
+            padding-left: 1.1rem;
+            padding-right: 1.1rem;
+        }
+
+        .software-work-card {
+            background: #fff;
+            border: 1px solid #e4eaf3;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(27, 49, 82, .055);
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+        }
+        .software-work-card-header {
+            align-items: center;
+            border-bottom: 1px solid #edf1f6;
+            display: flex;
+            gap: .9rem;
+            justify-content: space-between;
+            padding: 1.1rem 1.35rem;
+        }
+        .software-work-card-title {
+            align-items: center;
+            color: #1e3e70;
+            display: flex;
+            font-size: 1.1rem;
+            font-weight: 700;
+            gap: .65rem;
+            margin: 0;
+        }
+        .software-work-card-title .icon { color: #4772ae; }
+        .software-work-card-body { padding: 1.2rem 1.35rem 1.35rem; }
+        .software-note {
+            background: #fff8e8;
+            border: 1px solid #f4dfaa;
+            border-radius: 14px;
+            color: #74571d;
+            margin-bottom: 1rem;
+            padding: .85rem 1rem;
+        }
+        .software-note .icon { margin-right: .35rem; }
+        .software-table-wrap { overflow-x: auto; }
+        .software-home table { min-width: 680px; }
+        .software-home table thead th {
+            background: #f5f7fb;
+            border-color: #e8edf4;
+            color: #52647f;
+            font-size: .78rem;
+            letter-spacing: .025em;
+            white-space: nowrap;
+        }
+        .software-home table td { color: #3f506b; vertical-align: middle; }
+        .software-home table tbody tr:hover { background: #f8faff; }
+        .software-home .dataTables_wrapper .dataTables_filter input,
+        .software-home .dataTables_wrapper .dataTables_length select {
+            border: 1px solid #d9e1ed;
+            border-radius: 9px;
+            padding: .35rem .55rem;
+        }
+        .software-home .dataTables_wrapper .dataTables_length select {
+            min-height: 2.1rem;
+            min-width: 4.25rem;
+            padding: .35rem 1.5rem .35rem .55rem;
+            width: 4.25rem;
+        }
+        .software-home .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #eaf0fa !important;
+            border: 1px solid #d2def0 !important;
+            border-radius: 8px;
+            color: #21477f !important;
+        }
+        .software-test-button { border-radius: 9999px; }
+
+        @media screen and (max-width: 768px) {
+            .software-home { padding: 1rem .75rem 2rem; }
+            .software-hero { align-items: flex-start; border-radius: 18px; }
+            .software-hero .button { width: 100%; }
+            .software-work-card-header,
+            .software-work-card-body { padding-left: 1rem; padding-right: 1rem; }
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
-    <section class="section">
+    <section class="section software-home">
         <div class="container">
-            <h1 class="title">ระบบขอรับบริการพัฒนา Software ({{ org }})</h1>
             {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
-                    <div class="buttons is-centered">
-                        <a class="button is-info" href="{{ url_for('software_request.condition_for_service_request') }}">
-                            <span class="icon">
-                                <i class="fas fa-plus"></i>
-                            </span>
-                            <span>ส่งคำขอรับบริการ</span>
-                        </a>
-                    </div>
-                    <h1 class="subtitle">รายการทดสอบระบบ</h1>
-                    <hr style="background-color: #CCCCCC;">
-                    <div class="notification is-warning is-light mb-4" style="border-radius: 12px;opacity: 0.8;">
-                        <strong>หมายเหตุ</strong><br>
-                        <p class="ml-4 mt-1">
-                            กรุณาดำเนินการทดสอบระบบและบันทึกผลให้ครบทุกรายการ เมื่อบันทึกแล้วจะไม่สามารถแก้ไขผลการทดสอบได้
-                        </p>
-                    </div>
-                    <table id="test_result" class="table is-fullwidth">
-                        <thead>
-                            <th>Requirement</th>
-                            <th>Title</th>
-                            <th>Detail</th>
-                            <th>View</th>
-                        </thead>
-                        <tbody>
-                            {% for request in current_user.created_requests %}
-                                {% for test_result in request.test_results %}
-                                    {% if not test_result.status and request.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
-                                        <tr>
-                                            <td>{{ test_result.issue.issue }}</td>
-                                            <td>{{ test_result.request.title }}</td>
-                                            <td>{{ test_result.request.description }}</td>
-                                            <td>
-                                                <div class="field has-addons">
-                                                    <div class="control">
-                                                        <a class="button is-small is-info is-rounded"
-                                                           href="{{ url_for('software_request.view_request',
-                                                            detail_id=test_result.request_id) }}"
-                                                        >
-                                                            <span class="icon"><i class="fas fa-search"></i></span>
-                                                            <span>ทดสอบ</span>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    <div style="margin-top: 40px;"></div>
-                    <h1 class="subtitle">รายการคำขอพัฒนาระบบ</h1>
-                    <hr style="background-color: #CCCCCC;">
-                    <table id="detail" class="table is-fullwidth">
-                        <thead>
-                            <th>โครงการ/ระบบ</th>
-                            <th>ประเภทคำขอ</th>
-                            <th>ระดับความสำคัญ</th>
-                            <th>ความเร่งด่วน</th>
-                            <th>รายละเอียด</th>
-                            <th>วันที่ส่งคำขอ</th>
-                            <th>สถานะ</th>
-                            <th>รายละเอียด</th>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
+            <header class="software-hero">
+                <div class="software-hero-copy">
+                    <p class="eyebrow">SOFTWARE SERVICE DESK · {{ org }}</p>
+                    <h1>ระบบขอรับบริการพัฒนา Software</h1>
+                    <p>ส่งคำขอ ติดตามความคืบหน้า และทดสอบระบบได้จากหน้านี้</p>
                 </div>
-            </div>
+                <a class="button is-warning" href="{{ url_for('software_request.condition_for_service_request') }}">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>ส่งคำขอรับบริการ</span>
+                </a>
+            </header>
+
+            <section class="software-work-card" aria-labelledby="software-tests-title">
+                <div class="software-work-card-header">
+                    <h2 id="software-tests-title" class="software-work-card-title">
+                        <span class="icon"><i class="fas fa-vial"></i></span>
+                        <span>รายการทดสอบระบบ</span>
+                    </h2>
+                </div>
+                <div class="software-work-card-body">
+                    <div class="software-note">
+                        <span class="icon"><i class="fas fa-circle-info"></i></span>
+                        กรุณาทดสอบและบันทึกผลให้ครบทุกรายการ เมื่อบันทึกผลแล้วจะไม่สามารถแก้ไขได้
+                    </div>
+                    <div class="software-table-wrap">
+                        <table id="test_result" class="table is-fullwidth is-hoverable">
+                            <thead>
+                                <tr>
+                                    <th>Requirement</th>
+                                    <th>Title</th>
+                                    <th>Detail</th>
+                                    <th>ดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in current_user.created_requests %}
+                                    {% for test_result in request.test_results %}
+                                        {% if not test_result.status and request.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
+                                            <tr>
+                                                <td>{{ test_result.issue.issue }}</td>
+                                                <td>{{ test_result.request.title }}</td>
+                                                <td>{{ test_result.request.description }}</td>
+                                                <td>
+                                                    <a class="button is-small is-rounded is-info is-light software-test-button"
+                                                       href="{{ url_for('software_request.view_request', detail_id=test_result.request_id) }}">
+                                                        <span class="icon"><i class="fas fa-search"></i></span>
+                                                        <span>ทดสอบ</span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="software-work-card" aria-labelledby="software-requests-title">
+                <div class="software-work-card-header">
+                    <h2 id="software-requests-title" class="software-work-card-title">
+                        <span class="icon"><i class="fas fa-list-check"></i></span>
+                        <span>รายการคำขอพัฒนาระบบ</span>
+                    </h2>
+                </div>
+                <div class="software-work-card-body">
+                    <div class="software-table-wrap">
+                        <table id="detail" class="table is-fullwidth is-hoverable">
+                            <thead>
+                                <tr>
+                                    <th>โครงการ/ระบบ</th>
+                                    <th>ประเภทคำขอ</th>
+                                    <th>ระดับความสำคัญ</th>
+                                    <th>ความเร่งด่วน</th>
+                                    <th>รายละเอียด</th>
+                                    <th>วันที่ส่งคำขอ</th>
+                                    <th>สถานะ</th>
+                                    <th>รายละเอียด</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </div>
     </section>
 {% endblock %}

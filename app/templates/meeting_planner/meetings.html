@@ -1,43 +1,327 @@
 {% extends "base.html" %}
-{% block title %}MUMT Internal Information System{% endblock %}
-{% include "nav.html" %}
+{% block title %}รายการประชุม | Meeting Planner{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .meeting-list-page {
+            padding-top: 1.5rem;
+        }
+
+        .meeting-list-page .container {
+            max-width: 1180px;
+        }
+
+        .meeting-list-hero {
+            align-items: center;
+            background:
+                radial-gradient(circle at 92% 12%, rgba(240, 196, 25, 0.2), transparent 28%),
+                linear-gradient(130deg, #1a3d7c, #10264c);
+            border: 1px solid rgba(16, 38, 76, 0.25);
+            border-radius: 22px;
+            box-shadow: 0 10px 26px rgba(18, 39, 84, 0.13);
+            display: flex;
+            gap: 1.25rem;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding: 1.45rem 1.7rem;
+            position: relative;
+        }
+
+        .meeting-list-hero::before {
+            background: #caa84a;
+            border-radius: 22px 0 0 22px;
+            content: "";
+            inset: 0 auto 0 0;
+            position: absolute;
+            width: 6px;
+        }
+
+        .meeting-list-hero__eyebrow {
+            color: #ffe08a;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.13em;
+            margin-bottom: 0.35rem;
+        }
+
+        .meeting-list-hero .title {
+            color: #fff;
+            font-size: clamp(1.45rem, 3vw, 1.9rem);
+            line-height: 1.35;
+            margin-bottom: 0.35rem;
+        }
+
+        .meeting-list-hero__description {
+            color: rgba(255, 255, 255, 0.84);
+            line-height: 1.65;
+            margin: 0;
+        }
+
+        .meeting-list-hero .button {
+            background: #f0c419;
+            border-color: #f0c419;
+            border-radius: 11px;
+            color: #10264c;
+            flex: 0 0 auto;
+            font-weight: 800;
+            min-height: 2.8rem;
+        }
+
+        .meeting-list-hero .button:hover,
+        .meeting-list-hero .button:focus {
+            background: #ffe08a;
+            border-color: #ffe08a;
+            color: #10264c;
+        }
+
+        .meeting-list-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(58, 101, 184, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 7px 20px rgba(18, 39, 84, 0.05);
+            overflow: hidden;
+        }
+
+        .meeting-list-panel__heading {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
+            border-bottom: 1px solid rgba(58, 101, 184, 0.15);
+            display: flex;
+            gap: 0.8rem;
+            padding: 1rem 1.25rem;
+        }
+
+        .meeting-list-panel__icon {
+            align-items: center;
+            background: linear-gradient(135deg, #eef3ff, #fff6d8);
+            border: 1px solid rgba(58, 101, 184, 0.13);
+            border-radius: 13px;
+            color: #1a3d7c;
+            display: inline-flex;
+            flex: 0 0 auto;
+            height: 2.65rem;
+            justify-content: center;
+            width: 2.65rem;
+        }
+
+        .meeting-list-panel__title {
+            color: #173b76;
+            font-size: 1.02rem;
+            font-weight: 800;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .meeting-list-panel__hint {
+            color: #66738d;
+            font-size: 0.86rem;
+            line-height: 1.5;
+            margin: 0.12rem 0 0;
+        }
+
+        .meeting-list-panel__body {
+            padding: 1.1rem 1.25rem 1.25rem;
+        }
+
+        .meeting-list-page .meeting-table-wrap {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .meeting-list-page .meeting-table-wrap::-webkit-scrollbar {
+            display: none;
+        }
+
+        .meeting-list-page .meeting-table {
+            min-width: 720px;
+        }
+
+        .meeting-list-page .meeting-table thead th {
+            background: #f3f6ff;
+            color: #173b76;
+            font-size: 0.88rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .meeting-list-page .meeting-table tbody td {
+            vertical-align: middle;
+        }
+
+        .meeting-list-page .meeting-table tbody td:first-child {
+            color: #243958;
+            font-weight: 700;
+            min-width: 230px;
+        }
+
+        .meeting-list-page .meeting-table tbody tr:hover {
+            background: #fbfcff;
+        }
+
+        .meeting-list-page .meeting-table .meeting-detail-button {
+            border-radius: 9px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .meeting-list-page .dataTables_wrapper {
+            color: #66738d;
+            font-size: 0.9rem;
+        }
+
+        .meeting-list-page .dataTables_wrapper .dataTables_filter input,
+        .meeting-list-page .dataTables_wrapper .dataTables_length select {
+            border: 1px solid rgba(58, 101, 184, 0.25);
+            border-radius: 9px;
+            color: #243958;
+            min-height: 2.25rem;
+            padding: 0.35rem 0.55rem;
+        }
+
+        .meeting-list-page .dataTables_wrapper .dataTables_length {
+            margin: 0 0 0.85rem;
+            padding: 0 0.35rem;
+        }
+
+        .meeting-list-page .dataTables_wrapper .dataTables_length label {
+            align-items: center;
+            display: inline-flex;
+            gap: 0.45rem;
+        }
+
+        .meeting-list-page .dataTables_wrapper .dataTables_length select {
+            background-color: #fff;
+            min-width: 3.35rem;
+            padding: 0.35rem 1.45rem 0.35rem 0.4rem;
+        }
+
+        .meeting-list-page .dataTables_wrapper .dataTables_filter input:focus,
+        .meeting-list-page .dataTables_wrapper .dataTables_length select:focus {
+            border-color: #1a3d7c;
+            box-shadow: 0 0 0 3px rgba(26, 61, 124, 0.1);
+            outline: none;
+        }
+
+        .meeting-list-page .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #1a3d7c;
+            border-color: #1a3d7c;
+            border-radius: 8px;
+            color: #fff !important;
+        }
+
+        .meeting-list-page .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #eef3ff;
+            border-color: rgba(58, 101, 184, 0.25);
+            border-radius: 8px;
+            color: #173b76 !important;
+        }
+
+        @media screen and (max-width: 768px) {
+            .meeting-list-page {
+                padding: 1rem 0.85rem;
+            }
+
+            .meeting-list-hero {
+                align-items: flex-start;
+                border-radius: 18px;
+                flex-direction: column;
+                gap: 1rem;
+                margin-bottom: 1rem;
+                padding: 1.2rem 1.05rem 1.2rem 1.3rem;
+            }
+
+            .meeting-list-hero .button {
+                width: 100%;
+            }
+
+            .meeting-list-panel {
+                border-radius: 16px;
+            }
+
+            .meeting-list-panel__heading {
+                padding: 0.9rem 1rem;
+            }
+
+            .meeting-list-panel__body {
+                padding: 0.9rem;
+            }
+        }
+    </style>
+{% endblock %}
+
 {% block page_content %}
-<section class="section">
+{% include "meeting_planner/nav.html" %}
+<section class="section meeting-list-page">
     <div class="container">
         {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column">
-                <table id="meetings" class="table is-fullwidth">
-                    <thead>
-                    <th>ชื่อ</th>
-                    <th>เริ่ม</th>
-                    <th>สิ้นสุด</th>
-                    <th>ห้อง</th>
-                    <th></th>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+
+        <header class="meeting-list-hero">
+            <div>
+                <p class="meeting-list-hero__eyebrow">MEETING PLANNER</p>
+                <h1 class="title">การประชุมที่ฉันนัดหมาย</h1>
+                <p class="meeting-list-hero__description">ดูวันเวลา ห้องประชุม และเปิดรายละเอียดการประชุมที่คุณรับผิดชอบ</p>
             </div>
-        </div>
+            <a class="button" href="{{ url_for('meeting_planner.create_meeting') }}">
+                <span class="icon"><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i></span>
+                <span>สร้างการประชุม</span>
+            </a>
+        </header>
+
+        <section class="meeting-list-panel" aria-labelledby="meeting-list-heading">
+            <div class="meeting-list-panel__heading">
+                <span class="meeting-list-panel__icon" aria-hidden="true">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </span>
+                <div>
+                    <h2 id="meeting-list-heading" class="meeting-list-panel__title">รายการประชุม</h2>
+                    <p class="meeting-list-panel__hint">ค้นหา เรียงลำดับ และเลือกดูรายละเอียดแต่ละรายการได้</p>
+                </div>
+            </div>
+            <div class="meeting-list-panel__body">
+                <div class="table-container meeting-table-wrap">
+                    <table id="meetings" class="table is-fullwidth is-hoverable meeting-table" aria-label="รายการประชุมที่ฉันนัดหมาย">
+                        <caption class="is-sr-only">รายการประชุมที่คุณเป็นผู้รับผิดชอบนัดหมาย</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">ชื่อการประชุม</th>
+                                <th scope="col">เริ่ม</th>
+                                <th scope="col">สิ้นสุด</th>
+                                <th scope="col">ห้องประชุม</th>
+                                <th scope="col">รายละเอียด</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </div>
 </section>
 {% endblock %}
+
 {% block scripts %}
     {{ super() }}
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#meetings').DataTable({
-                ajax: "{{ url_for('meeting_planner.get_meetings') }}",
-                dataSrc: "data",
-                order: [[1, 'desc'],
-                        [2, 'desc']],
+                ajax: {
+                    url: "{{ url_for('meeting_planner.get_meetings') }}",
+                    dataSrc: 'data'
+                },
+                order: [[1, 'desc'], [2, 'desc']],
+                pageLength: 10,
+                autoWidth: false,
                 columns: [
-                    { data : 'title'},
+                    { data: 'title' },
                     {
-                        data : 'start',
-                        render: function(data, type, row) {
+                        data: 'start',
+                        render: function(data) {
                             if (data !== '') {
                                 let d = moment(data)
                                 return d.format('lll')
@@ -47,8 +331,8 @@
                         }
                     },
                     {
-                        data : 'end',
-                        render: function(data, type, row) {
+                        data: 'end',
+                        render: function (data) {
                             if (data !== '') {
                                 let d = moment(data)
                                 return d.format('lll')
@@ -57,9 +341,30 @@
                             }
                         }
                     },
-                    { data : 'rooms'},
-                    { data : 'action'}
-                ]
+                    { data: 'rooms' },
+                    { data: 'action', orderable: false, searchable: false }
+                ],
+                createdRow: function (row) {
+                    $(row).find('td:last-child a')
+                        .attr('class', 'button is-small is-info is-light meeting-detail-button')
+                        .text('ดูรายละเอียด');
+                },
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ยังไม่มีรายการ',
+                    emptyTable: 'ยังไม่มีรายการประชุม',
+                    zeroRecords: 'ไม่พบรายการที่ค้นหา',
+                    loadingRecords: 'กำลังโหลดรายการประชุม…',
+                    processing: 'กำลังโหลด…',
+                    paginate: {
+                        first: 'หน้าแรก',
+                        last: 'หน้าสุดท้าย',
+                        next: 'ถัดไป',
+                        previous: 'ก่อนหน้า'
+                    }
+                }
             });
         });
     </script>

@@ -4,15 +4,86 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        .software-detail-page { min-height: calc(100vh - 4rem); padding: 1.5rem 1.25rem 3rem; }
+        .software-detail-shell { max-width: 1240px; }
+        .software-detail-hero {
+            align-items: center; background: linear-gradient(120deg, #17396f, #2d5b9d);
+            border-radius: 22px; box-shadow: 0 16px 38px rgba(27, 59, 107, .15); color: #fff;
+            display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between;
+            margin-bottom: 1.25rem; padding: clamp(1.4rem, 3vw, 2rem);
+        }
+        .software-detail-hero-copy { max-width: 52rem; }
+        .software-detail-eyebrow { color: #d8e5fb; font-size: .75rem; font-weight: 700; letter-spacing: .12em; margin-bottom: .45rem; }
+        .software-detail-hero h1 { color: #fff; font-size: clamp(1.4rem, 2.5vw, 1.9rem); line-height: 1.4; margin: 0 0 .35rem; }
+        .software-detail-hero p:last-child { color: rgba(255,255,255,.82); margin: 0; }
+        .software-detail-status { padding: 0; }
+        .software-detail-status .tag { border-radius: 999px; font-weight: 700; }
+        .software-detail-card {
+            background: #fff; border: 1px solid #e0e7f1; border-radius: 20px;
+            box-shadow: 0 12px 32px rgba(26, 51, 89, .07); padding: clamp(1rem, 2.5vw, 2rem);
+        }
+        .software-detail-card > form > .field.is-horizontal {
+            align-items: flex-start; gap: 1rem;
+            margin: 0; padding: .8rem .25rem;
+        }
+        .software-detail-card .field-label { flex: 0 0 17rem; margin-right: .25rem; }
+        .software-detail-card .field-label .label { color: #344b69; font-size: .9rem; font-weight: 700; line-height: 1.55; margin: .35rem 0 0; }
+        .software-detail-card .field-body { align-items: flex-start; flex: 1 1 auto; min-width: 0; }
+        .software-detail-card .field-body > .field { min-width: 0; width: 100%; }
+        .software-detail-card .control { color: #3e5069; line-height: 1.65; max-width: 100%; overflow-wrap: anywhere; }
+        .software-detail-card .input,
+        .software-detail-card .textarea,
+        .software-detail-card .select select,
+        .software-detail-card .select2-selection { border-color: #d5deeb; border-radius: 9px; box-shadow: none; }
+        .software-detail-card .input:focus,
+        .software-detail-card .textarea:focus,
+        .software-detail-card .select select:focus { border-color: #7296c9; box-shadow: 0 0 0 .15rem rgba(64, 113, 180, .12); }
+        .software-detail-card .field-body .select,
+        .software-detail-card .field-body .select select { max-width: 32rem; width: 100%; }
+        .software-detail-card .select select,
+        .software-detail-card .input { min-height: 2.6rem; }
+        .software-detail-card .select2-container { max-width: 32rem; width: 100% !important; }
+        .software-detail-card .textarea { min-height: 6rem; resize: vertical; }
+        .software-detail-card .field-body .field.is-grouped { flex-wrap: wrap; gap: .4rem; }
+        .software-detail-card .table thead th { background: #f5f7fb; border-color: #e5ebf3; color: #52647f; font-size: .8rem; white-space: nowrap; }
+        .software-detail-card .table td { color: #40516a; vertical-align: middle; }
+        .software-detail-card .table tbody tr:hover { background: #f8faff; }
+        .software-detail-card .field.is-grouped-centered { margin-top: 1.5rem; padding-top: 1.25rem; }
+        .software-detail-card .field.is-grouped-centered .button { border-radius: 10px; font-weight: 700; min-width: 7rem; }
+        @media screen and (max-width: 768px) {
+            .software-detail-page { padding: 1rem .75rem 2rem; }
+            .software-detail-hero { align-items: flex-start; border-radius: 18px; }
+            .software-detail-status { width: fit-content; }
+            .software-detail-card { border-radius: 16px; padding: .85rem; }
+            .software-detail-card > form > .field.is-horizontal { display: block; padding: .8rem .1rem; }
+            .software-detail-card .field-label { margin: 0 0 .35rem; text-align: left; }
+            .software-detail-card .field-label .label { margin: 0; }
+            .software-detail-card .field-body { display: block; }
+            .software-detail-card .field-body > .field { margin: 0; }
+            .software-detail-card .field-body .select,
+            .software-detail-card .field-body .select select,
+            .software-detail-card .select2-container { max-width: none; width: 100% !important; }
+            .software-detail-card .field-body .field.is-grouped { align-items: flex-start; }
+        }
+    </style>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-    <section class="section" id="app">
-        {% include "messages.html" %}
-        <div class="columns is-centered">
-            <div class="column is-11">
-                <h1 class="title has-text-centered">รายละเอียดขอรับบริการพัฒนา Software</h1>
-                <div class="box">
+    <section class="section software-detail-page" id="app">
+        <div class="container software-detail-shell">
+            {% include "messages.html" %}
+            <header class="software-detail-hero">
+                <div class="software-detail-hero-copy">
+                    <p class="software-detail-eyebrow">SOFTWARE SERVICE DESK · IT ADMIN</p>
+                    <h1>รายละเอียดคำขอรับบริการพัฒนา Software</h1>
+                    <p>ตรวจสอบข้อมูล ประเมินความสำคัญ และจัดการความคืบหน้าของคำขอ</p>
+                </div>
+                <div class="software-detail-status">
+                    <span class="tag {{ detail.status_color }} is-medium">{{ detail.status }}</span>
+                </div>
+            </header>
+            <div class="software-detail-card">
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <input type="hidden" name="status" id="status">
@@ -680,7 +751,6 @@
                             </div>
                         </div>
                     </form>
-                </div>
             </div>
         </div>
     </section>

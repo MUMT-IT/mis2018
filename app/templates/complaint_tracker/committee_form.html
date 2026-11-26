@@ -3,32 +3,102 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        .committee-page { min-height: calc(100vh - 3.25rem); background: #edf3fa; }
+        .committee-page > .container { max-width: 1100px; }
+        .committee-hero {
+            margin-bottom: 1rem;
+            padding: 1.4rem 1.6rem;
+            color: #fff;
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-radius: 16px;
+            box-shadow: 0 10px 26px rgba(23, 59, 118, .13);
+        }
+        .committee-hero__eyebrow {
+            margin-bottom: .3rem;
+            color: #ffe08a;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+        }
+        .committee-hero .title { margin-bottom: .35rem; color: #fff; }
+        .committee-hero__description { margin: 0; color: rgba(255, 255, 255, .82); }
+        .committee-card {
+            padding: clamp(1rem, 3vw, 1.75rem);
+            border: 1px solid #e1e8f0;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(29, 51, 84, .06);
+        }
+        .committee-card .label { color: #334155; font-weight: 600; }
+        .committee-card .input,
+        .committee-card .select2-container--default .select2-selection--single {
+            min-height: 2.7rem;
+            border-color: #cbd5e1;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+        .committee-card .select2-container { width: 100% !important; }
+        .committee-card .field-body { gap: 1rem; }
+        .committee-group {
+            margin-bottom: 1rem;
+            padding: 1.15rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+        }
+        .committee-group__title {
+            margin-bottom: 1rem;
+            color: #1e3a8a;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .committee-group .field-body + .field-body {
+            margin-top: .75rem;
+            padding-top: .75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .committee-group .field.has-addons { margin-bottom: 0; }
+        .committee-form-actions {
+            justify-content: flex-end;
+            gap: .65rem;
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid #e8edf4;
+        }
+        .committee-form-actions .button { min-width: 8rem; border-radius: 9px; }
+        @media (max-width: 768px) {
+            .committee-page { padding: 1rem .75rem 2rem; }
+            .committee-hero { padding: 1.15rem; }
+            .committee-card { padding: 1rem; }
+            .committee-group .field-body { display: block; }
+            .committee-form-actions { flex-direction: column-reverse; }
+            .committee-form-actions .button { width: 100%; }
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "nav.html" %}
-    <section class="section">
+    <section class="section committee-page">
         <div class="container">
             {% include 'messages.html' %}
+            <header class="committee-hero">
+                <p class="committee-hero__eyebrow">COMPLAINT TRACKER</p>
+                <h1 class="title">ข้อมูลคณะกรรมการ/ผู้ตรวจรับพัสดุ</h1>
+                <p class="committee-hero__description">จัดการรายชื่อและตำแหน่งคณะกรรมการที่เกี่ยวข้องกับการอนุมัติ</p>
+            </header>
             <div class="columns is-centered">
-                <div class="column is-three-fifths">
-                    <h1 class="title has-text-centered">อัปเดตข้อมูล</h1>
-                    <div class="box">
-                    <h5 class="title is-size-5">ข้อมูลคณะกรรมการ/ผู้ตรวจรับพัสดุ</h5>
-                    <hr>
+                <div class="column">
+                    <div class="box committee-card">
                         <form method="post">
                             {{ form.hidden_tag() }}
                             <div id="committee-members">
                                 {% include 'complaint_tracker/committee_members.html' %}
                             </div>
-                            <div class="field" style="margin-top: 1em">
-                                <div class="buttons is-centered">
-                                    <a class="button is-light" href="{{ url_for('comp_tracker.edit_repair_approval',
+                            <div class="buttons committee-form-actions">
+                                <a class="button is-light" href="{{ url_for('comp_tracker.edit_repair_approval',
                                         repair_approval_id=repair_approval_id, temp=temp, menu=menu, tab=tab) }}"
-                                    >
-                                        ย้อนกลับ
-                                    </a>
-                                    <input class="button is-success" type="submit" value="บันทึก">
-                                </div>
+                                >ย้อนกลับ</a>
+                                <input class="button is-success" type="submit" value="บันทึก">
                             </div>
                         </form>
                     </div>

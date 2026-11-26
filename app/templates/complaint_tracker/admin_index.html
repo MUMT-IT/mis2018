@@ -4,11 +4,177 @@
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
     <style>
+        html,
+        body {
+            background: #edf3fa;
+        }
+
+        .complaint-admin {
+            background: #edf3fa;
+            min-height: calc(100vh - 3.25rem);
+            padding: 1.5rem 1rem 3rem;
+        }
+
+        .complaint-admin .container {
+            max-width: 1600px;
+            width: 100%;
+        }
+
+        .complaint-admin-hero {
+            align-items: center;
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-radius: 18px;
+            box-shadow: 0 10px 26px rgba(23, 59, 118, 0.14);
+            color: #fff;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .complaint-admin-hero__eyebrow {
+            color: #ffe08a;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.25rem;
+        }
+
+        .complaint-admin-hero .title {
+            color: #fff;
+            font-size: clamp(1.35rem, 2.8vw, 1.8rem);
+            margin: 0;
+        }
+
+        .complaint-admin-hero__summary {
+            background: #fff;
+            border: 0;
+            color: #173b76;
+            flex: 0 0 auto;
+            font-weight: 700;
+        }
+
+        .complaint-admin-filter-card,
+        .complaint-admin-list-card {
+            background: #fff;
+            border: 1px solid #e3e9f1;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(29, 51, 84, 0.05);
+        }
+
+        .complaint-admin-filter-card {
+            margin-bottom: 1rem;
+            padding: 0.9rem 1.1rem;
+        }
+
+        .complaint-admin-filter-card .field {
+            margin-bottom: 0;
+        }
+
+        .complaint-admin-filter-card .label {
+            color: #52647f;
+            font-size: 0.85rem;
+        }
+
+        .complaint-admin-tabs {
+            margin: 0 !important;
+            overflow-x: auto;
+            padding: 0.75rem 1rem 0;
+        }
+
+        .complaint-admin-tabs ul {
+            border-bottom-color: #e4eaf2;
+            flex-wrap: nowrap;
+            min-width: max-content;
+        }
+
+        .complaint-admin-tabs li a {
+            border-bottom-width: 2px;
+            color: #52647f;
+            font-weight: 600;
+            gap: 0.35rem;
+            padding: 0.65rem 0.85rem;
+        }
+
+        .complaint-admin-tabs li.is-active a {
+            background: #f2f6fc;
+            border-color: #e4eaf2 #e4eaf2 #245b9e;
+            color: #173b76;
+        }
+
+        .complaint-admin-table-wrap {
+            overflow-x: auto;
+            padding: 0.75rem 1rem 1rem;
+        }
+
+        #records {
+            min-width: 1250px;
+        }
+
+        #records thead th {
+            background: #eef3fa;
+            border-bottom: 2px solid #d6e0ed;
+            color: #344a69;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        #records tbody td {
+            border-bottom: 1px solid #e8edf4;
+            color: #394960;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            vertical-align: middle;
+        }
+
+        #records tbody tr:nth-child(even) {
+            background: #f8fafd;
+        }
+
+        #records tbody tr:hover {
+            background: #eef5ff;
+        }
+
         .complaint-admin .issue-tag {
             background: #fff4d6;
             color: #92400e;
             border: 1px solid #f5d58a;
             font-weight: 600;
+        }
+
+        @media screen and (max-width: 768px) {
+            .complaint-admin {
+                padding: 1rem 0.6rem 2rem;
+            }
+
+            .complaint-admin .container {
+                padding: 0;
+            }
+
+            .complaint-admin-hero {
+                align-items: stretch;
+                border-radius: 14px;
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .complaint-admin-hero__summary {
+                width: 100%;
+            }
+
+            .complaint-admin-filter-card {
+                padding: 0.8rem;
+            }
+
+            .complaint-admin-tabs {
+                padding: 0.5rem 0.5rem 0;
+            }
+
+            .complaint-admin-table-wrap {
+                padding: 0.5rem;
+            }
         }
     </style>
 {% endblock %}
@@ -17,18 +183,17 @@
     <section class="section complaint-admin">
         <div class="container">
             {% include 'messages.html' %}
-            <div class="columns is-centered">
-                <div class="column">
-                    {% include 'complaint_tracker/title.html' %}
-                    <div class="buttons is-centered">
-                        <a href="{{ url_for('comp_tracker.admin_record_complaint_summary', menu='all') }}" class="button is-info">
-                            <span class="icon">
-                                <i class="fas fa-database"></i>
-                            </span>
-                            <span class="is-size-5">สถิติการแจ้งปัญหาหรือร้องเรียน</span>
-                        </a>
-                    </div>
-                    <form method="get" action="{{ url_for('comp_tracker.admin_index') }}" class="field is-grouped is-align-items-center mb-4">
+            <header class="complaint-admin-hero">
+                <div>
+                    <p class="complaint-admin-hero__eyebrow">COMPLAINT TRACKER · ADMIN</p>
+                    <h1 class="title">ระบบรับแจ้งปัญหาหรือข้อร้องเรียน</h1>
+                </div>
+                <a href="{{ url_for('comp_tracker.admin_record_complaint_summary', menu='all') }}" class="button complaint-admin-hero__summary">
+                    <span class="icon"><i class="fas fa-chart-pie"></i></span>
+                    <span>สถิติการแจ้งปัญหา</span>
+                </a>
+            </header>
+            <form method="get" action="{{ url_for('comp_tracker.admin_index') }}" class="complaint-admin-filter-card">
                         {% if tab %}
                             <input type="hidden" name="tab" value="{{ tab }}">
                         {% endif %}
@@ -44,9 +209,10 @@
                                 </div>
                             </div>
                         </div>
-                    </form>
+            </form>
                     {% set tab_organization = organization if tab != 'new' or organization != 'all' else none %}
-                    <div class="tabs is-boxed">
+            <section class="complaint-admin-list-card" aria-label="รายการแจ้งปัญหาและข้อร้องเรียน">
+                    <div class="tabs complaint-admin-tabs">
                         <ul>
                             <li {% if tab == 'new' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('comp_tracker.admin_index', tab='new') }}">
@@ -101,13 +267,14 @@
                     <form method="post" action="{{ url_for('comp_tracker.admin_index', tab=tab, organization=organization) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {#                        <input type="submit" value="Print" class="button is-success">#}
-                        <br/>
-                        <table id="records" class="table is-striped is-fullwidth">
+                        <div class="complaint-admin-table-wrap">
+                        <table id="records" class="table is-fullwidth is-hoverable">
                             <thead>
 {#                            <th></th>#}
+                                <tr>
                                 <th style="width: 1.5em">ID</th>
                                 <th>รายละเอียด</th>
-ฃ                               <th>หัวข้อ</th>
+                                <th>หัวข้อ</th>
                                 <th>ประเภท</th>
 {#                                <th>ประเภทครุภัณฑ์</th>#}
                                 <th>Tag</th>
@@ -118,6 +285,7 @@
                                 <th>สถานะ</th>
                                 <th style="width: 3em">ใบแจ้งซ่อม/ใบอนุมัติซ่อม</th>
                                 <th style="width: 2.5em">ตรวจสอบ</th>
+                                </tr>
                             </thead>
                                 <tbody>
                                 {% if records %}
@@ -265,9 +433,9 @@
                                 {% endif %}
                             </tbody>
                         </table>
+                        </div>
                     </form>
-                </div>
-            </div>
+            </section>
         </div>
     </section>
 {% endblock %}
@@ -277,6 +445,15 @@
         $(document).ready(function () {
             $('#records').DataTable({
                 order: [[0, 'desc']],
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีรายการ',
+                    zeroRecords: 'ไม่พบรายการที่ตรงกัน',
+                    emptyTable: 'ไม่มีรายการในหมวดนี้',
+                    paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+                }
             })
         });
     </script>

@@ -2,15 +2,87 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        .repair-approval-edit-page {
+            min-height: calc(100vh - 3.25rem);
+            background: #edf3fa;
+        }
+        .repair-approval-edit-page > .container { max-width: 980px; }
+        .repair-approval-edit-form {
+            padding: clamp(1.25rem, 3vw, 2.25rem);
+            border: 1px solid #e1e8f0;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(29, 51, 84, .08);
+        }
+        .repair-approval-edit-header {
+            margin-bottom: 1rem;
+            padding: 1.4rem 1.6rem;
+            color: #fff;
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-radius: 16px;
+            box-shadow: 0 10px 26px rgba(23, 59, 118, .13);
+        }
+        .repair-approval-edit-eyebrow {
+            margin-bottom: .35rem;
+            color: #ffe08a;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+        }
+        .repair-approval-edit-header .title { margin-bottom: .35rem; color: #fff; }
+        .repair-approval-edit-description { margin: 0; color: rgba(255, 255, 255, .82); }
+        .repair-approval-edit-form .field { min-width: 0; margin-bottom: 1.1rem; }
+        .repair-approval-edit-form .field-body { gap: 1rem; margin: .5rem 0 1rem; }
+        .repair-approval-edit-form .purchase-budget-row {
+            display: grid;
+            grid-template-columns: minmax(270px, 1fr) minmax(250px, 1.4fr);
+        }
+        .repair-approval-edit-form .purchase-budget-row .label { white-space: nowrap; }
+        .repair-approval-edit-form .label { color: #334155; font-weight: 600; }
+        .repair-approval-edit-form .input,
+        .repair-approval-edit-form .select select,
+        .repair-approval-edit-form .select2-container--default .select2-selection--single {
+            min-height: 2.75rem;
+            border-color: #cbd5e1;
+            border-radius: 9px;
+            box-shadow: none;
+        }
+        .repair-approval-edit-form .input:focus,
+        .repair-approval-edit-form .select select:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
+        }
+        .repair-approval-edit-form .select,
+        .repair-approval-edit-form .select select { width: 100%; }
+        .repair-approval-edit-form .select2-container { width: 100% !important; }
+        .repair-approval-edit-actions {
+            justify-content: flex-end;
+            margin-top: 1.75rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid #e8edf4;
+        }
+        .repair-approval-edit-actions .button { min-width: 8.5rem; border-radius: 9px; }
+        @media (max-width: 768px) {
+            .repair-approval-edit-page { padding: 1rem .75rem 2rem; }
+            .repair-approval-edit-form .field-body { display: block; }
+            .repair-approval-edit-actions { flex-direction: column-reverse; }
+            .repair-approval-edit-actions .button { width: 100%; }
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
-    <section class="section">
-        {% include "messages.html" %}
-        <div class="columns is-centered">
-            <div class="column is-three-fifths">
-                <form method="post" class="box">
+    <section class="section repair-approval-edit-page">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns is-centered">
+                <div class="column is-10-desktop is-11-tablet">
+                <header class="repair-approval-edit-header">
+                    <p class="repair-approval-edit-eyebrow">COMPLAINT TRACKER</p>
+                    <h1 class="title">อัปเดตข้อมูลใบอนุมัติหลักการซ่อม</h1>
+                    <p class="repair-approval-edit-description">กรอกข้อมูลประกอบการขออนุมัติให้ครบถ้วนก่อนบันทึก</p>
+                </header>
+                <form method="post" class="box repair-approval-edit-form">
                     {{ form.hidden_tag() }}
-                    <h1 class="title has-text-centered">อัปเดตข้อมูล</h1>
                     <div class="field">
                         <label class="label">
                             วงเงินที่ซื้อหรือจ้าง
@@ -20,7 +92,7 @@
                             {{ form.price(class='input', required=true) }}
                         </div>
                     </div>
-                    <div class="field-body">
+                    <div class="field-body purchase-budget-row">
                         <div class="field">
                             <label class="label">
                                 ประเภทการขอเบิกจ่ายเงิน
@@ -30,7 +102,7 @@
                                 {{ form.purchase_type(required=true) }}
                             </div>
                         </div>
-                        <div class="field" style='width:100%'>
+                        <div class="field">
                             <label class="label">
                                 ประจำปีงบประมาณ
                                 <span class="has-text-danger">*</span>
@@ -89,7 +161,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="buttons is-centered">
+                    <div class="buttons repair-approval-edit-actions">
                         <input type="submit" class="button is-success"
                                 {% if repair_approval.repair_type == 'เร่งด่วน' %}
                                     value="บันทึก"
@@ -99,17 +171,18 @@
                         >
                         {% if temp == 'index' %}
                             <a href="{{ url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu) }}"
-                               class="button is-danger">
+                               class="button is-light">
                                 ยกเลิก
                             </a>
                         {% else %}
                             <a href="{{ url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id) }}"
-                               class="button is-danger">
+                               class="button is-light">
                                 ยกเลิก
                             </a>
                         {% endif %}
                     </div>
                 </form>
+                </div>
             </div>
         </div>
     </section>

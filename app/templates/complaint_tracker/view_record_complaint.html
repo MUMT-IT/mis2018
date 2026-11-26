@@ -1,372 +1,445 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block title %}MUMT-MIS: รายละเอียดเรื่องร้องเรียน{% endblock %}
 
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+    <style>
+        .complaint-detail-page {
+            background: #f6f8fc;
+            min-height: calc(100vh - 3.25rem);
+            padding: 1.75rem 1rem 3rem;
+        }
+
+        .complaint-detail-page .container {
+            max-width: 1120px;
+        }
+
+        .complaint-detail-hero {
+            background: linear-gradient(125deg, #173b76, #245b9e);
+            border-radius: 20px;
+            box-shadow: 0 12px 28px rgba(23, 59, 118, 0.16);
+            color: #fff;
+            margin-bottom: 1.25rem;
+            padding: 1.4rem 1.65rem;
+        }
+
+        .complaint-detail-hero__eyebrow {
+            color: #ffe08a;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.3rem;
+        }
+
+        .complaint-detail-hero .title {
+            color: #fff;
+            font-size: clamp(1.4rem, 3vw, 1.85rem);
+            margin-bottom: 0.35rem;
+        }
+
+        .complaint-detail-hero__meta {
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.92rem;
+            margin: 0;
+        }
+
+        .complaint-detail-panel {
+            background: #fff;
+            border: 1px solid #e5eaf2;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(29, 51, 84, 0.05);
+            margin-bottom: 1.1rem;
+            overflow: hidden;
+        }
+
+        .complaint-detail-panel__heading {
+            align-items: center;
+            background: #fff;
+            border-bottom: 1px solid #edf0f5;
+            display: flex;
+            gap: 0.65rem;
+            padding: 1rem 1.2rem;
+        }
+
+        .complaint-detail-panel__heading .icon {
+            color: #2f6fa8;
+        }
+
+        .complaint-detail-panel__heading .title {
+            color: #243b61;
+            font-size: 1.08rem;
+            margin: 0;
+        }
+
+        .complaint-detail-panel__content {
+            padding: 1.2rem;
+        }
+
+        .complaint-status-wrap {
+            overflow-x: auto;
+            padding: 1.5rem 1.2rem 1.25rem;
+        }
+
+        .complaint-status-steps {
+            min-width: 680px;
+        }
+
+        .complaint-status-steps .steps-content {
+            color: #64738a;
+        }
+
+        .complaint-status-steps .is-active .steps-content {
+            color: #243b61;
+        }
+
+        .complaint-status-steps .steps-marker {
+            background: #dce5f2;
+            color: #52647f;
+        }
+
+        .complaint-status-steps .is-active .steps-marker {
+            background: #2f6fa8;
+            color: #fff;
+        }
+
+        .complaint-detail-grid {
+            align-items: start;
+            display: grid;
+            gap: 0.75rem 1.5rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .complaint-detail-field {
+            min-width: 0;
+        }
+
+        .complaint-detail-field--wide {
+            grid-column: 1 / -1;
+        }
+
+        .complaint-detail-field--compact {
+            align-self: start;
+            justify-self: start;
+        }
+
+        .complaint-detail-field .label {
+            color: #68778e;
+            font-size: 0.82rem;
+            margin: 0 0 0.25rem;
+        }
+
+        .complaint-detail-field__value {
+            color: #263a57;
+            line-height: 1.65;
+            overflow-wrap: anywhere;
+            white-space: pre-line;
+        }
+
+        .complaint-detail-field--compact .complaint-detail-field__value {
+            display: flex;
+            line-height: 1.2;
+            margin: 0;
+        }
+
+        .complaint-equipment-wrap {
+            border: 1px solid #e7ecf3;
+            border-radius: 10px;
+            margin-top: 0.35rem;
+            overflow-x: auto;
+        }
+
+        .complaint-equipment-table {
+            margin-bottom: 0 !important;
+            min-width: 530px;
+        }
+
+        .complaint-equipment-table td:first-child {
+            color: #68778e;
+            font-weight: 600;
+            width: 40%;
+        }
+
+        .complaint-contact-card {
+            background: #f7f9fc;
+            border: 1px solid #e7ecf3;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .complaint-report + .complaint-report {
+            border-top: 1px solid #edf0f5;
+            margin-top: 1rem;
+            padding-top: 1rem;
+        }
+
+        .complaint-report__name {
+            color: #243b61;
+        }
+
+        .complaint-report__date {
+            color: #8290a3;
+        }
+
+        .complaint-detail-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.25rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .complaint-detail-page {
+                padding: 1rem 0.75rem 2rem;
+            }
+
+            .complaint-detail-hero {
+                border-radius: 16px;
+                padding: 1.2rem;
+            }
+
+            .complaint-detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .complaint-detail-field--wide {
+                grid-column: auto;
+            }
+
+            .complaint-detail-panel__content {
+                padding: 1rem;
+            }
+        }
+    </style>
 {% endblock %}
+
 {% block page_content %}
-    {% include "nav.html" %}
-    <section class="section">
+    {% include "complaint_tracker/index_nav.html" %}
+    <section class="section complaint-detail-page">
         <div class="container">
             {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
-                    <h1 class="title has-text-centered">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
-                    <ul class="steps">
-                        <li class="steps-segment
-                            {% if not record.closed_at and not record.status %}
-                                is-active
-                            {% endif %}
-                        ">
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fa fa-ban"></i>
-                                </span>
-                            </span>
+
+            <header class="complaint-detail-hero">
+                <p class="complaint-detail-hero__eyebrow">COMPLAINT TRACKER</p>
+                <h1 class="title">รายละเอียดเรื่องที่แจ้ง</h1>
+                <p class="complaint-detail-hero__meta">ส่งคำขอเมื่อ {{ record.created_at|localdatetime }}</p>
+            </header>
+
+            <section class="complaint-detail-panel" aria-labelledby="complaint-status-title">
+                <div class="complaint-detail-panel__heading">
+                    <span class="icon"><i class="fas fa-route"></i></span>
+                    <h2 id="complaint-status-title" class="title">ความคืบหน้าการดำเนินงาน</h2>
+                </div>
+                <div class="complaint-status-wrap">
+                    <ul class="steps complaint-status-steps">
+                        <li class="steps-segment {% if not record.closed_at and not record.status %}is-active{% endif %}">
+                            <span class="steps-marker"><span class="icon"><i class="fa fa-inbox"></i></span></span>
                             <div class="steps-content">
-                                <p class="is-size-5">ยังไม่ดำเนินการ</p>
-                                <p>ส่งคำขอ {{ record.created_at|localdatetime }}</p>
+                                <p class="is-size-6 has-text-weight-semibold">รับแจ้งแล้ว</p>
+                                <p>{{ record.created_at|localdatetime }}</p>
                             </div>
                         </li>
                         {% for status in statuses|sort(attribute='no') %}
                             {% if status.code != 'cancelled' %}
-                                <li class="steps-segment
-                                    {% if not record.closed_at and record.status_id == status.id %}
-                                        is-active
-                                    {% endif %}
-                                ">
-                                    <span class="steps-marker">
-                                        <span class="icon">
-                                            {{ status.icon|safe }}
-                                        </span>
-                                    </span>
+                                <li class="steps-segment {% if not record.closed_at and record.status_id == status.id %}is-active{% endif %}">
+                                    <span class="steps-marker"><span class="icon">{{ status.icon|safe }}</span></span>
                                     <div class="steps-content">
-                                        <p class="is-size-5">{{ status.status }}</p>
-                                        <p>
-                                            {% if record.record_status_updates %}
-                                                {% for rec in record.record_status_updates %}
-                                                    {% if rec.status_id == status.id %}
-                                                        {{ rec.updated_at|localdatetime }}
-                                                    {% endif %}
-                                                {% endfor %}
-                                            {% endif %}
-                                        </p>
+                                        <p class="is-size-6 has-text-weight-semibold">{{ status.status }}</p>
+                                        {% for rec in record.record_status_updates %}
+                                            {% if rec.status_id == status.id %}<p>{{ rec.updated_at|localdatetime }}</p>{% endif %}
+                                        {% endfor %}
                                     </div>
                                 </li>
                             {% endif %}
                         {% endfor %}
-                        <li class="steps-segment
-                            {% if record.closed_at %}
-                                is-active
-                            {% endif %}
-                        ">
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fa fa-lock"></i>
-                                </span>
-                            </span>
+                        <li class="steps-segment {% if record.closed_at %}is-active{% endif %}">
+                            <span class="steps-marker"><span class="icon"><i class="fa fa-lock"></i></span></span>
                             <div class="steps-content">
-                                <p class="is-size-5">ปิดคำขอ</p>
-                                {% if record.closed_at %}
-                                    <p>{{ record.closed_at|localdatetime }}</p>
-                                {% endif %}
+                                <p class="is-size-6 has-text-weight-semibold">ปิดคำขอ</p>
+                                {% if record.closed_at %}<p>{{ record.closed_at|localdatetime }}</p>{% endif %}
                             </div>
                         </li>
                     </ul>
-{#                    {% if record.closed_at %}#}
-{#                        <h1 class="subtitle has-text-centered">ปิดเมื่อ {{ record.closed_at|localdatetime }}</h1>#}
-{#                    {% endif %}#}
-                    <h5 class="title is-size-4">รายละเอียดข้อมูลทั้งหมด</h5>
-                    <div class="card" style="background-color: white">
-                        <div class="card-header">
-                            <div class="card-header-title">
-                                รายละเอียดข้อมูล
-                            </div>
+                </div>
+            </section>
+
+            <section class="complaint-detail-panel" aria-labelledby="complaint-info-title">
+                <div class="complaint-detail-panel__heading">
+                    <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                    <h2 id="complaint-info-title" class="title">ข้อมูลคำร้อง</h2>
+                </div>
+                <div class="complaint-detail-panel__content">
+                    <div class="complaint-detail-grid">
+                        <div class="complaint-detail-field">
+                            <label class="label">หมวด</label>
+                            <div class="complaint-detail-field__value">{{ record.topic.category }}</div>
                         </div>
-                        <div class="card-content">
-                            <div class="field">
-                                <label class="label">หมวด</label>
-                                <div class="control">
-                                    {{ record.topic.category }}
+                        <div class="complaint-detail-field">
+                            <label class="label">หัวข้อ</label>
+                            <div class="complaint-detail-field__value">{{ record.topic.topic }}</div>
+                        </div>
+                        {% if record.subtopic %}
+                            <div class="complaint-detail-field">
+                                <label class="label">{% if record.topic.code == 'general' %}ด้านที่เกี่ยวข้อง{% else %}บริการ{% endif %}</label>
+                                <div class="complaint-detail-field__value">{{ record.subtopic }}</div>
+                            </div>
+                        {% elif record.room or record.rooms %}
+                            <div class="complaint-detail-field">
+                                <label class="label">ห้อง</label>
+                                <div class="complaint-detail-field__value">
+                                    {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
                                 </div>
                             </div>
-                            <div class="field">
-                                <label class="label">หัวข้อ</label>
-                                <div class="control">
-                                    {{ record.topic.topic }}
-                                </div>
+                        {% elif record.procurement_location %}
+                            <div class="complaint-detail-field">
+                                <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
+                                <div class="complaint-detail-field__value">{{ record.procurement_location }}</div>
                             </div>
-                            {% if record.subtopic %}
-                                <div class="field">
-                                    <label class="label">
-                                        {% if record.topic.code == 'general' %}
-                                            ด้านที่เกี่ยวข้อง
-                                        {% else %}
-                                            บริการ
-                                        {% endif %}
-                                    </label>
-                                    <div class="control">
-                                        {{ record.subtopic }}
-                                    </div>
-                                </div>
-                            {% elif record.room or record.rooms %}
-                                <div class="field">
-                                    <label class="label">ห้อง</label>
-                                    <div class="control">
-                                        {% if record.room %}
-                                            {{ record.room }}
-                                        {% else %}
-                                            {% for room in record.rooms %}
-                                                {{ room }}
-                                            {% endfor %}
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% elif record.procurement_location %}
-                                <div class="field">
-                                    <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
-                                    <div class="control">
-                                        {{ record.procurement_location }}
-                                    </div>
-                                </div>
-                            {% endif %}
-                            {% if record.procurements %}
-                                <div class="field">
-                                    <label class="label">รายละเอียดครุภัณฑ์</label>
-                                    <table class="table is-striped is-fullwidth">
-                                        <thed>
-                                        </thed>
+                        {% endif %}
+
+                        {% if record.procurements %}
+                            <div class="complaint-detail-field complaint-detail-field--wide">
+                                <label class="label">รายละเอียดครุภัณฑ์</label>
+                                <div class="complaint-equipment-wrap">
+                                    <table class="table is-striped is-fullwidth complaint-equipment-table">
                                         <tbody>
                                         {% for procurement in record.procurements %}
-                                            <tr>
-                                                <td><label class="label">ชื่อครุภัณฑ์</label></td>
-                                                <td>{{ procurement.name }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">หมวดหมู่/ประเภท</label></td>
-                                                <td>{{ procurement.category }}</td>
-                                            </tr>
-                                            {% for record in procurement.records %}
-                                                <tr>
-                                                    <td><label class="label">สถานที่</label></td>
-                                                    <td>{{ record.location or 'ไม่ระบุ' }}</td>
-                                                </tr>
+                                            <tr><td colspan="2" class="has-background-light has-text-weight-semibold">รายการที่ {{ loop.index }}</td></tr>
+                                            <tr><td>ชื่อครุภัณฑ์</td><td>{{ procurement.name }}</td></tr>
+                                            <tr><td>หมวดหมู่/ประเภท</td><td>{{ procurement.category }}</td></tr>
+                                            {% for location_record in procurement.records %}
+                                                <tr><td>สถานที่</td><td>{{ location_record.location or 'ไม่ระบุ' }}</td></tr>
                                             {% endfor %}
-                                            <tr>
-                                                <td><label class="label">เลขครุภัณฑ์</label></td>
-                                                <td>{{ procurement.procurement_no }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
-                                                <td>{{ procurement.document_no }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">Inventory Number/ERP</label></td>
-                                                <td>{{ procurement.erp_code }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">Cost Center</label></td>
-                                                <td>{{ procurement.cost_center or '' }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">ผู้ใช้งานหลัก</label></td>
-                                                {% if procurement.computer_info %}
-                                                    <td>{{ procurement.computer_info.user.fullname }}</td>
-                                                {% else %}
-                                                    <td>ไม่ระบุ</td>
-                                                {% endif %}
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
-                                                <td>{{ procurement.org }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">ปีงบประมาณ</label></td>
-                                                <td>{{ procurement.budget_year }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">วันที่เริ่มประกัน</label></td>
-                                                <td>{{ procurement.start_guarantee_date }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
-                                                <td>{{ procurement.end_guarantee_date }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><label class="label">สภาพของสินทรัพย์</label></td>
-                                                <td>{{ procurement.available }}</td>
-                                            </tr>
+                                            <tr><td>เลขครุภัณฑ์</td><td>{{ procurement.procurement_no }}</td></tr>
+                                            <tr><td>เอกสารสั่งซื้อเลขที่</td><td>{{ procurement.document_no }}</td></tr>
+                                            <tr><td>Inventory Number/ERP</td><td>{{ procurement.erp_code }}</td></tr>
+                                            <tr><td>Cost Center</td><td>{{ procurement.cost_center or 'ไม่ระบุ' }}</td></tr>
+                                            <tr><td>ผู้ใช้งานหลัก</td><td>{% if procurement.computer_info %}{{ procurement.computer_info.user.fullname }}{% else %}ไม่ระบุ{% endif %}</td></tr>
+                                            <tr><td>ภาควิชา/หน่วยงาน</td><td>{{ procurement.org }}</td></tr>
+                                            <tr><td>ปีงบประมาณ</td><td>{{ procurement.budget_year }}</td></tr>
+                                            <tr><td>วันที่เริ่มประกัน</td><td>{{ procurement.start_guarantee_date }}</td></tr>
+                                            <tr><td>วันที่สิ้นสุดประกัน</td><td>{{ procurement.end_guarantee_date }}</td></tr>
+                                            <tr><td>สภาพของสินทรัพย์</td><td>{{ procurement.available }}</td></tr>
                                         {% endfor %}
                                         </tbody>
                                     </table>
                                 </div>
-                            {% endif %}
-                            {% if record.organization %}
-                                <div class="field">
-                                    <label class="label">หน่วยงานที่รับผิดชอบ</label>
-                                    <div class="control">
-                                        {{ record.organization }}
-                                    </div>
-                                </div>
-                            {% endif %}
-                            <div class="field" style="margin-top: .8em">
-                                <label class="label">สถานะ</label>
-                                <div class="control">
-                                    {% if record.status %}
-                                        <span class="tag {{ record.status.color }}">
-                                        <span class="icon">{{ record.status.icon|safe }}</span>
-                                        <span>{{ record.status }}</span>
-                                    </span>
-                                    {% else %}
-                                        <span class="tag is-danger">
-                                        <span class="icon"><i class="fas fa-times"></i></span>
-                                        <span>ยังไม่ดำเนินการ</span>
-                                    </span>
-                                    {% endif %}
-                                </div>
                             </div>
-                            {% if record.topic.code == 'runied' %}
-                                <div class="field">
-                                    <label class="label">รูปแบบการซ่อม</label>
-                                    <div class="control">
-                                        {{ record.repair_method or 'ไม่ระบุ' }}
-                                    </div>
-                                </div>
-                            {% endif %}
-                            {% if record.deadline %}
-                                <div class="field">
-                                    <label class="label">วันที่คาดว่าจะเสร็จ</label>
-                                    <div class="control">
-                                        {{ record.deadline|localdatetime }}
-                                    </div>
-                                </div>
-                            {% endif %}
-                            <div class="field">
-                                <label class="label">รายละเอียด</label>
-                                <div class="control">
-                                    {{ record.desc }}
-                                </div>
+                        {% endif %}
+
+                        {% if record.organization %}
+                            <div class="complaint-detail-field">
+                                <label class="label">หน่วยงานที่รับผิดชอบ</label>
+                                <div class="complaint-detail-field__value">{{ record.organization }}</div>
                             </div>
-                            {% if record.url %}
-                                <div class="field">
-                                    <label class="label">ไฟล์หลักฐาน</label>
-                                    <div class="control">
-                                        <a class="button is-link is-outlined" href="{{ file_url }}">คลิกเพื่อดู</a>
-                                    </div>
-                                </div>
-                            {% endif %}
-                            <div class="field">
-                                <label class="label">ช่องทางรับเรื่อง</label>
-                                <div class="control">
-                                    {{ record.channel_receive or 'ไม่ระบุ' }}
-                                </div>
-                            </div>
-                            {% if record.participants %}
-                                <div class="field">
-                                    <label class="label">ผู้เกี่ยวข้อง</label>
-                                    <div class="control">
-                                        {% for participant in record.participants %}
-                                            <span class="tag is-rounded is-info is-light">
-                                                {{ participant.fullname }}
-                                            </span>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            {% endif %}
-                            {% if record.fl_name %}
-                                <div class="field">
-                                    <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
-                                </div>
-                                <div class="card">
-                                    <div class="card-content">
-                                        <p style="margin-bottom: .6em">
-                                            <b>ชื่อ-นามสกุล :</b>
-                                            {{ record.fl_name }}
-                                        </p>
-                                        {% if record.telephone %}
-                                            <p style="margin-bottom: .6em">
-                                                <b>เบอร์โทรศัพท์ :</b>
-                                                {{ record.telephone }}
-                                            </p>
-                                        {% endif %}
-                                        {% if record.email %}
-                                            <p style="margin-bottom: .6em">
-                                                <b>อีเมล :</b>
-                                                {{ record.email }}
-                                            </p>
-                                        {% endif %}
-                                        <span class="icon"><i class="fas fa-info-circle"></i></span>
-                                        <span>
-                                        {% if record.is_contact %}
-                                            <b>ต้องการให้ติดต่อกลับ</b>
-                                        {% else %}
-                                            <b>ไม่ต้องการให้ติดต่อกลับ</b>
-                                        {% endif %}
-                                    </span>
-                                    </div>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <h5 class="title is-size-4" style="margin-top: 1em">รายงานผลการดำเนินงานของ Admin/ผู้เกี่ยวข้อง</h5>
-                    <div class="card" style="background-color: white">
-                        <div class="card-header">
-                            <div class="card-header-title">
-                                รายงานผลการดำเนินงาน
+                        {% endif %}
+                        <div class="complaint-detail-field complaint-detail-field--compact">
+                            <label class="label">สถานะ</label>
+                            <div class="complaint-detail-field__value">
+                                {% if record.status %}
+                                    <span class="tag {{ record.status.color }}"><span class="icon">{{ record.status.icon|safe }}</span><span>{{ record.status }}</span></span>
+                                {% else %}
+                                    <span class="tag is-danger"><span class="icon"><i class="fas fa-times"></i></span><span>ยังไม่ดำเนินการ</span></span>
+                                {% endif %}
                             </div>
                         </div>
-                        <div class="card-content">
-                            <div class="field">
-                                {% for report in record.reports %}
-                                    <article class="media">
-                                        <div class="media-content">
-                                            <div class="content">
-                                                <p>
-                                                    <strong>{{ report.reporter.admin.fullname }}</strong>
-                                                    - <small>{{ report.report_datetime|localdatetime }}</small>
-                                                    <br>
-                                                    {{ report.report_comment }}
-                                                    <br>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </article>
-                                {% endfor %}
-                                {% for coordinator in record.coordinators %}
-                                    {% if coordinator.submitted_datetime %}
-                                        <article class="media">
-                                            <div class="media-content">
-                                                <div class="content">
-                                                    <p>
-                                                        <strong>{{ coordinator.coordinator.fullname }}</strong>
-                                                        -
-                                                        <small>{{ coordinator.submitted_datetime|localdatetime }}</small>
-                                                        <br>
-                                                        {{ coordinator.note }}
-                                                        <br>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </article>
-                                    {% endif %}
-                                {% endfor %}
+                        {% if record.topic.code == 'runied' %}
+                            <div class="complaint-detail-field">
+                                <label class="label">รูปแบบการซ่อม</label>
+                                <div class="complaint-detail-field__value">{{ record.repair_method or 'ไม่ระบุ' }}</div>
                             </div>
+                        {% endif %}
+                        {% if record.deadline %}
+                            <div class="complaint-detail-field">
+                                <label class="label">วันที่คาดว่าจะเสร็จ</label>
+                                <div class="complaint-detail-field__value">{{ record.deadline|localdatetime }}</div>
+                            </div>
+                        {% endif %}
+                        <div class="complaint-detail-field complaint-detail-field--wide">
+                            <label class="label">รายละเอียด</label>
+                            <div class="complaint-detail-field__value">{{ record.desc }}</div>
                         </div>
-                    </div>
-                    <div class="buttons mt-4 is-centered">
-                        <a class="button is-light" href="{{ url_for('comp_tracker.complainant_index') }}">
-                            Back
-                        </a>
+                        {% if record.url %}
+                            <div class="complaint-detail-field">
+                                <label class="label">ไฟล์หลักฐาน</label>
+                                <div class="complaint-detail-field__value">
+                                    <a class="button is-link is-light" href="{{ file_url }}" target="_blank" rel="noopener">
+                                        <span class="icon"><i class="fas fa-paperclip"></i></span><span>เปิดไฟล์หลักฐาน</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="complaint-detail-field">
+                            <label class="label">ช่องทางรับเรื่อง</label>
+                            <div class="complaint-detail-field__value">{{ record.channel_receive or 'ไม่ระบุ' }}</div>
+                        </div>
+                        {% if record.participants %}
+                            <div class="complaint-detail-field complaint-detail-field--wide">
+                                <label class="label">ผู้เกี่ยวข้อง</label>
+                                <div class="tags">
+                                    {% for participant in record.participants %}<span class="tag is-rounded is-info is-light">{{ participant.fullname }}</span>{% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if record.fl_name %}
+                            <div class="complaint-detail-field complaint-detail-field--wide">
+                                <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
+                                <div class="complaint-contact-card">
+                                    <div class="complaint-detail-grid">
+                                        <div><label class="label">ชื่อ-นามสกุล</label><div>{{ record.fl_name }}</div></div>
+                                        {% if record.telephone %}<div><label class="label">เบอร์โทรศัพท์</label><div>{{ record.telephone }}</div></div>{% endif %}
+                                        {% if record.email %}<div><label class="label">อีเมล</label><div>{{ record.email }}</div></div>{% endif %}
+                                        <div><label class="label">การติดต่อกลับ</label><div>{% if record.is_contact %}ต้องการให้ติดต่อกลับ{% else %}ไม่ต้องการให้ติดต่อกลับ{% endif %}</div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
+            </section>
+
+            <section class="complaint-detail-panel" aria-labelledby="complaint-reports-title">
+                <div class="complaint-detail-panel__heading">
+                    <span class="icon"><i class="fas fa-comments"></i></span>
+                    <h2 id="complaint-reports-title" class="title">รายงานผลการดำเนินงาน</h2>
+                </div>
+                <div class="complaint-detail-panel__content">
+                    {% set report_count = namespace(value=0) %}
+                    {% for report in record.reports %}
+                        {% set report_count.value = report_count.value + 1 %}
+                        <article class="complaint-report">
+                            <p><strong class="complaint-report__name">{{ report.reporter.admin.fullname }}</strong> <small class="complaint-report__date">{{ report.report_datetime|localdatetime }}</small></p>
+                            <div class="complaint-detail-field__value">{{ report.report_comment }}</div>
+                        </article>
+                    {% endfor %}
+                    {% for coordinator in record.coordinators %}
+                        {% if coordinator.submitted_datetime %}
+                            {% set report_count.value = report_count.value + 1 %}
+                            <article class="complaint-report">
+                                <p><strong class="complaint-report__name">{{ coordinator.coordinator.fullname }}</strong> <small class="complaint-report__date">{{ coordinator.submitted_datetime|localdatetime }}</small></p>
+                                <div class="complaint-detail-field__value">{{ coordinator.note }}</div>
+                            </article>
+                        {% endif %}
+                    {% endfor %}
+                    {% if report_count.value == 0 %}
+                        <div class="has-text-centered has-text-grey py-4">
+                            <span class="icon is-large"><i class="fas fa-comment-slash fa-2x"></i></span>
+                            <p>ยังไม่มีรายงานผลการดำเนินงาน</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <div class="complaint-detail-actions">
+                <a class="button is-light" href="{{ url_for('comp_tracker.complainant_index') }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span><span>กลับไปหน้ารายการ</span>
+                </a>
             </div>
-        </div>
         </div>
     </section>
 {% endblock %}
+
 {% block scripts %}
     {{ super() }}
 {% endblock %}

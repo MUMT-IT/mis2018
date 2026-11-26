@@ -4,10 +4,7 @@
     <div class="committee-group" id="committee-group-{{ group.index }}">
         <input type="hidden" name="committee_name_{{ group.index }}" value="{{ group.name }}">
         <input type="hidden" name="committee_group_count_{{ group.index }}" value="{{ group.count }}">
-        <div class="field">
-            <input class="input is-static" type="text" value="{{ group.name }}"
-                   style="color: #000; font-weight: bold;" disabled>
-        </div>
+        <h2 class="committee-group__title">{{ group.name }}</h2>
         <div id="committee-group-{{ group.index }}-members">
             {% for c_form in group.entries %}
                 {{ macros.render_committee_form(c_form, group.start + loop.index0) }}
