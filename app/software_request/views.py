@@ -11,7 +11,7 @@ from dateutil import parser
 from app.main import mail
 from flask_mail import Message
 from sqlalchemy import or_, func, case, and_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from flask import render_template, redirect, flash, url_for, jsonify, request, make_response, current_app
 from flask_login import login_required, current_user
 from app.auth.views import line_bot_api
@@ -21,7 +21,7 @@ from app.software_request import software_request
 from app.software_request.forms import create_request_form, create_timeline_form, SoftwareRequestIssueForm, \
     create_test_result_form, create_bdd_feature_form
 from app.software_request.models import *
-from app.staff.models import Role
+from app.staff.models import Role, StaffPersonalInfo
 from app.google_credential_utils import load_google_credentials_json
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -846,7 +846,8 @@ def _build_admin_request_listing_query(base_query):
         # Eager-load requester/org data because the table always renders these fields.
         joinedload(SoftwareRequestDetail.created_by)
             .joinedload(StaffAccount.personal_info)
-            .joinedload('org')
+            .joinedload('org'),
+        selectinload(SoftwareRequestDetail.staffs)
     ).outerjoin(
         active_timeline_counts,
         active_timeline_counts.c.request_id == SoftwareRequestDetail.id
@@ -1083,7 +1084,17 @@ def admin_index():
                 _priority_text_expression().ilike(search_term),
                 _urgency_text_expression().ilike(search_term),
                 SoftwareRequestDetail.description.ilike(search_term),
-                SoftwareRequestDetail.status.ilike(search_term)
+                SoftwareRequestDetail.status.ilike(search_term),
+                SoftwareRequestDetail.staffs.any(
+                    StaffAccount.personal_info.has(or_(
+                        func.concat_ws(
+                            ' ',
+                            StaffPersonalInfo.th_title,
+                            StaffPersonalInfo.th_firstname,
+                            StaffPersonalInfo.th_lastname,
+                        ).ilike(search_term)
+                    ),
+                ))
             ))
 
         start = request.args.get('start', type=int)
@@ -1097,9 +1108,9 @@ def admin_index():
             2: SoftwareRequestDetail.priority,
             3: SoftwareRequestDetail.urgency,
             4: SoftwareRequestDetail.description,
-            7: SoftwareRequestDetail.created_date,
+            8: SoftwareRequestDetail.created_date,
         }
-        sort_column_index = request.args.get('order[0][column]', default=5, type=int)
+        sort_column_index = request.args.get('order[0][column]', default=8, type=int)
         sort_direction = request.args.get('order[0][dir]', default='desc')
         sort_column = sort_columns.get(sort_column_index, SoftwareRequestDetail.created_date)
         if sort_direction == 'asc':
