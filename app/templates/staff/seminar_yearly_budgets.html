@@ -9,7 +9,7 @@
     <div class="container">
         <h1 class="title">วงเงินอบรมรายบุคคล</h1>
         <p class="subtitle">ข้อมูลจะแสดงเฉพาะบุคลากรที่ได้มีการสร้างขออนุมัติอบรม โดยแยกตามบุคลากรและปีงบประมาณ</p>
-
+        {% include "messages.html" %}
         <form method="get" class="box">
             <div class="columns is-multiline">
                 <div class="column is-one-third">
@@ -64,6 +64,7 @@
                     <th class="has-text-right">วงเงิน (บาท)</th>
                     <th class="has-text-right">ยอดที่ใช้ (บาท)</th>
                     <th class="has-text-right">คงเหลือ (บาท)</th>
+                    <th>คำนวนวงเงินปีงบประมาณที่ค้นหา</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -78,6 +79,13 @@
                         <td class="has-text-right">{{ "{:,.2f}".format(record.budget or 0) }}</td>
                         <td class="has-text-right">{{ "{:,.2f}".format(record.total_used or 0) }}</td>
                         <td class="has-text-right">{{ "{:,.2f}".format(record.remaining or 0) }}</td>
+                        <td>
+                            <a href="{{ url_for('staff.recalculate_seminar_budget', fiscal_year=fiscal_year if fiscal_year else '', staff_account_id=record.staff.personal_id) }}">
+                                <span class="icon">
+                                <i class="fas fa-recycle"></i>
+                                </span>
+                            </a>
+                        </td>
                     </tr>
                 {% else %}
                     <tr>
