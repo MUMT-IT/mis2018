@@ -1,53 +1,121 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 
+{% block head %}
+    {{ super() }}
+    <style>
+        .staff-group-page { padding-top: 1.5rem; }
+        .staff-group-page > .container { max-width: 1440px; }
+        .group-page-heading { margin: 0 0 1.35rem; }
+        .group-page-heading .eyebrow { color: #71809a; font-size: .76rem; font-weight: 700; letter-spacing: .12em; margin-bottom: .35rem; text-transform: uppercase; }
+        .group-page-heading .title { color: #1b3157; margin-bottom: .35rem; }
+        .group-page-heading .subtitle { color: #71809a; font-size: .98rem; margin: 0; }
+        .group-toolbar {
+            align-items: flex-end; background: transparent; border: 0; border-radius: 0;
+            display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1.25rem; padding: 0;
+        }
+        .group-toolbar .button { border-radius: 10px; min-height: 2.7rem; }
+        .group-year-filter { min-width: 11rem; }
+        .group-year-filter .label { color: #536681; font-size: .82rem; margin-bottom: .35rem; }
+        .group-year-filter .select, .group-year-filter select { width: 100%; }
+        .group-year-filter select { border-color: #d9e1ed; border-radius: 10px; min-height: 2.7rem; }
+        .group-tabs { margin-bottom: 0 !important; }
+        .group-tabs ul { border-bottom: 1px solid #dce4ef; gap: .35rem; }
+        .group-tabs li a { border-radius: 11px 11px 0 0; color: #61738e; gap: .45rem; padding: .7rem 1rem; }
+        .group-tabs li.is-active a { background: #fff; border-color: #dce4ef; border-bottom-color: #fff; color: #1a3d7c; font-weight: 700; }
+        .group-table-panel { background: #fff; border: 1px solid #dce4ef; border-radius: 0 14px 14px 14px; box-shadow: 0 5px 16px rgba(18, 39, 84, .04); padding: .5rem .75rem .75rem; }
+        #detail_wrapper { color: #536681; }
+        #detail_wrapper .dataTables_filter input,
+        #detail_wrapper .dataTables_length select { border: 1px solid #d9e1ed; border-radius: 9px; min-height: 2.35rem; padding: .35rem .65rem; }
+        #detail_wrapper .dataTables_length label { align-items: center; display: inline-flex; gap: .45rem; white-space: nowrap; }
+        #detail_wrapper .dataTables_length select {
+            box-sizing: border-box; height: 2.35rem; line-height: 1.2; margin: 0; min-width: 4.5rem;
+            padding: .35rem 1.4rem .35rem .55rem; vertical-align: middle; width: 4.5rem;
+        }
+        #detail_wrapper .dataTables_filter input:focus,
+        #detail_wrapper .dataTables_length select:focus { border-color: #819dc5; box-shadow: 0 0 0 3px rgba(49, 91, 152, .1); outline: 0; }
+        #detail { min-width: 920px; }
+        #detail thead th { background: #f5f7fb; border-bottom: 1px solid #dce4ef; color: #304663; font-size: .84rem; white-space: nowrap; }
+        #detail tbody td { color: #344761; vertical-align: top; }
+        .group-member-list { display: flex; flex-wrap: wrap; gap: .35rem; min-width: 18rem; }
+        .group-member-chip { background: #eef3fb !important; border: 1px solid #dce6f4; border-radius: 999px; color: #29466f !important; line-height: 1.35; margin: 0 !important; max-width: 100%; white-space: normal; }
+        .group-member-more {
+            align-items: center; color: #315e9d; display: inline-flex; font-size: .82rem; font-weight: 700;
+            gap: .25rem; margin-top: .35rem; padding: .1rem 0; text-decoration: none;
+        }
+        .group-member-more:hover { color: #10264c; text-decoration: underline; text-underline-offset: 3px; }
+        .group-file-link { border-radius: 8px !important; max-width: 15rem; }
+        .group-file-link span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #detail_wrapper .dataTables_paginate .paginate_button { border-radius: 8px !important; }
+        @media (max-width: 768px) {
+            .staff-group-page { padding: 1rem .75rem; }
+            .group-page-heading { margin-bottom: 1rem; }
+            .group-page-heading .title { font-size: 1.5rem; }
+            .group-toolbar { align-items: stretch; flex-direction: column; padding: .9rem; }
+            .group-toolbar .button { width: 100%; }
+            .group-year-filter { min-width: 0; width: 100%; }
+            .group-tabs ul { display: flex; }
+            .group-tabs li { flex: 1 1 50%; }
+            .group-tabs li a { justify-content: center; padding: .65rem .45rem; }
+            .group-table-panel { border-radius: 0 0 14px 14px; padding: .5rem; }
+            #detail_wrapper .dataTables_filter,
+            #detail_wrapper .dataTables_length { float: none; text-align: left; }
+            #detail_wrapper .dataTables_filter input { margin-left: .25rem; max-width: 58vw; }
+        }
+    </style>
+{% endblock %}
+
 {% block page_content %}
-    <section class="section">
+    <section class="section staff-group-page">
         <div class="container" id="app">
-            <h1 class="title has-text-centered">My Group</h1>
+            <header class="group-page-heading">
+                <p class="eyebrow">Staff / Groups</p>
+                <h1 class="title">กลุ่มและคณะกรรมการ</h1>
+                <p class="subtitle">ดูรายชื่อกลุ่ม หน้าที่ และช่วงเวลาการปฏิบัติงาน</p>
+            </header>
             {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
-                    <div class="field has-text-centered">
-                        <a class="button is-info" href="{{ url_for('staff.list_group_detail') }}">
-                            <span class="icon"><i class="fas fa-user-edit"></i></span>
-                            <span>จัดการรายชื่อกลุ่ม</span>
-                        </a>
-                    </div>
-                <div id="group-detail-modal"></div>
-                <div class="field">
+            <div id="group-detail-modal"></div>
+            <div class="group-toolbar">
+                <a class="button is-info" href="{{ url_for('staff.list_group_detail') }}">
+                    <span class="icon"><i class="fas fa-user-edit"></i></span>
+                    <span>จัดการรายชื่อกลุ่ม</span>
+                </a>
+                <div class="group-year-filter">
+                    <label class="label" for="groupYear">ปีที่แสดง</label>
                     <div class="select">
-                        <select v-model="year" v-on:change="proceed()">
-                            <option v-for="y in years" v-bind:value="y.year">
-                                <% y.year %>
-                            </option>
+                        <select id="groupYear" v-model="year" v-on:change="proceed()">
+                            <option v-for="y in years" v-bind:value="y.year"><% y.year %></option>
                         </select>
                     </div>
                 </div>
-                <div class="tabs is-boxed">
-                        <ul>
-                            <li {% if tab == 'me' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('staff.group_index', tab='me') }}">
-                                    <span class="icon is-small"><i class="fas fa-user"></i></span>
-                                    <span>Private group</span>
-                                </a>
-                            </li>
-                            <li {% if tab == 'all' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('staff.group_index', tab='all') }}">
-                                    <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                    <span>Public group</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <table id="detail" class="table is-fullwidth">
+            </div>
+            <div class="tabs is-boxed group-tabs">
+                <ul>
+                    <li {% if tab == 'me' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('staff.group_index', tab='me') }}" {% if tab == 'me' %}aria-current="page"{% endif %}>
+                            <span class="icon is-small"><i class="fas fa-user"></i></span>
+                            <span>กลุ่มของฉัน</span>
+                        </a>
+                    </li>
+                    <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('staff.group_index', tab='all') }}" {% if tab == 'all' %}aria-current="page"{% endif %}>
+                            <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                            <span>กลุ่มทั้งหมด</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="group-table-panel">
+                <table id="detail" class="table is-fullwidth">
                         <thead>
-                            <th>ชื่อกลุ่ม</th>
-                            <th>วันที่แต่งตั้ง</th>
-                            <th>วันที่หมดวาระ</th>
-                            <th>หน้าที่ความรับผิดชอบ</th>
-                            <th>เอกสารเพิ่มเติม</th>
-                            <th style="width: 35em">รายชื่อคณะกรรมการ</th>
+                            <tr>
+                                <th scope="col">ชื่อกลุ่ม</th>
+                                <th scope="col">วันที่แต่งตั้ง</th>
+                                <th scope="col">วันที่หมดวาระ</th>
+                                <th scope="col">หน้าที่ความรับผิดชอบ</th>
+                                <th scope="col">เอกสารเพิ่มเติม</th>
+                                <th scope="col">รายชื่อคณะกรรมการ</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {% for group in groups %}
@@ -76,7 +144,7 @@
                                             {% if group.file %}
                                                 <div class="field has-addons">
                                                     <div class="control">
-                                                        <a class="button is-small is-info is-rounded is-outlined"
+                                                    <a class="button is-small is-info is-rounded is-outlined group-file-link"
                                                            href="{{ url_for('staff.download_file',
                                                            key=group.file, download_filename=group.file) }}"
                                                         >
@@ -88,34 +156,36 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if group.group_members|length <= 5%}
+                                            <div class="group-member-list">
+                                            {% if group.group_members|length <= 5 %}
                                                 {% for g in group.group_members %}
-                                                    <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                    <span class="tag group-member-chip">
                                                         {{ g.staff.fullname }} ({{ g.position }})
                                                     </span>
                                                 {% endfor %}
                                             {% else %}
                                                 {% for g in group.group_members %}
                                                     {% if loop.index <= 5 %}
-                                                        <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                        <span class="tag group-member-chip">
                                                             {{ g.staff.fullname }} ({{ g.position }})
                                                         </span>
                                                     {% endif %}
                                                 {% endfor %}
-                                                <a  hx-swap="innerHTML"
+                                            {% endif %}
+                                            </div>
+                                            {% if group.group_members|length > 5 %}
+                                                <a class="group-member-more" role="button" aria-label="ดูรายชื่อคณะกรรมการเพิ่มเติม"
+                                                    hx-swap="innerHTML"
                                                     hx-target="#group-detail-modal"
                                                     hx-get="{{ url_for('staff.show_group', group_detail_id=group.id) }}">
-                                                    <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
-                                                        <span>More <i class="fas fa-angle-right"></i></span>
-                                                    </span>
+                                                    ดูเพิ่มเติม
                                                 </a>
                                             {% endif %}
                                         </td>
                                     </tr>
                             {% endfor %}
                         </tbody>
-                    </table>
-                </div>
+                </table>
             </div>
         </div>
     </section>
@@ -124,7 +194,18 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#detail').DataTable();
+            $('#detail').DataTable({
+                scrollX: true,
+                autoWidth: false,
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่พบรายการ',
+                    zeroRecords: 'ไม่พบกลุ่มที่ตรงกับคำค้น',
+                    paginate: { first: 'หน้าแรก', last: 'หน้าสุดท้าย', next: 'ถัดไป', previous: 'ก่อนหน้า' }
+                }
+            });
         });
     </script>
     <script>

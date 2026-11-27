@@ -133,10 +133,6 @@
             background: #f8fafd;
         }
 
-        #records tbody tr:hover {
-            background: #eef5ff;
-        }
-
         .complaint-admin .issue-tag {
             background: #fff4d6;
             color: #92400e;
@@ -268,7 +264,7 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {#                        <input type="submit" value="Print" class="button is-success">#}
                         <div class="complaint-admin-table-wrap">
-                        <table id="records" class="table is-fullwidth is-hoverable">
+                        <table id="records" class="table is-fullwidth">
                             <thead>
 {#                            <th></th>#}
                                 <tr>

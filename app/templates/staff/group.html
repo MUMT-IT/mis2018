@@ -1,28 +1,86 @@
 {% extends "base.html" %}
 {% block title %}MUMT Internal Information System{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .group-admin-page { padding-top: 1.5rem; }
+        .group-admin-page > .container { max-width: 1440px; }
+        .group-admin-heading { margin-bottom: 1.25rem; }
+        .group-admin-heading .eyebrow { color: #71809a; font-size: .76rem; font-weight: 700; letter-spacing: .12em; margin-bottom: .35rem; text-transform: uppercase; }
+        .group-admin-heading .title { color: #1b3157; margin-bottom: .35rem; }
+        .group-admin-heading .subtitle { color: #71809a; font-size: .98rem; margin: 0; }
+        .group-admin-toolbar {
+            align-items: center; background: transparent; border: 0; border-radius: 0;
+            display: flex; justify-content: space-between; margin-bottom: 1.25rem; padding: 0;
+        }
+        .group-admin-toolbar .button { border-radius: 10px; min-height: 2.7rem; }
+        .group-admin-hint { color: #71809a; font-size: .86rem; margin: 0; }
+        .group-admin-table-panel { background: #fff; border: 1px solid #dce4ef; border-radius: 16px; box-shadow: 0 5px 16px rgba(18, 39, 84, .04); padding: .5rem .75rem .75rem; }
+        #detail_wrapper { color: #536681; }
+        #detail_wrapper .dataTables_filter input,
+        #detail_wrapper .dataTables_length select { border: 1px solid #d9e1ed; border-radius: 9px; min-height: 2.35rem; padding: .35rem .65rem; }
+        #detail_wrapper .dataTables_length label { align-items: center; display: inline-flex; gap: .45rem; white-space: nowrap; }
+        #detail_wrapper .dataTables_length select { box-sizing: border-box; height: 2.35rem; margin: 0; min-width: 4.5rem; padding: .35rem 1.4rem .35rem .55rem; width: 4.5rem; }
+        #detail_wrapper .dataTables_filter input:focus,
+        #detail_wrapper .dataTables_length select:focus { border-color: #819dc5; box-shadow: 0 0 0 3px rgba(49, 91, 152, .1); outline: 0; }
+        #detail { min-width: 980px; }
+        #detail thead th { background: #f5f7fb; border-bottom: 1px solid #dce4ef; color: #304663; font-size: .84rem; white-space: nowrap; }
+        #detail tbody td { color: #344761; vertical-align: top; }
+        .group-admin-members { display: flex; flex-wrap: wrap; gap: .35rem; min-width: 19rem; }
+        .group-admin-member { background: #eef3fb !important; border: 1px solid #dce6f4; border-radius: 999px; color: #29466f !important; line-height: 1.35; margin: 0 !important; max-width: 100%; white-space: normal; }
+        .group-admin-more {
+            align-items: center; color: #315e9d; display: inline-flex; font-size: .82rem; font-weight: 700;
+            gap: .25rem; margin-top: .35rem; padding: .1rem 0; text-decoration: none;
+        }
+        .group-admin-more:hover { color: #10264c; text-decoration: underline; text-underline-offset: 3px; }
+        .group-admin-actions { display: inline-flex; gap: 0; white-space: nowrap; }
+        .group-admin-actions .button { border-radius: 0; }
+        .group-admin-actions .button:first-child { border-radius: 9px 0 0 9px; }
+        .group-admin-actions .button:last-child { border-radius: 0 9px 9px 0; }
+        .group-admin-actions .button + .button { margin-left: -1px; }
+        #detail_wrapper .dataTables_paginate .paginate_button { border-radius: 8px !important; }
+        @media (max-width: 768px) {
+            .group-admin-page { padding: 1rem .75rem; }
+            .group-admin-heading .title { font-size: 1.5rem; }
+            .group-admin-toolbar { align-items: stretch; flex-direction: column; gap: .65rem; padding: .9rem; }
+            .group-admin-toolbar .button { width: 100%; }
+            .group-admin-hint { text-align: center; }
+            .group-admin-table-panel { padding: .5rem; }
+            #detail_wrapper .dataTables_filter,
+            #detail_wrapper .dataTables_length { float: none; text-align: left; }
+            #detail_wrapper .dataTables_filter input { margin-left: .25rem; max-width: 58vw; }
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
-    <section class="section">
+    <section class="section group-admin-page">
         <div class="container">
-            <h1 class="title has-text-centered">ระบบจัดการรายชื่อกลุ่ม</h1>
+            <header class="group-admin-heading">
+                <p class="eyebrow">Staff / Groups</p>
+                <h1 class="title">ระบบจัดการรายชื่อกลุ่ม</h1>
+                <p class="subtitle">เพิ่มกลุ่ม ดูรายชื่อคณะกรรมการ และจัดการข้อมูลของแต่ละกลุ่ม</p>
+            </header>
             {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
-                    <div id="group-detail-modal"></div>
-                    <div class="buttons is-centered">
-                        <a href="{{ url_for('staff.create_group_detail') }}" id="add_evt_btn" class="button is-info">
-                            <span class="icon"><i class="fas fa-plus"></i></span>
-                            <span>เพิ่มกลุ่ม</span>
-                        </a>
-                    </div>
+            <div id="group-detail-modal"></div>
+            <div class="group-admin-toolbar">
+                <a href="{{ url_for('staff.create_group_detail') }}" id="add_evt_btn" class="button is-info">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่มกลุ่ม</span>
+                </a>
+                <p class="group-admin-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> เลือกแก้ไขหรือลบจากปุ่มท้ายแต่ละแถว</p>
+            </div>
+            <div class="group-admin-table-panel">
                     <table id="detail" class="table is-fullwidth">
                         <thead>
-                            <th>ชื่อกลุ่ม</th>
-                            <th>วันที่แต่งตั้ง</th>
-                            <th>วันที่หมดวาระ</th>
-                            <th>หน้าที่ความรับผิดชอบ</th>
-                            <th style="width: 32em">รายชื่อคณะกรรมการ</th>
-                            <th style="width: .5em" ></th>
+                            <tr>
+                                <th scope="col">ชื่อกลุ่ม</th>
+                                <th scope="col">วันที่แต่งตั้ง</th>
+                                <th scope="col">วันที่หมดวาระ</th>
+                                <th scope="col">หน้าที่ความรับผิดชอบ</th>
+                                <th scope="col">รายชื่อคณะกรรมการ</th>
+                                <th scope="col">จัดการ</th>
+                            </tr>
                         </thead>
                         <tbody>
                         {% for detail in group_detail %}
@@ -48,56 +106,56 @@
                                     {{ detail.responsibility }}
                                 </td>
                                 <td>
-                                    {% if detail.group_members|length <= 5%}
+                                    <div class="group-admin-members">
+                                    {% if detail.group_members|length <= 5 %}
                                         {% for group in detail.group_members %}
-                                            <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                            <span class="tag group-admin-member">
                                                 {{ group.staff.fullname }} ({{ group.position }})
                                             </span>
                                         {% endfor %}
                                     {% else %}
                                         {% for group in detail.group_members %}
                                             {% if loop.index <= 5 %}
-                                                <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                <span class="tag group-admin-member">
                                                     {{ group.staff.fullname }} ({{ group.position }})
                                                 </span>
                                             {% endif %}
                                         {% endfor %}
-                                        <a  hx-swap="innerHTML"
+                                    {% endif %}
+                                    </div>
+                                    {% if detail.group_members|length > 5 %}
+                                        <a class="group-admin-more" role="button" aria-label="ดูรายชื่อคณะกรรมการเพิ่มเติม"
+                                            hx-swap="innerHTML"
                                             hx-target="#group-detail-modal"
                                             hx-get="{{ url_for('staff.show_group', group_detail_id=detail.id) }}">
-                                            <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
-                                                <span>More <i class="fas fa-angle-right"></i></span>
-                                            </span>
+                                            ดูเพิ่มเติม
                                         </a>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-rounded"
+                                    <div class="group-admin-actions">
+                                            <a class="button is-small is-info is-light"
+                                                title="แก้ไขกลุ่ม" aria-label="แก้ไขกลุ่ม {{ detail.activity_name }}"
                                                 href="{{ url_for('staff.create_group_detail',
                                                 group_detail_id=detail.id) }}">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
                                             </a>
-                                        </div>
-                                        <div class="control">
-                                            <a class="button is-small is-rounded"
+                                            <a class="button is-small is-danger is-light"
+                                                title="ลบกลุ่ม" aria-label="ลบกลุ่ม {{ detail.activity_name }}"
                                                 href="{{ url_for('staff.delete_group_detail',
                                                 group_detail_id=detail.id) }}">
                                                 <span class="icon">
-                                                    <i class="far fa-trash-alt has-text-danger"></i>
+                                                    <i class="far fa-trash-alt"></i>
                                                 </span>
                                             </a>
-                                        </div>
                                     </div>
                                 </td>
                             </tr>
                         {% endfor %}
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>
     </section>
@@ -106,7 +164,18 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#detail').DataTable();
+            $('#detail').DataTable({
+                scrollX: true,
+                autoWidth: false,
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่พบรายการ',
+                    zeroRecords: 'ไม่พบกลุ่มที่ตรงกับคำค้น',
+                    paginate: { first: 'หน้าแรก', last: 'หน้าสุดท้าย', next: 'ถัดไป', previous: 'ก่อนหน้า' }
+                }
+            });
         });
     </script>
 {% endblock %}

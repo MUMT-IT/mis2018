@@ -3,21 +3,95 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        .group-form-page { padding: 1.5rem 1rem; }
+        .group-form-page > .container { max-width: 1040px; }
+        .group-form-card { border-radius: 20px; margin: 0 auto; padding: clamp(1.2rem, 3vw, 2.2rem); }
+        .group-form-heading { border-bottom: 1px solid #e6ebf3; margin-bottom: 1.5rem; padding-bottom: 1rem; }
+        .group-form-heading .eyebrow { color: #71809a; font-size: .76rem; font-weight: 700; letter-spacing: .1em; margin-bottom: .35rem; text-transform: uppercase; }
+        .group-form-heading .title { color: #1b3157; margin-bottom: .4rem; }
+        .group-form-heading .subtitle { color: #71809a; font-size: .92rem; margin: 0; }
+        .group-form .field { margin-bottom: 1.1rem; }
+        .group-form .label { color: #304663; font-size: .92rem; margin-bottom: .45rem; }
+        .group-form .input,
+        .group-form .textarea,
+        .group-form .select select {
+            border-color: #d9e1ed; border-radius: 10px; box-shadow: none; min-height: 2.75rem;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .group-form .input:focus,
+        .group-form .textarea:focus,
+        .group-form .select select:focus { border-color: #819dc5; box-shadow: 0 0 0 3px rgba(49, 91, 152, .1); }
+        .group-form .textarea { min-height: 7rem; resize: vertical; }
+        .group-form-dates { margin-bottom: 0 !important; }
+        .group-form-dates > .field { padding-top: 0; }
+        .group-settings { background: #f7f9fc; border: 1px solid #e0e7f1; border-radius: 13px; padding: 1rem 1.1rem; }
+        .group-setting-options { display: grid; gap: .65rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .group-setting-option {
+            align-items: center; background: #fff; border: 1px solid #e1e7f0; border-radius: 11px;
+            color: #415571; cursor: pointer; display: flex; gap: .65rem; min-height: 3.2rem; padding: .7rem .85rem;
+            transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+        .group-setting-option:hover { border-color: #b9c9df; }
+        .group-setting-option:has(input:checked) { background: #edf3fc; border-color: #9bb2d3; box-shadow: inset 0 0 0 1px #d9e4f2; color: #1a3d7c; font-weight: 600; }
+        .group-setting-option input { accent-color: #1a3d7c; flex: 0 0 auto; height: 1.05rem; margin: 0; width: 1.05rem; }
+        .group-setting-option .group-setting-icon { color: #6c83a5; width: 1.1rem; }
+        .group-form .file, .group-form .file-label { max-width: 100%; }
+        .group-form .file-name { max-width: min(30rem, 62vw); }
+        .group-committee-card { border-radius: 15px; margin-top: 1.35rem; overflow: hidden; }
+        .group-committee-card .card-header { background: #f5f8fd; box-shadow: none; }
+        .group-committee-card .card-header-title { color: #29466f; font-size: 1rem; gap: .35rem; }
+        .group-committee-card .card-content { padding: 1rem 1.2rem .5rem; }
+        #positions > div { border-bottom: 1px solid #edf0f5; display: grid; gap: 0 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .25rem 0 .65rem; }
+        #positions > div:last-child { border-bottom: 0; }
+        .group-form .select2-container { width: 100% !important; }
+        .group-form .select2-container--default .select2-selection--single { border: 1px solid #d9e1ed; border-radius: 10px; height: 2.75rem; }
+        .group-form .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 2.65rem; padding-left: .75rem; }
+        .group-form .select2-container--default .select2-selection--single .select2-selection__arrow { height: 2.65rem; }
+        .group-field-error { margin-top: .35rem; }
+        .group-member-error { border-radius: 10px; margin-bottom: 1rem; padding: .75rem 1rem; }
+        .group-committee-actions { background: #fbfcfe; border-top: 1px solid #e7ebf2; }
+        .group-committee-actions .card-footer-item { color: #315e9d; font-size: .9rem; font-weight: 600; gap: .4rem; padding: .8rem; }
+        .group-committee-actions .card-footer-item:hover { background: #f1f5fb; }
+        .group-committee-actions .remove-member { color: #a94442; }
+        .group-form-actions { border-top: 1px solid #e7ebf2; margin-top: 1.5rem; padding-top: 1.25rem; }
+        .group-form-actions .button { border-radius: 10px; min-width: 8rem; }
+        .group-form-actions .button.is-success { box-shadow: 0 5px 12px rgba(46, 139, 87, .16); }
+        @media (max-width: 768px) {
+            .group-form-page { padding: 1rem .75rem; }
+            .group-form-card { padding: 1rem; }
+            .group-form-heading .title { font-size: 1.5rem; }
+            .group-form-dates { display: block; }
+            .group-form-dates > .field { padding-left: .75rem; padding-right: .75rem; }
+            .group-setting-options { grid-template-columns: minmax(0, 1fr); }
+            #positions > div { grid-template-columns: minmax(0, 1fr); }
+            .group-committee-card .card-content { padding: .9rem; }
+            .group-committee-actions .card-footer-item { font-size: .82rem; padding: .7rem .4rem; }
+            .group-form-actions { align-items: stretch; display: flex; flex-direction: column-reverse; }
+            .group-form-actions .control, .group-form-actions .button { width: 100%; }
+        }
+    </style>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-    <section class="section">
+    <section class="section group-form-page">
         <div class="container">
             {% include "messages.html" %}
-            <div class="columns">
-                <div class="box column is-half is-offset-3">
+            <div class="columns is-centered">
+                <div class="box column is-9 group-form-card">
+                    <header class="group-form-heading">
+                        <p class="eyebrow">Staff / Groups</p>
                     {% if group_detail_id %}
-                        <h1 class="title has-text-centered">แก้ไขกลุ่ม</h1>
+                        <h1 class="title">แก้ไขกลุ่ม</h1>
+                        <p class="subtitle">ปรับข้อมูลกลุ่มและรายชื่อคณะกรรมการ</p>
                     {% else %}
-                        <h1 class="title has-text-centered">สร้างกลุ่มใหม่</h1>
+                        <h1 class="title">สร้างกลุ่มใหม่</h1>
+                        <p class="subtitle">กรอกข้อมูลกลุ่มและเพิ่มรายชื่อคณะกรรมการ</p>
                     {% endif %}
-                    <form method="post" enctype="multipart/form-data">
+                    </header>
+                    <form class="group-form" method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
+                        {% set current_group_type = request.form.get('group_type', 'private' if group_detail and group_detail.official else 'public') %}
                         <div class="field">
                             <label class="label">
                                 {{ form.activity_name.label }}
@@ -27,30 +101,38 @@
                                 {{ form.activity_name(class='input') }}
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="columns is-variable is-4 group-form-dates">
+                        <div class="field column">
                             <label class="label">
                                 {{ form.appointment_date.label }}
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.appointment_date(class="input") }}
+                                {{ form.appointment_date(class="input", required=true) }}
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field column">
                             <label class="label">{{ form.expiration_date.label }}</label>
                             <div class="control">
                                 {{ form.expiration_date(class="input") }}
                             </div>
                         </div>
+                        </div>
                         <div class="field">
-                            <label class="label">{{ 'ตั้งค่ากลุ่ม' }}<span class="has-text-danger">*</span></label>
-                            <div class="field">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="public" value="True" checked>
-                                    {{ 'กลุ่มสาธารณะ' }}</label>
-                            </div>
-                            <div class="field">
-                                <label class="checkbox"> {{ form.official() }} {{ 'กลุ่มส่วนตัว' }}</label>
+                            <div class="group-settings">
+                                <label class="label">ประเภทกลุ่ม <span class="has-text-danger">*</span></label>
+                                <div class="group-setting-options">
+                                <label class="group-setting-option">
+                                    <input type="radio" name="group_type" value="public" required {% if current_group_type == 'public' %}checked{% endif %}>
+                                    <i class="fas fa-globe group-setting-icon" aria-hidden="true"></i>
+                                    <span>{{ 'กลุ่มสาธารณะ' }}</span>
+                                </label>
+                                <label class="group-setting-option">
+                                    <input type="radio" name="group_type" value="private" required {% if current_group_type == 'private' %}checked{% endif %}>
+                                    <i class="fas fa-lock group-setting-icon" aria-hidden="true"></i>
+                                    <span>{{ 'กลุ่มส่วนตัว' }}</span>
+                                </label>
+                                </div>
                             </div>
                         </div>
                         <div class="field">
@@ -84,7 +166,7 @@
                                 {{ form.responsibility(class="textarea") }}
                             </div>
                         </div>
-                        <div class="card">
+                        <div class="card group-committee-card">
                             <div class="card-header">
                                 <h1 class="card-header-title">
                                     คณะกรรมการ
@@ -100,43 +182,48 @@
                                                 <div class="control">
                                                     {{ group_member.staff(class='js-example-basic-single') }}
                                                 </div>
+                                                {% for error in group_member.staff.errors %}
+                                                    <p class="help is-danger group-field-error">{{ error }}</p>
+                                                {% endfor %}
                                             </div>
                                             <div class="field">
                                                 <label class="label">{{ group_member.position.label }}</label>
                                                 <div class="control">
                                                     {{ group_member.position(class='js-example-basic-single') }}
                                                 </div>
+                                                {% for error in group_member.position.errors %}
+                                                    <p class="help is-danger group-field-error">{{ error }}</p>
+                                                {% endfor %}
                                             </div>
                                         </div>
                                     {% endfor %}
                                 </div>
                             </div>
-                            <footer class="card-footer">
+                            <footer class="card-footer group-committee-actions">
                                 <a class="card-footer-item"
                                    hx-post="{{ url_for('staff.add_group') }}"
                                    hx-target="#positions" hx-swap="beforeend">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>
-                                    <span>เพิ่ม</span>
+                                    <span>เพิ่มกรรมการ</span>
                                 </a>
-                                <a class="card-footer-item"
+                                <a class="card-footer-item remove-member"
                                    hx-delete="{{ url_for('staff.remove_group') }}"
                                    hx-target="#positions" hx-swap="innerHTML">
                                     <span class="icon">
                                         <i class="far fa-trash-alt has-text-danger"></i>
                                     </span>
-                                    <span class="has-text-danger">ลบ</span>
+                                    <span>ลบกรรมการ</span>
                                 </a>
                             </footer>
                         </div>
-                        <br>
-                        <div class="field is-grouped is-grouped-centered">
+                        <div class="field is-grouped is-grouped-centered group-form-actions">
                             <div class="control">
-                                <a href="{{ url_for('staff.list_group_detail') }}" class="button">Cancel</a>
+                                <a href="{{ url_for('staff.list_group_detail') }}" class="button is-light">ยกเลิก</a>
                             </div>
                             <div class="control">
-                                <input type="submit" value="Submit" class="button is-success">
+                                <input type="submit" value="บันทึก" class="button is-success">
                             </div>
                         </div>
                     </form>
