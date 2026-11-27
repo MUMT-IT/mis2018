@@ -14,6 +14,7 @@
             align-items: center; background: transparent; border: 0; border-radius: 0;
             display: flex; justify-content: space-between; margin-bottom: 1.25rem; padding: 0;
         }
+        .group-admin-toolbar-actions { align-items: center; display: flex; flex-wrap: wrap; gap: .6rem; }
         .group-admin-toolbar .button { border-radius: 10px; min-height: 2.7rem; }
         .group-admin-hint { color: #71809a; font-size: .86rem; margin: 0; }
         .group-admin-table-panel { background: #fff; border: 1px solid #dce4ef; border-radius: 16px; box-shadow: 0 5px 16px rgba(18, 39, 84, .04); padding: .5rem .75rem .75rem; }
@@ -43,7 +44,8 @@
         @media (max-width: 768px) {
             .group-admin-page { padding: 1rem .75rem; }
             .group-admin-heading .title { font-size: 1.5rem; }
-            .group-admin-toolbar { align-items: stretch; flex-direction: column; gap: .65rem; padding: .9rem; }
+            .group-admin-toolbar { align-items: stretch; flex-direction: column; gap: .65rem; padding: 0; }
+            .group-admin-toolbar-actions { align-items: stretch; flex-direction: column; }
             .group-admin-toolbar .button { width: 100%; }
             .group-admin-hint { text-align: center; }
             .group-admin-table-panel { padding: .5rem; }
@@ -64,11 +66,16 @@
             {% include 'messages.html' %}
             <div id="group-detail-modal"></div>
             <div class="group-admin-toolbar">
-                <a href="{{ url_for('staff.create_group_detail') }}" id="add_evt_btn" class="button is-info">
-                    <span class="icon"><i class="fas fa-plus"></i></span>
-                    <span>เพิ่มกลุ่ม</span>
-                </a>
-                <p class="group-admin-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> เลือกแก้ไขหรือลบจากปุ่มท้ายแต่ละแถว</p>
+                <div class="group-admin-toolbar-actions">
+                    <a href="{{ url_for('staff.group_index') }}" class="button is-light">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>กลับหน้ากลุ่มของฉัน</span>
+                    </a>
+                    <a href="{{ url_for('staff.create_group_detail') }}" id="add_evt_btn" class="button is-info">
+                        <span class="icon"><i class="fas fa-plus"></i></span>
+                        <span>เพิ่มกลุ่ม</span>
+                    </a>
+                </div>
             </div>
             <div class="group-admin-table-panel">
                     <table id="detail" class="table is-fullwidth">

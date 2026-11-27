@@ -1,178 +1,193 @@
 {% extends "base.html" %}
+{% block title %}{{ 'แก้ไขแบบสำรวจ' if poll_id else 'สร้างแบบสำรวจ' }} | Meeting Planner{% endblock %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        .poll-form-page { padding: 1.5rem 1rem 2.5rem; }
+        .poll-form-page > .container { max-width: 1020px; }
+        .poll-form-hero {
+            align-items: center; background: linear-gradient(130deg, #1a3d7c, #10264c); border: 1px solid rgba(16, 38, 76, .22);
+            border-radius: 20px; box-shadow: 0 8px 22px rgba(18, 39, 84, .1); color: #fff; display: flex;
+            gap: .9rem; margin-bottom: 1.15rem; padding: 1.15rem 1.4rem;
+        }
+        .poll-form-hero-icon { align-items: center; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .18); border-radius: 14px; display: inline-flex; flex: 0 0 2.8rem; height: 2.8rem; justify-content: center; }
+        .poll-form-hero .eyebrow { color: #ffe08a; font-size: .72rem; font-weight: 800; letter-spacing: .12em; margin: 0 0 .2rem; text-transform: uppercase; }
+        .poll-form-hero .title { color: #fff; font-size: clamp(1.35rem, 3vw, 1.8rem); line-height: 1.35; margin: 0 0 .2rem; }
+        .poll-form-hero .description { color: rgba(255, 255, 255, .82); margin: 0; }
+        .poll-form-card { background: rgba(255, 255, 255, .97); border-radius: 18px; padding: clamp(1rem, 2.5vw, 1.6rem); }
+        .poll-form .field { margin-bottom: 1rem; }
+        .poll-form .label { color: #304663; font-size: .9rem; margin-bottom: .4rem; }
+        .poll-form .input,
+        .poll-form .select select { border-color: #d9e1ed; border-radius: 9px; box-shadow: none; min-height: 2.65rem; }
+        .poll-form .input:focus,
+        .poll-form .select select:focus { border-color: #819dc5; box-shadow: 0 0 0 3px rgba(49, 91, 152, .1); }
+        .poll-form-section + .poll-form-section { border-top: 1px solid #e7ebf2; margin-top: 1.35rem; padding-top: 1.25rem; }
+        .poll-form-section-heading { align-items: center; color: #1b3157; display: flex; font-size: 1rem; font-weight: 700; gap: .55rem; margin-bottom: .85rem; }
+        .poll-form-section-heading .icon { color: #315e9d; }
+        .poll-datetime-grid { display: grid; gap: .9rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .poll-item-table-wrap { border: 1px solid #e1e7f0; border-radius: 11px; margin-bottom: .8rem; overflow-x: auto; }
+        .poll-item-table { margin-bottom: 0 !important; min-width: 600px; }
+        .poll-item-table thead th { background: #f5f7fb; border-bottom: 1px solid #dce4ef; color: #304663; font-size: .82rem; }
+        .poll-item-table td { color: #40516a; vertical-align: middle; }
+        .poll-item-remove { border-radius: 8px !important; }
+        .poll-add-item-button { border-radius: 9px !important; font-weight: 600; }
+        #poll_item > div { background: #f7f9fc; border: 1px solid #e2e8f0; border-radius: 11px; margin-bottom: .65rem; padding: .75rem .9rem .25rem; }
+        #poll_item > div > p { color: #315e9d; }
+        #poll_item > div > hr { background: #e4eaf2 !important; height: 1px; margin: 0 0 .65rem; }
+        #poll_item .field-body { display: grid; gap: .8rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .poll-item-actions { background: #fbfcfe; border: 1px solid #e7ebf2; border-radius: 11px; display: flex; margin-top: .75rem; overflow: hidden; }
+        .poll-item-actions a { color: #315e9d; font-size: .88rem; font-weight: 600; gap: .4rem; padding: .75rem; }
+        .poll-item-actions a:hover { background: #f1f5fb; }
+        .poll-item-actions a:last-child { color: #a94442; }
+        .poll-form .select2-container { width: 100% !important; }
+        .poll-form .select2-container--default .select2-selection--multiple { border: 1px solid #d9e1ed; border-radius: 9px; min-height: 2.65rem; }
+        .poll-form .select2-container--default.select2-container--focus .select2-selection--multiple { border-color: #819dc5; box-shadow: 0 0 0 3px rgba(49, 91, 152, .1); }
+        .poll-form .select2-container--default .select2-selection--multiple .select2-selection__choice { background: #eef3fb; border: 1px solid #dce6f4; border-radius: 999px; color: #29466f; }
+        .poll-audience-note { border-radius: 9px; margin: .55rem 0 0; }
+        .poll-form-actions { border-top: 1px solid #e7ebf2; display: flex; flex-wrap: wrap; gap: .6rem; justify-content: flex-end; margin-top: 1.35rem; padding-top: 1.15rem; }
+        .poll-form-actions .button { border-radius: 9px; min-width: 8rem; }
+        @media (max-width: 768px) {
+            .poll-form-page { padding: 1rem .75rem 2rem; }
+            .poll-form-hero { border-radius: 16px; padding: 1rem; }
+            .poll-form-card { padding: 1rem; }
+            .poll-datetime-grid, #poll_item .field-body { grid-template-columns: minmax(0, 1fr); }
+            .poll-item-actions a { font-size: .82rem; padding: .65rem .35rem; }
+            .poll-form-actions { flex-direction: column-reverse; }
+            .poll-form-actions .button { width: 100%; }
+        }
+    </style>
 {% endblock %}
 {% include "meeting_planner/nav.html" %}
 
 {% block page_content %}
-    <section class="section">
+    <section class="section poll-form-page">
         <div class="container">
             {% include "messages.html" %}
-            <div class="columns">
-                <div class="box column is-half is-offset-3">
+            <header class="poll-form-hero">
+                <span class="poll-form-hero-icon" aria-hidden="true"><i class="far fa-calendar-plus"></i></span>
+                <div>
+                    <p class="eyebrow">Meeting Planner</p>
                     {% if poll_id %}
-                        <h1 class="title has-text-centered">แก้ไขรายการ</h1>
+                        <h1 class="title">แก้ไขแบบสำรวจ</h1>
+                        <p class="description">ปรับกำหนดการและรายชื่อผู้เข้าร่วม</p>
                     {% else %}
-                        <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
+                        <h1 class="title">สร้างแบบสำรวจใหม่</h1>
+                        <p class="description">กำหนดช่วงเวลาสำรวจ ตัวเลือกประชุม และผู้เข้าร่วม</p>
                     {% endif %}
-                    <form method="post">
-                        {{ form.hidden_tag() }}
+                </div>
+            </header>
+            <div class="box poll-form-card">
+                <form class="poll-form" method="post">
+                    {{ form.hidden_tag() }}
+                    <section class="poll-form-section">
+                        <h2 class="poll-form-section-heading"><span class="icon"><i class="fas fa-info-circle"></i></span>รายละเอียดแบบสำรวจ</h2>
                         <div class="field">
-                            <label class="label">ชื่อรายการ</label>
-                            <div class="control">
-                                {{ form.poll_name(class='input is-danger') }}
-                            </div>
+                            <label class="label" for="{{ form.poll_name.id }}">ชื่อรายการ</label>
+                            <div class="control">{{ form.poll_name(class='input') }}</div>
                         </div>
-                        <div class="field-body mb-5">
+                        <div class="poll-datetime-grid">
                             <div class="field">
-                                <label class="label">วัน-เวลาเริ่มสำรวจ</label>
-                                <div class="control">
-                                    {{ form.start_vote(class="input") }}
-                                </div>
+                                <label class="label" for="{{ form.start_vote.id }}">วัน-เวลาเริ่มสำรวจ</label>
+                                <div class="control">{{ form.start_vote(class="input") }}</div>
                             </div>
                             <div class="field">
-                                <label class="label">วัน-เวลาปิดสำรวจ</label>
-                                <div class="control">
-                                    {{ form.close_vote(class="input") }}
-                                </div>
+                                <label class="label" for="{{ form.close_vote.id }}">วัน-เวลาปิดสำรวจ</label>
+                                <div class="control">{{ form.close_vote(class="input") }}</div>
                             </div>
                         </div>
+                    </section>
+                    <section class="poll-form-section">
+                        <h2 class="poll-form-section-heading"><span class="icon"><i class="far fa-calendar"></i></span>ตัวเลือกวัน-เวลาประชุม</h2>
                         {% if poll_id %}
-                            <div class="field">
-                                <label class="label">วัน-เวลาประชุม</label>
-                            </div>
-                            <table class="table is-fullwidth">
-                                <thead>
-                                    <th>รายการ</th>
-                                    <th>วัน-เวลาเริ่ม</th>
-                                    <th>วัน-เวลาสิ้นสุด</th>
-                                    <th></th>
-                                </thead>
-                                <tbody>
-                                    {% for p in poll.poll_items %}
+                            <div class="poll-item-table-wrap">
+                                <table class="table is-fullwidth poll-item-table">
+                                    <thead>
                                         <tr>
-                                            <td>{{ loop.index }}</td>
-                                            <td>{{ p.start|localdatetime }}</td>
-                                            <td>{{ p.end|localdatetime }}</td>
-                                            <td>
-                                                <div class="control">
-                                                    <a class="button is-small is-rounded"
-                                                       href="{{ url_for('meeting_planner.delete_poll_item',
-                                                       poll_id=poll.id, poll_item_id=p.id) }}">
-                                                        <span class="icon">
-                                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                                        </span>
-                                                    </a>
-                                                </div>
-                                            </td>
+                                            <th scope="col">รายการ</th>
+                                            <th scope="col">วัน-เวลาเริ่ม</th>
+                                            <th scope="col">วัน-เวลาสิ้นสุด</th>
+                                            <th scope="col">จัดการ</th>
                                         </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {% for p in poll.poll_items %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ p.start|localdatetime }}</td>
+                                                <td>{{ p.end|localdatetime }}</td>
+                                                <td>
+                                                    <a class="button is-small is-danger is-light poll-item-remove"
+                                                       title="ลบตัวเลือกนี้" aria-label="ลบตัวเลือกวันเวลาที่ {{ loop.index }}"
+                                                       href="{{ url_for('meeting_planner.delete_poll_item', poll_id=poll.id, poll_item_id=p.id) }}">
+                                                        <span class="icon"><i class="far fa-trash-alt"></i></span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% else %}
+                                            <tr><td colspan="4" class="has-text-centered has-text-grey">ยังไม่มีตัวเลือกวัน-เวลาประชุม</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                             <div id="add-poll-item-form"></div>
-                            <div class="field is-grouped is-grouped-centered">
-                                <a class='button is-rounded is-light'
-                                    style="margin-bottom: .7em"
-                                    hx-swap="innerHTML"
-                                    hx-target="#add-poll-item-form"
-                                    hx-get="{{ url_for('meeting_planner.add_poll_item_form', poll_id=poll_id) }}"
-                                >
-                                    <span class="icon">
-                                        <i class="fas fa-plus"></i>
-                                    </span>
-                                    <span>
-                                        เพิ่มตัวเลือกวัน-เวลาประชุม
-                                    </span>
+                            <a class="button is-info is-light poll-add-item-button"
+                               hx-swap="innerHTML" hx-target="#add-poll-item-form"
+                               hx-get="{{ url_for('meeting_planner.add_poll_item_form', poll_id=poll_id) }}">
+                                <span class="icon"><i class="fas fa-plus"></i></span><span>เพิ่มตัวเลือกวัน-เวลาประชุม</span>
+                            </a>
+                        {% else %}
+                            <div id="poll_item">
+                                {% for item in form.poll_items %}
+                                    <div id="{{ item.id }}">
+                                        <p class="mt-2 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                        <div class="field-body">
+                                            <div class="field">
+                                                <label class="label">{{ item.start.label }}</label>
+                                                <div class="control">{{ item.start(class='input') }}</div>
+                                            </div>
+                                            <div class="field">
+                                                <label class="label">{{ item.end.label }}</label>
+                                                <div class="control">{{ item.end(class='input') }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="poll-item-actions">
+                                <a class="card-footer-item" hx-post="{{ url_for('meeting_planner.add_poll_item') }}" hx-target="#poll_item" hx-swap="beforeend">
+                                    <span class="icon"><i class="fas fa-plus"></i></span><span>เพิ่มรายการ</span>
+                                </a>
+                                <a class="card-footer-item" hx-delete="{{ url_for('meeting_planner.remove_poll_item') }}" hx-target="#poll_item" hx-swap="innerHTML">
+                                    <span class="icon"><i class="far fa-trash-alt"></i></span><span>ลบรายการ</span>
                                 </a>
                             </div>
-                        {% else %}
-                            <div class="card">
-                                <div class="card-header">
-                                    <h1 class="card-header-title">เพิ่มวัน-เวลาประชุม</h1>
-                                </div>
-                                <div class="card-content">
-                                    <div id="poll_item">
-                                        {% for item in form.poll_items %}
-                                            <div id="{{ item.id }}">
-                                                <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
-                                                <div class="field-body">
-                                                    <div class="field">
-                                                        <label class="label">{{ item.start.label }}</label>
-                                                        <div class="control">
-                                                            {{ item.start(class='input') }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="field">
-                                                        <label class="label">{{ item.end.label }}</label>
-                                                        <div class="control">
-                                                            {{ item.end(class='input') }}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                </table>
-                                                {% if not loop.last %}
-                                                    <hr style="background-color: #F3F3F3">
-                                                {% endif %}
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <footer class="card-footer">
-                                    <a class="card-footer-item"
-                                        hx-post="{{ url_for('meeting_planner.add_poll_item') }}"
-                                        hx-target="#poll_item" hx-swap="beforeend">
-                                        <span class="icon">
-                                            <i class="fas fa-plus"></i>
-                                        </span>
-                                        <span>เพิ่ม</span>
-                                    </a>
-                                    <a class="card-footer-item"
-                                        hx-delete="{{ url_for('meeting_planner.remove_poll_item') }}"
-                                        hx-target="#poll_item" hx-swap="innerHTML">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                        <span class="has-text-danger">ลบ</span>
-                                    </a>
-                                </footer>
-                            </div>
-                            <br>
                         {% endif %}
+                    </section>
+                    <section class="poll-form-section">
+                        <h2 class="poll-form-section-heading"><span class="icon"><i class="fas fa-users"></i></span>ผู้เข้าร่วม</h2>
                         <div class="field">
-                            <label class="label">กลุ่ม</label>
+                            <label class="label" for="groups">กลุ่ม</label>
                             <div class="control">
-                                <select class="js-example-basic-multiple" name="groups" multiple="multiple"></select>
+                                <select id="groups" class="js-example-basic-multiple" name="groups" multiple="multiple"></select>
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">รายชื่อผู้เข้าร่วม</label>
-                            <div class="control">
-                                {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
-                            </div>
-                            <div class="buttons is-left">
-                                <span class="help is-danger">*หมายเหตุ : หากมีการเลือกกลุ่มแล้วไม่จำเป็นต้องเพิ่มรายชื่อผู้เข้าร่วม</span>
-                            </div>
+                            <label class="label" for="{{ form.participants.id }}">รายชื่อผู้เข้าร่วม</label>
+                            <div class="control">{{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}</div>
+                            <div class="notification is-danger is-light poll-audience-note">หมายเหตุ : หากมีการเลือกกลุ่มแล้วไม่จำเป็นต้องเพิ่มรายชื่อผู้เข้าร่วม</div>
                         </div>
-                        <br/>
-                        <div class="field is-grouped is-grouped-centered">
-                            {% if poll_id %}
-                                <div class="control">
-                                    <a href="{{ url_for('meeting_planner.detail_poll', poll_id=poll_id) }}"
-                                       class="button">Cancel</a>
-                                </div>
-                            {% else %}
-                                <div class="control">
-                                    <a href="{{ url_for('meeting_planner.list_poll') }}" class="button">Cancel</a>
-                                </div>
-                            {% endif %}
-                            <div class="control">
-                                <input type="submit" value="Submit" class="button is-success">
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                    </section>
+                    <div class="poll-form-actions">
+                        {% if poll_id %}
+                            <a href="{{ url_for('meeting_planner.detail_poll', poll_id=poll_id) }}" class="button is-light">ยกเลิก</a>
+                        {% else %}
+                            <a href="{{ url_for('meeting_planner.list_poll') }}" class="button is-light">ยกเลิก</a>
+                        {% endif %}
+                        <button type="submit" class="button is-success"><span class="icon"><i class="fas fa-save"></i></span><span>บันทึกแบบสำรวจ</span></button>
+                    </div>
+                </form>
             </div>
         </div>
     </section>

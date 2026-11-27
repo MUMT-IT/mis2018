@@ -1,55 +1,110 @@
 {% extends "base.html" %}
-{% block title %}MUMT Internal Information System{% endblock %}
+{% block title %}ระบบสำรวจวันประชุม | Meeting Planner{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .poll-creator-page { padding: 1.5rem 1rem 2.5rem; }
+        .poll-creator-page > .container { max-width: 1180px; }
+        .poll-creator-hero {
+            align-items: center; background: linear-gradient(130deg, #1a3d7c, #10264c); border: 1px solid rgba(16, 38, 76, .22);
+            border-radius: 20px; box-shadow: 0 8px 22px rgba(18, 39, 84, .1); color: #fff; display: flex;
+            gap: 1rem; justify-content: space-between; margin-bottom: 1.25rem; padding: 1.25rem 1.5rem;
+        }
+        .poll-creator-hero-copy { align-items: center; display: flex; gap: .9rem; }
+        .poll-creator-hero-icon { align-items: center; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .18); border-radius: 14px; display: inline-flex; flex: 0 0 3rem; height: 3rem; justify-content: center; }
+        .poll-creator-hero .eyebrow { color: #ffe08a; font-size: .72rem; font-weight: 800; letter-spacing: .12em; margin: 0 0 .2rem; text-transform: uppercase; }
+        .poll-creator-hero .title { color: #fff; font-size: clamp(1.35rem, 3vw, 1.8rem); line-height: 1.35; margin: 0 0 .2rem; }
+        .poll-creator-hero .description { color: rgba(255, 255, 255, .82); line-height: 1.5; margin: 0; }
+        .poll-creator-add-button { background: #f0c419; border-color: #f0c419; border-radius: 10px; color: #10264c; flex: 0 0 auto; font-weight: 700; min-height: 2.75rem; }
+        .poll-creator-add-button:hover { background: #ffe08a; border-color: #ffe08a; color: #10264c; }
+        .poll-creator-panel { background: rgba(255, 255, 255, .96); border: 1px solid #dce4ef; border-radius: 16px; box-shadow: 0 5px 16px rgba(18, 39, 84, .04); padding: .65rem .85rem .8rem; }
+        .poll-creator-panel-heading { align-items: center; display: flex; gap: .6rem; margin: .15rem .25rem .75rem; }
+        .poll-creator-panel-heading .icon { color: #315e9d; }
+        .poll-creator-panel-heading h2 { color: #1b3157; font-size: 1rem; font-weight: 700; margin: 0; }
+        #polls_wrapper { color: #536681; }
+        #polls_wrapper .dataTables_filter input,
+        #polls_wrapper .dataTables_length select { border: 1px solid #d9e1ed; border-radius: 9px; min-height: 2.35rem; padding: .35rem .65rem; }
+        #polls_wrapper .dataTables_length label { align-items: center; display: inline-flex; gap: .45rem; white-space: nowrap; }
+        #polls_wrapper .dataTables_length select { box-sizing: border-box; height: 2.35rem; margin: 0; min-width: 4.5rem; padding: .35rem 1.4rem .35rem .55rem; width: 4.5rem; }
+        #polls_wrapper .dataTables_filter input:focus,
+        #polls_wrapper .dataTables_length select:focus { border-color: #819dc5; box-shadow: 0 0 0 3px rgba(49, 91, 152, .1); outline: 0; }
+        #polls { min-width: 720px; }
+        #polls thead th { background: #f5f7fb; border-bottom: 1px solid #dce4ef; color: #304663; font-size: .84rem; white-space: nowrap; }
+        #polls tbody td { color: #344761; vertical-align: middle; }
+        .poll-creator-date { color: #536681; min-width: 10rem; white-space: nowrap; }
+        .poll-creator-name { color: #1a3d7c; font-weight: 700; }
+        .poll-creator-view { border-radius: 9px !important; font-weight: 700; min-width: 7.5rem; }
+        #polls_wrapper .dataTables_paginate .paginate_button { border-radius: 8px !important; }
+        @media (max-width: 768px) {
+            .poll-creator-page { padding: 1rem .75rem 2rem; }
+            .poll-creator-hero { align-items: stretch; border-radius: 16px; flex-direction: column; padding: 1rem; }
+            .poll-creator-hero-copy { align-items: flex-start; }
+            .poll-creator-hero-icon { flex-basis: 2.6rem; height: 2.6rem; }
+            .poll-creator-add-button { width: 100%; }
+            .poll-creator-panel { border-radius: 14px; padding: .5rem; }
+            #polls_wrapper .dataTables_filter,
+            #polls_wrapper .dataTables_length { float: none; text-align: left; }
+            #polls_wrapper .dataTables_filter input { margin-left: .25rem; max-width: 58vw; }
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
-    <section class="section">
+    <section class="section poll-creator-page">
         <div class="container">
-            <h1 class="title">ระบบสำรวจวันประชุม</h1>
             {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
-                    <div class="buttons is-centered">
-                        <a id="add_evt_btn" class="button is-info" href="{{ url_for('meeting_planner.edit_poll') }}">
-                            <span class="icon"><i class="far fa-calendar-plus"></i></span>
-                            <span>เพิ่มรายการ</span>
-                        </a>
+            <header class="poll-creator-hero">
+                <div class="poll-creator-hero-copy">
+                    <span class="poll-creator-hero-icon" aria-hidden="true"><i class="far fa-calendar-plus"></i></span>
+                    <div>
+                        <p class="eyebrow">Meeting Planner</p>
+                        <h1 class="title">ระบบสำรวจวันประชุม</h1>
+                        <p class="description">สร้างแบบสำรวจและติดตามกำหนดการลงคะแนน</p>
+                    </div>
+                </div>
+                <a id="add_evt_btn" class="button poll-creator-add-button" href="{{ url_for('meeting_planner.edit_poll') }}">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่มรายการ</span>
+                </a>
+            </header>
+            <section class="poll-creator-panel" aria-labelledby="poll-list-title">
+                    <div class="poll-creator-panel-heading">
+                        <span class="icon"><i class="fas fa-list-ul"></i></span>
+                        <h2 id="poll-list-title">รายการสำรวจทั้งหมด</h2>
                     </div>
                     <table id="polls" class="table is-fullwidth">
                         <thead>
-                            <th>ชื่อรายการ</th>
-                            <th>เริ่มสำรวจ</th>
-                            <th>ปิดสำรวจ</th>
-                            <th>รายละเอียด</th>
+                            <tr>
+                                <th scope="col">ชื่อรายการ</th>
+                                <th scope="col">เริ่มสำรวจ</th>
+                                <th scope="col">ปิดสำรวจ</th>
+                                <th scope="col">รายละเอียด</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {% for poll in polls|sort(attribute='start_vote') %}
                                 <tr>
                                     <td>
-                                        {{ poll.poll_name }}
+                                        <span class="poll-creator-name">{{ poll.poll_name }}</span>
                                     </td>
-                                    <td>
+                                    <td class="poll-creator-date">
                                         {{ poll.start_vote|localdatetime }}
                                     </td>
-                                    <td>
+                                    <td class="poll-creator-date">
                                         {{ poll.close_vote|localdatetime }}
                                     </td>
                                     <td>
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-info is-rounded is-light"
-                                                   href="{{ url_for('meeting_planner.detail_poll', poll_id=poll.id) }}">
-                                                    <span class="icon"><i class="fas fa-eye"></i></span>
-                                                    <span>View</span>
-                                                </a>
-                                            </div>
-                                        </div>
+                                        <a class="button is-small is-info is-light poll-creator-view"
+                                           href="{{ url_for('meeting_planner.detail_poll', poll_id=poll.id) }}">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                            <span>ดูรายละเอียด</span>
+                                        </a>
                                     </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                </div>
-            </div>
+            </section>
         </div>
     </section>
 {% endblock %}
@@ -59,6 +114,16 @@
         $(document).ready(function () {
             $('#polls').DataTable({
                 order: [[3, 'asc']],
+                scrollX: true,
+                autoWidth: false,
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่พบรายการ',
+                    zeroRecords: 'ไม่พบแบบสำรวจที่ตรงกับคำค้น',
+                    paginate: { first: 'หน้าแรก', last: 'หน้าสุดท้าย', next: 'ถัดไป', previous: 'ก่อนหน้า' }
+                }
             })
         });
     </script>

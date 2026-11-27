@@ -1,36 +1,94 @@
 {% extends "base.html" %}
-{% block title %}MUMT Internal Information System{% endblock %}
+{% block title %}แบบสำรวจที่ได้รับเชิญ | Meeting Planner{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .meeting-poll-page { padding-top: 1.5rem; }
+        .meeting-poll-page > .container { max-width: 1180px; }
+        .meeting-poll-hero {
+            align-items: center; background: linear-gradient(130deg, #1a3d7c, #10264c); border: 1px solid rgba(16, 38, 76, .22);
+            border-radius: 20px; box-shadow: 0 8px 22px rgba(18, 39, 84, .1); color: #fff; display: flex;
+            gap: 1rem; margin-bottom: 1.25rem; padding: 1.25rem 1.5rem;
+        }
+        .meeting-poll-hero-icon { align-items: center; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .18); border-radius: 14px; display: inline-flex; flex: 0 0 3rem; height: 3rem; justify-content: center; }
+        .meeting-poll-hero-copy .eyebrow { color: #ffe08a; font-size: .72rem; font-weight: 800; letter-spacing: .12em; margin: 0 0 .25rem; text-transform: uppercase; }
+        .meeting-poll-hero .title { color: #fff; font-size: clamp(1.35rem, 3vw, 1.8rem); line-height: 1.35; margin: 0 0 .25rem; }
+        .meeting-poll-hero .description { color: rgba(255, 255, 255, .82); line-height: 1.5; margin: 0; }
+        .meeting-poll-tabs { margin: 0 !important; }
+        .meeting-poll-tabs ul { border-bottom: 1px solid #dce4ef; gap: .35rem; }
+        .meeting-poll-tabs li a { border-radius: 11px 11px 0 0; color: #61738e; gap: .4rem; padding: .7rem 1rem; }
+        .meeting-poll-tabs li.is-active a { background: #fff; border-color: #dce4ef; border-bottom-color: #fff; color: #1a3d7c; font-weight: 700; }
+        .meeting-poll-table-panel { background: #fff; border: 1px solid #dce4ef; border-radius: 14px; box-shadow: 0 5px 16px rgba(18, 39, 84, .04); padding: .65rem .85rem .8rem; }
+        #poll_wrapper { color: #536681; }
+        #poll_wrapper .dataTables_filter input,
+        #poll_wrapper .dataTables_length select { border: 1px solid #d9e1ed; border-radius: 9px; min-height: 2.35rem; padding: .35rem .65rem; }
+        #poll_wrapper .dataTables_length label { align-items: center; display: inline-flex; gap: .45rem; white-space: nowrap; }
+        #poll_wrapper .dataTables_length select { box-sizing: border-box; height: 2.35rem; margin: 0; min-width: 4.5rem; padding: .35rem 1.4rem .35rem .55rem; width: 4.5rem; }
+        #poll_wrapper .dataTables_filter input:focus,
+        #poll_wrapper .dataTables_length select:focus { border-color: #819dc5; box-shadow: 0 0 0 3px rgba(49, 91, 152, .1); outline: 0; }
+        #poll { min-width: 720px; }
+        #poll thead th { background: #f5f7fb; border-bottom: 1px solid #dce4ef; color: #304663; font-size: .84rem; white-space: nowrap; }
+        #poll tbody td { color: #344761; vertical-align: middle; }
+        .poll-name-link { color: #1a3d7c; font-weight: 700; line-height: 1.45; }
+        .poll-name-link:hover { color: #315e9d; text-decoration: underline; text-underline-offset: 3px; }
+        .poll-date { color: #536681; min-width: 10rem; white-space: nowrap; }
+        .poll-action-button { border-radius: 9px !important; font-weight: 700; min-width: 8rem; }
+        .poll-status { border-radius: 8px; font-weight: 600; }
+        #poll_wrapper .dataTables_paginate .paginate_button { border-radius: 8px !important; }
+        @media (max-width: 768px) {
+            .meeting-poll-page { padding: 1rem .75rem; }
+            .meeting-poll-hero { align-items: flex-start; border-radius: 16px; gap: .8rem; padding: 1rem; }
+            .meeting-poll-hero-icon { flex-basis: 2.6rem; height: 2.6rem; }
+            .meeting-poll-hero .description { font-size: .9rem; }
+            .meeting-poll-tabs ul { display: flex; }
+            .meeting-poll-tabs li { flex: 1 1 50%; }
+            .meeting-poll-tabs li a { justify-content: center; padding: .65rem .4rem; }
+            .meeting-poll-table-panel { border-radius: 14px; padding: .5rem; }
+            #poll_wrapper .dataTables_filter,
+            #poll_wrapper .dataTables_length { float: none; text-align: left; }
+            #poll_wrapper .dataTables_filter input { margin-left: .25rem; max-width: 58vw; }
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
-    <section class="section">
+    <section class="section meeting-poll-page">
         <div class="container">
-            <h1 class="title" style="text-align: center">Poll Invitations</h1>
+            <header class="meeting-poll-hero">
+                <span class="meeting-poll-hero-icon" aria-hidden="true"><i class="fas fa-envelope-open-text"></i></span>
+                <div class="meeting-poll-hero-copy">
+                    <p class="eyebrow">Meeting Planner</p>
+                    <h1 class="title">แบบสำรวจที่ได้รับเชิญ</h1>
+                    <p class="description">ตรวจสอบช่วงเวลาสำรวจและส่งหรือแก้ไขคำตอบของคุณ</p>
+                </div>
+            </header>
             {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
-                    <div id="vote-detail-modal"></div>
-                    <div class="tabs is-boxed">
-                        <ul>
-                            <li {% if tab == 'new' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab='new') }}">
-                                    <span class="icon is-small"><i class="fa-solid fa-envelope"></i></span>
-                                    <span>รายการใหม่</span>
-                                </a>
-                            </li>
-                            <li {% if tab == 'all' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab='all') }}">
-                                    <span class="icon is-small"><i class="fa-solid fa-clock-rotate-left"></i></span>
-                                    <span>รายการทั้งหมด</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+            <div id="vote-detail-modal"></div>
+            <div class="tabs is-boxed meeting-poll-tabs">
+                <ul>
+                    <li {% if tab == 'new' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('meeting_planner.list_poll_participant', tab='new') }}" {% if tab == 'new' %}aria-current="page"{% endif %}>
+                            <span class="icon is-small"><i class="fas fa-envelope"></i></span>
+                            <span>รายการใหม่</span>
+                        </a>
+                    </li>
+                    <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('meeting_planner.list_poll_participant', tab='all') }}" {% if tab == 'all' %}aria-current="page"{% endif %}>
+                            <span class="icon is-small"><i class="fas fa-history"></i></span>
+                            <span>รายการทั้งหมด</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="meeting-poll-table-panel">
                     <table id="poll" class="table is-fullwidth">
                         <thead>
-                            <th>ชื่อรายการ</th>
-                            <th>เริ่มสำรวจ</th>
-                            <th>ปิดสำรวจ</th>
-                            <th></th>
+                            <tr>
+                                <th scope="col">ชื่อรายการ</th>
+                                <th scope="col">เริ่มสำรวจ</th>
+                                <th scope="col">ปิดสำรวจ</th>
+                                <th scope="col">การดำเนินการ</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {% if tab == 'new' %}
@@ -47,10 +105,10 @@
                                             {{ p.poll_name }}
                                         </a>
                                     </td>
-                                    <td>
+                                    <td class="poll-date">
                                         {{ p.start_vote|localdatetime }}
                                     </td>
-                                    <td>
+                                    <td class="poll-date">
                                         {{ p.close_vote|localdatetime }}
                                     </td>
                                     <td>
@@ -83,7 +141,6 @@
                             {% endfor %}
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>
     </section>
@@ -94,6 +151,16 @@
         $(document).ready(function () {
             $('#poll').DataTable({
                 order: [[3, 'asc']],
+                scrollX: true,
+                autoWidth: false,
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่พบรายการ',
+                    zeroRecords: 'ไม่พบแบบสำรวจที่ตรงกับคำค้น',
+                    paginate: { first: 'หน้าแรก', last: 'หน้าสุดท้าย', next: 'ถัดไป', previous: 'ก่อนหน้า' }
+                }
             });
         });
     </script>
