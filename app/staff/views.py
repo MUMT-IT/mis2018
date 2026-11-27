@@ -7826,8 +7826,8 @@ def seminar_add_attendee(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
-        # objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
-        # mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
+        objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
+        mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
         for personal_info_id in form.getlist("participants"):
             personal_info = StaffPersonalInfo.query.get(personal_info_id)
             account = personal_info.staff_account if personal_info else None
@@ -7850,10 +7850,13 @@ def seminar_add_attendee(seminar_id):
                 flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else 0
             )
             db.session.add(attend)
-            # if attend:
-            #     if objective:
-            #         objective.objective_attends.append(attend)
-            #         mission.mission_attends.append(attend)
+            if attend:
+                if form.get('objective'):
+                    if objective:
+                        objective.objective_attends.append(attend)
+                        mission.mission_attends.append(attend)
+                    else:
+                        flash('ไม่สามารถบันทึก วัตถุประสงค์ได้', 'success')
             db.session.commit()
             if attend.budget:
                 get_seminar_yearly_budget(account.id, seminar.start_datetime or attend.start_datetime)
@@ -7900,6 +7903,7 @@ def edit_seminar_attend_for_hr(seminar_attend_id):
     form_initial = {
         'start_datetime': seminar_attend.start_datetime.isoformat(),
         'end_datetime': seminar_attend.end_datetime.isoformat(),
+        'budget': seminar_attend.budget,
         'payment': 'paid' if has_expense else 'unpaid',
         'transportation': transportation,
         'registration_fee': seminar_attend.registration_fee,
@@ -7916,6 +7920,7 @@ def edit_seminar_attend_for_hr(seminar_attend_id):
         'staff_account_id': seminar_attend.staff_account_id,
     }
     if form.validate_on_submit():
+        previous_budget = seminar_attend.budget
         change_labels = {
             'role': 'บทบาท',
             'start_datetime': 'วันเวลาเริ่มต้น',
@@ -7951,10 +7956,19 @@ def edit_seminar_attend_for_hr(seminar_attend_id):
         seminar_attend.objectives = locked_objectives
         seminar_attend.idp_items = locked_idp_items
         seminar_attend.deduct_transfer = request.form.get('deduct_transfer') == 'yes'
-        seminar_attend.budget = sum(
+        expense_total = sum(
             float(getattr(seminar_attend, field) or 0)
             for field in expense_fields
-        ) or None
+        )
+        has_cost_breakdown = any(getattr(seminar_attend, field) for field in expense_fields)
+        costs_edited = request.form.get('costs_edited') == 'yes'
+        if expense_total:
+            seminar_attend.budget = expense_total
+        elif not costs_edited and not has_cost_breakdown:
+            # Preserve legacy records that only stored the aggregate budget.
+            seminar_attend.budget = previous_budget
+        else:
+            seminar_attend.budget = None
         if not seminar_attend.budget:
             seminar_attend.deduct_transfer = False
 
@@ -8537,8 +8551,12 @@ def current_seminar_attends(staff_account_id):
 @login_required
 def seminar_attend_search_result():
     budget = 0
-    distinct_topic_types = db.session.query(StaffSeminar.topic_type).distinct().all()
-    distinct_role = db.session.query(StaffSeminarAttend.role).distinct().all()
+    distinct_topic_types = db.session.query(StaffSeminar.topic_type) \
+        .filter(StaffSeminar.topic_type.isnot(None), StaffSeminar.topic_type != '') \
+        .distinct().all()
+    distinct_role = db.session.query(StaffSeminarAttend.role) \
+        .filter(StaffSeminarAttend.role.isnot(None), StaffSeminarAttend.role != '') \
+        .distinct().all()
     distinct_org = db.session.query(Org.name).distinct().order_by(Org.id).all()
     distinct_objective = db.session.query(StaffSeminarObjective.objective).distinct().all()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
@@ -8553,7 +8571,7 @@ def seminar_attend_search_result():
     )
 
     if request.method == 'POST' or request.args.get('staff') or request.args.get('dates'):
-        form = request.values
+        form = request.form if request.method == 'POST' else request.args
         selected_dates = form.get('dates') or selected_dates
         start_d, end_d = selected_dates.split(' - ')
         start = datetime.strptime(start_d, '%d/%m/%Y')
@@ -8605,12 +8623,14 @@ def seminar_attend_search_result():
                                personal_info_id=personal_info_id,
                                selected_staff_id=personal_info_id,
                                selected_staff_name=selected_staff.fullname if selected_staff else "",
-                               selected_topic_type=topic_type, selected_role=role,
+                               selected_topic_type=topic_type or '', selected_role=role or '',
+                               selected_objective=objective or '',
                                distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
                                distinct_org=distinct_org, selected_org=org, distinct_objective=distinct_objective)
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                            budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
-                           distinct_org=distinct_org, distinct_objective=distinct_objective, selected_dates=selected_dates)
+                           distinct_org=distinct_org, distinct_objective=distinct_objective, selected_dates=selected_dates,
+                           selected_topic_type='', selected_role='', selected_objective='')
 
 
 @staff.route('/seminar/yearly-budgets', methods=['GET'])

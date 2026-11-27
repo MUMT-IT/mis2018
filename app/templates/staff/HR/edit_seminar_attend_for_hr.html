@@ -180,6 +180,7 @@
                             <b-input type="text"
                                      name="registration_fee"
                                      v-model="registrationFee"
+                                     @input="costsEdited = true"
                                      icon-pack="far"
                                      icon="registered">
                             </b-input>
@@ -188,6 +189,7 @@
                             <b-input type="text"
                                      name="accommodation_cost"
                                      v-model="accommodationCost"
+                                     @input="costsEdited = true"
                                      icon-pack="far"
                                      icon="house">
                             </b-input>
@@ -196,6 +198,7 @@
                             <b-input type="text"
                                      name="fuel_cost"
                                      v-model="fuelCost"
+                                     @input="costsEdited = true"
                                      icon-pack="far"
                                      icon="gas-pump">
                             </b-input>
@@ -204,6 +207,7 @@
                             <b-input type="text"
                                      name="taxi_cost"
                                      v-model="taxiCost"
+                                     @input="costsEdited = true"
                                      icon-pack="far"
                                      icon="taxi">
                             </b-input>
@@ -212,6 +216,7 @@
                             <b-input type="text"
                                      name="train_ticket_cost"
                                      v-model="trainTicketCost"
+                                     @input="costsEdited = true"
                                      icon-pack="far"
                                      icon="train">
                             </b-input>
@@ -220,6 +225,7 @@
                             <b-input type="text"
                                      name="flight_ticket_cost"
                                      v-model="flightTicketCost"
+                                     @input="costsEdited = true"
                                      icon-pack="far"
                                      icon="plane">
                             </b-input>
@@ -238,6 +244,7 @@
                                      required>
                             </b-input>
                         </b-field>
+                        <input type="hidden" name="costs_edited" :value="costsEdited ? 'yes' : 'no'">
                         <div class="field">
                             <label class="checkbox">
                                 <input type="checkbox" name="deduct_transfer" value="yes" {% if form_initial.deduct_transfer %}checked{% endif %}>
@@ -352,6 +359,7 @@
                     trainTicketCost: formInitial.train_ticket_cost || '',
                     flightTicketCost: formInitial.flight_ticket_cost || '',
                     budgetType: formInitial.budget_type || '',
+                    costsEdited: false,
                     hasApproverPosition: false,
                     data: [],
                     participants: [],
@@ -399,6 +407,10 @@
                         + toAmount(this.taxiCost)
                         + toAmount(this.trainTicketCost)
                         + toAmount(this.flightTicketCost);
+                    const savedBudget = toAmount(formInitial.budget);
+                    if (!this.costsEdited && total === 0 && savedBudget > 0) {
+                        return savedBudget.toFixed(2);
+                    }
                     return total.toFixed(2);
                 }
             }
