@@ -7486,8 +7486,8 @@ def seminar_add_attendee(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
-        # objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
-        # mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
+        objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
+        mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
         for personal_info_id in form.getlist("participants"):
             personal_info = StaffPersonalInfo.query.get(personal_info_id)
             account = personal_info.staff_account if personal_info else None
@@ -7510,10 +7510,13 @@ def seminar_add_attendee(seminar_id):
                 flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else 0
             )
             db.session.add(attend)
-            # if attend:
-            #     if objective:
-            #         objective.objective_attends.append(attend)
-            #         mission.mission_attends.append(attend)
+            if attend:
+                if form.get('objective'):
+                    if objective:
+                        objective.objective_attends.append(attend)
+                        mission.mission_attends.append(attend)
+                    else:
+                        flash('ไม่สามารถบันทึก วัตถุประสงค์ได้', 'success')
             db.session.commit()
             if attend.budget:
                 get_seminar_yearly_budget(account.id, seminar.start_datetime or attend.start_datetime)
