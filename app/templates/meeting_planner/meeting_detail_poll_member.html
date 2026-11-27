@@ -116,9 +116,7 @@
                         </div>
                         <div class="poll-member-actions">
                             <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button is-light">กลับไปรายการสำรวจ</a>
-                            {% if poll.start_vote <= date_time_now and poll.close_vote > date_time_now %}
-                                <button type="submit" class="button is-success"><span class="icon"><i class="fas fa-sync-alt"></i></span><span>อัปเดตผลสำรวจ</span></button>
-                            {% endif %}
+                            <button type="submit" class="button is-success"><span class="icon"><i class="fas fa-sync-alt"></i></span><span>อัปเดตผลสำรวจ</span></button>
                         </div>
                     </form>
                     </div>
