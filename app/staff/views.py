@@ -7563,6 +7563,7 @@ def edit_seminar_attend_for_hr(seminar_attend_id):
     form_initial = {
         'start_datetime': seminar_attend.start_datetime.isoformat(),
         'end_datetime': seminar_attend.end_datetime.isoformat(),
+        'budget': seminar_attend.budget,
         'payment': 'paid' if has_expense else 'unpaid',
         'transportation': transportation,
         'registration_fee': seminar_attend.registration_fee,
@@ -7579,6 +7580,7 @@ def edit_seminar_attend_for_hr(seminar_attend_id):
         'staff_account_id': seminar_attend.staff_account_id,
     }
     if form.validate_on_submit():
+        previous_budget = seminar_attend.budget
         change_labels = {
             'role': 'บทบาท',
             'start_datetime': 'วันเวลาเริ่มต้น',
@@ -7614,10 +7616,19 @@ def edit_seminar_attend_for_hr(seminar_attend_id):
         seminar_attend.objectives = locked_objectives
         seminar_attend.idp_items = locked_idp_items
         seminar_attend.deduct_transfer = request.form.get('deduct_transfer') == 'yes'
-        seminar_attend.budget = sum(
+        expense_total = sum(
             float(getattr(seminar_attend, field) or 0)
             for field in expense_fields
-        ) or None
+        )
+        has_cost_breakdown = any(getattr(seminar_attend, field) for field in expense_fields)
+        costs_edited = request.form.get('costs_edited') == 'yes'
+        if expense_total:
+            seminar_attend.budget = expense_total
+        elif not costs_edited and not has_cost_breakdown:
+            # Preserve legacy records that only stored the aggregate budget.
+            seminar_attend.budget = previous_budget
+        else:
+            seminar_attend.budget = None
         if not seminar_attend.budget:
             seminar_attend.deduct_transfer = False
 
