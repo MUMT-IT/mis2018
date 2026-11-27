@@ -7516,7 +7516,7 @@ def seminar_add_attendee(seminar_id):
                         objective.objective_attends.append(attend)
                         mission.mission_attends.append(attend)
                     else:
-                        flash('ไม่สามารถบันทึก วัตถุประสงค์ได้', 'success')
+                        flash('ไม่สามารถบันทึก วัตถุประสงค์ได้', 'danger')
             db.session.commit()
             if attend.budget:
                 get_seminar_yearly_budget(account.id, seminar.start_datetime or attend.start_datetime)
@@ -8294,7 +8294,7 @@ def seminar_attend_search_result():
 
 
 @staff.route('/seminar/yearly-budgets', methods=['GET'])
-@login_required
+@hr_permission.require()
 def seminar_yearly_budgets():
     current_fiscal_year = convert_to_fiscal_year(date.today())
     fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
@@ -8339,6 +8339,16 @@ def seminar_yearly_budgets():
         fiscal_year_options=fiscal_year_options,
         seminar_search_dates=seminar_search_dates,
     )
+
+
+@staff.route('/seminar/yearly-budgets/recalculate<fiscal_year>/<staff_account_id>', methods=['GET'])
+@hr_permission.require()
+def recalculate_seminar_budget(fiscal_year, staff_account_id):
+    start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
+    get_seminar_yearly_budget(staff_account_id, start_fiscal_date)
+    staff = StaffAccount.query.get(staff_account_id)
+    flash('update วงเงินอบรมปีงบประมาณ {} ของ {} เรียบร้อยแล้ว'.format(int(fiscal_year), staff.personal_info), 'success')
+    return redirect(url_for('staff.seminar_yearly_budgets'))
 
 
 @staff.route('/api/time-report')
