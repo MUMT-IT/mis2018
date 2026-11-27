@@ -1,140 +1,167 @@
 {% extends "base.html" %}
+{% block title %}ลงคะแนนสำรวจวันประชุม | Meeting Planner{% endblock %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
     <style>
-        .is-disabled-box {
-            opacity: 0.5;
-            pointer-events: none;
-            background-color: #dddddd;
+        .poll-vote-page { padding: 1.5rem 1rem 2.5rem; }
+        .poll-vote-page > .container { max-width: 1280px; }
+        .poll-vote-hero {
+            align-items: center; background: linear-gradient(130deg, #1a3d7c, #10264c); border: 1px solid rgba(16, 38, 76, .22);
+            border-radius: 20px; box-shadow: 0 8px 22px rgba(18, 39, 84, .1); color: #fff; display: flex;
+            gap: 1rem; margin-bottom: 1.35rem; padding: 1.25rem 1.5rem;
+        }
+        .poll-vote-hero-icon { align-items: center; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .18); border-radius: 14px; display: inline-flex; flex: 0 0 3rem; height: 3rem; justify-content: center; }
+        .poll-vote-hero .eyebrow { color: #ffe08a; font-size: .72rem; font-weight: 800; letter-spacing: .12em; margin: 0 0 .25rem; text-transform: uppercase; }
+        .poll-vote-hero .title { color: #fff; font-size: clamp(1.35rem, 3vw, 1.8rem); line-height: 1.35; margin: 0 0 .25rem; }
+        .poll-vote-hero .poll-name { color: rgba(255, 255, 255, .86); line-height: 1.5; margin: 0; overflow-wrap: anywhere; }
+        .poll-vote-hero .poll-name strong { color: #ffe08a; font-size: 1.02rem; font-weight: 700; margin-left: .3rem; }
+        .poll-vote-layout { align-items: stretch; }
+        .poll-vote-card { background: rgba(255, 255, 255, .96); border-radius: 18px; height: 100%; padding: clamp(1rem, 2vw, 1.5rem); }
+        .poll-vote-section-title { align-items: center; color: #1b3157; display: flex; font-size: 1.08rem; gap: .55rem; margin-bottom: .9rem; }
+        .poll-vote-section-title .icon { color: #315e9d; }
+        .poll-vote-time-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 1.25rem; }
+        .poll-vote-time-card { background: #f5f8fd; border: 1px solid #e1e8f2; border-radius: 12px; padding: .8rem .95rem; }
+        .poll-vote-time-card .label-text { color: #71809a; display: block; font-size: .78rem; margin-bottom: .2rem; }
+        .poll-vote-time-card strong { color: #304663; font-size: .9rem; }
+        .poll-vote-divider { background: #e8edf4; border: 0; height: 1px; margin: 1.2rem 0; }
+        .poll-vote-option-list { display: grid; gap: .55rem; margin-bottom: 1.1rem; }
+        .poll-vote-option {
+            background: #f7f9fc; border: 1px solid #e2e8f0; border-radius: 11px; color: #304663;
+            line-height: 1.35; padding: .5rem .75rem;
+        }
+        .poll-vote-option:hover { background: #f1f5fb; border-color: #cbd8ea; }
+        .poll-vote-option input.is-checkradio + label {
+            align-items: flex-start; color: #304663; cursor: pointer; display: flex; flex-direction: column;
+            line-height: 1.35; padding-bottom: 0; padding-top: 0; width: 100%;
+        }
+        .poll-vote-option strong { color: #1a3d7c; }
+        .poll-vote-option .vote-time-detail { display: block; line-height: 1.35; margin-top: .05rem; }
+        .poll-vote-option .vote-conflict { color: #bd3c4b; display: block; font-size: .82rem; margin-top: .35rem; }
+        .poll-vote-option.is-disabled-box { background: #f3f4f6; border-color: #e1e3e7; opacity: .7; pointer-events: none; }
+        .poll-vote-option.is-disabled-box input.is-checkradio + label { color: #798397; }
+        .poll-vote-option.is-disabled-box strong { color: #68758b; }
+        .poll-vote-empty { background: #f7f9fc; border: 1px dashed #cbd6e5; border-radius: 11px; color: #71809a; padding: .85rem 1rem; }
+        .poll-vote-participant-list { display: flex; flex-wrap: wrap; gap: .4rem; }
+        .poll-vote-participant-tag { background: #eef3fb !important; border: 1px solid #dce6f4; border-radius: 999px; color: #29466f !important; margin: 0 !important; }
+        .poll-vote-actions { border-top: 1px solid #e7ebf2; display: flex; flex-wrap: wrap; gap: .6rem; justify-content: flex-end; margin-top: 1.25rem; padding-top: 1rem; }
+        .poll-vote-actions .button { border-radius: 10px; min-width: 8.5rem; }
+        .poll-vote-progress-heading { align-items: flex-start; display: flex; gap: .75rem; justify-content: space-between; margin-bottom: .9rem; }
+        .poll-vote-progress-count { color: #71809a; font-size: .85rem; margin: .2rem 0 0 1.85rem; }
+        .poll-vote-progress-percent { background: #1a3d7c; border-radius: 10px; color: #fff; font-size: 1rem; font-weight: 700; padding: .45rem .65rem; white-space: nowrap; }
+        .poll-vote-progress-item { border-bottom: 1px solid #edf0f5; padding: .7rem 0 .45rem; }
+        .poll-vote-progress-item:last-child { border-bottom: 0; }
+        .poll-vote-progress-label { align-items: flex-start; color: #40516a; display: flex; font-size: .87rem; gap: .7rem; justify-content: space-between; line-height: 1.45; margin-bottom: .4rem; }
+        .poll-vote-progress-label .vote-count { color: #71809a; flex: 0 0 auto; font-size: .8rem; white-space: nowrap; }
+        .poll-vote-progress-item .progress { height: .6rem; margin-bottom: .35rem; }
+        .poll-vote-live-note { border-radius: 12px; margin: 1.15rem 0 0; }
+        @media (max-width: 768px) {
+            .poll-vote-page { padding: 1rem .75rem 2rem; }
+            .poll-vote-hero { align-items: flex-start; border-radius: 16px; gap: .8rem; padding: 1rem; }
+            .poll-vote-hero-icon { flex-basis: 2.6rem; height: 2.6rem; }
+            .poll-vote-card { height: auto; }
+            .poll-vote-time-grid { grid-template-columns: minmax(0, 1fr); }
+            .poll-vote-progress-heading { flex-wrap: wrap; }
+            .poll-vote-progress-label { flex-direction: column; gap: .15rem; }
+            .poll-vote-actions { flex-direction: column-reverse; }
+            .poll-vote-actions .button { width: 100%; }
         }
     </style>
 {% endblock %}
 {% block page_content %}
     {% include "meeting_planner/nav.html" %}
-    <section class="section">
+    <section class="section poll-vote-page">
         <div class="container">
             {% include "messages.html" %}
-            <h1 class="title has-text-centered">รายละเอียดการสำรวจวันประชุม</h1>
-            <p class="subtitle is-5 has-text-grey has-text-centered">
-                หัวข้อ: <strong class="has-text-link">{{ poll.poll_name }}</strong>
-            </p>
-            <div class="columns is-variable is-6 is-align-items-stretch">
-                <div class="column is-7 box" style="height: 100%">
-                    <form method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <h1 class="title is-4 mt-2">
-                            <span class="icon has-text-link"><i class="fas fa-info-circle"></i></span>
-                            <span>รายละเอียด</span>
-                        </h1>
-                        <div class="columns mb-5">
-                            <div class="column">
-                                <div class="notification is-light py-3 px-4 is-rounded">
-                                    <p class="is-size-7 has-text-grey">เริ่มสำรวจ</p>
-                                    <p><strong>{{ poll.start_vote|localdatetime }}</strong></p>
+            <header class="poll-vote-hero">
+                <span class="poll-vote-hero-icon" aria-hidden="true"><i class="fas fa-calendar-check"></i></span>
+                <div>
+                    <p class="eyebrow">Meeting Planner</p>
+                    <h1 class="title">รายละเอียดการสำรวจวันประชุม</h1>
+                    <p class="poll-name">หัวข้อ: <strong>{{ poll.poll_name }}</strong></p>
+                </div>
+            </header>
+            <div class="columns is-variable is-5 poll-vote-layout">
+                <div class="column is-7">
+                    <div class="box poll-vote-card">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <h2 class="poll-vote-section-title"><span class="icon"><i class="fas fa-info-circle"></i></span>รายละเอียดการสำรวจ</h2>
+                            <div class="poll-vote-time-grid">
+                                <div class="poll-vote-time-card">
+                                    <span class="label-text">เริ่มสำรวจ</span>
+                                    <strong>{{ poll.start_vote|localdatetime }}</strong>
+                                </div>
+                                <div class="poll-vote-time-card">
+                                    <span class="label-text">ปิดสำรวจ</span>
+                                    <strong>{{ poll.close_vote|localdatetime }}</strong>
                                 </div>
                             </div>
-                            <div class="column">
-                                <div class="notification is-light py-3 px-4 is-rounded">
-                                    <p class="is-size-7 has-text-grey">ปิดสำรวจ</p>
-                                    <p><strong>{{ poll.close_vote|localdatetime }}</strong></p>
-                                </div>
+                            <hr class="poll-vote-divider">
+                            <h2 class="poll-vote-section-title"><span class="icon"><i class="far fa-calendar"></i></span>เลือกวัน-เวลาที่สะดวก</h2>
+                            <div class="poll-vote-option-list">
+                                {% for item in poll.poll_items %}
+                                    <div class="poll-vote-option{% if item.id in conflict_item_ids %} is-disabled-box{% endif %}">
+                                        <input class="is-checkradio" id="{{ item.id }}" type="checkbox" name="check_vote" value="{{ item.id }}"
+                                                {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}checked{% endif %}>
+                                        <label for="{{ item.id }}">
+                                            {% if item.start|localdate != item.end|localdate %}
+                                                <strong>{{ item.start|localdate }} - {{ item.end|localdate }}</strong>
+                                            {% else %}
+                                                <strong>{{ item.start|localdate }}</strong>
+                                            {% endif %}
+                                            <span class="vote-time-detail">{{ item.start|localtime }} - {{ item.end|localtime }}</span>
+                                            {% if item.id in conflict_item_ids %}
+                                                <span class="vote-conflict"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> ช่วงเวลานี้ซ้ำกับการประชุมอื่น</span>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                {% else %}
+                                    <div class="poll-vote-empty">ยังไม่มีตัวเลือกวันและเวลาสำหรับการสำรวจนี้</div>
+                                {% endfor %}
                             </div>
+                            <hr class="poll-vote-divider">
+                            <h2 class="poll-vote-section-title"><span class="icon"><i class="fas fa-users"></i></span>รายชื่อผู้เข้าร่วม</h2>
+                            <div class="poll-vote-participant-list">
+                                {% for p in poll.participants %}
+                                    <span class="tag poll-vote-participant-tag">{{ p.fullname }}</span>
+                                {% endfor %}
+                            </div>
+                            <div class="poll-vote-actions">
+                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button is-light">กลับไปรายการสำรวจ</a>
+                                <button type="submit" class="button is-success"><span class="icon"><i class="fas fa-check"></i></span><span>บันทึกคำตอบ</span></button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="column is-5">
+                    <div class="box poll-vote-card">
+                        <div class="poll-vote-progress-heading">
+                            <div>
+                                <h2 class="poll-vote-section-title"><span class="icon"><i class="fas fa-poll-h"></i></span>ผลสำรวจวัน-เวลาประชุม</h2>
+                                <p class="poll-vote-progress-count">ผู้ตอบแล้ว {{ voted|length }} จาก {{ poll.participants|length }} คน</p>
+                            </div>
+                            <span class="poll-vote-progress-percent">{{ vote_percentage|round|int }}%</span>
                         </div>
-                        <hr>
-                        <h1 class="title is-5 mt-2">
-                            <span class="icon has-text-link"><i class="far fa-calendar"></i></span>
-                            <span>วัน-เวลาที่สะดวก</span>
-                        </h1>
-                        {% for item in poll.poll_items %}
-                            <div {% if item.id in conflict_item_ids %}
-                                    class="box is-disabled-box"
-                                 {% else %}
-                                    class="box"
-                                {% endif %}
-                            >
-                                <input class="is-checkradio" id="{{ item.id }}" type="checkbox" name="check_vote" value="{{ item.id }}"
-                                        {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
-                                            checked
-                                        {% endif %}
-                                >
-                                <label for="{{ item.id }}">
-                                    {% if item.start|localdate != item.end|localdate %}
-                                        <strong>{{ item.start|localdate }} - {{ item.end|localdate }}</strong>
-                                    {% else %}
-                                        <strong>{{ item.start|localdate }}</strong>
-                                    {% endif %}
-                                    <br>
-                                    <span style="margin-left: 1.9em">
-                                        {{ item.start|localtime }} - {{ item.end|localtime }}
-                                    </span>
-                                    {% if item.id in conflict_item_ids %}
-                                        <br>
-                                        <span class="icon has-text-danger" style="margin-left: 1.7em"><i class="fas fa-exclamation-triangle"></i></span>
-                                        <span class="has-text-danger">
-                                            ช่วงเวลานี้ซ้ำกับการประชุมอื่น
-                                        </span>
-                                    {% endif %}
-                                </label>
-                            </div>
-                        {% endfor %}
-                        <hr>
-                        <h1 class="title is-5 mt-2">
-                            <span class="icon has-text-link"><i class="fas fa-users"></i></span>
-                            <span>รายชื่อผู้เข้าร่วม</span>
-                        </h1>
-                        <div class="field">
-                            {% for p in poll.participants %}
-                                <span class="tag is-light is-size-7 is-rounded mb-2">
-                                    {{ p.fullname }}
-                                </span>
-                                <br>
+                        <div class="poll-vote-progress-list">
+                            {% for item in poll.poll_items %}
+                                <div class="poll-vote-progress-item">
+                                    <div class="poll-vote-progress-label">
+                                        <span>{{ item.start|localdatetime }} - {{ item.end|localdatetime }}</span>
+                                        <span class="vote-count">{{ item.voters.count() }} คน</span>
+                                    </div>
+                                    <progress class="progress is-success" value="{{ item.voters.count() }}" max="{{ poll.participants|length }}"></progress>
+                                </div>
+                            {% else %}
+                                <div class="poll-vote-empty">ยังไม่มีข้อมูลผลสำรวจ</div>
                             {% endfor %}
                         </div>
-                        <div class="field is-grouped is-grouped-centered mb-3">
-                            <div class="control">
-                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button">
-                                    Cancel
-                                </a>
+                        <article class="message is-warning poll-vote-live-note">
+                            <div class="message-body">
+                                <strong>หมายเหตุ:</strong> ผลโหวตจะอัปเดตเมื่อผู้เข้าร่วมส่งคำตอบ
                             </div>
-                            <div class="control">
-                                <input type="submit" value="Submit" class="button is-success">
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="column is-5 box ml-5" style="height: 100%">
-                    <div class="level">
-                        <div class="level-left">
-                            <div>
-                                <h1 class="title is-4 mt-2">
-                                    <span class="icon has-text-link"><i class="fas fa-poll-h"></i></span>
-                                    <span>ผลสำรวจวัน-เวลาประชุม</span>
-                                </h1>
-                                <h1 class="subtitle has-text-grey" style="margin-left:  1.7em">Voted {{ voted|length }}/{{ poll.participants|length }} persons</h1>
-                            </div>
-                        </div>
-                        <div class="level-right">
-                            <span class="tag is-link is-large"><strong class="has-text-white">{{ vote_percentage }} %</strong></span>
-                        </div>
+                        </article>
                     </div>
-                    <hr>
-                    <div class="field">
-                        {% for item in poll.poll_items %}
-                            <span>
-                                {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
-                            </span>
-                            <span style="float:right">จำนวนผู้สำรวจ {{ item.voters.count() }}</span>
-                            <progress class="progress is-success" value="{{ item.voters.count() }}"
-                                      max="{{ poll.participants|length }}">
-                            </progress>
-                        {% endfor %}
-                    </div>
-                    <article class="message is-warning mt-6 mb-3">
-                        <div class="message-body">
-                            <strong>หมายเหตุ :</strong> ผลโหวตจะอัปเดตแบบเรียลไทม์เมื่อผู้เข้าร่วมดำเนินการโหวต
-                        </div>
-                    </article>
                 </div>
             </div>
         </div>
