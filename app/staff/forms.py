@@ -79,9 +79,11 @@ class StaffPositionForm(ModelForm):
         model = StaffGroupAssociation
 
     staff = QuerySelectField('ชื่อ', query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname',
-                             allow_blank=True, blank_text='กรุณาเลือกชื่อ')
+                             allow_blank=True, blank_text='กรุณาเลือกชื่อ',
+                             validators=[DataRequired(message='กรุณาเลือกชื่อกรรมการ')])
     position = QuerySelectFieldAppendable('ตำแหน่ง', query_factory=lambda: StaffGroupPosition.query.all(),
-                                allow_blank=True, blank_text='กรุณาเลือกตำแหน่ง', get_label='position')
+                                allow_blank=True, blank_text='กรุณาเลือกตำแหน่ง', get_label='position',
+                                validators=[DataRequired(message='กรุณาเลือกตำแหน่งกรรมการ')])
 
 
 class StaffGroupDetailForm(ModelForm):
