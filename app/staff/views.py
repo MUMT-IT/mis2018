@@ -9640,10 +9640,17 @@ def create_group_detail(group_detail_id=None):
         form = StaffGroupDetailForm()
         group_detail = None
     if form.validate_on_submit():
+        if not form.group_members.data:
+            flash('กรุณาเพิ่มรายชื่อคณะกรรมการ', 'danger')
+            return render_template('staff/add_group.html', form=form, group_detail_id=group_detail_id,
+                                   group_detail=group_detail)
         if group_detail_id is None:
             group_detail = StaffGroupDetail()
 
         form.populate_obj(group_detail)
+        group_type = request.form.get('group_type')
+        group_detail.public = group_type == 'public'
+        group_detail.official = group_type == 'private'
         file = form.file_upload.data
         if file and allowed_file(file.filename):
             mime_type = file.mimetype
@@ -9663,8 +9670,13 @@ def create_group_detail(group_detail_id=None):
         flash('บันทึกข้อมูลสำเร็จ.', 'success')
         return redirect(url_for('staff.list_group_detail'))
     else:
-        for er in form.errors:
-            flash(er, 'danger')
+        if form.group_members.errors:
+            flash('กรุณาเพิ่มรายชื่อคณะกรรมการ', 'danger')
+        for field_name, errors in form.errors.items():
+            if field_name == 'group_members':
+                continue
+            for error in errors:
+                flash(error, 'danger')
     return render_template('staff/add_group.html', form=form, group_detail_id=group_detail_id,
                            group_detail=group_detail)
 
