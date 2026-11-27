@@ -5,6 +5,60 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
     <style>
+        .complaint-form-page { padding-top: 1.5rem; }
+        .complaint-form-page > .container { max-width: 960px; }
+        .complaint-form-intro {
+            align-items: center; background: transparent; border: 0; border-radius: 0; box-shadow: none;
+            box-sizing: border-box; color: #15284d; display: flex; flex-wrap: wrap; gap: .45rem .65rem;
+            justify-content: center; margin: 1.25rem 0 1.5rem; padding: 0; text-align: center; width: 100%;
+        }
+        .complaint-form-intro .icon {
+            color: #315b98; display: inline-flex; flex: 0 0 auto; height: auto; justify-content: center;
+            width: auto;
+        }
+        .complaint-form-intro > span:not(.icon) { color: #63738c; font-size: .96rem; font-weight: 500; }
+        .complaint-form-user { color: #15284d; font-size: 1.12rem; font-weight: 700; line-height: 1.45; min-width: 0; overflow-wrap: anywhere; }
+        .complaint-form-intro.subtitle { color: inherit; margin: 1.25rem 0 1.5rem; }
+        .complaint-form-card { background: rgba(255, 255, 255, .96); border-radius: 22px; padding: clamp(1.15rem, 3vw, 2rem); }
+        .complaint-form .field { margin-bottom: 1.15rem; }
+        .complaint-form .label { color: #263a5b; font-size: .94rem; margin-bottom: .45rem; }
+        .complaint-form .input,
+        .complaint-form .textarea,
+        .complaint-form .select select {
+            border-color: #d7deeb; border-radius: 11px; box-shadow: none; min-height: 2.8rem;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .complaint-form .input[readonly] { background: #f5f7fb; color: #50617c; }
+        .complaint-form .input:focus,
+        .complaint-form .textarea:focus,
+        .complaint-form .select select:focus { border-color: #7594c4; box-shadow: 0 0 0 3px rgba(49, 91, 152, .12); }
+        .complaint-form .textarea { min-height: 9rem; resize: vertical; }
+        .complaint-form .select, .complaint-form .select select { max-width: 100%; width: 100%; }
+        .complaint-form .select2-container { width: 100% !important; }
+        .complaint-form .select2-container--default .select2-selection--single,
+        .complaint-form .select2-container--default .select2-selection--multiple {
+            background: #fff; border: 1px solid #d7deeb; border-radius: 11px; min-height: 2.8rem;
+        }
+        .complaint-form .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 2.7rem; padding-left: .8rem; }
+        .complaint-form .select2-container--default .select2-selection--single .select2-selection__arrow { height: 2.7rem; }
+        .complaint-form .select2-container--default.select2-container--focus .select2-selection--multiple,
+        .complaint-form .select2-container--default.select2-container--open .select2-selection--single { border-color: #7594c4; }
+        .complaint-form .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background: #eef3ff; border: 1px solid #d4def0; border-radius: 999px; color: #203b67; margin-top: .35rem;
+        }
+        .complaint-form .procurement-table-wrap { border: 1px solid #e1e7f0; border-radius: 14px; margin-top: .5rem; overflow-x: auto; }
+        .complaint-form .procurement-table-wrap .table { margin-bottom: 0; min-width: 36rem; }
+        .complaint-form .procurement-table-wrap td { vertical-align: middle; }
+        .complaint-form .procurement-table-wrap td:first-child { width: 38%; }
+        .complaint-form .procurement-table-wrap .label { margin-bottom: 0; }
+        .complaint-form .contact-card { background: #fbfcff; border-radius: 16px; }
+        .complaint-form .file { max-width: 100%; }
+        .complaint-form .file-label { max-width: 100%; }
+        .complaint-form .file-name { max-width: min(26rem, 62vw); }
+        .complaint-form .privacy-link { color: #315e9d; font-size: .9rem; text-decoration: underline; text-underline-offset: 3px; }
+        .complaint-form-actions { border-top: 1px solid #e7ebf2; margin-top: 1.5rem; padding-top: 1.25rem; }
+        .complaint-form-actions .button { border-radius: 11px; min-width: 8rem; }
+        .complaint-form-actions .button.is-success { box-shadow: 0 5px 12px rgba(46, 139, 87, .16); }
         .repair-quick-entry { margin-bottom: 1.25rem; }
         .repair-quick-entry h2 { color: #263a5b; font-size: 1.15rem; font-weight: 700; margin-bottom: .25rem; }
         .repair-quick-entry p { color: #637896; font-size: .9rem; margin-bottom: .8rem; }
@@ -20,11 +74,19 @@
         .repair-more:hover { text-decoration: underline; }
         #repairOtherChips { display: none; }
         #repairOtherChips.is-open { display: flex; }
-        @media (max-width: 600px) { .repair-chip { font-size: .82rem; padding: .5rem .7rem; } }
+        @media (max-width: 600px) {
+            .complaint-form-page { padding: 1rem .75rem; }
+            .complaint-form-intro { justify-content: center; margin: .85rem 0 1rem; }
+            .complaint-form-intro.subtitle { font-size: 1.05rem; margin: .85rem 0 1rem; }
+            .complaint-form-card { padding: 1rem; }
+            .complaint-form-actions { align-items: stretch; display: flex; flex-direction: column-reverse; }
+            .complaint-form-actions .button { width: 100%; }
+            .repair-chip { font-size: .82rem; padding: .5rem .7rem; }
+        }
     </style>
 {% endblock %}
 {% block page_content %}
-<section class="section">
+<section class="section complaint-form-page">
     <div class="container">
         {% include 'messages.html' %}
         <div class="columns">
@@ -33,12 +95,14 @@
                 {% if not current_user.is_authenticated %}
                     <div class="notification is-light is-info">หากท่านเป็นบุคลากรของคณะเทคนิคการแพทย์ โปรด login เพื่อสามารถติดตามการดำเนินการได้ <a href="{{ url_for('auth.login', next=request.url) }}">ที่นี่</a></div>
                 {% else %}
-                    <h1 class="subtitle has-text-centered">
-                        แจ้งปัญหาโดย {{ current_user.fullname }}
+                    <h1 class="subtitle has-text-centered complaint-form-intro">
+                        <span class="icon" aria-hidden="true"><i class="fas fa-clipboard-list"></i></span>
+                        <span>แจ้งปัญหาโดย</span>
+                        <strong class="complaint-form-user">{{ current_user.fullname }}</strong>
                     </h1>
                 {% endif %}
-                <div class="box">
-                    <form id="myForm"
+                <div class="box complaint-form-card">
+                    <form id="myForm" class="complaint-form"
                           hx-indicator="#spinner"
                           hx-post="{{ url_for('comp_tracker.new_record', topic_id=topic.id) }}"
                           hx-encoding="multipart/form-data"
@@ -121,9 +185,8 @@
                         {% elif topic.code == 'runied' and procurement %}
                             <div class="field">
                                 <label class="label">รายละเอียดครุภัณฑ์</label>
+                                    <div class="procurement-table-wrap">
                                     <table class="table is-striped is-fullwidth">
-                                        <thed>
-                                        </thed>
                                         <tbody>
                                             <tr>
                                                 <td><label class="label">ชื่อครุภัณฑ์</label></td>
@@ -185,6 +248,7 @@
                                             </tr>
                                         </tbody>
                                     </table>
+                                    </div>
                             </div>
                         {% endif %}
                         {% if is_admin %}
@@ -233,7 +297,7 @@
                                         <i class="fas fa-upload"></i>
                                       </span>
                                       <span class="file-label">
-                                        Choose a file…
+                                        เลือกไฟล์
                                       </span>
                                     </span>
                                     <span class="file-name" id="filename"></span>
@@ -244,7 +308,7 @@
                             <div class="field">
                                 <label class="label">ข้อมูลติดต่อผู้แจ้ง</label>
                             </div>
-                            <div class="card">
+                            <div class="card contact-card">
                                 <div class="card-content">
                                     <div class="field">
                                         <label class="label">{{ form.fl_name.label }}</label>
@@ -271,7 +335,7 @@
                             </div>
                         {% endif %}
                         <div class="field">
-                            <a href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
+                            <a class="privacy-link" href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
                                 นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล
                             </a>
                         </div>
@@ -279,10 +343,10 @@
                             <p class="subtitle has-text-info is-hidden" id="progressMessage">กำลังดำเนินการ โปรดรอสักครู่</p>
                         </div>
                         <div class="field">
-                            <div class="buttons is-centered">
-                                <a id="cancelButton" class="button is-light" href="{{ url_for('comp_tracker.index') }}">Back</a>
+                            <div class="buttons is-centered complaint-form-actions">
+                                <a id="cancelButton" class="button is-light" href="{{ url_for('comp_tracker.index') }}">ย้อนกลับ</a>
                                 <button id="submitButton" class="button is-success">
-                                    <span>Submit</span>
+                                    <span>ส่งเรื่อง</span>
                                     <span id="spinnerIcon" class="icon is-hidden" id="spinner">
                                         <i class="fas fa-spinner fa-pulse"></i>
                                     </span>
@@ -301,7 +365,7 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(()=>{
-            $('#filename').text('None');
+            $('#filename').text('ยังไม่ได้เลือกไฟล์');
         })
         $('#file_upload').change(function(e) {
             let fileName = e.target.files[0].name;
