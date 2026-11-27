@@ -8197,8 +8197,12 @@ def current_seminar_attends(staff_account_id):
 @login_required
 def seminar_attend_search_result():
     budget = 0
-    distinct_topic_types = db.session.query(StaffSeminar.topic_type).distinct().all()
-    distinct_role = db.session.query(StaffSeminarAttend.role).distinct().all()
+    distinct_topic_types = db.session.query(StaffSeminar.topic_type) \
+        .filter(StaffSeminar.topic_type.isnot(None), StaffSeminar.topic_type != '') \
+        .distinct().all()
+    distinct_role = db.session.query(StaffSeminarAttend.role) \
+        .filter(StaffSeminarAttend.role.isnot(None), StaffSeminarAttend.role != '') \
+        .distinct().all()
     distinct_org = db.session.query(Org.name).distinct().order_by(Org.id).all()
     distinct_objective = db.session.query(StaffSeminarObjective.objective).distinct().all()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
@@ -8213,7 +8217,7 @@ def seminar_attend_search_result():
     )
 
     if request.method == 'POST' or request.args.get('staff') or request.args.get('dates'):
-        form = request.values
+        form = request.form if request.method == 'POST' else request.args
         selected_dates = form.get('dates') or selected_dates
         start_d, end_d = selected_dates.split(' - ')
         start = datetime.strptime(start_d, '%d/%m/%Y')
@@ -8265,12 +8269,14 @@ def seminar_attend_search_result():
                                personal_info_id=personal_info_id,
                                selected_staff_id=personal_info_id,
                                selected_staff_name=selected_staff.fullname if selected_staff else "",
-                               selected_topic_type=topic_type, selected_role=role,
+                               selected_topic_type=topic_type or '', selected_role=role or '',
+                               selected_objective=objective or '',
                                distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
                                distinct_org=distinct_org, selected_org=org, distinct_objective=distinct_objective)
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                            budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
-                           distinct_org=distinct_org, distinct_objective=distinct_objective, selected_dates=selected_dates)
+                           distinct_org=distinct_org, distinct_objective=distinct_objective, selected_dates=selected_dates,
+                           selected_topic_type='', selected_role='', selected_objective='')
 
 
 @staff.route('/seminar/yearly-budgets', methods=['GET'])
